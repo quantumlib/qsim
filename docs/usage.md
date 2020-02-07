@@ -1,7 +1,7 @@
 # Usage
 
 qsim and qsimh can be used in many different ways. Sample applications are
-provided in [apps](apps). To compile the codes, just run
+provided in [apps](/apps). To compile the codes, just run
 
 ```
 $ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim1 qsim1.cc
@@ -11,7 +11,7 @@ $ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh1 qsimh1.cc
 $ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh2 qsimh2.cc
 ```
 
-Sample circuits are provided in [circuits](circuits).
+Sample circuits are provided in [circuits](/circuits).
 
 ## qsim1 usage
 

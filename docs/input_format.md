@@ -10,7 +10,7 @@ time gate_name qubits parameters
 Here `time` is a gate application "time". Gates with the same time can be
 applied independently and they may be reordered for performance. Trailing
 spaces or characters are not allowed. A number of sample circuits are provided
-in [circuits](circuits).
+in [circuits](/circuits).
 
 # Supported gates
 
