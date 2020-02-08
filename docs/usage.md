@@ -96,9 +96,9 @@ Example:
 qsimh1 just computes and just prints the first eight amplitudes. The hybrid
 Schrödinger-Feynman method is used. The lattice is split into two parts.
 A two level checkpointing scheme is used to improve performance. Say, there
-are $$k$$ gates on the cut. We split those into three parts: $$p+r+s=k$$, where
-$$p$$ is the number of "prefix" gates, $$r$$ is the number of "root" gates and
-$$s$$ is the number of "suffix" gates. The first checkpoint is executed after
+are `k` gates on the cut. We split those into three parts: `p+r+s=k`, where
+`p` is the number of "prefix" gates, `r` is the number of "root" gates and
+`s` is the number of "suffix" gates. The first checkpoint is executed after
 applying all the gates up to and including the prefix gates and the second
 checkpoint is executed after applying all the gates up to and including the
 root gates. The full summation over all the paths for the root and suffix gates
