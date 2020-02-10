@@ -13,9 +13,9 @@ Nature 574, 505, (2019).
 qsim is a Schrödinger full state-vector simulator. It computes all the
 ![2^n](https://render.githubusercontent.com/render/math?math=2%5En)
 amplitudes of the state vector, where
-![m](https://render.githubusercontent.com/render/math?math=m) is the number ofqubits.
-Essentially, the simulator performs matrix-vector multiplications repeatedly.
-One matrix-vector multiplication corresponds to applying one gate.
+![n](https://render.githubusercontent.com/render/math?math=n) is the number of
+qubits. Essentially, the simulator performs matrix-vector multiplications
+repeatedly. One matrix-vector multiplication corresponds to applying one gate.
 The total runtime is proportional to
 ![g2^n](https://render.githubusercontent.com/render/math?math=g2%5En), where
 ![g](https://render.githubusercontent.com/render/math?math=g) is the number of
@@ -66,7 +66,7 @@ up to and including the prefix gates and the second checkpoint is executed
 after applying all the gates up to and including the root gates. The full
 summation over all the paths for the root and suffix gates is performed.
 
-If ![p>0](https://render.githubusercontent.com/render/math?math=p%3E0)
+If ![p > 0](https://render.githubusercontent.com/render/math?math=p%20%3E%200)
 then one such simulation gives
 ![F\approx 1/m^p](https://render.githubusercontent.com/render/math?math=F%5Capprox%201%2Fm%5Ep)
 (for all the prefix gates having the same Schmidt rank m). One needs to run
