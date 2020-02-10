@@ -72,8 +72,14 @@ circuits.
 ### Unit tests
 
 Unit tests are located in [tests](tests). The Google test framework is used.
-Paths to Google test include files and to Google test library files should be
-edited in [tests/make.sh](tests/make.sh).
+To build and run all tests, navigate to the test directory and run:
+```
+make run-all
+```
+This will compile all test binaries to files with `.x` extensions, and run each
+test in series. Testing will stop early if a test fails.
+
+To clean up generated test files, run `make clean` from the test directory.
 
 ## Cirq Usage
 

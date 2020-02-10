@@ -14,8 +14,11 @@
 
 #!/bin/bash
 
-path_to_include=../../../googletest/googletest/include
-path_to_lib=../../../googletest/lib
+# This file provides an alternate method for building tests in this directory.
+# Prefer using the Makefile (e.g. `make run-all`) if possible.
+
+path_to_include=googletest/googletest/include
+path_to_lib=googletest/lib
 
 g++ -O3 -I$path_to_include -L$path_to_lib -o bitstring_test bitstring_test.cc -lpthread -lgtest
 g++ -O3 -I$path_to_include -L$path_to_lib -o circuit_reader_test circuit_reader_test.cc -lpthread -lgtest
