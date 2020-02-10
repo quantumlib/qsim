@@ -10,11 +10,15 @@ Nature 574, 505, (2019).
 
 ## qsim
 
-qsim is a Schrödinger full state-vector simulator. It computes all the $$2^n$$
-amplitudes of the state vector, where $$n$$ is the number of qubits.
+qsim is a Schrödinger full state-vector simulator. It computes all the
+![2^n](https://render.githubusercontent.com/render/math?math=2%5En)
+amplitudes of the state vector, where
+![m](https://render.githubusercontent.com/render/math?math=m) is the number ofqubits.
 Essentially, the simulator performs matrix-vector multiplications repeatedly.
 One matrix-vector multiplication corresponds to applying one gate.
-The total runtime is proportional to $$g2^n$$, where $$g$$ is the number of
+The total runtime is proportional to
+![g2^n](https://render.githubusercontent.com/render/math?math=g2%5En), where
+![g](https://render.githubusercontent.com/render/math?math=g) is the number of
 2-qubit gates. To speed up the simulator, we use gate fusion
 [[2]](https://arxiv.org/abs/1601.07195), single precision arithmetic, AVX/FMA
 instructions for vectorization and OpenMP for multi-threading.
@@ -28,27 +32,47 @@ Environment", arXiv:1601.07195 (2016).
 qsimh is a hybrid Schrödinger-Feynman simulator
 [[3]](https://arxiv.org/abs/1807.10749). The lattice is split into two parts
 and the Schmidt decomposition is used to decompose 2-qubit gates on the
-cut. If the Schmidt rank of each gate is $$m$$ and the number of gates on
-the cut is $$k$$ then there are $$m^k$$ paths. To simulate a circuit with
-fidelity one, one needs to simulate all the $$=m^k$$ paths and sum the results.
-The total runtime is proportional to $$(2^{n_1} + 2^{n_2})m^k$$, where $$n_1$$
-and $$n_2$$ are the qubit numbers in the first and second parts. Path
-simulations are independent of each other and can be trivially parallelized
-to run on supercomputers or in data centers. Note that one can run simulations
-with fidelity $$F < 1$$ just by summing over a fraction $$F$$ of all the paths.
+cut. If the Schmidt rank of each gate is
+![m](https://render.githubusercontent.com/render/math?math=m) and the number of gates on
+the cut is
+![k](https://render.githubusercontent.com/render/math?math=k) then there are
+![m^k](https://render.githubusercontent.com/render/math?math=m%5Ek) paths. To
+simulate a circuit with fidelity one, one needs to simulate all the
+![m^k](https://render.githubusercontent.com/render/math?math=m%5Ek) paths and
+sum the results. The total runtime is proportional to
+![(2^{n_1} + 2^{n_2})m^k](https://render.githubusercontent.com/render/math?math=(2%5E%7Bn_1%7D%20%2B%202%5E%7Bn_2%7D)m%5Ek)
+, where
+![n_1](https://render.githubusercontent.com/render/math?math=n_1) and
+![n_2](https://render.githubusercontent.com/render/math?math=n_2) are the qubit
+numbers in the first and second parts. Path simulations are independent of each
+other and can be trivially parallelized to run on supercomputers or in data
+centers. Note that one can run simulations with fidelity
+![F < 1](https://render.githubusercontent.com/render/math?math=F%20%3C%201)
+just by summing over a fraction
+![F](https://render.githubusercontent.com/render/math?math=F) of all the paths.
 
 A two level checkpointing scheme is used to improve performance. Say, there
-are $$k$$ gates on the cut. We split those into three parts: $$p+r+s=k$$, where
-$$p$$ is the number of "prefix" gates, $$r$$ is the number of "root" gates and
-$$s$$ is the number of "suffix" gates. The first checkpoint is executed after
-applying all the gates up to and including the prefix gates and the second
-checkpoint is executed after applying all the gates up to and including the
-root gates. The full summation over all the paths for the root and suffix gates
-is performed.
+are ![k](https://render.githubusercontent.com/render/math?math=k) gates on the
+cut. We split those into three parts:
+![p+r+s=k](https://render.githubusercontent.com/render/math?math=p%2Br%2Bs%3Dk)
+, where
+![p](https://render.githubusercontent.com/render/math?math=p) is the number of
+"prefix" gates,
+![r](https://render.githubusercontent.com/render/math?math=r) is the number of
+"root" gates and
+![s](https://render.githubusercontent.com/render/math?math=s) is the number of
+"suffix" gates. The first checkpoint is executed after applying all the gates
+up to and including the prefix gates and the second checkpoint is executed
+after applying all the gates up to and including the root gates. The full
+summation over all the paths for the root and suffix gates is performed.
 
-If $$p>0$$ then one such simulation gives $$F\approx 1/m^p$$ (for all the
-prefix gates having the same Schmidt rank m). One needs to run $m^p$
-simulations with different prefix paths and sum the results to get $$F = 1$$.
+If ![p>0](https://render.githubusercontent.com/render/math?math=p%3E0)
+then one such simulation gives
+![F\approx 1/m^p](https://render.githubusercontent.com/render/math?math=F%5Capprox%201%2Fm%5Ep)
+(for all the prefix gates having the same Schmidt rank m). One needs to run
+![m^p](https://render.githubusercontent.com/render/math?math=m%5Ep)
+simulations with different prefix paths and sum the results to get
+![F = 1](https://render.githubusercontent.com/render/math?math=F%20%3D%201).
 
 [[3]](https://arxiv.org/abs/1807.10749) I. L. Markov, A. Fatima, S. V. Isakov,
 S. Boixo, "Quantum Supremacy Is Both Closer and Farther than It Appears",
