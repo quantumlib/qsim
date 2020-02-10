@@ -10,11 +10,11 @@ Nature 574, 505, (2019).
 
 ## qsim
 
-qsim is a Schrödinger full state-vector simulator. It computes all the $$2^n$$
-amplitudes of the state vector, where $$n$$ is the number of qubits.
+qsim is a Schrödinger full state-vector simulator. It computes all the *2<sup>n</sup>*
+amplitudes of the state vector, where *n* is the number of qubits.
 Essentially, the simulator performs matrix-vector multiplications repeatedly.
 One matrix-vector multiplication corresponds to applying one gate.
-The total runtime is proportional to $$g2^n$$, where $$g$$ is the number of
+The total runtime is proportional to *g2<sup>n</sup>*, where *g* is the number of
 2-qubit gates. To speed up the simulator, we use gate fusion
 [[2]](https://arxiv.org/abs/1601.07195), single precision arithmetic, AVX/FMA
 instructions for vectorization and OpenMP for multi-threading.
@@ -28,27 +28,27 @@ Environment", arXiv:1601.07195 (2016).
 qsimh is a hybrid Schrödinger-Feynman simulator
 [[3]](https://arxiv.org/abs/1807.10749). The lattice is split into two parts
 and the Schmidt decomposition is used to decompose 2-qubit gates on the
-cut. If the Schmidt rank of each gate is $$m$$ and the number of gates on
-the cut is $$k$$ then there are $$m^k$$ paths. To simulate a circuit with
-fidelity one, one needs to simulate all the $$=m^k$$ paths and sum the results.
-The total runtime is proportional to $$(2^{n_1} + 2^{n_2})m^k$$, where $$n_1$$
-and $$n_2$$ are the qubit numbers in the first and second parts. Path
+cut. If the Schmidt rank of each gate is *m* and the number of gates on
+the cut is *k* then there are *m<sup>k</sup>* paths. To simulate a circuit with
+fidelity one, one needs to simulate all the *m<sup>k</sup>* paths and sum the results.
+  The total runtime is proportional to *(2<sup>n<sub>1</sub></sup> + 2<sup>n<sub>2</sub></sup>)m<sup>k</sup>*, where *n<sub>1</sub>*
+and *n<sub>2</sub>* are the qubit numbers in the first and second parts. Path
 simulations are independent of each other and can be trivially parallelized
 to run on supercomputers or in data centers. Note that one can run simulations
-with fidelity $$F < 1$$ just by summing over a fraction $$F$$ of all the paths.
+with fidelity *F < 1* just by summing over a fraction *F* of all the paths.
 
 A two level checkpointing scheme is used to improve performance. Say, there
-are $$k$$ gates on the cut. We split those into three parts: $$p+r+s=k$$, where
-$$p$$ is the number of "prefix" gates, $$r$$ is the number of "root" gates and
-$$s$$ is the number of "suffix" gates. The first checkpoint is executed after
+are *k* gates on the cut. We split those into three parts: *p+r+s=k*, where
+*p* is the number of "prefix" gates, *r* is the number of "root" gates and
+*s* is the number of "suffix" gates. The first checkpoint is executed after
 applying all the gates up to and including the prefix gates and the second
 checkpoint is executed after applying all the gates up to and including the
 root gates. The full summation over all the paths for the root and suffix gates
 is performed.
 
-If $$p>0$$ then one such simulation gives $$F\approx 1/m^p$$ (for all the
-prefix gates having the same Schmidt rank m). One needs to run $m^p$
-simulations with different prefix paths and sum the results to get $$F = 1$$.
+If *p>0* then one such simulation gives *F &#8776; m<sup>-p</sup>* (for all the
+prefix gates having the same Schmidt rank *m*). One needs to run *m<sup>p</sup>*
+simulations with different prefix paths and sum the results to get *F = 1*.
 
 [[3]](https://arxiv.org/abs/1807.10749) I. L. Markov, A. Fatima, S. V. Isakov,
 S. Boixo, "Quantum Supremacy Is Both Closer and Farther than It Appears",
