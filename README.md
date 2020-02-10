@@ -62,8 +62,7 @@ applications is described in [docs](docs/usage.md).
 
 ### Input format
 
-Circuit input format is described in [docs](docs/input
-format.md).
+Circuit input format is described in [docs](docs/input_format.md).
 
 ### Sample Circuits
 
