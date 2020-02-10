@@ -10,7 +10,7 @@ Nature 574, 505, (2019).
 
 ## qsim
 
-qsim is a Schrödinger full state-vector simulator. It computes all the $$2^n$$
+qsim is a Schrödinger full state-vector simulator. It computes all the *2<sup>n</sup>*
 amplitudes of the state vector, where *n* is the number of qubits.
 Essentially, the simulator performs matrix-vector multiplications repeatedly.
 One matrix-vector multiplication corresponds to applying one gate.
@@ -31,8 +31,8 @@ and the Schmidt decomposition is used to decompose 2-qubit gates on the
 cut. If the Schmidt rank of each gate is *m* and the number of gates on
 the cut is *k* then there are *m<sup>k</sup>* paths. To simulate a circuit with
 fidelity one, one needs to simulate all the *m<sup>k</sup>* paths and sum the results.
-  The total runtime is proportional to *(2<sup>n_1</sup> + 2<sup>n_2</sup>)m<sup>k</sup>*, where *n_1*
-and *n_2* are the qubit numbers in the first and second parts. Path
+  The total runtime is proportional to *(2<sup>n<sub>1</sub></sup> + 2<sup>n<sub>2</sub></sup>)m<sup>k</sup>*, where *n<sub>1</sub>*
+and *n<sub>2</sub>* are the qubit numbers in the first and second parts. Path
 simulations are independent of each other and can be trivially parallelized
 to run on supercomputers or in data centers. Note that one can run simulations
 with fidelity *F < 1* just by summing over a fraction *F* of all the paths.
@@ -62,7 +62,8 @@ applications is described in [docs](docs/usage.md).
 
 ### Input format
 
-Circuit input format is described in [docs](docs/input_format.md).
+Circuit input format is described in [docs](docs/input
+format.md).
 
 ### Sample Circuits
 
