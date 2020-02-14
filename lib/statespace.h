@@ -15,6 +15,10 @@
 #ifndef STATESPACE_H_
 #define STATESPACE_H_
 
+#ifdef _WIN32
+  #include <malloc.h>
+#endif
+
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -40,7 +44,13 @@ class StateSpace {
 
   State CreateState() const {
     auto vector_size = sizeof(fp_type) * raw_size_;
-    return State((fp_type*) aligned_alloc(64, vector_size), &free);
+    #ifdef _WIN32
+      return State((fp_type*) _aligned_alloc(vector_size, 64), &_aligned_free);
+    #else
+      void* p = nullptr;
+      posix_memalign(&p, 64, vector_size);
+      return State((fp_type*) p, &free);
+    #endif
   }
 
   State CreateState(fp_type* p) const {
