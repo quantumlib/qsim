@@ -6,7 +6,7 @@ all tests, simply run the command:
 make run-tests
 ```
 
-NOTE: This command (and all others specified on this page) runs all tests in
+**NOTE:** This command (and all others specified on this page) runs all tests in
 sequence. If any test fails, execution will halt and no further tests will run.
 
 ## C++ tests
@@ -27,3 +27,6 @@ Similarly, tests specific to the Python Cirq interface can be run with:
 ```
 make run-py-tests
 ```
+
+**NOTE:** Due to how Python handles imports, this will fail if run from any
+directory except the top-level `qsim` directory.
