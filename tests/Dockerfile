@@ -1,14 +1,13 @@
 # Base OS
-FROM debian
+FROM qsim
 
-# Install baseline
-RUN apt-get update
-RUN apt-get install -y g++ make cmake
+# Install additional requirements
+RUN apt-get install -y cmake git
 
 # Copy relevant files
-COPY ./ /qsim/
+COPY ./tests/ /qsim/tests/
 
 WORKDIR /qsim/
 
-# Compile qsim
-ENTRYPOINT make -C /qsim/tests/ run-all
+# Compile and run qsim tests
+ENTRYPOINT make -C /qsim/ run-cxx-tests
