@@ -1,15 +1,8 @@
 # Usage
 
 qsim and qsimh can be used in many different ways. Sample applications are
-provided in [apps](/apps). To compile the codes, just run
-
-```
-$ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim1 qsim1.cc
-$ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim2 qsim2.cc
-$ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim3 qsim3.cc
-$ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh1 qsimh1.cc
-$ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh2 qsimh2.cc
-```
+provided in [apps](/apps). To compile the codes, just run `make`. Binaries of
+the form `qsim(h).x` will be added to the `apps` directory.
 
 Sample circuits are provided in [circuits](/circuits).
 
