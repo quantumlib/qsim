@@ -68,7 +68,7 @@ format.
 
 Example:
 ```
-./qsim3 -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitsrtings_q24_s1,../circuits/bitsrtings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
+./qsim3 -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitstrings_q24_s1,../circuits/bitstrings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
 ```
 
 ## qsimh1 usage
@@ -129,8 +129,8 @@ format.
 
 Example:
 ```
-./qsimh2 -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitsrtings_q40_s1 -o ampl_q40_s1_w0 -v 1
-./qsimh2 -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitsrtings_q40_s1 -o ampl_q40_s1_w1 -v 1
+./qsimh2 -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
+./qsimh2 -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
 ...
 ```
 
