@@ -16,6 +16,7 @@ run-all: all
 	for exe in $(TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 $(GTEST_DIR)/make:
+	-git submodule update --init --recursive googletest
 	mkdir -p $(GTEST_DIR)/make
 	cd $(GTEST_DIR)/make &&	$(CMAKE) .. && $(MAKE)
 
@@ -25,5 +26,4 @@ $(GTEST_DIR)/make:
 .PHONY: clean
 clean:
 	-rm -f ./*.x ./*.a ./*.so ./*.mod
-	$(MAKE) -C $(GTEST_DIR) clean
 	rm -rf $(GTEST_DIR)/make
