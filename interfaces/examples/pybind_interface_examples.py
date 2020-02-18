@@ -14,7 +14,11 @@
 
 #!/usr/bin/env python3
 
-import qsim
+import sys, os
+sys.path.insert(
+    1, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + '/../'))
+
+from qsimcirq import qsim
 
 qsim_options = {
     'c': '2\n0 cnot 0 1\n1 cnot 1 0\n2 cz 0 1\n',

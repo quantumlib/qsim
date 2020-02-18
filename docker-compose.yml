@@ -1,9 +1,24 @@
 version: "3"
 services:
-    # TODO: support running simulations from Docker
+    qsim:
+        image: qsim
+        container_name: qsim
+        build:
+            context: ./
+            dockerfile: Dockerfile
     qsim-cxx-tests:
         image: qsim-cxx-tests
         container_name: qsim-cxx-tests
         build:
             context: ./
             dockerfile: tests/Dockerfile
+        depends_on:
+        - qsim
+    qsim-py-tests:
+        image: qsim-py-tests
+        container_name: qsim-py-tests
+        build:
+            context: ./
+            dockerfile: interfaces/Dockerfile
+        depends_on:
+        - qsim
