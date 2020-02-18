@@ -14,12 +14,11 @@
 
 from typing import Any, List, Sequence
 
-from cirq import study, schedules, ops, circuits, protocols, SimulatesAmplitudes, SimulatesFinalState, SimulationTrialResult
-
-import qsim
+from cirq import study, ops, circuits, protocols, SimulatesAmplitudes, SimulatesFinalState, SimulationTrialResult
 
 import numpy as np
 
+from qsimcirq import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
