@@ -24,6 +24,6 @@ jobs:
       - name: Run tests
         run: |
           docker-compose build
-          docker run -ti --rm qsim-cxx-tests:latest
-          docker run -ti --rm qsim-py-tests:latest
-          docker run -ti --rm qsim:latest -c /qsim/circuits/circuit_q24
+          docker run --rm qsim-cxx-tests:latest
+          docker run --rm qsim-py-tests:latest
+          docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
