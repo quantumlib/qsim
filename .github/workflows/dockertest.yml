@@ -17,15 +17,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Run tests
-        run: |
-          git submodule update --init --recursive
-          docker-compose build
-          docker run --rm qsim-cxx-tests:latest
-          docker run --rm qsim-py-tests:latest
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Build Docker images
+        run: docker-compose build
+      - name: Run C++ tests
+        run: docker run --rm qsim-cxx-tests:latest
+      - name: Run Python tests
+        run: docker run --rm qsim-py-tests:latest
       - name: Run sample simulation
         run: docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
