@@ -20,10 +20,15 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        shell: bash
+        run: |
+          auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+          git submodule sync --recursive
+          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
       - name: Run tests
         run: |
-          git submodule update --init --recursive
           docker-compose build
           docker run --rm qsim-cxx-tests:latest
           docker run --rm qsim-py-tests:latest
