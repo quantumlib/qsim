@@ -13,14 +13,14 @@
 # limitations under the License.
 
 # The interface between Cirq and the Python interface to the C++ qsim
+import sys, os
 sys.path.insert(
     1, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + '/../'))
-import sys, os
-import cirq_qsim.qsim_simulator as qsimSimulator
-import cirq_qsim.qsimh_simulator as qsimhSimulator
-import cirq_qsim.qsim_circuit as qcirc
+import qsimcirq.qsim_simulator as qsimSimulator
+import qsimcirq.qsimh_simulator as qsimhSimulator
+import qsimcirq.qsim_circuit as qcirc
+from qsimcirq import qsim
 import cirq
-import qsim
 
 
 def qsim_example():
