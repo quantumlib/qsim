@@ -32,9 +32,9 @@ struct QSimRunner final {
     unsigned verbosity;
   };
 
-  template <typename Circuit, typename MeaFunc>
+  template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param, unsigned maxtime,
-                  const Circuit& circuit, MeaFunc measure,
+                  const Circuit& circuit, MeasurementFunc measure,
                   typename Simulator::fp_type* ext_state = nullptr) {
     std::vector<unsigned> times_to_measure_at{maxtime};
     return Run(param, times_to_measure_at, circuit, measure, ext_state);
