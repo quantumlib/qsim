@@ -1,18 +1,10 @@
 # Template naming
 
-Under certain circumstances, C++ interfaces can introduce time-cost overhead
-when compared with inline template functions. Since some of the functions in
-qsim are called with very high frequency, templates are preferred to keep
-runtime to a minimum.
-
-This has the unfortunate side effect of obscuring which types are relevant in
-each function; in order to alleviate this difficulty, the following table
-provides example types for each of the common template names used in qsim.
-
-**Note:** these types are intended to represent the expectations qsim places on
-each template type. There may be other types which are also used for these
-templates, and users may define their own alternatives to the examples below so
-long as they fulfill the same expectations.
+This document is meant to clarify the intended usage of common template names
+found within qsim. The following table provides example types for each; note
+however that there may be other types which are also used for these templates,
+and users may define their own alternatives to the examples below so long as
+they fulfill the same expectations.
 
 | Name                    |  Example Type                                     |
 | ------------------------|---------------------------------------------------|
@@ -39,3 +31,11 @@ long as they fulfill the same expectations.
 | State                   | Unique pointer to `fp_type`.                      |
 | StateSpace              | [`StateSpace`](lib/statespace.h)                  |
 | Stream                  | A valid input for `std::getline()`.               |
+
+## Historical note
+
+For the most part, the usage of templates in qsim (as opposed to interfaces) is
+a stylistic choice oriented towards generic programming and policy-based design.
+However, there are a small set of cases (most notably in `ParallelFor`) where
+the use of templates provides a meaningful performance improvement over other
+design patterns.
