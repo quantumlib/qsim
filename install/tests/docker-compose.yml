@@ -1,0 +1,11 @@
+version: "3"
+services:
+    # Verifies that installing from the `qsimcirq` PyPI package works correctly.
+    # To ensure that users do not need to clone the qsim repository in order to
+    # install successfully, this image should NOT depend on the `qsim` image.
+    qsim-install:
+        image: qsim-install
+        container_name: qsim-install
+        build:
+            context: ../../
+            dockerfile: ./install/tests/Dockerfile
