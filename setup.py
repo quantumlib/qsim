@@ -74,7 +74,7 @@ setup(
     version='0.0.1',
     author='Vamsi Krishna Devabathini',
     author_email='devabathini92@gmail.com',
-    python_requires=('>=3.0.0'),
+    python_requires=('>=3.3.0'),
     install_requires=requirements,
     license='Apache 2',
     description='',

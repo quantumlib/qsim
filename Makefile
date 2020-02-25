@@ -22,7 +22,7 @@ qsim:
 
 .PHONY: pybind
 pybind:
-	$(MAKE) -C interfaces/ pybind
+	$(MAKE) -C pybind_interface/ pybind
 
 .PHONY: cxx-tests
 tests:
@@ -33,10 +33,11 @@ tests:
 run-cxx-tests: cxx-tests
 	$(MAKE) -C tests/ run-all
 
-# TODO: support python tests
+PYTESTS = $(shell find interfaces/tests/ -name '*_test.py')
+
 .PHONY: run-py-tests
 run-py-tests: pybind
-	$(MAKE) -C interfaces/ run-tests
+	for exe in $(PYTESTS); do if ! python3 -m pytest $$exe; then exit 1; fi; done
 
 .PHONY: run-tests
 run-tests: $(TESTS)
@@ -45,4 +46,4 @@ run-tests: $(TESTS)
 clean:
 	-$(MAKE) -C apps/ clean
 	-$(MAKE) -C tests/ clean
-	-$(MAKE) -C interfaces/ clean
+	-$(MAKE) -C pybind_interface/ clean

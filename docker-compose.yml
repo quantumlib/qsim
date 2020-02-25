@@ -19,6 +19,6 @@ services:
         container_name: qsim-py-tests
         build:
             context: ./
-            dockerfile: interfaces/Dockerfile
+            dockerfile: pybind_interface/Dockerfile
         depends_on:
         - qsim
