@@ -6,7 +6,14 @@ environment.
 
 ## Linux installation
 
-Prior to installation, consider opening a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
+Prior to installation, consider opening a
+[virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
+
+qsim uses [CMake](https://cmake.org/) to ensure stable compilation of its C++
+libraries across a variety of Linux distributions. CMake can be installed from
+their website, or with the command `apt-get install cmake`.
+
+TODO(@95-martin-orion): update to include pybind11 requirements.
 
 To install qsim on Linux, simply run `pip3 install qsimcirq`. For examples of
 how to use this package, see the tests in
@@ -14,6 +21,6 @@ how to use this package, see the tests in
 
 ## MacOS and Windows installation
 
-qsim is currently native to Linux. Users wishing to run qsim on a MacOS or
-Windows device should rely on the [Docker tools](docs/docker.md) provided with
-this repository.
+qsim testing is currently limited to Linux. For users interested in running
+qsim on a MacOS or Windows device, we recommend user the
+[Docker config](docs/docker.md) provided with this repository.
