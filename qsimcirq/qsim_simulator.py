@@ -18,7 +18,7 @@ from cirq import study, ops, circuits, protocols, SimulatesAmplitudes, Simulates
 
 import numpy as np
 
-from qsimcirq import qsim
+import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
