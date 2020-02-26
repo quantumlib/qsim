@@ -19,7 +19,9 @@ jobs:
     
     steps:
     - name: Install prerequisites
-      run: pip3 install pytest setuptools
+      run: |
+        pip3 install pytest setuptools
+        pip3 install -r requirements.txt
     - name: Install qsim from test PyPI
       run: pip3 install -i https://test.pypi.org/simple/ qsimcirq
     - name: Run Python tests
