@@ -1,0 +1,26 @@
+name: Installation tests
+
+on:
+  push:
+    # Run post-submit tests when pushing to master.
+    branches:
+      - master
+
+  # Run tests for any PRs.
+  pull_request:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    
+    steps:
+    - name: Install pytest
+      run: pip3 install pytest
+    - name: Install from test PyPI
+      run: pip3 install -i https://test.pypi.org/simple/ qsimcirq
+    - name: Run Python tests
+      run: python3 -m pytest interfaces/tests/
