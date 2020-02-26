@@ -22,16 +22,16 @@
 #include <string>
 #include <vector>
 
-#include "../../lib/bitstring.h"
-#include "../../lib/circuit_reader.h"
-#include "../../lib/fuser_basic.h"
-#include "../../lib/gate.h"
-#include "../../lib/io.h"
-#include "../../lib/parfor.h"
-#include "../../lib/run_qsim.h"
-#include "../../lib/run_qsimh.h"
-#include "../../lib/simulator_avx.h"
-#include "../../lib/util.h"
+#include "../lib/bitstring.h"
+#include "../lib/circuit_reader.h"
+#include "../lib/fuser_basic.h"
+#include "../lib/gate.h"
+#include "../lib/io.h"
+#include "../lib/parfor.h"
+#include "../lib/run_qsim.h"
+#include "../lib/run_qsimh.h"
+#include "../lib/simulator_avx.h"
+#include "../lib/util.h"
 
 using namespace qsim;
 
