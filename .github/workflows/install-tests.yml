@@ -18,9 +18,9 @@ jobs:
         os: [ubuntu-latest]
     
     steps:
-    - name: Install pytest
-      run: pip3 install pytest
-    - name: Install from test PyPI
+    - name: Install prerequisites
+      run: pip3 install pytest setuptools
+    - name: Install qsim from test PyPI
       run: pip3 install -i https://test.pypi.org/simple/ qsimcirq
     - name: Run Python tests
       run: python3 -m pytest interfaces/tests/
