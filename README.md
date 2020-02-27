@@ -16,17 +16,22 @@ Essentially, the simulator performs matrix-vector multiplications repeatedly.
 One matrix-vector multiplication corresponds to applying one gate.
 The total runtime is proportional to *g2<sup>n</sup>*, where *g* is the number of
 2-qubit gates. To speed up the simulator, we use gate fusion
-[[2]](https://arxiv.org/abs/1601.07195), single precision arithmetic, AVX/FMA
-instructions for vectorization and OpenMP for multi-threading.
+[[2]](https://arxiv.org/abs/1601.07195) [[3]](https://arxiv.org/abs/1704.01127),
+single precision arithmetic, AVX/FMA instructions for vectorization and OpenMP
+for multi-threading.
 
 [[2]](https://arxiv.org/abs/1601.07195) M. Smelyanskiy, N. P. Sawaya,
 A. Aspuru-Guzik, "qHiPSTER: The Quantum High Performance Software Testing
 Environment", arXiv:1601.07195 (2016).
 
+[[3]](https://arxiv.org/abs/1704.01127) T. Häner, D. S. Steiger,
+"0.5 Petabyte Simulation of a 45-Qubit Quantum Circuit", arXiv:1704.01127
+(2017).
+
 ## qsimh
 
 qsimh is a hybrid Schrödinger-Feynman simulator
-[[3]](https://arxiv.org/abs/1807.10749). The lattice is split into two parts
+[[4]](https://arxiv.org/abs/1807.10749). The lattice is split into two parts
 and the Schmidt decomposition is used to decompose 2-qubit gates on the
 cut. If the Schmidt rank of each gate is *m* and the number of gates on
 the cut is *k* then there are *m<sup>k</sup>* paths. To simulate a circuit with
@@ -50,7 +55,7 @@ If *p>0* then one such simulation gives *F &#8776; m<sup>-p</sup>* (for all the
 prefix gates having the same Schmidt rank *m*). One needs to run *m<sup>p</sup>*
 simulations with different prefix paths and sum the results to get *F = 1*.
 
-[[3]](https://arxiv.org/abs/1807.10749) I. L. Markov, A. Fatima, S. V. Isakov,
+[[4]](https://arxiv.org/abs/1807.10749) I. L. Markov, A. Fatima, S. V. Isakov,
 S. Boixo, "Quantum Supremacy Is Both Closer and Farther than It Appears",
 arXiv:1807.10749 (2018).
 
