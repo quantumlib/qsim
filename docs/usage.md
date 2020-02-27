@@ -1,15 +1,17 @@
 # Usage
 
-qsim and qsimh can be used in many different ways. Sample applications are
-provided in [apps](/apps). To compile the codes, just run `make`. Binaries of
-the form `qsim(h).x` will be added to the `apps` directory.
+qsim and qsimh are designed to be extensible to a variety of different
+applications. The base versions of each are `qsim_base` and `qsimh_base`;
+sample extensions are provided in [apps](/apps). To compile the codes, just run
+`make`. Binaries of the form `qsim(h)_*.x` will be added to the `apps`
+directory.
 
 Sample circuits are provided in [circuits](/circuits).
 
-## qsim1 usage
+## qsim_base usage
 
 ```
-./qsim1 -c circuit_file -d maxtime -t num_threads -v verbosity
+./qsim_base -c circuit_file -d maxtime -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -17,20 +19,20 @@ Sample circuits are provided in [circuits](/circuits).
 `num_threads` - number of threads to use
 `verbosity` - verbosity level
 
-qsim1 computes all the amplitudes and just prints the first eight of them
+qsim_base computes all the amplitudes and just prints the first eight of them
 (or a smaller number for 1- or 2-qubit circuits).
 
 Example:
 ```
-./qsim1 -c ../circuits/circuit_q30 -d 16 -t 8 -v 1
+./qsim_base -c ../circuits/circuit_q30 -d 16 -t 8 -v 1
 ```
 
 Note that this particular simulation requires 8 GB of RAM.
 
-## qsim2 usage
+## qsim_von_neumann usage
 
 ```
-./qsim2 -c circuit_file -d maxtime -t num_threads -v verbosity
+./qsim_von_neumann -c circuit_file -d maxtime -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -38,19 +40,19 @@ Note that this particular simulation requires 8 GB of RAM.
 `num_threads` - number of threads to use
 `verbosity` - verbosity level
 
-qsim2 computes all the amplitudes and calculates the von Neumann entropy.
-Note that this can be quite slow for large circuits and small thread numbers
-as the calculation of logarithms is slow.
+qsim_von_neumann computes all the amplitudes and calculates the von Neumann
+entropy. Note that this can be quite slow for large circuits and small thread
+numbers as the calculation of logarithms is slow.
 
 Example:
 ```
-./qsim2 -c ../circuits/circuit_q24 -d 16 -t 4 -v 1
+./qsim_von_neumann -c ../circuits/circuit_q24 -d 16 -t 4 -v 1
 ```
 
-## qsim3 usage
+## qsim_amplitudes usage
 
 ```
-./qsim3 -c circuit_file -d times_to_save_results -i input_files -o output_files -t num_threads -v verbosity
+./qsim_amplitudes -c circuit_file -d times_to_save_results -i input_files -o output_files -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -60,21 +62,21 @@ Example:
 `num_threads` - number of threads to use
 `verbosity` - verbosity level
 
-qsim3 reads input files of bitstrings, computes the corresponding amplitudes
-at specified times and writes them to output files.
+qsim_amplitudes reads input files of bitstrings, computes the corresponding
+amplitudes at specified times and writes them to output files.
 
 Bitstring files should contain bitstings (one bitstring per line) in text
 format.
 
 Example:
 ```
-./qsim3 -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitstrings_q24_s1,../circuits/bitstrings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
+./qsim_amplitudes -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitstrings_q24_s1,../circuits/bitstrings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
 ```
 
-## qsimh1 usage
+## qsimh_base usage
 
 ```
-./qsimh1 -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -t num_threads -v verbosity
+./qsimh_base -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -86,7 +88,7 @@ Example:
 `num_threads` - number of threads to use
 `verbosity` - verbosity level
 
-qsimh1 just computes and just prints the first eight amplitudes. The hybrid
+qsimh_base just computes and just prints the first eight amplitudes. The hybrid
 Schrödinger-Feynman method is used. The lattice is split into two parts.
 A two level checkpointing scheme is used to improve performance. Say, there
 are `k` gates on the cut. We split those into three parts: `p+r+s=k`, where
@@ -101,12 +103,12 @@ gates in the circuit file.
 
 Example:
 ```
-./qsimh1 -c ../circuits/circuit_q30 -d 16 -k 0,1,2,6,7,8,12,13,14,18,19,20,24,25,26 -t 8 -w 0 -p 0 -r 5 -v 1
+./qsimh_base -c ../circuits/circuit_q30 -d 16 -k 0,1,2,6,7,8,12,13,14,18,19,20,24,25,26 -t 8 -w 0 -p 0 -r 5 -v 1
 ```
 
-## qsimh2 usage
+## qsimh_output_bitstrings usage
 ```
-./qsimh2 -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
+./qsimh_output_bitstrings -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -120,23 +122,23 @@ Example:
 `num_threads` - number of threads to use
 `verbosity` - verbosity level
 
-qsimh2 reads the input file of bitstrings, computes the corresponding
-amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman
-method is used, see above.
+qsimh_output_bitstrings reads the input file of bitstrings, computes the
+corresponding amplitudes and writes them to the output file. The hybrid
+Schrödinger-Feynman method is used, see above.
 
 Bitstring files should contain bitstings (one bitstring per line) in text
 format.
 
 Example:
 ```
-./qsimh2 -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
-./qsimh2 -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
+./qsimh_output_bitstrings -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
+./qsimh_output_bitstrings -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
 ...
 ```
 
-# Old computers
+# Running without AVX
 
-SimulatorBasic can be used on old computers that do not support AVX
+SimulatorBasic can be used on older systems that do not support AVX
 instructions. In this case, simulator_basic.h should be included instead of
 simulator_avx.h and SimulatorAVX should be replaced by
 SimulatorBasic<ParallelFor, float>.

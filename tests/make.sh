@@ -15,7 +15,7 @@
 #!/bin/bash
 
 # This file provides an alternate method for building tests in this directory.
-# Prefer using the Makefile (e.g. `make run-all`) if possible.
+# Prefer using the Makefile (e.g. `make -C tests/`) if possible.
 
 path_to_include=googletest/googletest/include
 path_to_lib=googletest/lib

@@ -30,13 +30,16 @@
 #include "../lib/simulator_avx.h"
 #include "../lib/util.h"
 
-constexpr char usage[] = "usage:\n  ./qsimh1 -c circuit_file "
-                         "-d maximum_time -k part1_qubits "
+constexpr char usage[] = "usage:\n  ./qsimh_output_bitstrings -c circuit_file "
+                         "-d maxtime -k part1_qubits "
                          "-w prefix -p num_prefix_gates -r num_root_gates "
-                         "-t num_threads -v verbosity\n";
+                         "-i input_file -o output_file -t num_threads "
+                         "-v verbosity\n";
 
 struct Options {
   std::string circuit_file;
+  std::string input_file;
+  std::string output_file;
   std::vector<unsigned> part1;
   uint64_t prefix;
   unsigned maxtime = std::numeric_limits<unsigned>::max();
@@ -55,7 +58,7 @@ Options GetOptions(int argc, char* argv[]) {
     return std::atoi(word.c_str());
   };
 
-  while ((k = getopt(argc, argv, "c:d:k:w:p:r:t:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:k:w:p:r:i:o:t:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -75,6 +78,12 @@ Options GetOptions(int argc, char* argv[]) {
       case 'r':
         opt.num_root_gatexs = std::atoi(optarg);
         break;
+      case 'i':
+        opt.input_file = optarg;
+        break;
+      case 'o':
+        opt.output_file = optarg;
+        break;
       case 't':
         opt.num_threads = std::atoi(optarg);
         break;
@@ -93,6 +102,18 @@ Options GetOptions(int argc, char* argv[]) {
 bool ValidateOptions(const Options& opt) {
   if (opt.circuit_file.empty()) {
     qsim::IO::errorf("circuit file is not provided.\n");
+    qsim::IO::errorf(usage);
+    return false;
+  }
+
+  if (opt.input_file.empty()) {
+    qsim::IO::errorf("input file is not provided.\n");
+    qsim::IO::errorf(usage);
+    return false;
+  }
+
+  if (opt.output_file.empty()) {
+    qsim::IO::errorf("output file is not provided.\n");
     qsim::IO::errorf(usage);
     return false;
   }
@@ -122,6 +143,23 @@ std::vector<unsigned> GetParts(
   return parts;
 }
 
+template <typename Bitstring, typename Ctype>
+bool WriteAmplitudes(const std::string& file,
+                    const std::vector<Bitstring>& bitstrings,
+                    const std::vector<Ctype>& results) {
+  std::stringstream ss;
+
+  const unsigned width = 2 * sizeof(float) + 1;
+  ss << std::setprecision(width);
+  for (size_t i = 0; i < bitstrings.size(); ++i) {
+    const auto& a = results[i];
+    ss << std::setw(width + 8) << std::real(a)
+       << std::setw(width + 8) << std::imag(a) << "\n";
+  }
+
+  return qsim::IO::WriteToFile(file, ss.str());
+}
+
 int main(int argc, char* argv[]) {
   using namespace qsim;
 
@@ -140,13 +178,10 @@ int main(int argc, char* argv[]) {
   }
   auto parts = GetParts(circuit.num_qubits, opt.part1);
 
-  uint64_t num_bitstrings =
-      std::min(uint64_t{8}, uint64_t{1} << circuit.num_qubits);
-
   std::vector<Bitstring> bitstrings;
-  bitstrings.reserve(num_bitstrings);
-  for (std::size_t i = 0; i < num_bitstrings; ++i) {
-    bitstrings.push_back(i);
+  auto num_qubits = circuit.num_qubits;
+  if (!BitstringsFromFile<IO>(num_qubits, opt.input_file, bitstrings)) {
+    return 1;
   }
 
   using Simulator = SimulatorAVX<ParallelFor>;
@@ -161,23 +196,14 @@ int main(int argc, char* argv[]) {
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+  std::vector<std::complex<Simulator::fp_type>> results(bitstrings.size(), 0);
 
   bool rc = Runner::Run(
       param, opt.maxtime, parts, circuit.gates, bitstrings, results);
 
   if (rc) {
-    static constexpr char const* bits[8] = {
-      "000", "001", "010", "011", "100", "101", "110", "111",
-    };
-
-    unsigned s = 3 - std::min(unsigned{3}, circuit.num_qubits);
-
-    for (std::size_t i = 0; i < num_bitstrings; ++i) {
-      const auto& a = results[i];
-      qsim::IO::messagef("%s:%16.8g%16.8g%16.8g\n", bits[i] + s,
-                        std::real(a), std::imag(a), std::norm(a));
-    }
+    WriteAmplitudes(opt.output_file, bitstrings, results);
+    IO::messagef("all done.\n");
   }
 
   return 0;

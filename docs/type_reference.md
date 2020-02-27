@@ -23,8 +23,8 @@ they fulfill the same expectations.
 | HybridSimulator         | [`HybridSimulator`](lib/hybrid.h)                 |
 | IO                      | [`IO`](lib/io.h)                                  |
 | Matrix                  | Same as `Array(1|2)`.                             |
-| MeasurementFunc         | [`measure` (in `PrintAmplitudes`)](apps/qsim1.cc) |
-| Op (util.h)             | [`to_int` (in `Options`)](apps/qsim3.cc)          |
+| MeasurementFunc         | [`measure` (in `PrintAmplitudes`)](apps/qsim_base.cc) |
+| Op (util.h)             | [`to_int` (in `Options`)](apps/qsim_amplitudes.cc)    |
 | ParallelFor             | [`ParallelFor`](lib/parfor.h)                     |
 | Params                  | Vector of `fp_type`.                              |
 | Simulator               | [`SimulatorAVX`](lib/simulator_avx.h)             |

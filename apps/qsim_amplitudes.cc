@@ -31,7 +31,7 @@
 #include "../lib/simulator_avx.h"
 #include "../lib/util.h"
 
-constexpr char usage[] = "usage:\n  ./qsim3 -c circuit_file "
+constexpr char usage[] = "usage:\n  ./qsim_amplitudes -c circuit_file "
                          "-d times_to_save_results -i input_files "
                          "-o output_files -t num_threads -v verbosity\n";
 
