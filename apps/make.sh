@@ -17,8 +17,8 @@
 # This file provides an alternate method for building apps in this directory.
 # Prefer using the Makefile (e.g. `make -C apps/`) if possible.
 
-g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim_base qsim_base.cc
-g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim_von_neumann qsim_von_neumann.cc
-g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim_amplitudes qsim_amplitudes.cc
-g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh_base qsimh_base.cc
-g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh_amplitudes qsimh_amplitudes.cc
+g++ -O3 -mavx2 -mfma -fopenmp -o qsim_base qsim_base.cc
+g++ -O3 -mavx2 -mfma -fopenmp -o qsim_von_neumann qsim_von_neumann.cc
+g++ -O3 -mavx2 -mfma -fopenmp -o qsim_amplitudes qsim_amplitudes.cc
+g++ -O3 -mavx2 -mfma -fopenmp -o qsimh_base qsimh_base.cc
+g++ -O3 -mavx2 -mfma -fopenmp -o qsimh_amplitudes qsimh_amplitudes.cc
