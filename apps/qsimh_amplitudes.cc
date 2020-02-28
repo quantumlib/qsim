@@ -30,7 +30,7 @@
 #include "../lib/simulator_avx.h"
 #include "../lib/util.h"
 
-constexpr char usage[] = "usage:\n  ./qsimh2 -c circuit_file "
+constexpr char usage[] = "usage:\n  ./qsimh_amplitudes -c circuit_file "
                          "-d maxtime -k part1_qubits "
                          "-w prefix -p num_prefix_gates -r num_root_gates "
                          "-i input_file -o output_file -t num_threads "

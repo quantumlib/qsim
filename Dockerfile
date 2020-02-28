@@ -17,4 +17,4 @@ WORKDIR /qsim/
 # Compile qsim
 RUN make qsim
 
-ENTRYPOINT ["/qsim/apps/qsim1.x"]
+ENTRYPOINT ["/qsim/apps/qsim_base.x"]

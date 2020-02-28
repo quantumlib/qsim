@@ -2,7 +2,7 @@ TARGETS = qsim
 TESTS = run-cxx-tests
 
 CXX=g++
-CXXFLAGS = -O3 -mavx2 -mfma -fopenmp -lgomp
+CXXFLAGS = -O3 -mavx2 -mfma -fopenmp
 PYBIND11 = true
 
 export CXX
