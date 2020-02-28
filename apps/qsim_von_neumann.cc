@@ -37,7 +37,7 @@ struct Options {
 };
 
 Options GetOptions(int argc, char* argv[]) {
-  constexpr char usage[] = "usage:\n  ./qsim2 -c circuit -d maxtime "
+  constexpr char usage[] = "usage:\n  ./qsim_von_neumann -c circuit -d maxtime "
                            "-t threads -v verbosity\n";
 
   Options opt;
