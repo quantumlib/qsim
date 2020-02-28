@@ -21,6 +21,12 @@ how to use this package, see the tests in
 
 ## MacOS and Windows installation
 
-qsim testing is currently limited to Linux. For users interested in running
-qsim on a MacOS or Windows device, we recommend user the
-[Docker config](docs/docker.md) provided with this repository.
+For users interested in running qsim on a MacOS or Windows device, we strongly
+recommend using the [Docker config](docs/docker.md) provided with this
+repository.
+
+### Experimental install process
+
+Alternatively, MacOS and Windows users can follow the Linux install process,
+but it is currently untested on those platforms. Users are encouraged to report
+any issues seen with this process.
