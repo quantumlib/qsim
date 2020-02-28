@@ -106,9 +106,9 @@ Example:
 ./qsimh_base -c ../circuits/circuit_q30 -d 16 -k 0,1,2,6,7,8,12,13,14,18,19,20,24,25,26 -t 8 -w 0 -p 0 -r 5 -v 1
 ```
 
-## qsimh_output_bitstrings usage
+## qsimh_amplitudes usage
 ```
-./qsimh_output_bitstrings -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
+./qsimh_amplitudes -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -122,17 +122,17 @@ Example:
 `num_threads` - number of threads to use
 `verbosity` - verbosity level
 
-qsimh_output_bitstrings reads the input file of bitstrings, computes the
-corresponding amplitudes and writes them to the output file. The hybrid
-Schrödinger-Feynman method is used, see above.
+qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
+amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman
+method is used, see above.
 
 Bitstring files should contain bitstings (one bitstring per line) in text
 format.
 
 Example:
 ```
-./qsimh_output_bitstrings -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
-./qsimh_output_bitstrings -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
+./qsimh_amplitudes -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
+./qsimh_amplitudes -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
 ...
 ```
 

@@ -21,4 +21,4 @@ g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim_base qsim_base.cc
 g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim_von_neumann qsim_von_neumann.cc
 g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsim_amplitudes qsim_amplitudes.cc
 g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh_base qsimh_base.cc
-g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh_output_bitstrings qsimh_output_bitstrings.cc
+g++ -O3 -mavx2 -mfma -fopenmp -lgomp -o qsimh_amplitudes qsimh_amplitudes.cc
