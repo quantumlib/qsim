@@ -1,33 +1,60 @@
 # The Cirq Interface
 
-HOWTO use qsim from Google [Cirq](https://github.com/quantumlib/cirq).
-* Note: For the moment, the Cirq-qsim integration is experimental code.
+This file provides examples of how to use qsim with the
+[Cirq](https://github.com/quantumlib/cirq) Python library.
 
-The currently supported version of Cirq is 0.5.0, and newer stable
-versions will be supported, once they are available. Therefore, the
-prerequisites are:
-- Cirq 0.5.0
-- qsim C++ code (the code from this repo)
-
-This file is an example of how to use the qsim Python interface with Cirq.
+qsim is currently built to work with Cirq version 0.6.0; if you have a later
+version of Cirq installed, you may need to downgrade (or run in a virtualenv)
+when working with qsim until support for the latest Cirq version is available.
 
 
 ## Setting up
 
-1. Cirq needs to be [installed on your machine](https://cirq.readthedocs.io/en/stable/install.html)
+There are two methods for setting up the qsim-Cirq interface on your local
+machine: installing directly with `pip`, or compiling from the source code.
 
-2. Compile qsim with Pybind support (see [make.sh](/cirq_interface/cpp/make.sh)). The `cpp` folder should contain a shared library that is available as module to Python.
+Prerequisites:
+- [CMake](https://cmake.org/): this is used to compile the C++ qsim libraries.
+CMake can be installed with `apt-get install cmake`.
+- [Pybind](https://github.com/pybind): this creates Python wrappers for the C++
+libraries, and can be installed with `pip3 install pybind11`.
+- [Cirq](https://cirq.readthedocs.io/en/stable/install.html).
 
-3. Ensure that compiled qsim module load correctly by adding `cpp` folder to PYTHONPATH:
-`export PYTHONPATH=$PYTHONPATH:<path to cpp folder>`
+### Installing with pip
 
-4. Run the examples given in [examples](/cirq_interface/examples) folder.
-`python3 cirq_qsim_example.py`
+qsim can be installed with `pip3 install qsimcirq`. Alternatives (such as
+installing with Docker) can be found in the [installation doc](docs/install.md).
+
+### Compiling qsimcirq
+
+1. Clone the qsim repository to your machine, and navigate to the top-level
+`qsim` directory:
+```
+git clone git@github.com:quantumlib/qsim.git
+cd qsim
+```
+
+2. Compile qsim using the top-level Makefile: `make`. By default, this will use
+Pybind to generate a static library with file extension `.so` in the `qsimcirq`
+directory.
+
+3. Ensure that compiled qsim module loads correctly by adding the `qsimcirq`
+folder to your PYTHONPATH:
+```
+export PYTHONPATH=$PYTHONPATH:<path to cpp folder>
+```
+
+To verify successful compilation, you can 
+[test qsimcirq](interfaces/tests/qsimcirq_test.py) directly:
+```
+python3 -m pytest interfaces/tests/qsimcirq_test.py
+```
 
 
 ## Interface design and operations
 
-The goal is to simulate circuits using native Cirq objects.
+The purpose of this interface is to provide a performant simulator for quantum
+circuits defined in Cirq. 
 
 ### Classes
 
@@ -44,32 +71,39 @@ QSimCircuit.
 A QSimCircuit can be created from a Cirq circuit.
 ```
 my_circuit = cirq.Circuit()
+qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit=my_circuit)
 ```
 
-At this point, `my_circuit` is a cirq.Circuit, and can be used to construct a
-QSimCircuit
-```
-my_sim_circuit = qcirc.QSimCircuit(cirq_circuit = my_circuit, device = my_device)
-```
+This circuit can then be simulated using either QSimSimulator or
+QSimhSimulator, depending on the output required:
 
-It is possible to specify if gate decompositions should be performed or not (see Notes).
+#### QSimSimulator
 
-Finally, the QSimCircuit can be simulated using QSimSimulator and QSimhSimulator classes.
-
-QSimSimulator supports full state vector as well as the specific bitstrings simulation.
+QSimSimulator uses a Schrödinger full state-vector simulator, suitable for
+acquiring the complete state of a reasonably-sized circuit (~35 qubits):
 ```
-my_sim = qsim.QSimSimulator()
-myres = my_sim.compute_amplitudes(program = my_sim_circuit,
-                                  bitstrings=['00', '01', '10', '11'])
-```
-In the above example, the simulation is performed for the specified bitstrings of length 2. All the bitstring lengths should be equal to the number of qubits in my_sim_circuits. Otherwise, BitstringsFromStream will raise an error.
-
-```
-my_sim = qsim.QSimSimulator()
+my_sim = qsimcirq.QSimSimulator()
 myres = my_sim.simulate(program = my_sim_circuit)
 ```
 
-QSimhSimulator supports specific bitstrings simulation.
+Alternatively, by using the `compute_amplitudes` method QSimSimulator can
+produce amplitudes for specific output bitstrings:
+```
+my_sim = qsimcirq.QSimSimulator()
+myres = my_sim.compute_amplitudes(program = my_sim_circuit,
+                                  bitstrings=['00', '01', '10', '11'])
+```
+In the above example, the simulation is performed for the specified bitstrings
+of length 2. All the bitstring lengths should be equal to the number of qubits
+in `qsim_circuit`. Otherwise, BitstringsFromStream will raise an error.
+
+#### QSimhSimulator
+
+QSimhSimulator uses a hybrid Schrödinger-Feynman simulator. This limits it to
+returning amplitudes for specific output bitstrings, but raises its upper
+bound on number of qubits simulated (50+ qubits, depending on depth).
+
+To acquire amplitudes for all output bitstrings of length 2:
 ```
 qsimh_options = {
     'k': [0],
@@ -77,20 +111,28 @@ qsimh_options = {
     'p': 1,
     'r': 1
 }
-my_sim = qsim.QSimhSimulator(qsimh_options)
+my_sim = qsimcirq.QSimhSimulator(qsimh_options)
 myres = my_sim.compute_amplitudes(program = my_sim_circuit,
                                   bitstrings=['00', '01', '10', '11'])
 ```
 
 
-## Notes
+## Use qsim from Python without Cirq
 
-This version includes preliminary support for gate decompositions and
-parametrized operations. Users relying on them should know how Cirq works behind
-the scenes, in order to write the code that is still required.
+It is possible to call the qsim binaries from Python without using Cirq.
+To see this in action, run the [qsim_test](interfaces/tests/qsim_test.py):
+```
+python3 -m pytest interfaces/tests/qsim_test.py
+```
+
+
+## Experimental features
+
+This version of qsim includes preliminary support for gate decompositions and
+parametrized operations. Users relying on these features should have a good
+working knowledge of Cirq, as some non-trivial work is required to set them up.
 
 ### Gate decompositions
-* TODO: Enable the full functionality.
 
 The QSimCircuit is capable of decomposing arbitrary Cirq gates to the
 elementary gate set of qsim. However, if the user does not specify valid
@@ -98,8 +140,8 @@ decompositions, the QSimCircuit composition will raise exceptions.
 
 The constructor takes the argument `allow_decomposition` which is `False` by
 default. If set `True`, the gates from the original circuit will decomposed,
-using their ` _decompose_()` contract. For example, the [cirq.CNOT is decomposed
-into](https://github.com/quantumlib/Cirq/blob/49b2f193ad99ce6770831330c19963bfa5c66f19/cirq/ops/common_gates.py#L829):
+using their ` _decompose_()` contract. For example, the
+[cirq.CNOT is decomposed into](https://github.com/quantumlib/Cirq/blob/49b2f193ad99ce6770831330c19963bfa5c66f19/cirq/ops/common_gates.py#L829):
 ```
 yield YPowGate(exponent=-0.5).on(t)
 yield CZ(c, t)**self._exponent
@@ -107,11 +149,8 @@ yield YPowGate(exponent=0.5).on(t)
 ```
 
 ### Parametrized circuits
-* TODO: Enable the full functionality.
 
-If needed, file an issue.
-
-### Use qsim from Python without Cirq
-
-This is possible by using the Pybind11 interface, which, currently, can be used
-as shown in [example.py](/cirq_interface/examples/example.py).
+In theory, QSimCircuit objects can contain
+[parameterized gates](https://cirq.readthedocs.io/en/stable/tutorial.html#parameterizing-the-ansatz)
+which have values assigned by Cirq's `ParamResolver`. However, this
+functionality has not been tested extensively.
