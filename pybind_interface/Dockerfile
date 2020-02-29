@@ -16,4 +16,5 @@ WORKDIR /qsim/
 RUN make -C /qsim/ pybind
 
 # Compile and run qsim tests
+ENV PYTHONPATH "${PYTHONPATH}:/qsim/qsimcirq"
 ENTRYPOINT make -C /qsim/ run-py-tests
