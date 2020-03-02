@@ -25,6 +25,12 @@ jobs:
         pip3 install --no-cache-dir --upgrade pytest
         pip3 install --no-cache-dir --upgrade -r ./requirements.txt
     - name: Install qsim from test PyPI
-      run: pip3 install -i https://test.pypi.org/simple/ qsimcirq
+      run: pip3 install --no-cache-dir --upgrade -i https://test.pypi.org/simple/ qsimcirq
     - name: Run Python tests
-      run: python3 -m pytest interfaces/tests/
+      # Tests cannot be run in the qsim directory, as Python will attempt
+      # to import from the local `qsimcirq` instead of the installed module.
+      run: |
+        mkdir test-dir
+        cp -r interfaces/tests/ test-dir/
+        cd test-dir
+        python3 -m pytest ./
