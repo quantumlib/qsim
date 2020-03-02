@@ -21,11 +21,13 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install prerequisites
       run: |
-        pip3 install --no-cache-dir --upgrade setuptools
-        pip3 install --no-cache-dir --upgrade pytest
-        pip3 install --no-cache-dir --upgrade -r ./requirements.txt
+        pip3 install setuptools
+        pip3 install pytest
+        pip3 install -r ./requirements.txt
     - name: Install qsim from test PyPI
-      run: pip3 install --no-cache-dir --upgrade -i https://test.pypi.org/simple/ qsimcirq
+      # Dependencies can't be installed in this call since we're pulling
+      # from the test server.
+      run: pip3 install --no-deps -i https://test.pypi.org/simple/ qsimcirq
     - name: Run Python tests
       # Tests cannot be run in the qsim directory, as Python will attempt
       # to import from the local `qsimcirq` instead of the installed module.
