@@ -27,7 +27,7 @@ jobs:
       # Installing from prod PyPI should behave the same as installing from
       # a local clone of the repo.
       run: |
-        if [ "${{ matrix.os }} == "macos-latest" ]; then
+        if [ "${{ matrix.os }}" == "macos-latest" ]; then
           brew install gcc
           echo "::set-env name=CC::gcc"
           echo "::set-env name=CXX::g++"
