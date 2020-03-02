@@ -3,3 +3,8 @@
 cirq==0.6.0
 numpy~=1.16
 typing_extensions
+
+# Build and test requirements
+
+pybind11
+pytest

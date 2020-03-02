@@ -8,7 +8,7 @@ RUN pip3 install cirq
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/
 COPY ./qsimcirq/ /qsim/qsimcirq/
-COPY ./interfaces/ /qsim/interfaces/
+COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
 
 WORKDIR /qsim/
 
