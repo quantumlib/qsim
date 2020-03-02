@@ -43,12 +43,7 @@ class CMakeBuild(build_ext):
     ]
 
     cfg = 'Debug' if self.debug else 'Release'
-    build_args = [
-        '-DCMAKE_CXX_COMPILER=g++',
-        '--config', cfg,
-        '--',
-        '-j2'
-    ]
+    build_args = ['--config', cfg, '--', '-j2']
 
     if platform.system() == 'Windows':
       cmake_args += [
