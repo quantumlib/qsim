@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [windows-latest]
     
     steps:
     - uses: actions/checkout@v2
@@ -26,13 +26,7 @@ jobs:
       shell: bash
       # Installing from prod PyPI should behave the same as installing from
       # a local clone of the repo.
-      run: |
-        if [ "${{ matrix.os }}" == "macos-latest" ]; then
-          brew install gcc
-          echo "::set-env name=CC::gcc"
-          echo "::set-env name=CXX::g++"
-        fi
-        pip3 install .
+      run: pip3 install .
     - name: Run Python tests
       shell: bash
       # Tests cannot be run in the qsim directory, as Python will attempt
