@@ -29,4 +29,8 @@ make run-py-tests
 ```
 
 **NOTE:** Due to how Python handles imports, this will fail if run from any
-directory except the top-level `qsim` directory. Also make sure that the qsim pybind interface `.so` file is included in the `$PYTHONPATH`.
+directory except the top-level `qsim` directory. Similarly, attempting to run
+tests using an installed version of qsimcirq (e.g. with `pip3 install qsimcirq`)
+can misbehave if there is a `qsimcirq/` directory _anywhere_ in the current
+working directory. For more information, see the
+[Python module documentation](https://docs.python.org/3/tutorial/modules.html#the-module-search-path).
