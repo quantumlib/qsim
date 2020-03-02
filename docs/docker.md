@@ -39,7 +39,7 @@ To build without running tests, simply run:
 
 ## Run Simulations
 
-Once the `qsim` image is created, it can be used to run the `qsim1.x`
+Once the `qsim` image is created, it can be used to run the `qsim_base.x`
 simulation binary with the following command:
 
 ```
