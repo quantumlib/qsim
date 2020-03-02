@@ -55,6 +55,7 @@ class CMakeBuild(build_ext):
       cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
 
     env = os.environ.copy()
+    env['CXX'] = 'g++'
     env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
         env.get('CXXFLAGS', ''), self.distribution.get_version())
     if not os.path.exists(self.build_temp):
@@ -62,8 +63,7 @@ class CMakeBuild(build_ext):
     subprocess.check_call(
         ['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
     subprocess.check_call(
-        ['cmake', '-DCMAKE_CXX_COMPILER=g++', '--build', '.'] + build_args,
-        cwd=self.build_temp)
+        ['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
 requirements = open('requirements.txt').readlines()
