@@ -31,6 +31,7 @@ jobs:
           brew install gcc
           echo "::set-env name=CC::gcc"
           echo "::set-env name=CXX::g++"
+        fi
         pip3 install .
     - name: Run Python tests
       shell: bash
