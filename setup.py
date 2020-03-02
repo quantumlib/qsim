@@ -55,7 +55,7 @@ class CMakeBuild(build_ext):
       cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
 
     env = os.environ.copy()
-    env['CXX'] = 'g++'
+    env['CC'] = 'gcc'
     env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
         env.get('CXXFLAGS', ''), self.distribution.get_version())
     if not os.path.exists(self.build_temp):
