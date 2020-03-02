@@ -33,6 +33,6 @@ jobs:
       # to import from the local `qsimcirq` instead of the installed module.
       run: |
         mkdir test-dir
-        cp -r interfaces/tests/ test-dir/
+        cp -r qsimcirq_tests/ test-dir/
         cd test-dir
         python3 -m pytest ./
