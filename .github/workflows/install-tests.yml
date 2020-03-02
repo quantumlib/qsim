@@ -19,6 +19,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
+    - name: Install prerequisites
+      run: pip3 install setuptools
     - name: Install qsim from local branch
       # Installing from prod PyPI should behave the same as installing from
       # a local clone of the repo.
