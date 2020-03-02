@@ -20,12 +20,20 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install prerequisites
+      shell: bash
       run: pip3 install setuptools
     - name: Install qsim from local branch
+      shell: bash
       # Installing from prod PyPI should behave the same as installing from
       # a local clone of the repo.
-      run: pip3 install .
+      run: |
+        if [ "${{ matrix.os }} == "macos-latest" ]; then
+          brew install gcc
+          echo "::set-env name=CC::gcc"
+          echo "::set-env name=CXX::g++"
+        pip3 install .
     - name: Run Python tests
+      shell: bash
       # Tests cannot be run in the qsim directory, as Python will attempt
       # to import from the local `qsimcirq` instead of the installed module.
       run: |
