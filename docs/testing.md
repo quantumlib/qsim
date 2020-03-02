@@ -29,4 +29,4 @@ make run-py-tests
 ```
 
 **NOTE:** Due to how Python handles imports, this will fail if run from any
-directory except the top-level `qsim` directory.
+directory except the top-level `qsim` directory. Also make sure that the qsim pybind interface `.so` file is included in the `$PYTHONPATH`.
