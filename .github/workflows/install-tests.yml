@@ -19,15 +19,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-    - name: Install prerequisites
-      run: |
-        pip3 install setuptools
-        pip3 install pytest
-        pip3 install -r ./requirements.txt
-    - name: Install qsim from test PyPI
-      # Dependencies can't be installed in this call since we're pulling
-      # from the test server.
-      run: pip3 install --no-deps -i https://test.pypi.org/simple/ qsimcirq
+    - name: Install qsim from local branch
+      # Installing from prod PyPI should behave the same as installing from
+      # a local clone of the repo.
+      run: pip3 install .
     - name: Run Python tests
       # Tests cannot be run in the qsim directory, as Python will attempt
       # to import from the local `qsimcirq` instead of the installed module.
