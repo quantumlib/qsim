@@ -45,7 +45,9 @@ class CMakeBuild(build_ext):
     cfg = 'Debug' if self.debug else 'Release'
     build_args = [
         '-DCMAKE_CXX_COMPILER=g++',
-        '--config', cfg
+        '--config', cfg,
+        '--',
+        '-j2'
     ]
 
     if platform.system() == 'Windows':
@@ -54,10 +56,8 @@ class CMakeBuild(build_ext):
       ]
       if sys.maxsize > 2**32:
         cmake_args += ['-A', 'x64']
-      build_args += ['--', '/m']
     else:
       cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-      build_args += ['--', '-j2']
 
     env = os.environ.copy()
     env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
@@ -67,7 +67,8 @@ class CMakeBuild(build_ext):
     subprocess.check_call(
         ['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
     subprocess.check_call(
-        ['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+        ['cmake', '-DCMAKE_CXX_COMPILER=g++', '--build', '.'] + build_args,
+        cwd=self.build_temp)
 
 
 requirements = open('requirements.txt').readlines()
