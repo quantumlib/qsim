@@ -56,6 +56,7 @@ class CMakeBuild(build_ext):
 
     env = os.environ.copy()
     env['CC'] = 'gcc'
+    env['CXX'] = 'g++'
     env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
         env.get('CXXFLAGS', ''), self.distribution.get_version())
     if not os.path.exists(self.build_temp):
@@ -63,7 +64,7 @@ class CMakeBuild(build_ext):
     subprocess.check_call(
         ['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
     subprocess.check_call(
-        ['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+        ['cmake', '--build', '.'] + build_args, cwd=self.build_temp, env=env)
 
 
 requirements = open('requirements.txt').readlines()
