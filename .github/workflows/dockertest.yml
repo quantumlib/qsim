@@ -31,3 +31,7 @@ jobs:
         run: docker run --rm qsim-py-tests:latest
       - name: Run sample simulation
         run: docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
+      - name: Test install process
+        run: |
+          cd install/tests
+          docker-compose up --build
