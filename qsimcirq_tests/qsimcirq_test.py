@@ -15,9 +15,7 @@
 import unittest
 import numpy as np
 import cirq
-import qsimcirq.qsim_simulator as qsimSimulator
-import qsimcirq.qsimh_simulator as qsimhSimulator
-import qsimcirq.qsim_circuit as qcirc
+import qsimcirq
 
 
 class MainTest(unittest.TestCase):
@@ -39,9 +37,9 @@ class MainTest(unittest.TestCase):
         cirq.CZ(a, d)  # ControlZ.
     )
 
-    qsim_circuit = qcirc.QSimCircuit(cirq_circuit)
+    qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
-    qsimSim = qsimSimulator.QSimSimulator()
+    qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.compute_amplitudes(
         qsim_circuit, bitstrings=['0100', '1011'])
     self.assertSequenceEqual(result, [0.5j, 0j])
@@ -63,9 +61,9 @@ class MainTest(unittest.TestCase):
         cirq.CZ(a, d)  # ControlZ.
     )
 
-    qsim_circuit = qcirc.QSimCircuit(cirq_circuit)
+    qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
-    qsimSim = qsimSimulator.QSimSimulator()
+    qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.simulate(qsim_circuit)
 
   def test_cirq_qsimh_simulate(self):
@@ -75,10 +73,10 @@ class MainTest(unittest.TestCase):
     # Create a circuit
     cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.CZ(a, b))
 
-    qsim_circuit = qcirc.QSimCircuit(cirq_circuit)
+    qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
     qsimh_options = {'k': [0], 'w': 0, 'p': 1, 'r': 1}
-    qsimhSim = qsimhSimulator.QSimhSimulator(qsimh_options)
+    qsimhSim = qsimcirq.QSimhSimulator(qsimh_options)
     result = qsimhSim.compute_amplitudes(
         qsim_circuit, bitstrings=['00', '01', '10', '11'])
     self.assertSequenceEqual(result, [(1 + 0j), 0j, 0j, 0j])

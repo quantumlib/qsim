@@ -33,7 +33,7 @@ tests:
 run-cxx-tests: cxx-tests
 	$(MAKE) -C tests/ run-all
 
-PYTESTS = $(shell find interfaces/tests/ -name '*_test.py')
+PYTESTS = $(shell find qsimcirq_tests/ -name '*_test.py')
 
 .PHONY: run-py-tests
 run-py-tests: pybind
