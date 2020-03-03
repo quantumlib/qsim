@@ -3,18 +3,15 @@ FROM debian
 
 # Install requirements
 RUN apt-get update
-RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
+RUN apt-get install -y python3-dev python3-pip
 RUN apt-get install -y cmake git
 
-COPY ./requirements.txt /qsim/requirements.txt
+COPY ./ /qsim/
+RUN pip3 install /qsim/
 
-# TODO: remove once live qsimcirq package is used.
-RUN pip3 install -r /qsim/requirements.txt
-# TODO: replace with the live qsimcirq pypi package once it is available.
-RUN pip3 install -i https://test.pypi.org/simple/ qsimcirq
+# Run test in a non-qsim directory
+COPY ./qsimcirq_tests/ /test-install/
 
-COPY ./interfaces/tests/ /qsim/interfaces/tests/
+WORKDIR /test-install/
 
-WORKDIR /qsim/
-
-ENTRYPOINT python3 -m pytest ./interfaces/tests/
+ENTRYPOINT python3 -m pytest ./
