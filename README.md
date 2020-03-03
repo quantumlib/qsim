@@ -96,8 +96,11 @@ see [docs](docs/cirq_interface.md).
 
 ## Authors
 
-Sergei Isakov (Google): qsim and qsimh simulators, Vamsi Krishna Devabathini
-(Google): Cirq interface.
+Sergei Isakov (Google): qsim and qsimh simulators
+
+Vamsi Krishna Devabathini (Google): Cirq interface
+
+Orion Martin (Google): automated testing
 
 ## Disclaimer
 
