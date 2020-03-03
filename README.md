@@ -99,6 +99,10 @@ see [docs](docs/cirq_interface.md).
 Sergei Isakov (Google): qsim and qsimh simulators, Vamsi Krishna Devabathini
 (Google): Cirq interface.
 
+## Acknowledgements
+
+Orion Martin (Google) has contributed in setting up TBD
+
 ## Disclaimer
 
 This is not an officially supported Google product.
