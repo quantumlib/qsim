@@ -69,6 +69,11 @@ class CMakeBuild(build_ext):
 
 requirements = open('requirements.txt').readlines()
 
+description = ('Schrödinger and Schrödinger-Feynman simulators for quantum circuits.')
+
+# README file as long_description.
+long_description = io.open('README.rst', encoding='utf-8').read()
+
 setup(
     name='qsimcirq',
     version='0.0.1',
@@ -77,8 +82,8 @@ setup(
     python_requires=('>=3.3.0'),
     install_requires=requirements,
     license='Apache 2',
-    description='',
-    long_description='',
+    description=description,
+    long_description=long_description,
     ext_modules=[CMakeExtension('qsimcirq/qsim')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
