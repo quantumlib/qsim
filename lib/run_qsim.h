@@ -98,6 +98,44 @@ struct QSimRunner final {
 
     return true;
   }
+
+  template <typename Circuit>
+  static bool Run(const Parameter& param, unsigned maxtime,
+                  const Circuit& circuit,
+                  const typename Simulator::StateSpace& state_space,
+                  typename Simulator::State& state) {
+    double t0, t1;
+    if (param.verbosity > 0) {
+      t0 = GetTime();
+    }
+
+    state_space.SetStateZero(state);
+    Simulator simulator(circuit.num_qubits, param.num_threads);
+
+    auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
+                                        maxtime);
+
+    // Apply fused gates.
+    for (std::size_t i = 0; i < fused_gates.size(); ++i) {
+      if (param.verbosity > 1) {
+        t1 = GetTime();
+      }
+
+      ApplyFusedGate(simulator, fused_gates[i], state);
+
+      if (param.verbosity > 1) {
+        double t2 = GetTime();
+        IO::messagef("gate %lu done in %g seconds\n", i, t2 - t1);
+      }
+    }
+
+    if (param.verbosity > 0) {
+      double t2 = GetTime();
+      IO::messagef("time elapsed %g seconds.\n", t2 - t0);
+    }
+
+    return true;
+  }
 };
 
 }  // namespace qsim
