@@ -72,7 +72,7 @@ requirements = open('requirements.txt').readlines()
 description = ('Schrödinger and Schrödinger-Feynman simulators for quantum circuits.')
 
 # README file as long_description.
-long_description = io.open('README.md', encoding='utf-8').read()
+long_description = open('README.md', encoding='utf-8').read()
 
 setup(
     name='qsimcirq',
@@ -84,6 +84,7 @@ setup(
     license='Apache 2',
     description=description,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     ext_modules=[CMakeExtension('qsimcirq/qsim')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
