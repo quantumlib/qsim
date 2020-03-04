@@ -20,32 +20,14 @@
 
 namespace qsim {
 
-enum GateKind {
-  kGateId1 = 0, // one-qubit Id
-  kGateHd,      // Hadamard
-  kGateT,       // T
-  kGateX,       // X
-  kGateY,       // Y
-  kGateZ,       // Z
-  kGateX2,      // sqrt(X)
-  kGateY2,      // sqrt(Y)
-  kGateRX,      // X-rotation
-  kGateRY,      // Y-rotation
-  kGateRZ,      // Z-rotation
-  kGateRXY,     // XY-rotation (rotation around arbitrary axis in the XY plane)
-  kGateHZ2,     // pi / 2 rotation around the X + Y axis
-  kGateS,       // S
-  kGateId2,     // two-qubit Id
-  kGateCZ,      // CZ
-  kGateCNot,    // CNOT (CX)
-  kGateIS,      // iSwap
-  kGateFS,      // fSim
-  kGateCP,      // control phase
-  kGateDecomp,  // single qubit gate from Schmidt decomposition
+enum GateAnyKind {
+  kGateAny = -1,
 };
 
-template <typename fp_type>
+template <typename fp_type, typename GK = GateAnyKind>
 struct Gate {
+  using GateKind = GK;
+
   GateKind kind;
   unsigned time;
   unsigned num_qubits;

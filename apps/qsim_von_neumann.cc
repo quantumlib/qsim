@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   if (!CircuitReader<IO>::FromFile(opt.maxtime, opt.circuit_file, circuit)) {
     return 1;
   }
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
     IO::messagef("entropy=%g\n", entropy);
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   Runner::Parameter param;
   param.num_threads = opt.num_threads;

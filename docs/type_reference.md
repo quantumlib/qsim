@@ -19,7 +19,9 @@ they fulfill the same expectations.
 | Function (parfor.h)     | Any function; args are specified with `Args`.     |
 | FuserT                  | [`BasicGateFuser`](lib/fuser_basic.h)             |
 | Gate                    | [`Gate`](lib/gate.h)                              |
+| GateQSim                | [`GateQSim`](lib/gates_def.h)                     |
 | GateDef                 | [`GateRX`](lib/gatedef.h)                         |
+| GK / GateKind           | [`Gate`](lib/gate.h)
 | HybridSimulator         | [`HybridSimulator`](lib/hybrid.h)                 |
 | IO                      | [`IO`](lib/io.h)                                  |
 | Matrix                  | Same as `Array(1|2)`.                             |

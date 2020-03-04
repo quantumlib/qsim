@@ -25,7 +25,7 @@
 #include "../lib/bitstring.h"
 #include "../lib/circuit_reader.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gate.h"
+#include "../lib/gates_def.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
@@ -48,8 +48,8 @@ T parseOptions(const py::dict &options, const char *key) {
   return value.cast<T>();
 }
 
-Circuit<Gate<float>> getCircuit(const py::dict &options) {
-  Circuit<Gate<float>> circuit;
+Circuit<GateQSim<float>> getCircuit(const py::dict &options) {
+  Circuit<GateQSim<float>> circuit;
   std::string circuit_str;
   try {
     circuit_str = parseOptions<std::string>(options, "c\0");
@@ -118,7 +118,7 @@ auto reorder_fsv = [](unsigned n, unsigned m, uint64_t i, float *fsv) {
 }  // namespace
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   std::vector<Bitstring> bitstrings;
   try {
     circuit = getCircuit(options);
@@ -144,7 +144,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     }
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   Runner::Parameter param;
   try {
@@ -159,7 +159,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 }
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   try {
     circuit = getCircuit(options);
   } catch (const std::invalid_argument &exp) {
@@ -182,7 +182,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   auto measure = [](unsigned k, const StateSpace &state_space,
                     const State &state) {};
 
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   Runner::Parameter param;
   try {
@@ -223,7 +223,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
       HybridSimulator<IO, BasicGateFuser, Simulator, ParallelFor>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   std::vector<Bitstring> bitstrings;
   Runner::Parameter param;
   py::list dense_parts;

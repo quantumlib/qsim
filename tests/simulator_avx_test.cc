@@ -210,7 +210,7 @@ TEST(SimulatorAVXTest, ApplyGate5) {
   auto gate24 = GateY2<float>::Create(11, 3);
   auto gate25 = GateRX<float>::Create(11, 4, 0.3);
 
-  GateFused<Gate<float>> fgate1{kGateCZ, 2, 2, {0, 1}, &gate11,
+  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, 2, {0, 1}, &gate11,
       {&gate1, &gate2, &gate6, &gate7, &gate11, &gate12, &gate13}};
   ApplyFusedGate(simulator, fgate1, state);
 
@@ -231,7 +231,7 @@ TEST(SimulatorAVXTest, ApplyGate5) {
     EXPECT_NEAR(std::imag(ampl3), 0.5, 1e-6);
   }
 
-  GateFused<Gate<float>> fgate2{kGateIS, 4, 2, {1, 2}, &gate14,
+  GateFused<GateQSim<float>> fgate2{kGateIS, 4, 2, {1, 2}, &gate14,
       {&gate3, &gate8, &gate14, &gate15, &gate16}};
   ApplyFusedGate(simulator, fgate2, state);
 
@@ -252,7 +252,7 @@ TEST(SimulatorAVXTest, ApplyGate5) {
     EXPECT_NEAR(std::imag(ampl3), 0, 1e-6);
   }
 
-  GateFused<Gate<float>> fgate3{kGateCNot, 6, 2, {2, 3}, &gate17,
+  GateFused<GateQSim<float>> fgate3{kGateCNot, 6, 2, {2, 3}, &gate17,
       {&gate4, &gate9, &gate17, &gate18, &gate19}};
   ApplyFusedGate(simulator, fgate3, state);
 
@@ -273,7 +273,7 @@ TEST(SimulatorAVXTest, ApplyGate5) {
     EXPECT_NEAR(std::imag(ampl3), -0.13098748, 1e-6);
   }
 
-  GateFused<Gate<float>> fgate4{kGateFS, 8, 2, {3, 4}, &gate20,
+  GateFused<GateQSim<float>> fgate4{kGateFS, 8, 2, {3, 4}, &gate20,
       {&gate5, &gate10, &gate20, &gate21, &gate22}};
   ApplyFusedGate(simulator, fgate4, state);
 
@@ -294,7 +294,7 @@ TEST(SimulatorAVXTest, ApplyGate5) {
     EXPECT_NEAR(std::imag(ampl3), -0.11393616, 1e-6);
   }
 
-  GateFused<Gate<float>> fgate5{kGateCP, 10, 2, {0, 1}, &gate23, {&gate23}};
+  GateFused<GateQSim<float>> fgate5{kGateCP, 10, 2, {0, 1}, &gate23, {&gate23}};
   ApplyFusedGate(simulator, fgate5, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
