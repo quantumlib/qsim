@@ -102,14 +102,12 @@ struct QSimRunner final {
   template <typename Circuit>
   static bool Run(const Parameter& param, unsigned maxtime,
                   const Circuit& circuit,
-                  const typename Simulator::StateSpace& state_space,
                   typename Simulator::State& state) {
     double t0, t1;
     if (param.verbosity > 0) {
       t0 = GetTime();
     }
 
-    state_space.SetStateZero(state);
     Simulator simulator(circuit.num_qubits, param.num_threads);
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,

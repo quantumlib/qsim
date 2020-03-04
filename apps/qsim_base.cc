@@ -117,11 +117,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  state_space.SetStateZero(state);
+
   Runner::Parameter param;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  if (Runner::Run(param, opt.maxtime, circuit, state_space, state)) {
+  if (Runner::Run(param, opt.maxtime, circuit, state)) {
     PrintAmplitudes(circuit.num_qubits, state_space, state);
   }
 
