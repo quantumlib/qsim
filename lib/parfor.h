@@ -43,7 +43,7 @@ struct ParallelFor {
   template <typename Function, typename Op, typename... Args>
   static typename Op::result_type RunReduce(unsigned num_threads,
                                             uint64_t size, Function&& func,
-                                            Op op, Args&&... args) {
+                                            Op&& op, Args&&... args) {
     if (num_threads == 0) return typename Op::result_type();
 
     std::vector<typename Op::result_type> partial_results(num_threads, 0);
