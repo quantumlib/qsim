@@ -72,7 +72,7 @@ requirements = open('requirements.txt').readlines()
 description = ('Schrödinger and Schrödinger-Feynman simulators for quantum circuits.')
 
 # README file as long_description.
-long_description = io.open('README.rst', encoding='utf-8').read()
+long_description = io.open('README.md', encoding='utf-8').read()
 
 setup(
     name='qsimcirq',
