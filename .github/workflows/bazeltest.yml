@@ -1,0 +1,28 @@
+name: Bazel
+
+on:
+  push:
+    # Run post-submit tests when pushing to master.
+    branches:
+      - master
+
+  # Run tests for any PRs.
+  pull_request:
+
+jobs:
+  # Run tests with Bazel.
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Run C++ tests
+        run: bazel test tests:all
+      - name: Run sample simulation
+        run: bazel run apps:qsim_base -c circuits/circuit_q24

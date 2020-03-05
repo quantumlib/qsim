@@ -2,6 +2,7 @@ cc_binary(
     name = "qsim_base",
     srcs = ["qsim_base.cc"],
     deps = ["//lib:qsim_lib"],
+    data = ["//circuits:circuit_q24"],
     copts = [
         "-O3",
         "-mavx2",
