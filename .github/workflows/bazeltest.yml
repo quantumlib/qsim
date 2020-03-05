@@ -6,8 +6,14 @@ on:
     branches:
       - master
 
-  # Run tests for any PRs.
+  # Only run tests for PRs affecting C++ code.
   pull_request:
+    paths-ignore:
+    - '**.md'
+    - 'install/**'
+    - 'pybind_interface/**'
+    - 'qsimcirq/**'
+    - 'qsimcirq_tests/**'
 
 jobs:
   # Run tests with Bazel.
