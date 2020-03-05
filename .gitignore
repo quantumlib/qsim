@@ -9,4 +9,7 @@
 __pycache__
 .ipynb_checkpoints
 
+# Bazel output
+bazel-*
+
 .idea/workspace.xml
