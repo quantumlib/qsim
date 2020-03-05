@@ -1,3 +1,10 @@
+default_copts = [
+    "-O3",
+    "-mavx2",
+    "-mfma",
+    "-fopenmp",
+]
+
 cc_test(
     name = "bitstring_test",
     srcs = ["bitstring_test.cc"],
@@ -5,6 +12,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = default_copts,
 )
 
 cc_test(
@@ -14,6 +22,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = default_copts,
 )
 
 cc_test(
@@ -23,6 +32,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = default_copts,
 )
 
 cc_test(
@@ -32,6 +42,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = default_copts,
 )
 
 cc_test(
@@ -41,12 +52,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
-    copts = [
-        "-O3",
-        "-mavx2",
-        "-mfma",
-        "-fopenmp",
-    ],
+    copts = default_copts,
     linkopts = ["-lgomp"],
 )
 
@@ -57,6 +63,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = default_copts,
 )
 
 cc_test(
@@ -66,12 +73,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
-    copts = [
-        "-O3",
-        "-mavx2",
-        "-mfma",
-        "-fopenmp",
-    ],
+    copts = default_copts,
     linkopts = ["-lgomp"],
 )
 
@@ -82,12 +84,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
-    copts = [
-        "-O3",
-        "-mavx2",
-        "-mfma",
-        "-fopenmp",
-    ],
+    copts = default_copts,
     linkopts = ["-lgomp"],
 )
 
@@ -98,12 +95,7 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
-    copts = [
-        "-O3",
-        "-mavx2",
-        "-mfma",
-        "-fopenmp",
-    ],
+    copts = default_copts,
     linkopts = ["-lgomp"],
 )
 
@@ -114,11 +106,6 @@ cc_test(
         "//tests/googletest:gtest_main",
         "//lib:qsim_lib",
     ],
-    copts = [
-        "-O3",
-        "-mavx2",
-        "-mfma",
-        "-fopenmp",
-    ],
+    copts = default_copts,
     linkopts = ["-lgomp"],
 )
