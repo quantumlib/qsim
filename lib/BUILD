@@ -1,5 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
+# TODO: split into (AVX|SSE|basic) libraries.
 cc_library(
     name = "qsim_lib",
     hdrs = [
