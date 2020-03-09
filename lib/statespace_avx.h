@@ -105,7 +105,7 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
       s1 = _mm256_hadd_ps(s1, s1);
       s1 = _mm256_add_ps(s1, _mm256_permute2f128_ps(s1, s1, 1));
 
-      return _mm256_cvtss_f32(s1);
+      return s1[0];
     };
 
     return ParallelFor::RunReduce(
