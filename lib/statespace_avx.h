@@ -99,13 +99,12 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
                 const State& state) -> double {
       __m256 re = _mm256_load_ps(state.get() + 16 * i);
       __m256 im = _mm256_load_ps(state.get() + 16 * i + 8);
-
       __m256 s1 = _mm256_fmadd_ps(im, im, _mm256_mul_ps(re, re));
-      s1 = _mm256_hadd_ps(s1, s1);
-      s1 = _mm256_hadd_ps(s1, s1);
-      s1 = _mm256_add_ps(s1, _mm256_permute2f128_ps(s1, s1, 1));
 
-      return s1[0];
+      float buffer[8];
+      _mm256_storeu_ps(buffer, s1);
+      return (float)(buffer[0] + buffer[1] + buffer[2] + buffer[3]
+                     + buffer[4] + buffer[5] + buffer[6] + buffer[7]);
     };
 
     return ParallelFor::RunReduce(

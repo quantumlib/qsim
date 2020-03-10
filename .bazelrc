@@ -35,3 +35,6 @@ build:sse --copt -msse4
 
 # Build without AVX or SSE - currently unsupported
 build:basic
+
+# Test flags
+test --test_output=errors
