@@ -53,18 +53,38 @@ class MainTest(unittest.TestCase):
         cirq.GridQubit(1, 0)
     ]
 
-    # Create a circuit
+    # Create a circuit.
     cirq_circuit = cirq.Circuit(
-        cirq.X(a)**0.5,  # Square root of X.
-        cirq.Y(b)**0.5,  # Square root of Y.
-        cirq.Z(c),  # Z.
-        cirq.CZ(a, d)  # ControlZ.
+        cirq.Moment([
+            cirq.X(a)**0.5,  # Square root of X.
+            cirq.H(b),       # Hadamard.
+            cirq.X(c),       # X.
+            cirq.H(d),       # Hadamard.
+        ]),
+        cirq.Moment([
+            cirq.X(a)**0.5,  # Square root of X.
+            cirq.CX(b, c),   # ControlX.
+            cirq.Z(d),       # Z.
+        ])
     )
+    # Expected output state is:
+    # |1> (|01> + |10>) (|0> - |1>)
+    # = 1/2 * (|1010> - |1011> + |1100> - |1101>)
 
     qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
     qsimSim = qsimcirq.QSimSimulator()
-    result = qsimSim.simulate(qsim_circuit)
+    result = qsimSim.simulate(qsim_circuit, qubit_order=[a, b, c, d])
+    print(result)
+    assert result.final_state.shape == (16,)
+    np.testing.assert_array_almost_equal(
+        result.final_state,
+        [
+            0,   0,    0,   0,
+            0,   0,    0,   0,
+            0,   0,    0.5, -0.5,
+            0.5, -0.5, 0,   0,
+        ])
 
   def test_cirq_qsimh_simulate(self):
     # Pick qubits.
