@@ -103,8 +103,8 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
 
       float buffer[8];
       _mm256_storeu_ps(buffer, s1);
-      return (float)(buffer[0] + buffer[1] + buffer[2] + buffer[3]
-                     + buffer[4] + buffer[5] + buffer[6] + buffer[7]);
+      return buffer[0] + buffer[1] + buffer[2] + buffer[3]
+           + buffer[4] + buffer[5] + buffer[6] + buffer[7];
     };
 
     return ParallelFor::RunReduce(
