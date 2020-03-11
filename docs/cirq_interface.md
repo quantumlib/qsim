@@ -23,7 +23,7 @@ libraries, and can be installed with `pip3 install pybind11`.
 ### Installing with pip
 
 qsim can be installed with `pip3 install qsimcirq`. Alternatives (such as
-installing with Docker) can be found in the [installation doc](docs/install.md).
+installing with Docker) can be found in the [installation doc](/docs/install.md).
 
 ### Compiling qsimcirq
 
