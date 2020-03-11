@@ -14,7 +14,16 @@
 
 from typing import Any, Dict, List, Sequence
 
-from cirq import study, ops, circuits, protocols, SimulatesAmplitudes, SimulatesFinalState, SimulationTrialResult
+from cirq import (
+  circuits,
+  ops,
+  protocols,
+  sim,
+  study,
+  SimulatesAmplitudes,
+  SimulatesFinalState,
+  SimulationTrialResult,
+)
 
 import numpy as np
 
@@ -22,22 +31,22 @@ from qsimcirq import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
-class QSimSimulatorState():
+class QSimSimulatorState(sim.WaveFunctionSimulatorState):
 
     def __init__(self,
                  qsim_data: np.ndarray,
                  qubit_map: Dict[ops.Qid, int]):
-      self.qubit_map = qubit_map
       # Generate state vector from qsim results
       amplitudes = qsim_data
-      N = len(self.qubit_map)
+      N = len(qubit_map)
       amplitudes = np.reshape(amplitudes, [2]*(N+1))
       amplitudes = np.transpose(amplitudes)
       amplitudes = amplitudes[0] + 1j * amplitudes[1]
-      self.state_vector = amplitudes.flatten()
+      state_vector = amplitudes.flatten()
+      super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
-class QSimSimulatorTrialResult(SimulationTrialResult):
+class QSimSimulatorTrialResult(sim.WaveFunctionTrialResult):
     
     def __init__(self,
                  params: study.ParamResolver,
@@ -46,9 +55,6 @@ class QSimSimulatorTrialResult(SimulationTrialResult):
       super().__init__(params=params,
                        measurements=measurements,
                        final_simulator_state=final_simulator_state)
-
-      # This field exposes the final state to external users.
-      self.final_state = final_simulator_state.state_vector
 
 
 class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
