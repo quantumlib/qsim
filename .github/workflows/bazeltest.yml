@@ -1,0 +1,35 @@
+name: Bazel
+
+on:
+  push:
+    # Run post-submit tests when pushing to master.
+    branches:
+      - master
+
+  # Only run tests for PRs affecting C++ code.
+  pull_request:
+    paths-ignore:
+    - '**.md'
+    - 'install/**'
+    - 'pybind_interface/**'
+    - 'qsimcirq/**'
+    - 'qsimcirq_tests/**'
+
+jobs:
+  # Run tests with Bazel v0.26.
+  test:
+    name: Test with Bazel
+    runs-on: ubuntu-16.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Install Bazel on CI
+        run: |
+          wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
+          sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
+      - name: Run C++ tests
+        run: bazel test --config=avx tests:all
+      - name: Run sample simulation
+        run: bazel run --config=avx apps:qsim_base -- -c circuits/circuit_q24
