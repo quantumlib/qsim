@@ -64,27 +64,24 @@ class MainTest(unittest.TestCase):
         cirq.Moment([
             cirq.X(a)**0.5,  # Square root of X.
             cirq.CX(b, c),   # ControlX.
-            cirq.Z(d),       # Z.
+            cirq.S(d),       # S (square root of Z).
         ])
     )
     # Expected output state is:
     # |1> (|01> + |10>) (|0> - |1>)
-    # = 1/2 * (|1010> - |1011> + |1100> - |1101>)
+    # = 1/2 * (|1010> - i|1011> + |1100> - i|1101>)
 
     qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.simulate(qsim_circuit, qubit_order=[a, b, c, d])
-    print(result)
-    assert result.final_state.shape == (16,)
-    np.testing.assert_array_almost_equal(
-        result.final_state,
-        [
-            0,   0,    0,   0,
-            0,   0,    0,   0,
-            0,   0,    0.5, -0.5,
-            0.5, -0.5, 0,   0,
-        ])
+    assert result.state_vector().shape == (16,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
+    # When using rotation gates such as S, qsim may add a global phase relative
+    # to other simulators. This is fine, as the result is equivalent.
+    cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
 
   def test_cirq_qsimh_simulate(self):
     # Pick qubits.
