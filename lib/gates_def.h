@@ -448,8 +448,8 @@ struct GateIS {
 
 template <typename fp_type>
 Matrix2q<fp_type> GateIS<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
-                                             0, 0, 0, 0, 0, -1, 0, 0,
-                                             0, 0, 0, -1, 0, 0, 0, 0,
+                                             0, 0, 0, 0, 0, 1, 0, 0,
+                                             0, 0, 0, 1, 0, 0, 0, 0,
                                              0, 0, 0, 0, 0, 0, 1, 0};
 
 template <typename fp_type>
