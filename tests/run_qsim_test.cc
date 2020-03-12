@@ -62,7 +62,7 @@ R"(4
 10 h 3
 )";
 
-TEST(QSimRunner, RimQSim1) {
+TEST(QSimRunner, RunQSim1) {
   std::stringstream ss(circuit_string);
   Circuit<Gate<float>> circuit;
 
@@ -99,7 +99,7 @@ TEST(QSimRunner, RimQSim1) {
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
 
-TEST(QSimRunner, RimQSim2) {
+TEST(QSimRunner, RunQSim2) {
   std::stringstream ss(circuit_string);
   Circuit<Gate<float>> circuit;
 
