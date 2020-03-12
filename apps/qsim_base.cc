@@ -107,19 +107,25 @@ int main(int argc, char* argv[]) {
   using Simulator = SimulatorAVX<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-
-  auto measure = [&opt, &circuit](
-      unsigned k, const StateSpace& state_space, const State& state) {
-    PrintAmplitudes(circuit.num_qubits, state_space, state);
-  };
-
   using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+
+  StateSpace state_space(circuit.num_qubits, opt.num_threads);
+  State state = state_space.CreateState();
+
+  if (state_space.IsNull(state)) {
+    IO::errorf("not enough memory: is the number of qubits too large?\n");
+    return 1;
+  }
+
+  state_space.SetStateZero(state);
 
   Runner::Parameter param;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  Runner::Run(param, opt.maxtime, circuit, measure);
+  if (Runner::Run(param, opt.maxtime, circuit, state)) {
+    PrintAmplitudes(circuit.num_qubits, state_space, state);
+  }
 
   return 0;
 }
