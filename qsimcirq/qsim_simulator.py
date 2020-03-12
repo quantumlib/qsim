@@ -37,12 +37,9 @@ class QSimSimulatorState(sim.WaveFunctionSimulatorState):
                  qsim_data: np.ndarray,
                  qubit_map: Dict[ops.Qid, int]):
       # Generate state vector from qsim results
-      amplitudes = qsim_data
-      N = len(qubit_map)
-      amplitudes = np.reshape(amplitudes, [2]*(N+1))
-      amplitudes = np.transpose(amplitudes)
-      amplitudes = amplitudes[0] + 1j * amplitudes[1]
-      state_vector = amplitudes.flatten()
+      state_vector = np.reshape(qsim_data, [-1, 2])
+      state_vector = state_vector[:, 0] + 1j * state_vector[:, 1]
+
       super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
@@ -95,6 +92,9 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
       """
     if not isinstance(program, qsimc.QSimCircuit):
       raise ValueError('{!r} is not a QSimCircuit'.format(program))
+
+    # qsim numbers qubits in reverse order from cirq
+    bitstrings = [bs[::-1] for bs in bitstrings]
 
     options = {'i': '\n'.join(bitstrings)}
     options.update(self.qsim_options)
