@@ -93,13 +93,13 @@ class QSimCircuit(cirq.Circuit):
           qsim_gate = "y_1_2"
         elif isinstance(op.gate, cirq.ops.XPowGate):
           qsim_gate = "rx"
-          qsim_params = str(op.gate.exponent)
+          qsim_params = str(op.gate.exponent*np.pi)
         elif isinstance(op.gate, cirq.ops.YPowGate):
           qsim_gate = "ry"
-          qsim_params = str(op.gate.exponent)
+          qsim_params = str(op.gate.exponent*np.pi)
         elif isinstance(op.gate, cirq.ops.ZPowGate):
           qsim_gate = "rz"
-          qsim_params = str(op.gate.exponent)
+          qsim_params = str(op.gate.exponent*np.pi)
         elif isinstance(op.gate, cirq.ops.CZPowGate) \
                 and op.gate.exponent == 1.0:
           qsim_gate = "cz"
