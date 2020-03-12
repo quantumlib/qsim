@@ -20,13 +20,13 @@
 path_to_include=googletest/googletest/include
 path_to_lib=googletest/lib
 
-g++ -O3 -I$path_to_include -L$path_to_lib -o bitstring_test bitstring_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -o circuit_reader_test circuit_reader_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_basic_test fuser_basic_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -o gates_def_test gates_def_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -o matrix_test matrix_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o hybrid_test hybrid_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsim_test run_qsim_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsimh_test run_qsimh_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_avx_test simulator_avx_test.cc -lpthread -lgtest
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_basic_test simulator_basic_test.cc -lpthread -lgtest
+g++ -O3 -I$path_to_include -L$path_to_lib -o bitstring_test bitstring_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o circuit_reader_test circuit_reader_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_basic_test fuser_basic_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o gates_def_test gates_def_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o matrix_test matrix_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o hybrid_test hybrid_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsim_test run_qsim_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsimh_test run_qsimh_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_avx_test simulator_avx_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_basic_test simulator_basic_test.cc -lgtest -lpthread

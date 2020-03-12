@@ -34,17 +34,15 @@ struct QSimRunner final {
 
   template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param, unsigned maxtime,
-                  const Circuit& circuit, MeasurementFunc measure,
-                  typename Simulator::fp_type* ext_state = nullptr) {
+                  const Circuit& circuit, MeasurementFunc measure) {
     std::vector<unsigned> times_to_measure_at{maxtime};
-    return Run(param, times_to_measure_at, circuit, measure, ext_state);
+    return Run(param, times_to_measure_at, circuit, measure);
   }
 
   template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param,
                   const std::vector<unsigned>& times_to_measure_at,
-                  const Circuit& circuit, MeasurementFunc measure,
-                  typename Simulator::fp_type* ext_state = nullptr) {
+                  const Circuit& circuit, MeasurementFunc measure) {
     double t0, t1;
     if (param.verbosity > 0) {
       t0 = GetTime();
@@ -53,9 +51,7 @@ struct QSimRunner final {
     using StateSpace = typename Simulator::StateSpace;
     StateSpace state_space(circuit.num_qubits, param.num_threads);
 
-    auto state = ext_state == nullptr ? state_space.CreateState() :
-                                        state_space.CreateState(ext_state);
-
+    auto state = state_space.CreateState();
     if (state_space.IsNull(state)) {
       IO::errorf("not enough memory: is the number of qubits too large?\n");
       return false;
@@ -101,8 +97,7 @@ struct QSimRunner final {
 
   template <typename Circuit>
   static bool Run(const Parameter& param, unsigned maxtime,
-                  const Circuit& circuit,
-                  typename Simulator::State& state) {
+                  const Circuit& circuit, typename Simulator::State& state) {
     double t0, t1;
     if (param.verbosity > 0) {
       t0 = GetTime();

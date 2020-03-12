@@ -178,10 +178,6 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   using Simulator = SimulatorAVX<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-
-  auto measure = [](unsigned k, const StateSpace &state_space,
-                    const State &state) {};
-
   using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
 
   Runner::Parameter param;
@@ -192,11 +188,18 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     IO::errorf(exp.what());
     return {};
   }
+
+  StateSpace state_space(circuit.num_qubits, param.num_threads);
+  State state = state_space.CreateState(fsv);
+
+  state_space.SetStateZero(state);
+
   if (!Runner::Run(param, std::numeric_limits<unsigned>::max(), circuit,
-                   measure, fsv)) {
+                   state)) {
     IO::errorf("Qsim full state simulation of the circuit errored out.");
     return {};
   }
+
   if (circuit.num_qubits == 1) {
     fsv[2] = fsv[1];
     fsv[1] = fsv[8];
@@ -212,6 +215,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   } else {
     ParallelFor::Run(param.num_threads, buff_size / 16, reorder_fsv, fsv);
   }
+
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
