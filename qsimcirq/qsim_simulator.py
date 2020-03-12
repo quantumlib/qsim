@@ -12,14 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Sequence
+from typing import Any, Dict, List, Sequence
 
-from cirq import study, ops, circuits, protocols, SimulatesAmplitudes, SimulatesFinalState, SimulationTrialResult
+from cirq import (
+  circuits,
+  ops,
+  protocols,
+  sim,
+  study,
+  SimulatesAmplitudes,
+  SimulatesFinalState,
+  SimulationTrialResult,
+)
 
 import numpy as np
 
 from qsimcirq import qsim
 import qsimcirq.qsim_circuit as qsimc
+
+
+class QSimSimulatorState(sim.WaveFunctionSimulatorState):
+
+    def __init__(self,
+                 qsim_data: np.ndarray,
+                 qubit_map: Dict[ops.Qid, int]):
+      # Generate state vector from qsim results
+      amplitudes = qsim_data
+      N = len(qubit_map)
+      amplitudes = np.reshape(amplitudes, [2]*(N+1))
+      amplitudes = np.transpose(amplitudes)
+      amplitudes = amplitudes[0] + 1j * amplitudes[1]
+      state_vector = amplitudes.flatten()
+      super().__init__(state_vector=state_vector, qubit_map=qubit_map)
+
+
+class QSimSimulatorTrialResult(sim.WaveFunctionTrialResult):
+    
+    def __init__(self,
+                 params: study.ParamResolver,
+                 measurements: Dict[str, np.ndarray],
+                 final_simulator_state: QSimSimulatorState):
+      super().__init__(params=params,
+                       measurements=measurements,
+                       final_simulator_state=final_simulator_state)
 
 
 class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
@@ -118,14 +153,21 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
       solved_circuit = protocols.resolve_parameters(program, prs)
 
       options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+      ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+        solved_circuit.all_qubits())
+      qubit_map = {
+        qubit: index for index, qubit in enumerate(ordered_qubits)
+      }
 
-      final_state = qsim.qsim_simulate_fullstate(options)
-      assert final_state.dtype == np.float32
-      assert final_state.ndim == 1
+      qsim_state = qsim.qsim_simulate_fullstate(options)
+      assert qsim_state.dtype == np.float32
+      assert qsim_state.ndim == 1
+      final_state = QSimSimulatorState(qsim_state, qubit_map)
       # create result for this parameter
       # TODO: We need to support measurements.
-      result = SimulationTrialResult(
-          params=prs, measurements={}, final_simulator_state=final_state)
+      result = QSimSimulatorTrialResult(params=prs,
+                                        measurements={},
+                                        final_simulator_state=final_state)
       trials_results.append(result)
 
     return trials_results
