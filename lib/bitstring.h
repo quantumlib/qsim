@@ -24,6 +24,16 @@ namespace qsim {
 
 using Bitstring = uint64_t;
 
+/**
+ * Reads bitstrings (representing initialized or measured states of qubits)
+ * from a provided stream object and stores them in a vector.
+ * @param num_qubits Number of qubits represented in each bitstring.
+ * @param provider Source of bitstrings; only used for error reporting.
+ * @param fs The stream to read bitstrings from.
+ * @param bitstrings Output vector of bitstrings. On success, this will contain
+ *   all bitstrings read in from 'fs'.
+ * @return True if reading succeeded; false otherwise.
+ */
 template <typename IO, typename Stream>
 bool BitstringsFromStream(unsigned num_qubits, const std::string& provider,
                           Stream& fs, std::vector<Bitstring>& bitstrings) {
@@ -59,6 +69,15 @@ bool BitstringsFromStream(unsigned num_qubits, const std::string& provider,
   return true;
 }
 
+/**
+ * Reads bitstrings (representing initialized or measured states of qubits)
+ * from the given file and stores them in a vector.
+ * @param num_qubits Number of qubits represented in each bitstring.
+ * @param file The name of the file to read bitstrings from.
+ * @param bitstrings Output vector of bitstrings. On success, this will contain
+ *   all bitstrings read in from 'file'.
+ * @return True if reading succeeded; false otherwise.
+ */
 template <typename IO>
 inline bool BitstringsFromFile(unsigned num_qubits, const std::string& file,
                                std::vector<Bitstring>& bitstrings) {
