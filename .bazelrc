@@ -1,0 +1,40 @@
+# Default build options
+build --copt -std=c++11
+build --copt -D_GLIBCXX_USE_CXX11_ABI=0
+
+##### Sanitizers (can be added to any build) #####
+
+# Shared config for sanitizers
+build:sanitizer --strip=never
+build:sanitizer --copt -O1
+build:sanitizer --copt -fno-omit-frame-pointer
+
+# Address sanitizer
+build:asan --config=sanitizer
+build:asan --copt -fsanitize=address
+build:asan --linkopt -fsanitize=address
+
+# Memory sanitizer
+build:msan --config=sanitizer
+build:msan --copt -fsanitize=leak
+build:msan --linkopt -fsanitize=leak
+
+##### Instruction set options (choose one) #####
+
+# Build with AVX2 + FMA
+build:avx --copt -O3
+build:avx --copt -mavx2
+build:avx --copt -mfma
+build:avx --copt -fopenmp
+build:avx --linkopt -lgomp
+
+# Build with SSE - currently unsupported
+build:sse --copt -msse2
+build:sse --copt -msse3
+build:sse --copt -msse4
+
+# Build without AVX or SSE - currently unsupported
+build:basic
+
+# Test flags
+test --test_output=errors

@@ -62,7 +62,7 @@ R"(4
 10 h 3
 )";
 
-TEST(QSimRunner, RimQSim) {
+TEST(QSimRunner, RunQSim1) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
@@ -95,6 +95,45 @@ TEST(QSimRunner, RimQSim) {
   param.verbosity = 0;
 
   EXPECT_EQ(Runner::Run(param, 99, circuit, measure), true);
+
+  EXPECT_NEAR(entropy, 2.2192848, 1e-6);
+}
+
+TEST(QSimRunner, RunQSim2) {
+  std::stringstream ss(circuit_string);
+  Circuit<Gate<float>> circuit;
+
+  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(circuit.num_qubits, 4);
+  EXPECT_EQ(circuit.gates.size(), 27);
+
+  using Simulator = SimulatorAVX<ParallelFor>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+
+  StateSpace state_space(circuit.num_qubits, 1);
+  State state = state_space.CreateState();
+
+  EXPECT_EQ(state_space.IsNull(state), false);
+
+  state_space.SetStateZero(state);
+
+  Runner::Parameter param;
+  param.num_threads = 1;
+  param.verbosity = 0;
+
+  EXPECT_EQ(Runner::Run(param, 99, circuit, state), true);
+
+  // Calculate entropy.
+
+  float entropy = 0;
+
+  for (uint64_t i = 0; i < state_space.Size(state); ++i) {
+    auto ampl = state_space.GetAmpl(state, i);
+    float p = std::norm(ampl);
+    entropy -= p * std::log(p);
+  }
 
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
