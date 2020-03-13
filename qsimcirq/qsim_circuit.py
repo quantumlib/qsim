@@ -112,11 +112,17 @@ class QSimCircuit(cirq.Circuit):
         elif isinstance(op.gate, cirq.ops.FSimGate):
           qsim_gate = "fs"
           qsim_params = "{} {}".format(op.gate.theta, op.gate.phi)
-        elif isinstance(op.gate, cirq.ops.IdentityGate) \
-                and op.gate.num_qubits() == 1:
+        elif isinstance(op, cirq.ops.identity.IdentityOperation) \
+                and len(op.qubits) == 1:        # cirq version 0.6
           qsim_gate = "id1"
-        elif isinstance(op.gate, cirq.ops.IdentityGate) \
-                and op.gate.num_qubits() == 2:
+        elif isinstance(op.gate, cirq.ops.identity.IdentityGate) \
+                and op.gate.num_qubits() == 1:  # cirq version >=0.7
+          qsim_gate = "id1"
+        elif isinstance(op, cirq.ops.identity.IdentityOperation) \
+                and len(op.qubits) == 2:        # cirq version 0.6
+          qsim_gate = "id2"
+        elif isinstance(op.gate, cirq.ops.identity.IdentityGate) \
+                and op.gate.num_qubits() == 2:  # cirq version >=0.7
           qsim_gate = "id2"
         else:
           raise ValueError("{!r} No translation for ".format(op))
