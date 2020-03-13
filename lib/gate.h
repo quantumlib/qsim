@@ -20,41 +20,38 @@
 
 namespace qsim {
 
-enum GateKind {
-  kGateId1 = 0, // one-qubit Id
-  kGateHd,      // Hadamard
-  kGateT,       // T
-  kGateX,       // X
-  kGateY,       // Y
-  kGateZ,       // Z
-  kGateX2,      // sqrt(X)
-  kGateY2,      // sqrt(Y)
-  kGateRX,      // X-rotation
-  kGateRY,      // Y-rotation
-  kGateRZ,      // Z-rotation
-  kGateRXY,     // XY-rotation (rotation around arbitrary axis in the XY plane)
-  kGateHZ2,     // pi / 2 rotation around the X + Y axis
-  kGateS,       // S
-  kGateId2,     // two-qubit Id
-  kGateCZ,      // CZ
-  kGateCNot,    // CNOT (CX)
-  kGateIS,      // iSwap
-  kGateFS,      // fSim
-  kGateCP,      // control phase
-  kGateDecomp,  // single qubit gate from Schmidt decomposition
+enum GateAnyKind {
+  kGateAny = -1,
 };
 
-template <typename fp_type>
+// Gate is a generic gate to make it easier to use qsim with external gate sets.
+// Internal gate set is implemented in gates_def.h.
+template <typename fp_type, typename GK = GateAnyKind>
 struct Gate {
+  using GateKind = GK;
+
   GateKind kind;
   unsigned time;
   unsigned num_qubits;
   unsigned qubits[3];
   bool unfusible;      // If true, the gate is fused as a master.
-  bool inverse;        // If true, the qubit order was inversed (q0 > q1).
+  bool inverse;        // If true, the qubit order is inversed (q0 > q1).
   std::vector<fp_type> params;
   std::array<fp_type, 32> matrix;
 };
+
+template <typename fp_type>
+using Matrix1q = std::array<fp_type, 8>;
+
+template <typename fp_type>
+using Matrix2q = std::array<fp_type, 32>;
+
+template <typename fp_type>
+using schmidt_decomp_type = std::vector<std::array<Matrix1q<fp_type>, 2>>;
+
+template <typename fp_type, typename GateKind>
+schmidt_decomp_type<fp_type> GetSchmidtDecomp(
+    GateKind kind, const std::vector<fp_type>& params);
 
 }  // namespace qsim
 

@@ -64,7 +64,7 @@ R"(4
 
 TEST(QSimRunner, RunQSim1) {
   std::stringstream ss(circuit_string);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
@@ -73,7 +73,7 @@ TEST(QSimRunner, RunQSim1) {
   using Simulator = SimulatorAVX<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   float entropy;
 
@@ -101,7 +101,7 @@ TEST(QSimRunner, RunQSim1) {
 
 TEST(QSimRunner, RunQSim2) {
   std::stringstream ss(circuit_string);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
@@ -110,7 +110,7 @@ TEST(QSimRunner, RunQSim2) {
   using Simulator = SimulatorAVX<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, 1);
   State state = state_space.CreateState();

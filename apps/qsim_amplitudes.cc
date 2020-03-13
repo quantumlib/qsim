@@ -24,7 +24,7 @@
 #include "../lib/bitstring.h"
 #include "../lib/circuit_reader.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gate.h"
+#include "../lib/gates_def.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   unsigned maxtime = opt.times.back();
   if (!CircuitReader<IO>::FromFile(maxtime, opt.circuit_file, circuit)) {
     return 1;
@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
     }
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   Runner::Parameter param;
   param.num_threads = opt.num_threads;

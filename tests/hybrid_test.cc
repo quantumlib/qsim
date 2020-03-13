@@ -58,7 +58,7 @@ R"(2
 )";
 
   std::stringstream ss(circuit_string);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 2);
@@ -236,7 +236,7 @@ R"(4
 )";
 
   std::stringstream ss(circuit_string);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);

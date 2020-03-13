@@ -59,13 +59,13 @@ R"(4
 
 TEST(FuserBasicTest, NoTimesToSplitAt) {
   std::stringstream ss(circuit_string1);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Fuser = BasicGateFuser<Gate<float>>;
+  using Fuser = BasicGateFuser<GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 99);
 
   EXPECT_EQ(fused_gates.size(), 5);
@@ -224,7 +224,7 @@ TEST(FuserBasicTest, NoTimesToSplitAt) {
 
 TEST(FuserBasicTest, TimesToSplitAt1) {
   std::stringstream ss(circuit_string1);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
@@ -232,7 +232,7 @@ TEST(FuserBasicTest, TimesToSplitAt1) {
 
   std::vector<unsigned> times_to_split_at{3, 8, 10};
 
-  using Fuser = BasicGateFuser<Gate<float>>;
+  using Fuser = BasicGateFuser<GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -399,7 +399,7 @@ TEST(FuserBasicTest, TimesToSplitAt1) {
 
 TEST(FuserBasicTest, TimesToSplitAt2) {
   std::stringstream ss(circuit_string1);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
@@ -407,7 +407,7 @@ TEST(FuserBasicTest, TimesToSplitAt2) {
 
   std::vector<unsigned> times_to_split_at{2, 10};
 
-  using Fuser = BasicGateFuser<Gate<float>>;
+  using Fuser = BasicGateFuser<GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -579,13 +579,13 @@ R"(3
 
 TEST(FuserBasicTest, OrphanedQubits1) {
   std::stringstream ss(circuit_string2);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
-  using Fuser = BasicGateFuser<Gate<float>>;
+  using Fuser = BasicGateFuser<GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
 
   EXPECT_EQ(fused_gates.size(), 2);
@@ -635,7 +635,7 @@ TEST(FuserBasicTest, OrphanedQubits1) {
 
 TEST(FuserBasicTest, OrphanedQubits2) {
   std::stringstream ss(circuit_string2);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 3);
@@ -643,7 +643,7 @@ TEST(FuserBasicTest, OrphanedQubits2) {
 
   std::vector<unsigned> times_to_split_at{1, 4};
 
-  using Fuser = BasicGateFuser<Gate<float>>;
+  using Fuser = BasicGateFuser<GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -716,7 +716,7 @@ TEST(FuserBasicTest, OrphanedQubits2) {
 
 TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   std::stringstream ss(circuit_string2);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 3);
@@ -725,7 +725,7 @@ TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   circuit.gates[1].unfusible = true;
   circuit.gates[2].unfusible = true;
 
-  using Fuser = BasicGateFuser<Gate<float>>;
+  using Fuser = BasicGateFuser<GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
 
   EXPECT_EQ(fused_gates.size(), 3);
