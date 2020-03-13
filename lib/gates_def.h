@@ -102,15 +102,6 @@ inline Gate CreateStaticGate(unsigned time, unsigned q0, unsigned q1) {
 constexpr double h = 0.5;
 constexpr double is2 = 0.7071067811865475;
 
-template <typename fp_type>
-using Matrix1q = std::array<fp_type, 8>;
-
-template <typename fp_type>
-using Matrix2q = std::array<fp_type, 32>;
-
-template <typename fp_type>
-using schmidt_decomp_type = std::vector<std::array<Matrix1q<fp_type>, 2>>;
-
 // 1-qubit gates.
 
 template <typename fp_type>
@@ -561,7 +552,7 @@ struct GateCP {
   }
 };
 
-template <typename fp_type>
+template <typename fp_type, typename GateKind>
 inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
     GateKind kind, const std::vector<fp_type>& params) {
   switch (kind) {
