@@ -21,7 +21,7 @@
 
 #include "../lib/circuit_reader.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gate.h"
+#include "../lib/gates_def.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   if (!CircuitReader<IO>::FromFile(opt.maxtime, opt.circuit_file, circuit)) {
     return 1;
   }
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
   using Simulator = SimulatorAVX<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<Gate<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, opt.num_threads);
   State state = state_space.CreateState();

@@ -28,9 +28,19 @@ namespace qsim {
 template <typename IO>
 class CircuitReader final {
  public:
+  /**
+   * Parses the given input stream into a Circuit object, following the rules
+   * defined in "docs/input_format.md".
+   * @param maxtime Maximum gate "time" to read operations for (inclusive).
+   * @param provider Circuit source; only used for error reporting.
+   * @param fs The stream to read the circuit from.
+   * @param circuit Output circuit object. If parsing is successful, this will
+   *   contain the circuit defined in 'fs'.
+   * @return True if parsing succeeds; false otherwise.
+   */
   template <typename Stream, typename fp_type>
   static bool FromStream(unsigned maxtime, const std::string& provider,
-                         Stream& fs, Circuit<Gate<fp_type>>& circuit) {
+                         Stream& fs, Circuit<GateQSim<fp_type>>& circuit) {
     circuit.num_qubits = 0;
 
     circuit.gates.resize(0);
@@ -165,9 +175,18 @@ class CircuitReader final {
     return true;
   }
 
+  /**
+   * Parses the given file into a Circuit object, following the rules defined
+   * in "docs/input_format.md".
+   * @param maxtime Maximum gate "time" to read operations for (inclusive).
+   * @param file The name of the file to read the circuit from.
+   * @param circuit Output circuit object. If parsing is successful, this will
+   *   contain the circuit defined in 'file'.
+   * @return True if parsing succeeds; false otherwise.
+   */
   template <typename fp_type>
   static bool FromFile(unsigned maxtime, const std::string& file,
-                       Circuit<Gate<fp_type>>& circuit) {
+                       Circuit<GateQSim<fp_type>>& circuit) {
     auto fs = IO::StreamFromFile(file);
 
     if (!fs) {
@@ -184,6 +203,14 @@ class CircuitReader final {
     IO::errorf("invalid gate in %s in line %u.\n", provider.c_str(), line);
   }
 
+  /**
+   * Checks formatting for a single-qubit gate parsed from 'ss'.
+   * @param ss Input stream containing the gate specification.
+   * @param num_qubits Number of qubits, as defined at the start of the file.
+   * @param q0 Index of the affected qubit.
+   * @param provider Circuit source; only used for error reporting.
+   * @param line Line number of the parsed gate; only used for error reporting.
+   */
   static bool ValidateGate(std::stringstream& ss,
                            unsigned num_qubits, unsigned q0,
                            const std::string& provider, unsigned line) {
@@ -196,6 +223,15 @@ class CircuitReader final {
     return true;
   }
 
+  /**
+   * Checks formatting for a two-qubit gate parsed from 'ss'.
+   * @param ss Input stream containing the gate specification.
+   * @param num_qubits Number of qubits, as defined at the start of the file.
+   * @param q0 Index of the first affected qubit.
+   * @param q1 Index of the second affected qubit.
+   * @param provider Circuit source; only used for error reporting.
+   * @param line Line number of the parsed gate; only used for error reporting.
+   */
   static bool ValidateGate(std::stringstream& ss,
                            unsigned num_qubits, unsigned q0, unsigned q1,
                            const std::string& provider, unsigned line) {
