@@ -65,11 +65,14 @@ class MainTest(unittest.TestCase):
             cirq.X(a)**0.5,  # Square root of X.
             cirq.CX(b, c),   # ControlX.
             cirq.S(d),       # S (square root of Z).
+        ]),
+        cirq.Moment([
+            cirq.SWAP(c, d),  # SWAP.
         ])
     )
     # Expected output state is:
     # |1> (|01> + |10>) (|0> - |1>)
-    # = 1/2 * (|1010> - i|1011> + |1100> - i|1101>)
+    # = 1/2 * (|1001> - i|1011> + |1100> - i|1110>)
 
     qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 

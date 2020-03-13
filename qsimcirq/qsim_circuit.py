@@ -109,6 +109,10 @@ class QSimCircuit(cirq.Circuit):
         elif isinstance(op.gate, cirq.ops.ISwapPowGate) \
                 and op.gate.exponent == 1.0:
           qsim_gate = "is"
+        # SWAP can be emulated with the fSim gate.
+        elif isinstance(op.gate, cirq.ops.SwapPowGate):
+          qsim_gate = "fs"
+          qsim_params = "{} {}".format(str(op.gate.exponent*np.pi/2), np.pi)
         elif isinstance(op.gate, cirq.ops.FSimGate):
           qsim_gate = "fs"
           qsim_params = "{} {}".format(op.gate.theta, op.gate.phi)
