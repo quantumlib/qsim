@@ -26,6 +26,7 @@
 
 namespace qsim {
 
+// Gate set implemented in qsim contains the following gates.
 enum GateKind {
   kGateId1 = 0, // one-qubit Id
   kGateHd,      // Hadamard
@@ -50,6 +51,8 @@ enum GateKind {
   kGateDecomp,  // single qubit gate from Schmidt decomposition
 };
 
+// Specialization of Gate (defined in gate.h) for the gate set implemented in
+// qsim.
 template <typename fp_type>
 using GateQSim = Gate<fp_type, GateKind>;
 

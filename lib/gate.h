@@ -24,6 +24,8 @@ enum GateAnyKind {
   kGateAny = -1,
 };
 
+// Gate is a generic gate to make it easier to use qsim with external gate sets.
+// Internal gate set is implemented in gates_def.h.
 template <typename fp_type, typename GK = GateAnyKind>
 struct Gate {
   using GateKind = GK;
