@@ -11,7 +11,7 @@ Sample circuits are provided in [circuits](/circuits).
 ## qsim_base usage
 
 ```
-./qsim_base -c circuit_file -d maxtime -t num_threads -v verbosity
+./qsim_base.x -c circuit_file -d maxtime -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -24,7 +24,7 @@ qsim_base computes all the amplitudes and just prints the first eight of them
 
 Example:
 ```
-./qsim_base -c ../circuits/circuit_q30 -d 16 -t 8 -v 1
+./qsim_base.x -c ../circuits/circuit_q30 -d 16 -t 8 -v 1
 ```
 
 Note that this particular simulation requires 8 GB of RAM.
@@ -32,7 +32,7 @@ Note that this particular simulation requires 8 GB of RAM.
 ## qsim_von_neumann usage
 
 ```
-./qsim_von_neumann -c circuit_file -d maxtime -t num_threads -v verbosity
+./qsim_von_neumann.x -c circuit_file -d maxtime -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -46,13 +46,13 @@ numbers as the calculation of logarithms is slow.
 
 Example:
 ```
-./qsim_von_neumann -c ../circuits/circuit_q24 -d 16 -t 4 -v 1
+./qsim_von_neumann.x -c ../circuits/circuit_q24 -d 16 -t 4 -v 1
 ```
 
 ## qsim_amplitudes usage
 
 ```
-./qsim_amplitudes -c circuit_file -d times_to_save_results -i input_files -o output_files -t num_threads -v verbosity
+./qsim_amplitudes.x -c circuit_file -d times_to_save_results -i input_files -o output_files -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -70,13 +70,13 @@ format.
 
 Example:
 ```
-./qsim_amplitudes -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitstrings_q24_s1,../circuits/bitstrings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
+./qsim_amplitudes.x -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitstrings_q24_s1,../circuits/bitstrings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
 ```
 
 ## qsimh_base usage
 
 ```
-./qsimh_base -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -t num_threads -v verbosity
+./qsimh_base.x -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -103,12 +103,12 @@ gates in the circuit file.
 
 Example:
 ```
-./qsimh_base -c ../circuits/circuit_q30 -d 16 -k 0,1,2,6,7,8,12,13,14,18,19,20,24,25,26 -t 8 -w 0 -p 0 -r 5 -v 1
+./qsimh_base.x -c ../circuits/circuit_q30 -d 16 -k 0,1,2,6,7,8,12,13,14,18,19,20,24,25,26 -t 8 -w 0 -p 0 -r 5 -v 1
 ```
 
 ## qsimh_amplitudes usage
 ```
-./qsimh_amplitudes -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
+./qsimh_amplitudes.x -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
 ```
 
 `circuit_file` - circuit file to run
@@ -131,8 +131,8 @@ format.
 
 Example:
 ```
-./qsimh_amplitudes -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
-./qsimh_amplitudes -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
+./qsimh_amplitudes.x -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
+./qsimh_amplitudes.x -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
 ...
 ```
 
