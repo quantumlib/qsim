@@ -37,6 +37,9 @@ class QSimhSimulator(SimulatesAmplitudes):
     if not isinstance(program, qsimc.QSimCircuit):
       raise ValueError('{!r} is not a QSimCircuit'.format(program))
 
+    # qsim numbers qubits in reverse order from cirq
+    bitstrings = [bs[::-1] for bs in bitstrings]
+
     options = {'i': '\n'.join(bitstrings)}
     options.update(self.qsimh_options)
     param_resolvers = study.to_resolvers(params)

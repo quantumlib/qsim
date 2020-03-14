@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import unittest
-import numpy as np
 import cirq
 import qsimcirq
 
@@ -88,7 +87,7 @@ class MainTest(unittest.TestCase):
     a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
 
     # Create a circuit
-    cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.CZ(a, b))
+    cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
 
     qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
@@ -96,7 +95,7 @@ class MainTest(unittest.TestCase):
     qsimhSim = qsimcirq.QSimhSimulator(qsimh_options)
     result = qsimhSim.compute_amplitudes(
         qsim_circuit, bitstrings=['00', '01', '10', '11'])
-    self.assertSequenceEqual(result, [(1 + 0j), 0j, 0j, 0j])
+    self.assertSequenceEqual(result, [0j, 0j, (1 + 0j), 0j])
 
 
 if __name__ == '__main__':

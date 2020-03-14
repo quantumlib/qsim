@@ -22,7 +22,6 @@ from cirq import (
   study,
   SimulatesAmplitudes,
   SimulatesFinalState,
-  SimulationTrialResult,
 )
 
 import numpy as np
@@ -36,10 +35,7 @@ class QSimSimulatorState(sim.WaveFunctionSimulatorState):
     def __init__(self,
                  qsim_data: np.ndarray,
                  qubit_map: Dict[ops.Qid, int]):
-      # Generate state vector from qsim results
-      state_vector = np.reshape(qsim_data, [-1, 2])
-      state_vector = state_vector[:, 0] + 1j * state_vector[:, 1]
-
+      state_vector = qsim_data.view(np.complex64)
       super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
