@@ -65,7 +65,10 @@ class MainTest(unittest.TestCase):
             cirq.X(a)**0.5,  # Square root of X.
             cirq.CX(b, c),   # ControlX.
             cirq.S(d),       # S (square root of Z).
-        ])
+        ]),
+        cirq.Moment([
+            cirq.I(a),
+            ])
     )
     # Expected output state is:
     # |1> (|01> + |10>) (|0> - |1>)
