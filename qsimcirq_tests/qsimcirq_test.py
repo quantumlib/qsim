@@ -79,7 +79,7 @@ class MainTest(unittest.TestCase):
     cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
     # When using rotation gates such as S, qsim may add a global phase relative
     # to other simulators. This is fine, as the result is equivalent.
-    cirq.linalg.allclose_up_to_global_phase(
+    assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
 
   def test_cirq_qsimh_simulate(self):

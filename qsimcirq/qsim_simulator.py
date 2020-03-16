@@ -151,6 +151,9 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
       options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
       ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         solved_circuit.all_qubits())
+      # qsim numbers qubits in reverse order from cirq
+      ordered_qubits = list(reversed(ordered_qubits))
+
       qubit_map = {
         qubit: index for index, qubit in enumerate(ordered_qubits)
       }
