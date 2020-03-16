@@ -39,18 +39,13 @@ cd qsim
 Pybind to generate a static library with file extension `.so` in the `qsimcirq`
 directory.
 
-3. Ensure that compiled qsim module loads correctly by adding the `qsimcirq`
-folder to your PYTHONPATH:
+3. To verify successful compilation, run the Python tests:
 ```
-export PYTHONPATH=$PYTHONPATH:<path to cpp folder>
+make run-py-tests
 ```
-
-To verify successful compilation, you can 
-[test qsimcirq](interfaces/tests/qsimcirq_test.py) directly:
-```
-python3 -m pytest interfaces/tests/qsimcirq_test.py
-```
-
+This will run [qsim_test](/qsimcirq_tests/qsim_test.py), which calls the Python
+binary directly, and [qsimcirq_test](/qsimcirq_tests/qsimcirq_test.py), which
+invokes qsim through the qsim-Cirq interface.
 
 ## Interface design and operations
 
