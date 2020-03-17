@@ -434,10 +434,10 @@ struct GateIS {
     schmidt_decomp_type<fp_type> schmidt_decomp(4);
     schmidt_decomp[0][0] = {is2, 0, 0, 0, 0, 0, is2, 0};
     schmidt_decomp[0][1] = {is2, 0, 0, 0, 0, 0, is2, 0};
-    schmidt_decomp[1][0] = {0, 0, 0.5, -0.5, 0.5, -0.5, 0, 0};
-    schmidt_decomp[1][1] = {0, 0, 0.5, -0.5, 0.5, -0.5, 0, 0};
-    schmidt_decomp[2][0] = {0, 0, -0.5, -0.5, 0.5, 0.5, 0, 0};
-    schmidt_decomp[2][1] = {0, 0, -0.5, -0.5, 0.5, 0.5, 0, 0};
+    schmidt_decomp[1][0] = {0, 0, 0.5, 0.5, 0.5, 0.5, 0, 0};
+    schmidt_decomp[1][1] = {0, 0, 0.5, 0.5, 0.5, 0.5, 0, 0};
+    schmidt_decomp[2][0] = {0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0};
+    schmidt_decomp[2][1] = {0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0};
     schmidt_decomp[3][0] = {is2, 0, 0, 0, 0, 0, -is2, 0};
     schmidt_decomp[3][1] = {is2, 0, 0, 0, 0, 0, -is2, 0};
     return schmidt_decomp;
