@@ -32,6 +32,14 @@ struct QSimRunner final {
     unsigned verbosity;
   };
 
+  /**
+   * Runs the given circuit, only measuring at the end.
+   * @param param Options for parallelism and logging.
+   * @param maxtime Maximum number of time steps to run.
+   * @param circuit The circuit to be simulated.
+   * @param measure Function to apply to each measurement result.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
   template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param, unsigned maxtime,
                   const Circuit& circuit, MeasurementFunc measure) {
@@ -39,6 +47,14 @@ struct QSimRunner final {
     return Run(param, times_to_measure_at, circuit, measure);
   }
 
+  /**
+   * Runs the given circuit, measuring all qubits at user-specified times.
+   * @param param Options for parallelism and logging.
+   * @param times_to_measure_at Time steps at which to measure the state.
+   * @param circuit The circuit to be simulated.
+   * @param measure Function to apply to each measurement result.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
   template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param,
                   const std::vector<unsigned>& times_to_measure_at,
@@ -95,6 +111,16 @@ struct QSimRunner final {
     return true;
   }
 
+  /**
+   * Runs the given circuit and make the final state available to the caller.
+   * @param param Options for parallelism and logging.
+   * @param maxtime Maximum number of time steps to run.
+   * @param circuit The circuit to be simulated.
+   * @param state As an input parameter, this should contain the initial state
+   *   of the system. After a successful run, it will be populated with the
+   *   final state of the system.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
   template <typename Circuit>
   static bool Run(const Parameter& param, unsigned maxtime,
                   const Circuit& circuit, typename Simulator::State& state) {
