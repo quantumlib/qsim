@@ -116,8 +116,9 @@ struct QSimRunner final {
    * @param param Options for parallelism and logging.
    * @param maxtime Maximum number of time steps to run.
    * @param circuit The circuit to be simulated.
-   * @param state The state of the system. After a successful run, this will be
-   *   populated with the final state of the system.
+   * @param state As an input parameter, this should contain the initial state
+   *   of the system. After a successful run, it will be populated with the
+   *   final state of the system.
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>

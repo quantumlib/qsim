@@ -85,7 +85,7 @@ struct HybridSimulator final {
    * Splits the lattice into two parts, using Schmidt decomposition for gates
    * on the cut.
    * @param parts Lattice sections to be simulated.
-   * @param gates List of gates bridging the "cut" between lattice sections.
+   * @param gates List of all gates in the circuit.
    */
   static HybridData SplitLattice(const std::vector<unsigned>& parts,
                                  const std::vector<Gate>& gates) {

@@ -40,7 +40,7 @@ struct QSimHRunner final {
    *   of the 'prefix' and 'root' sections of the lattice.
    * @param maxtime Maximum number of time steps to run.
    * @param parts Lattice sections to be simulated.
-   * @param gates List of gates bridging the "cut" between lattice sections.
+   * @param gates List of all gates in the circuit.
    * @param bitstrings List of output states to simulate, as bitstrings.
    * @param results Output vector of amplitudes. After a successful run, this
    *   will be populated with amplitudes for each state in 'bitstrings'.
