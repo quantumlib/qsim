@@ -157,17 +157,17 @@ TEST(SimulatorAVXTest, ApplyGate3) {
 
   {
     auto ampl0 = state_space.GetAmpl(state, 0);
-    EXPECT_NEAR(std::real(ampl0), 0.36285768, 1e-6);
-    EXPECT_NEAR(std::imag(ampl0), -0.013274317, 1e-6);
+    EXPECT_NEAR(std::real(ampl0), 0.45616995, 1e-6);
+    EXPECT_NEAR(std::imag(ampl0), -0.15475702, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
-    EXPECT_NEAR(std::real(ampl1), -0.21313113, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), 0.06239493, 1e-6);
+    EXPECT_NEAR(std::real(ampl1), -0.24719276, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), 0.16029677, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), 0.31317451, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), -0.36600887, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), -0.14714938, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), 0.33194723, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
-    EXPECT_NEAR(std::real(ampl3), -0.13067181, 1e-6);
-    EXPECT_NEAR(std::imag(ampl3), 0.26405340, 1e-6);
+    EXPECT_NEAR(std::real(ampl3), 0.037359533, 1e-6);
+    EXPECT_NEAR(std::imag(ampl3), -0.21891155, 1e-6);
   }
 }
 
@@ -243,14 +243,15 @@ TEST(SimulatorAVXTest, ApplyGate5) {
     EXPECT_NEAR(std::imag(ampl0), -0.17677667, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
     EXPECT_NEAR(std::real(ampl1), 0.24999997, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), -0.35355335, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), 0.35355339, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), -0.42677662, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), -0.07322330, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), 0.07322330, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), 0.42677669, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
     EXPECT_NEAR(std::real(ampl3), 0.25, 1e-6);
     EXPECT_NEAR(std::imag(ampl3), 0, 1e-6);
   }
+
 
   GateFused<GateQSim<float>> fgate3{kGateCNot, 6, 2, {2, 3}, &gate17,
       {&gate4, &gate9, &gate17, &gate18, &gate19}};
@@ -260,17 +261,17 @@ TEST(SimulatorAVXTest, ApplyGate5) {
 
   {
     auto ampl0 = state_space.GetAmpl(state, 0);
-    EXPECT_NEAR(std::real(ampl0), 0.01734632, 1e-6);
-    EXPECT_NEAR(std::imag(ampl0), -0.01689983, 1e-6);
+    EXPECT_NEAR(std::real(ampl0), 0.03269903, 1e-6);
+    EXPECT_NEAR(std::imag(ampl0), -0.21794335, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
-    EXPECT_NEAR(std::real(ampl1), 0.17767739, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), -0.16523364, 1e-6);
+    EXPECT_NEAR(std::real(ampl1), 0.20945998, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), 0.25095809, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), -0.32556468, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), -0.02934359, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), -0.00879907, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), 0.24247472, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
-    EXPECT_NEAR(std::real(ampl3), 0.17723089, 1e-6);
-    EXPECT_NEAR(std::imag(ampl3), -0.13098748, 1e-6);
+    EXPECT_NEAR(std::real(ampl3), 0.02421566, 1e-6);
+    EXPECT_NEAR(std::imag(ampl3), 0.00031570, 1e-6);
   }
 
   GateFused<GateQSim<float>> fgate4{kGateFS, 8, 2, {3, 4}, &gate20,
@@ -281,17 +282,17 @@ TEST(SimulatorAVXTest, ApplyGate5) {
 
   {
     auto ampl0 = state_space.GetAmpl(state, 0);
-    EXPECT_NEAR(std::real(ampl0), 0.00669215, 1e-6);
-    EXPECT_NEAR(std::imag(ampl0), -0.02066205, 1e-6);
+    EXPECT_NEAR(std::real(ampl0), -0.00938794, 1e-6);
+    EXPECT_NEAR(std::imag(ampl0), -0.15174214, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
-    EXPECT_NEAR(std::real(ampl1), 0.08668970, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), -0.14129037, 1e-6);
+    EXPECT_NEAR(std::real(ampl1), 0.18047242, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), 0.13247597, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), -0.22128790, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), 0.03393859, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), 0.03860849, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), 0.16120625, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
-    EXPECT_NEAR(std::real(ampl3), 0.10065960, 1e-6);
-    EXPECT_NEAR(std::imag(ampl3), -0.11393616, 1e-6);
+    EXPECT_NEAR(std::real(ampl3), 0.01934232, 1e-6);
+    EXPECT_NEAR(std::imag(ampl3), -0.00987822, 1e-6);
   }
 
   GateFused<GateQSim<float>> fgate5{kGateCP, 10, 2, {0, 1}, &gate23, {&gate23}};
@@ -301,17 +302,17 @@ TEST(SimulatorAVXTest, ApplyGate5) {
 
   {
     auto ampl0 = state_space.GetAmpl(state, 0);
-    EXPECT_NEAR(std::real(ampl0), 0.00669215, 1e-6);
-    EXPECT_NEAR(std::imag(ampl0), -0.02066205, 1e-6);
+    EXPECT_NEAR(std::real(ampl0), -0.00938794, 1e-6);
+    EXPECT_NEAR(std::imag(ampl0), -0.15174214, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
-    EXPECT_NEAR(std::real(ampl1), 0.08668970, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), -0.14129037, 1e-6);
+    EXPECT_NEAR(std::real(ampl1), 0.18047242, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), 0.13247597, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), -0.22128790, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), 0.03393859, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), 0.03860849, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), 0.16120625, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
-    EXPECT_NEAR(std::real(ampl3), 0.00358902, 1e-6);
-    EXPECT_NEAR(std::imag(ampl3), -0.15198988, 1e-6);
+    EXPECT_NEAR(std::real(ampl3), 0.00843010, 1e-6);
+    EXPECT_NEAR(std::imag(ampl3), -0.02001594, 1e-6);
   }
 
   ApplyGate(simulator, gate24, state);
@@ -321,17 +322,17 @@ TEST(SimulatorAVXTest, ApplyGate5) {
 
   {
     auto ampl0 = state_space.GetAmpl(state, 0);
-    EXPECT_NEAR(std::real(ampl0), -0.04172631, 1e-6);
-    EXPECT_NEAR(std::imag(ampl0), -0.10968970, 1e-6);
+    EXPECT_NEAR(std::real(ampl0), 0.05261526, 1e-6);
+    EXPECT_NEAR(std::imag(ampl0), -0.03246338, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
-    EXPECT_NEAR(std::real(ampl1), -0.09125633, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), -0.05371386, 1e-6);
+    EXPECT_NEAR(std::real(ampl1), 0.02790548, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), -0.02198864, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), -0.00418384, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), 0.03528048, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), 0.10250939, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), -0.02654653, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
-    EXPECT_NEAR(std::real(ampl3), 0.05519247, 1e-6);
-    EXPECT_NEAR(std::imag(ampl3), -0.02785729, 1e-6);
+    EXPECT_NEAR(std::real(ampl3), -0.03221833, 1e-6);
+    EXPECT_NEAR(std::imag(ampl3), -0.11284899, 1e-6);
   }
 }
 
