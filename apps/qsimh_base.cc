@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   if (!CircuitReader<IO>::FromFile(opt.maxtime, opt.circuit_file, circuit)) {
     return 1;
   }

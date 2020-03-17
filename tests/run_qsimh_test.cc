@@ -97,9 +97,9 @@ R"(4
 21 h 3
 )";
 
-TEST(QSimRunner, RimQHSim) {
+TEST(QSimRunner, RunQSimH) {
   std::stringstream ss(circuit_string);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);

@@ -40,7 +40,7 @@ class CircuitReader final {
    */
   template <typename Stream, typename fp_type>
   static bool FromStream(unsigned maxtime, const std::string& provider,
-                         Stream& fs, Circuit<Gate<fp_type>>& circuit) {
+                         Stream& fs, Circuit<GateQSim<fp_type>>& circuit) {
     circuit.num_qubits = 0;
 
     circuit.gates.resize(0);
@@ -186,7 +186,7 @@ class CircuitReader final {
    */
   template <typename fp_type>
   static bool FromFile(unsigned maxtime, const std::string& file,
-                       Circuit<Gate<fp_type>>& circuit) {
+                       Circuit<GateQSim<fp_type>>& circuit) {
     auto fs = IO::StreamFromFile(file);
 
     if (!fs) {

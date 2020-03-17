@@ -35,10 +35,12 @@ struct HybridSimulator final {
  private:
   using StateSpace = typename Simulator::StateSpace;
   using State = typename Simulator::State;
-  using Gate = qsim::Gate<fp_type>;
+  using Gate = GateQSim<fp_type>;
 
   // Note that one can use "struct GateHybrid : public Gate {" in C++17.
   struct GateHybrid {
+    using GateKind = typename Gate::GateKind;
+
     GateKind kind;
     unsigned time;
     unsigned num_qubits;
