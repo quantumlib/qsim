@@ -48,7 +48,7 @@ R"(2
 11 cp 0 1 0.5
 )";
 
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
   std::stringstream ss1(valid_circuit);
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss1, circuit), true);
@@ -72,7 +72,7 @@ R"(2
 1 badgate 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -85,7 +85,7 @@ R"(2
 1 cz 0 1 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -98,7 +98,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -111,7 +111,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -124,7 +124,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -137,7 +137,7 @@ R"(2
 1 cz 1 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -150,7 +150,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -163,7 +163,7 @@ R"(2
 1 cz 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -177,7 +177,7 @@ R"(2
 2 rx 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -191,7 +191,7 @@ R"(2
 2 ry 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -205,7 +205,7 @@ R"(2
 2 rz 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -219,7 +219,7 @@ R"(2
 2 rxy 0 0.7)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -232,7 +232,7 @@ R"(2
 1 fs 0 1 0.5)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }
@@ -245,7 +245,7 @@ R"(2
 1 cp 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<Gate<float>> circuit;
+  Circuit<GateQSim<float>> circuit;
 
   EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
 }

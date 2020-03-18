@@ -23,7 +23,7 @@ namespace qsim {
 
 template <typename Gate>
 struct GateFused {
-  GateKind kind;  // kind of the (first) master gate.
+  typename Gate::GateKind kind;  // kind of the (first) master gate.
   unsigned time;
   unsigned num_qubits;
   unsigned qubits[3];
