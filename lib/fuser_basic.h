@@ -28,19 +28,18 @@ struct BasicGateFuser final {
   using GateFused = qsim::GateFused<Gate>;
 
   /**
-   * Stores ordered sets of gates on 'num_qubits' that can be applied together.
+   * Stores a single sets of gates on 'num_qubits' that can be applied together.
    * Note that gates fused with this method are not multiplied together until
    * ApplyFusedGate is called on the resulting object(s).
    * @param num_qubits The number of qubits affected by 'gates'.
    * @param gates The gates to be fused.
-   * @param time Time step at which to separate fused gates. Each element of the
-   *   output will contain gates from either before or after this time step.
-   * @return A vector of fused gate objects. Each element represents a set of
+   * @param maxtime Maximum number of timesteps to fuse with this operation.
+   * @return A vector containing a single fused gate, representing a set of
    *   gates on up to 'num_qubits' qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(unsigned num_qubits,
-      const std::vector<Gate>& gates, unsigned time) {
-    std::vector<unsigned> times_to_split_at(1, time);
+      const std::vector<Gate>& gates, unsigned maxtime) {
+    std::vector<unsigned> times_to_split_at(1, maxtime);
     return FuseGates(num_qubits, gates, times_to_split_at);
   }
 

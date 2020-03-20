@@ -41,7 +41,7 @@ inline void CalcMatrix2(
 /**
  * Calculates the 4x4 matrix for a two-qubit fused gate.
  * @param q0 Index of the first qubit affected by the fused gate.
- * @param q0 Index of the second qubit affected by the fused gate.
+ * @param q1 Index of the second qubit affected by the fused gate.
  * @param gates Component gates that make up the fused gate.
  * @param matrix Output matrix representing the entire fused gate.
  */
