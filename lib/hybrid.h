@@ -16,6 +16,7 @@
 #define HYBRID_H_
 
 #include <algorithm>
+#include <complex>
 #include <vector>
 
 #include "fuser_basic.h"

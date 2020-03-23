@@ -46,7 +46,6 @@ class SimulatorBasic final {
     uint64_t mask0 = sizek - 1;
     uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizek - 1);
 
-    auto u = matrix;
     auto rstate = StateSpace::RawData(state);
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
