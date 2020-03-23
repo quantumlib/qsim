@@ -35,7 +35,12 @@ class SimulatorAVX final {
   SimulatorAVX(unsigned num_qubits, unsigned num_threads)
       : num_qubits_(num_qubits), num_threads_(num_threads) {}
 
-  // Apply a single-qubit gate.
+  /**
+   * Applies a single-qubit gate using AVX instructions.
+   * @param q0 Index of the qubit affected by this gate.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
   void ApplyGate1(unsigned q0, const fp_type* matrix, State& state) const {
     if (q0 > 2) {
       ApplyGate1H(q0, matrix, state);
@@ -44,8 +49,14 @@ class SimulatorAVX final {
     }
   }
 
-  // Apply a two-qubit gate.
-  // The order of qubits is inverse.
+  /**
+   * Applies a two-qubit gate using AVX instructions.
+   * Note that qubit order is inverted in this operation.
+   * @param q0 Index of the second qubit affected by this gate.
+   * @param q1 Index of the first qubit affected by this gate.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
   void ApplyGate2(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     // Assume q0 < q1.

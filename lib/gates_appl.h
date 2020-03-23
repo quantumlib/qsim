@@ -22,7 +22,12 @@
 
 namespace qsim {
 
-// Calculate 2x2 fused gate matrix.
+/**
+ * Calculates the 2x2 matrix for a single-qubit fused gate.
+ * @param q0 Index of the qubit affected by the fused gate.
+ * @param gates Component gates that make up the fused gate.
+ * @param matrix Output matrix representing the entire fused gate.
+ */
 template <typename Gate, typename Array2>
 inline void CalcMatrix2(
     unsigned q0, const std::vector<Gate*>& gates, Array2& matrix) {
@@ -33,7 +38,13 @@ inline void CalcMatrix2(
   }
 }
 
-// Calculate 4x4 fused gate matrix.
+/**
+ * Calculates the 4x4 matrix for a two-qubit fused gate.
+ * @param q0 Index of the first qubit affected by the fused gate.
+ * @param q1 Index of the second qubit affected by the fused gate.
+ * @param gates Component gates that make up the fused gate.
+ * @param matrix Output matrix representing the entire fused gate.
+ */
 template <typename Gate, typename Array2>
 inline void CalcMatrix4(unsigned q0, unsigned q1,
                         const std::vector<Gate*>& gates, Array2& matrix) {
@@ -52,7 +63,13 @@ inline void CalcMatrix4(unsigned q0, unsigned q1,
   }
 }
 
-// Apply gate.
+/**
+ * Applies the given gate to the simulator state.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying one- and two-qubit gates.
+ * @param gate The gate to be applied.
+ * @param state The state of the system, to be updated by this method.
+ */
 template <typename Gate, typename Simulator, typename State>
 inline void ApplyGate(
     const Simulator& simulator, const Gate& gate, State& state) {
@@ -69,7 +86,13 @@ inline void ApplyGate(
   }
 }
 
-// Apply fused gate.
+/**
+ * Applies the given fused gate to the simulator state.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying one- and two-qubit gates.
+ * @param gate The gate to be applied.
+ * @param state The state of the system, to be updated by this method.
+ */
 template <typename Gate, typename Simulator, typename State>
 inline void ApplyFusedGate(
     const Simulator& simulator, const Gate& gate, State& state) {
