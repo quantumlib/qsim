@@ -74,9 +74,11 @@ description = ('Schrödinger and Schrödinger-Feynman simulators for quantum cir
 # README file as long_description.
 long_description = open('README.md', encoding='utf-8').read()
 
+__version__ = '0.0.2'
+
 setup(
     name='qsimcirq',
-    version='0.0.1',
+    version=__version__,
     author='Vamsi Krishna Devabathini',
     author_email='devabathini92@gmail.com',
     python_requires=('>=3.3.0'),
