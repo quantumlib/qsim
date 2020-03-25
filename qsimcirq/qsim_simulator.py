@@ -22,7 +22,6 @@ from cirq import (
   study,
   SimulatesAmplitudes,
   SimulatesFinalState,
-  SimulationTrialResult,
 )
 
 import numpy as np
@@ -36,13 +35,7 @@ class QSimSimulatorState(sim.WaveFunctionSimulatorState):
     def __init__(self,
                  qsim_data: np.ndarray,
                  qubit_map: Dict[ops.Qid, int]):
-      # Generate state vector from qsim results
-      amplitudes = qsim_data
-      N = len(qubit_map)
-      amplitudes = np.reshape(amplitudes, [2]*(N+1))
-      amplitudes = np.transpose(amplitudes)
-      amplitudes = amplitudes[0] + 1j * amplitudes[1]
-      state_vector = amplitudes.flatten()
+      state_vector = qsim_data.view(np.complex64)
       super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
@@ -95,6 +88,9 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
       """
     if not isinstance(program, qsimc.QSimCircuit):
       raise ValueError('{!r} is not a QSimCircuit'.format(program))
+
+    # qsim numbers qubits in reverse order from cirq
+    bitstrings = [bs[::-1] for bs in bitstrings]
 
     options = {'i': '\n'.join(bitstrings)}
     options.update(self.qsim_options)
@@ -155,6 +151,9 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
       options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
       ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         solved_circuit.all_qubits())
+      # qsim numbers qubits in reverse order from cirq
+      ordered_qubits = list(reversed(ordered_qubits))
+
       qubit_map = {
         qubit: index for index, qubit in enumerate(ordered_qubits)
       }

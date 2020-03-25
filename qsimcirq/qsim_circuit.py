@@ -60,6 +60,10 @@ class QSimCircuit(cirq.Circuit):
     circuit_data = []
     ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         self.all_qubits())
+
+    # qsim numbers qubits in reverse order from cirq
+    ordered_qubits = list(reversed(ordered_qubits))
+
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
     for mi, moment in enumerate(self):
       for op in moment:
