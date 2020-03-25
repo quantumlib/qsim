@@ -16,6 +16,7 @@
 #define HYBRID_H_
 
 #include <algorithm>
+#include <complex>
 #include <vector>
 
 #include "fuser_basic.h"
@@ -83,8 +84,12 @@ struct HybridSimulator final {
     unsigned verbosity = 0;
   };
 
-  // Split the lattice into two parts.
-  // Use Schmidt decomposition for gates on the cut.
+  /**
+   * Splits the lattice into two parts, using Schmidt decomposition for gates
+   * on the cut.
+   * @param parts Lattice sections to be simulated.
+   * @param gates List of all gates in the circuit.
+   */
   static HybridData SplitLattice(const std::vector<unsigned>& parts,
                                  const std::vector<Gate>& gates) {
     HybridData hd;
@@ -198,7 +203,20 @@ struct HybridSimulator final {
     return hd;
   }
 
-  // Run hybrid simulator.
+  /**
+   * Runs the hybrid simulator on a sectioned lattice.
+   * @param param Options for parallelism and logging. Also specifies the size
+   *   of the 'prefix' and 'root' sections of the lattice.
+   * @param hd Container object for gates on the boundary between lattice
+   *   sections.
+   * @param parts Lattice sections to be simulated.
+   * @param fgates0 List of gates from one section of the lattice.
+   * @param fgates1 List of gates from the other section of the lattice.
+   * @param bitstrings List of output states to simulate, as bitstrings.
+   * @param results Output vector of amplitudes. After a successful run, this
+   *   will be populated with amplitudes for each state in 'bitstrings'.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
   static bool Run(const Parameter& param, HybridData& hd,
                   const std::vector<unsigned>& parts,
                   const std::vector<GateFused>& fgates0,
@@ -327,6 +345,15 @@ struct HybridSimulator final {
   }
 
  private:
+  /**
+   * Identifies when to save "checkpoints" of the simulation state. These allow
+   * runs with different cut-index values to reuse parts of the simulation.
+   * @param param Options for parallelism and logging. Also specifies the size
+   *   of the 'prefix' and 'root' sections of the lattice.
+   * @param fgates Set of gates for which to find checkpoint locations.
+   * @return A pair of numbers specifying how many gates to apply before the
+   *   first and second checkpoints, respectively.
+   */
   static std::array<unsigned, 2> CheckpointLocations(
       const Parameter& param, const std::vector<GateFused>& fgates) {
     std::array<unsigned, 2> loc{0, 0};

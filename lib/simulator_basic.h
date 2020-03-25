@@ -32,9 +32,13 @@ class SimulatorBasic final {
   SimulatorBasic(unsigned num_qubits, unsigned num_threads)
       : num_qubits_(num_qubits), num_threads_(num_threads) {}
 
-  // Apply a single-qubit gate.
-  // Perform a sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
+  /**
+   * Applies a single-qubit gate using sparse matrix-vector multiplication.
+   * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
+   * @param q0 Index of the qubit affected by this gate.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
   void ApplyGate1(unsigned q0, const fp_type* matrix, State& state) const {
     uint64_t sizei = uint64_t{1} << num_qubits_;
     uint64_t sizek = uint64_t{1} << (q0 + 1);
@@ -42,7 +46,6 @@ class SimulatorBasic final {
     uint64_t mask0 = sizek - 1;
     uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizek - 1);
 
-    auto u = matrix;
     auto rstate = StateSpace::RawData(state);
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
@@ -67,10 +70,15 @@ class SimulatorBasic final {
                      sizek, mask0, mask1, matrix, rstate);
   }
 
-  // Apply a two-qubit gate.
-  // Perform a sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // The order of qubits is inverse.
+  /**
+   * Apply a two-qubit gate using sparse matrix-vector multiplication.
+   * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
+   * Note that qubit order is inverted in this operation.
+   * @param q0 Index of the second qubit affected by this gate.
+   * @param q1 Index of the first qubit affected by this gate.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
   void ApplyGate2(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     // Assume q0 < q1.
