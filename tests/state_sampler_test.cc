@@ -28,23 +28,29 @@ TEST(SampleStatesTest, BasicStateSampling) {
   state_space.SetStateZero(state);
 
   unsigned num_samples = 100;
+  unsigned seed = 0;
   std::vector<uint64_t> measurements;
-  sampler.SampleState(state_space, state, num_samples, &measurements);
+  sampler.SampleState(state_space, state, num_samples, seed, &measurements);
   // Prior to applying gates, only the zero state should be observed.
   for (const auto& measured_state : measurements) {
-    EXPECT_EQ(measured_state, 0);
+    ASSERT_EQ(measured_state, 0);
   }
 
-  // Construct a Bell state.
+  // Construct a Bell state of |01> and |10>.
   auto h_0_gate = GateHd<float>::Create(0, 0);
+  auto x_1_gate = GateX<float>::Create(0, 1);
   auto cx_0_1_gate = GateCNot<float>::Create(1, 0, 1);
   ApplyGate(simulator, h_0_gate, state);
+  ApplyGate(simulator, x_1_gate, state);
   ApplyGate(simulator, cx_0_1_gate, state);
 
-  // Only |00> (0) and |11> (3) should be observed.
-  std::set<uint64_t> allowed_results = {0, 3};
-  for (const auto& measured_state : measurements) {
-    EXPECT_TRUE(allowed_results.find(measured_state) != allowed_results.end());
+  // Only |01> and |10> (i.e. 1 and 2) should be observed.
+  std::set<uint64_t> allowed_results = {1, 2};
+  std::vector<uint64_t> bell_measurements;
+  sampler.SampleState(state_space, state, num_samples, seed,
+                      &bell_measurements);
+  for (const auto& measured_state : bell_measurements) {
+    ASSERT_TRUE(allowed_results.find(measured_state) != allowed_results.end());
   }
 }
 

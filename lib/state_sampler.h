@@ -12,16 +12,26 @@ class StateSampler {
  public:
   using State = typename StateSpace::State;
 
+  // Sample using a random seed.
+  void SampleState(const StateSpace statespace, const State& state,
+                   const int m, std::vector<uint64_t>* samples) {
+    std::random_device device;
+    SampleState(statespace, state, m, device(), samples);
+  }
+
   // Function to draw m samples from a StateSpace Object in
   // O(2 ** num_qubits + m * log(m)) time.
   // Samples are stored as bit encoded integers.
-  void SampleState(const StateSpace statespace, const State& state, const int m,
-                std::vector<uint64_t>* samples) {
+  //
+  // This method takes a seed for the RNG. To choose a random seed,
+  // Use the other version of this method.
+  void SampleState(const StateSpace statespace, const State& state,
+                   const int m, unsigned seed,
+                   std::vector<uint64_t>* samples) {
     if (m == 0) {
       return;
     }
-    std::random_device device;
-    std::mt19937 mt(device());
+    std::mt19937 mt(seed);
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 
     double cdf_so_far = 0.0;
