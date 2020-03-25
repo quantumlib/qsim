@@ -67,11 +67,9 @@ class MainTest(unittest.TestCase):
         ]),
         cirq.Moment([
             cirq.I(a),
-            ])
+            cirq.ISWAP(b, c),
+        ])
     )
-    # Expected output state is:
-    # |1> (|01> + |10>) (|0> - |1>)
-    # = 1/2 * (|1010> - i|1011> + |1100> - i|1101>)
 
     qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
