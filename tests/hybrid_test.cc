@@ -280,14 +280,14 @@ R"(4
   EXPECT_EQ(HybridSimulator::Run(
       param, hd, parts, fgates0, fgates1, bitstrings, results), true);
 
-  EXPECT_NEAR(std::real(results[0]), -0.09604241, 1e-6);
-  EXPECT_NEAR(std::imag(results[0]), 0.05034451, 1e-6);
-  EXPECT_NEAR(std::real(results[1]), -0.01531633, 1e-6);
-  EXPECT_NEAR(std::imag(results[1]), -0.08652091, 1e-6);
-  EXPECT_NEAR(std::real(results[2]), 0.01322932, 1e-6);
-  EXPECT_NEAR(std::imag(results[2]), 0.12320337, 1e-6);
-  EXPECT_NEAR(std::real(results[3]), -0.14172915, 1e-6);
-  EXPECT_NEAR(std::imag(results[3]), 0.10822263, 1e-6);
+  EXPECT_NEAR(std::real(results[0]), -0.02852439, 1e-6);
+  EXPECT_NEAR(std::imag(results[0]), -0.05243438, 1e-6);
+  EXPECT_NEAR(std::real(results[1]), -0.09453446, 1e-6);
+  EXPECT_NEAR(std::imag(results[1]), 0.03033427, 1e-6);
+  EXPECT_NEAR(std::real(results[2]), 0.08091709, 1e-6);
+  EXPECT_NEAR(std::imag(results[2]), 0.13259856, 1e-6);
+  EXPECT_NEAR(std::real(results[3]), 0.13379499, 1e-6);
+  EXPECT_NEAR(std::imag(results[3]), 0.13946741, 1e-6);
 }
 
 }  // namespace qsim
