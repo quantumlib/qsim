@@ -87,3 +87,12 @@ cc_test(
         "//lib:qsim_lib",
     ],
 )
+
+cc_test(
+    name = "state_sampler_test",
+    srcs = ["state_sampler_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+)

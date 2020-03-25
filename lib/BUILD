@@ -21,6 +21,7 @@ cc_library(
         "seqfor.h",
         "simulator_avx.h",
         "simulator_basic.h",
+        "state_sampler.h",
         "statespace_avx.h",
         "statespace_basic.h",
         "statespace.h",
