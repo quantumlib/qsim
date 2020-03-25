@@ -68,11 +68,9 @@ class MainTest(unittest.TestCase):
         ]),
         cirq.Moment([
             cirq.I(a),
-            ])
+            cirq.ISWAP(b, c),
+        ])
     )
-    # Expected output state is:
-    # |1> (|01> + |10>) (|0> - |1>)
-    # = 1/2 * (|1010> - i|1011> + |1100> - i|1101>)
 
     qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
 
@@ -83,7 +81,7 @@ class MainTest(unittest.TestCase):
     cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
     # When using rotation gates such as S, qsim may add a global phase relative
     # to other simulators. This is fine, as the result is equivalent.
-    cirq.linalg.allclose_up_to_global_phase(
+    assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
 
   def test_cirq_qsimh_simulate(self):
