@@ -34,3 +34,5 @@ CNOT                                                              | time cnot qu
 iSwap                                                             | time is qubit1 qubit2           | 4 is 6 7
 fSim(&theta;, &phi;)                                              | time fs qubit1 qubit2 theta phi | 5 fs 6 7 3.14 1.57
 CPhase(&phi;)                                                     | time cp qubit1 qubit2 phi       | 6 cp 0 1 0.78
+Identity (1-qubit)                                                | time id1 qubit                  | 7 id1 0
+Identity (2-qubit)                                                | time id2 qubit                  | 8 id2 0 1

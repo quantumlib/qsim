@@ -35,6 +35,18 @@ struct QSimHRunner final {
   using HybridData = typename HybridSimulator::HybridData;
   using Fuser = typename HybridSimulator::Fuser;
 
+  /**
+   * Evaluates the amplitudes for a given circuit and set of output states.
+   * @param param Options for parallelism and logging. Also specifies the size
+   *   of the 'prefix' and 'root' sections of the lattice.
+   * @param maxtime Maximum number of time steps to run.
+   * @param parts Lattice sections to be simulated.
+   * @param gates List of all gates in the circuit.
+   * @param bitstrings List of output states to simulate, as bitstrings.
+   * @param results Output vector of amplitudes. After a successful run, this
+   *   will be populated with amplitudes for each state in 'bitstrings'.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
   static bool Run(const Parameter& param, unsigned maxtime,
                   const std::vector<unsigned>& parts,
                   const std::vector<Gate>& gates,

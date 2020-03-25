@@ -25,13 +25,13 @@ class QSimCircuit(cirq.Circuit):
                allow_decomposition: bool = False):
 
     if allow_decomposition:
-      super().__init__([], device)
+      super().__init__([], device=device)
       for moment in cirq_circuit:
         for op in moment:
           # This should call decompose on the gates
           self.append(op)
     else:
-      super().__init__(cirq_circuit, device)
+      super().__init__(cirq_circuit, device=device)
 
   def __eq__(self, other):
     if not isinstance(other, QSimCircuit):
@@ -116,6 +116,18 @@ class QSimCircuit(cirq.Circuit):
         elif isinstance(op.gate, cirq.ops.FSimGate):
           qsim_gate = "fs"
           qsim_params = "{} {}".format(op.gate.theta, op.gate.phi)
+        elif isinstance(op, cirq.ops.identity.IdentityOperation) \
+                and len(op.qubits) == 1:        # cirq version 0.6
+          qsim_gate = "id1"
+        elif isinstance(op.gate, cirq.ops.identity.IdentityGate) \
+                and op.gate.num_qubits() == 1:  # cirq version >=0.7
+          qsim_gate = "id1"
+        elif isinstance(op, cirq.ops.identity.IdentityOperation) \
+                and len(op.qubits) == 2:        # cirq version 0.6
+          qsim_gate = "id2"
+        elif isinstance(op.gate, cirq.ops.identity.IdentityGate) \
+                and op.gate.num_qubits() == 2:  # cirq version >=0.7
+          qsim_gate = "id2"
         else:
           raise ValueError("{!r} No translation for ".format(op))
 

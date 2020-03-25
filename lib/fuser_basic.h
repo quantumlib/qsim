@@ -27,12 +27,36 @@ template <typename Gate>
 struct BasicGateFuser final {
   using GateFused = qsim::GateFused<Gate>;
 
+  /**
+   * Stores ordered sets of gates, each acting on two qubits, that can be
+   * applied together. Note that gates fused with this method are not
+   * multiplied together until ApplyFusedGate is called on the output.
+   * To respect specific time boundaries while fusing gates, use the other
+   * version of this method below.
+   * @param num_qubits The number of qubits acted on by 'gates'.
+   * @param gates The gates to be fused.
+   * @param maxtime Maximum number of timesteps to fuse with this operation.
+   * @return A vector of fused gate objects. Each element is a set of gates
+   *   acting on a specific pair of qubits which can be applied as a group.
+   */
   static std::vector<GateFused> FuseGates(unsigned num_qubits,
-      const std::vector<Gate>& gates, unsigned time) {
-    std::vector<unsigned> times_to_split_at(1, time);
+      const std::vector<Gate>& gates, unsigned maxtime) {
+    std::vector<unsigned> times_to_split_at(1, maxtime);
     return FuseGates(num_qubits, gates, times_to_split_at);
   }
 
+  /**
+   * Stores ordered sets of gates, each acting on two qubits, that can be
+   * applied together. Note that gates fused with this method are not
+   * multiplied together until ApplyFusedGate is called on the output.
+   * @param num_qubits The number of qubits acted on by 'gates'.
+   * @param gates The gates to be fused.
+   * @param times_to_split_at Ordered list of time steps at which to separate
+   *   fused gates. Each element of the output will contain gates from a single
+   *   'window' in this list.
+   * @return A vector of fused gate objects. Each element is a set of gates
+   *   acting on a specific pair of qubits which can be applied as a group.
+   */
   static std::vector<GateFused> FuseGates(
       unsigned num_qubits, const std::vector<Gate>& gates,
       const std::vector<unsigned>& times_to_split_at) {
