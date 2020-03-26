@@ -13,7 +13,7 @@ class StateSampler {
   using State = typename StateSpace::State;
 
   // Sample using a random seed.
-  void SampleState(const StateSpace statespace, const State& state,
+  void SampleState(const StateSpace& statespace, const State& state,
                    const int m, std::vector<uint64_t>* samples) {
     std::random_device device;
     SampleState(statespace, state, m, device(), samples);
@@ -25,7 +25,7 @@ class StateSampler {
   //
   // This method takes a seed for the RNG. To choose a random seed,
   // Use the other version of this method.
-  void SampleState(const StateSpace statespace, const State& state,
+  void SampleState(const StateSpace& statespace, const State& state,
                    const int m, unsigned seed,
                    std::vector<uint64_t>* samples) {
     if (m == 0) {

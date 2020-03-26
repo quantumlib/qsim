@@ -11,6 +11,7 @@
 #include "../lib/statespace.h"
 
 namespace qsim {
+namespace {
 
 TEST(SampleStatesTest, ZeroState) {
   unsigned num_qubits = 2;
@@ -27,11 +28,10 @@ TEST(SampleStatesTest, ZeroState) {
   auto state = state_space.CreateState();
   state_space.SetStateZero(state);
 
-  unsigned num_samples = 100000;
+  unsigned num_samples = 1000;
   unsigned seed = 0;
 
   // Prior to applying gates, only the zero state should be observed.
-  std::vector<float> expected_prob = {1, 0, 0, 0};
   std::vector<float> counts = {0, 0, 0, 0};
   std::vector<uint64_t> measurements;
   sampler.SampleState(state_space, state, num_samples, seed, &measurements);
@@ -40,9 +40,10 @@ TEST(SampleStatesTest, ZeroState) {
     int val = measurements[i];
     counts[val] += 1.0;
   }
-  for (unsigned i = 0; i < counts.size(); ++i) {
-    EXPECT_NEAR(counts[i] / num_samples, expected_prob[i], 1e-2);
-  }
+  EXPECT_EQ(counts[0], num_samples);
+  EXPECT_EQ(counts[1], 0);
+  EXPECT_EQ(counts[2], 0);
+  EXPECT_EQ(counts[3], 0);
 }
 
 TEST(SampleStatesTest, BellState) {
@@ -107,11 +108,10 @@ TEST(SampleStatesTest, ArbitraryAmplitudes) {
   // Assign amplitudes for each state with a rotation in the complex plane.
   std::vector<float> expected_prob = {0.0,  0.05, 0.07, 0.1,
                                       0.25, 0.2,  0.18, 0.15};
-  float pi = 3.14159265358979323846;
   for (unsigned i = 0; i < expected_prob.size(); ++i) {
     float ampl = std::sqrt(expected_prob[i]);
-    float real = std::cos(i * pi / 4.0) * ampl;
-    float imag = std::sin(i * pi / 4.0) * ampl;
+    float real = std::cos(i * M_PI / 4.0) * ampl;
+    float imag = std::sin(i * M_PI / 4.0) * ampl;
     state_space.SetAmpl(state, i, std::complex<float>(real, imag));
   }
 
@@ -128,6 +128,7 @@ TEST(SampleStatesTest, ArbitraryAmplitudes) {
   }
 }
 
+}  // namespace
 }  // namespace qsim
 
 int main(int argc, char** argv) {
