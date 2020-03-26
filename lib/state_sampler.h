@@ -12,13 +12,6 @@ class StateSampler {
  public:
   using State = typename StateSpace::State;
 
-  // Sample using a random seed.
-  void SampleState(const StateSpace& statespace, const State& state,
-                   const int m, std::vector<uint64_t>* samples) {
-    std::random_device device;
-    SampleState(statespace, state, m, device(), samples);
-  }
-
   // Function to draw m samples from a StateSpace Object in
   // O(2 ** num_qubits + m * log(m)) time.
   // Samples are stored as bit encoded integers.
