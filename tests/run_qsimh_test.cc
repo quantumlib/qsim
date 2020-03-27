@@ -130,14 +130,14 @@ TEST(QSimRunner, RunQSimH) {
     EXPECT_EQ(Runner::Run(
         param, 99, parts, circuit.gates, bitstrings, results), true);
 
-    EXPECT_NEAR(std::real(results[0]), 0.00945329, 1e-6);
-    EXPECT_NEAR(std::imag(results[0]), -0.19894177, 1e-6);
-    EXPECT_NEAR(std::real(results[1]), -0.13889112, 1e-6);
-    EXPECT_NEAR(std::imag(results[1]), -0.26941833, 1e-6);
-    EXPECT_NEAR(std::real(results[2]), -0.11912410, 1e-6);
-    EXPECT_NEAR(std::imag(results[2]), 0.25366285, 1e-6);
-    EXPECT_NEAR(std::real(results[3]), -0.31600696, 1e-6);
-    EXPECT_NEAR(std::imag(results[3]), 0.27539602, 1e-6);
+    EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
+    EXPECT_NEAR(std::imag(results[0]), 0.08956901, 1e-6);
+    EXPECT_NEAR(std::real(results[1]), 0.11983117, 1e-6);
+    EXPECT_NEAR(std::imag(results[1]), 0.14673762, 1e-6);
+    EXPECT_NEAR(std::real(results[2]), 0.14810989, 1e-6);
+    EXPECT_NEAR(std::imag(results[2]), 0.31299597, 1e-6);
+    EXPECT_NEAR(std::real(results[3]), 0.12226092, 1e-6);
+    EXPECT_NEAR(std::imag(results[3]), 0.26690706, 1e-6);
   }
 
   {
@@ -149,14 +149,14 @@ TEST(QSimRunner, RunQSimH) {
     EXPECT_EQ(Runner::Run(
         param, 99, parts, circuit.gates, bitstrings, results), true);
 
-    EXPECT_NEAR(std::real(results[0]), 0.00945329, 1e-6);
-    EXPECT_NEAR(std::imag(results[0]), -0.19894177, 1e-6);
-    EXPECT_NEAR(std::real(results[1]), -0.13889112, 1e-6);
-    EXPECT_NEAR(std::imag(results[1]), -0.26941833, 1e-6);
-    EXPECT_NEAR(std::real(results[2]), -0.11912410, 1e-6);
-    EXPECT_NEAR(std::imag(results[2]), 0.25366285, 1e-6);
-    EXPECT_NEAR(std::real(results[3]), -0.31600696, 1e-6);
-    EXPECT_NEAR(std::imag(results[3]), 0.27539602, 1e-6);
+    EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
+    EXPECT_NEAR(std::imag(results[0]), 0.08956903, 1e-6);
+    EXPECT_NEAR(std::real(results[1]), 0.11983119, 1e-6);
+    EXPECT_NEAR(std::imag(results[1]), 0.14673763, 1e-6);
+    EXPECT_NEAR(std::real(results[2]), 0.14810986, 1e-6);
+    EXPECT_NEAR(std::imag(results[2]), 0.31299597, 1e-6);
+    EXPECT_NEAR(std::real(results[3]), 0.12226093, 1e-6);
+    EXPECT_NEAR(std::imag(results[3]), 0.26690706, 1e-6);
   }
 }
 
