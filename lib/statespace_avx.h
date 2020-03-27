@@ -112,6 +112,7 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
         Base::num_threads_, Base::raw_size_ / 16, f, Op(), state);
   }
 
+  template <typename DistrRealType = double>
   std::vector<uint64_t> Sample(
       const State& state, int64_t num_samples, uint64_t seed) const {
     std::vector<uint64_t> bitstrings;
@@ -131,9 +132,9 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
       }
 
       std::mt19937 rgen(seed);
-      std::uniform_real_distribution<float> distr(0.0, norm);
+      std::uniform_real_distribution<DistrRealType> distr(0.0, norm);
 
-      std::vector<float> rs;
+      std::vector<DistrRealType> rs;
       rs.reserve(num_samples + 1);
 
       for (uint64_t i = 0; i < num_samples; ++i) {
