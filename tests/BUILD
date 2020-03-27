@@ -95,5 +95,4 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
-    data = ["//circuits:circuit_q24"],
 )

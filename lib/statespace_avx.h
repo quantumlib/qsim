@@ -114,7 +114,7 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
 
   template <typename DistrRealType = double>
   std::vector<uint64_t> Sample(
-      const State& state, int64_t num_samples, uint64_t seed) const {
+      const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
     if (num_samples > 0) {
@@ -145,7 +145,7 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
 
       bitstrings.reserve(num_samples);
 
-      int m = 0;
+      uint64_t m = 0;
       double csum = 0;
 
       for (uint64_t k = 0; k < size; ++k) {
