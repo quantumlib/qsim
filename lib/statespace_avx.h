@@ -22,6 +22,7 @@
 #include <complex>
 #include <cstdint>
 #include <functional>
+#include <random>
 
 #include "statespace.h"
 
@@ -109,6 +110,58 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
 
     return ParallelFor::RunReduce(
         Base::num_threads_, Base::raw_size_ / 16, f, Op(), state);
+  }
+
+  template <typename DistrRealType = double>
+  std::vector<uint64_t> Sample(
+      const State& state, uint64_t num_samples, unsigned seed) const {
+    std::vector<uint64_t> bitstrings;
+
+    if (num_samples > 0) {
+      const float* v = state.get();
+
+      double norm = 0;
+      uint64_t size = Base::raw_size_ / 16;
+
+      for (uint64_t k = 0; k < size; ++k) {
+        for (unsigned j = 0; j < 8; ++j) {
+          auto re = v[k * 16 + j];
+          auto im = v[k * 16 + 8 + j];
+          norm += re * re + im * im;
+        }
+      }
+
+      std::mt19937 rgen(seed);
+      std::uniform_real_distribution<DistrRealType> distr(0.0, norm);
+
+      std::vector<DistrRealType> rs;
+      rs.reserve(num_samples + 1);
+
+      for (uint64_t i = 0; i < num_samples; ++i) {
+        rs.emplace_back(distr(rgen));
+      }
+
+      std::sort(rs.begin(), rs.end());
+
+      bitstrings.reserve(num_samples);
+
+      uint64_t m = 0;
+      double csum = 0;
+
+      for (uint64_t k = 0; k < size; ++k) {
+        for (unsigned j = 0; j < 8; ++j) {
+          auto re = v[k * 16 + j];
+          auto im = v[k * 16 + 8 + j];
+          csum += re * re + im * im;
+          while (rs[m] < csum && m < num_samples) {
+            bitstrings.emplace_back(8 * k + j);
+            ++m;
+          }
+        }
+      }
+    }
+
+    return bitstrings;
   }
 
  private:

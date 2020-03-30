@@ -87,3 +87,12 @@ cc_test(
         "//lib:qsim_lib",
     ],
 )
+
+cc_test(
+    name = "statespace_avx_test",
+    srcs = ["statespace_avx_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+)
