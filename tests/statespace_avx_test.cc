@@ -22,8 +22,8 @@
 
 namespace qsim {
 
-TEST(StateSpaceAVXTest, SamplingBasic) {
-  TestSamplingBasic<StateSpaceAVX<ParallelFor>>();
+TEST(StateSpaceAVXTest, SamplingSmall) {
+  TestSamplingSmall<StateSpaceAVX<ParallelFor>>();
 }
 
 TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {

@@ -32,7 +32,7 @@
 namespace qsim {
 
 template <typename StateSpace>
-void TestSamplingBasic() {
+void TestSamplingSmall() {
   unsigned num_qubits = 3;
   uint64_t num_samples = 2000000;
   constexpr uint64_t size = 8;

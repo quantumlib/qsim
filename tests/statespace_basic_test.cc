@@ -22,11 +22,11 @@
 
 namespace qsim {
 
-TEST(StateSpaceAVXTest, SamplingBasic) {
-  TestSamplingBasic<StateSpaceBasic<ParallelFor, float>>();
+TEST(StateSpaceBasicTest, SamplingSmall) {
+  TestSamplingSmall<StateSpaceBasic<ParallelFor, float>>();
 }
 
-TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
+TEST(StateSpaceBasicTest, SamplingCrossEntropyDifference) {
   TestSamplingCrossEntropyDifference<SimulatorBasic<ParallelFor, float>>();
 }
 

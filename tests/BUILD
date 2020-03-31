@@ -95,6 +95,7 @@ cc_library(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    testonly = 1,
 )
 
 cc_test(
