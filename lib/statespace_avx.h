@@ -22,9 +22,9 @@
 #include <complex>
 #include <cstdint>
 #include <functional>
-#include <random>
 
 #include "statespace.h"
+#include "util.h"
 
 namespace qsim {
 
@@ -118,10 +118,9 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
     std::vector<uint64_t> bitstrings;
 
     if (num_samples > 0) {
-      const float* v = state.get();
-
       double norm = 0;
       uint64_t size = Base::raw_size_ / 16;
+      const float* v = state.get();
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 8; ++j) {
@@ -131,22 +130,11 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
         }
       }
 
-      std::mt19937 rgen(seed);
-      std::uniform_real_distribution<DistrRealType> distr(0.0, norm);
-
-      std::vector<DistrRealType> rs;
-      rs.reserve(num_samples + 1);
-
-      for (uint64_t i = 0; i < num_samples; ++i) {
-        rs.emplace_back(distr(rgen));
-      }
-
-      std::sort(rs.begin(), rs.end());
-
-      bitstrings.reserve(num_samples);
+      auto rs = GenerateRandomValues<DistrRealType>(num_samples, seed, norm);
 
       uint64_t m = 0;
       double csum = 0;
+      bitstrings.reserve(num_samples);
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 8; ++j) {

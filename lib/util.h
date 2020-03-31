@@ -17,6 +17,8 @@
 
 #include <time.h>
 
+#include <algorithm>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -54,6 +56,24 @@ inline double GetTime() {
   struct timespec time;
   clock_gettime(CLOCK_MONOTONIC, &time);
   return time.tv_sec + 1e-9 * time.tv_nsec;
+}
+
+template <typename DistrRealType>
+inline std::vector<DistrRealType> GenerateRandomValues(
+    uint64_t num_samples, unsigned seed, double norm) {
+  std::vector<DistrRealType> rs;
+  rs.reserve(num_samples + 1);
+
+  std::mt19937 rgen(seed);
+  std::uniform_real_distribution<DistrRealType> distr(0.0, norm);
+
+  for (uint64_t i = 0; i < num_samples; ++i) {
+    rs.emplace_back(distr(rgen));
+  }
+
+  std::sort(rs.begin(), rs.end());
+
+  return rs;
 }
 
 }  // namespace qsim

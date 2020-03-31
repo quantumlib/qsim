@@ -31,3 +31,4 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsimh_tes
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_avx_test.x simulator_avx_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o simulator_basic_test.x simulator_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o statespace_avx_test.x statespace_avx_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o statespace_basic_test.x statespace_basic_test.cc -lgtest -lpthread

@@ -88,10 +88,30 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "statespace_test",
+    hdrs = ["statespace_test.h"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+)
+
 cc_test(
     name = "statespace_avx_test",
     srcs = ["statespace_avx_test.cc"],
     deps = [
+        ":statespace_test",
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+)
+
+cc_test(
+    name = "statespace_basic_test",
+    srcs = ["statespace_basic_test.cc"],
+    deps = [
+        ":statespace_test",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],

@@ -17,17 +17,17 @@
 #include "gtest/gtest.h"
 
 #include "../lib/parfor.h"
-#include "../lib/simulator_avx.h"
-#include "../lib/statespace_avx.h"
+#include "../lib/simulator_basic.h"
+#include "../lib/statespace_basic.h"
 
 namespace qsim {
 
 TEST(StateSpaceAVXTest, SamplingBasic) {
-  TestSamplingBasic<StateSpaceAVX<ParallelFor>>();
+  TestSamplingBasic<StateSpaceBasic<ParallelFor, float>>();
 }
 
 TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorAVX<ParallelFor>>();
+  TestSamplingCrossEntropyDifference<SimulatorBasic<ParallelFor, float>>();
 }
 
 }  // namespace qsim
