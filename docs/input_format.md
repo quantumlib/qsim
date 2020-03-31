@@ -18,9 +18,9 @@ Gate                                                              | Format      
 :---------------------------------------------------------------- | :------------------------------ | :------------------
 Hadamard                                                          | time h qubit                    | 0 h 0
 T                                                                 | time t qubit                    | 1 t 1
-X                                                                 | time x qubit                    | 2 t 2
-Y                                                                 | time y qubit                    | 3 t 3
-Z                                                                 | time x qubit                    | 4 t 4
+X                                                                 | time x qubit                    | 2 x 2
+Y                                                                 | time y qubit                    | 3 y 3
+Z                                                                 | time z qubit                    | 4 z 4
 &radic;X                                                          | time x_1_2 qubit                | 5 x_1_2 5
 &radic;Y                                                          | time y_1_2 qubit                | 6 y_1_2 6
 R<sub>x</sub>(&phi;) = e<sup>-i&phi;X/2</sup>                     | time rx qubit phi               | 7 rx 7 0.79
