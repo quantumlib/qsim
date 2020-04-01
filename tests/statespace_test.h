@@ -31,43 +31,7 @@
 
 namespace qsim {
 
-template <typename StateSpace>
-void TestSamplingSmall() {
-  unsigned num_qubits = 3;
-  uint64_t num_samples = 2000000;
-  constexpr uint64_t size = 8;
-
-  using State = typename StateSpace::State;
-
-  StateSpace state_space(num_qubits, 1);
-  State state = state_space.CreateState();
-
-  EXPECT_EQ(state_space.IsNull(state), false);
-  EXPECT_EQ(state_space.Size(state), size);
-
-  std::array<float, size> ps = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
-
-  for (uint64_t i = 0; i < size; ++i) {
-    auto r = std::sqrt(ps[i]);
-    state_space.SetAmpl(state, i, r * std::cos(i), r * std::sin(i));
-  }
-
-  auto samples = state_space.Sample(state, num_samples, 1);
-
-  EXPECT_EQ(samples.size(), num_samples);
-  std::array<double, size> bins = {0, 0, 0, 0, 0, 0, 0, 0};
-
-  for (auto sample : samples) {
-    ASSERT_LT(sample, size);
-    bins[sample] += 1;
-  }
-
-  for (uint64_t i = 0; i < size; ++i) {
-    EXPECT_NEAR(bins[i] / num_samples, ps[i], 4e-4);
-  }
-}
-
-constexpr char provider[] = "statespace_avx_test";
+constexpr char provider[] = "statespace_test";
 
 constexpr char circuit_string[] =
 R"(20
@@ -388,13 +352,91 @@ R"(20
 )";
 
 template <typename Simulator>
+void TestNormAndInnerProduct() {
+  unsigned depth = 8;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<float>> circuit;
+  EXPECT_EQ(CircuitReader<IO>::FromStream(depth, provider, ss, circuit), true);
+  circuit.gates.emplace_back(GateT<float>::Create(depth + 1, 0));
+
+  using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+
+  StateSpace state_space(circuit.num_qubits, 1);
+  State state0 = state_space.CreateState();
+
+  EXPECT_EQ(state_space.IsNull(state0), false);
+
+  auto measure = [&state0](unsigned k,
+                           const StateSpace& state_space, const State& state) {
+    if (k == 0) {
+      EXPECT_NEAR(state_space.Norm(state), 1, 1e-5);
+
+      state_space.CopyState(state, state0);
+    } else if (k == 1) {
+      auto inner_product = state_space.InnerProduct(state0, state);
+      EXPECT_NEAR(std::real(inner_product), 0.5 + 0.5 / std::sqrt(2), 1e-5);
+      EXPECT_NEAR(std::imag(inner_product), 0.5 / std::sqrt(2), 1e-5);
+
+      auto real_inner_product = state_space.RealInnerProduct(state0, state);
+      EXPECT_NEAR(real_inner_product, 0.5 + 0.5 / std::sqrt(2), 1e-5);
+    }
+  };
+
+  typename Runner::Parameter param;
+  param.num_threads = 1;
+  param.verbosity = 0;
+
+  std::vector<unsigned> times{depth, depth + 1};
+  EXPECT_EQ(Runner::Run(param, times, circuit, measure), true);
+}
+
+template <typename StateSpace>
+void TestSamplingSmall() {
+  unsigned num_qubits = 3;
+  uint64_t num_samples = 2000000;
+  constexpr uint64_t size = 8;
+
+  using State = typename StateSpace::State;
+
+  StateSpace state_space(num_qubits, 1);
+  State state = state_space.CreateState();
+
+  EXPECT_EQ(state_space.IsNull(state), false);
+  EXPECT_EQ(state_space.Size(state), size);
+
+  std::array<float, size> ps = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
+
+  for (uint64_t i = 0; i < size; ++i) {
+    auto r = std::sqrt(ps[i]);
+    state_space.SetAmpl(state, i, r * std::cos(i), r * std::sin(i));
+  }
+
+  auto samples = state_space.Sample(state, num_samples, 1);
+
+  EXPECT_EQ(samples.size(), num_samples);
+  std::array<double, size> bins = {0, 0, 0, 0, 0, 0, 0, 0};
+
+  for (auto sample : samples) {
+    ASSERT_LT(sample, size);
+    bins[sample] += 1;
+  }
+
+  for (uint64_t i = 0; i < size; ++i) {
+    EXPECT_NEAR(bins[i] / num_samples, ps[i], 4e-4);
+  }
+}
+
+template <typename Simulator>
 void TestSamplingCrossEntropyDifference() {
   unsigned depth = 30;
   uint64_t num_samples = 2000000;
 
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
-  EXPECT_EQ(CircuitReader<IO>::FromStream(30, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitReader<IO>::FromStream(depth, provider, ss, circuit), true);
 
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;

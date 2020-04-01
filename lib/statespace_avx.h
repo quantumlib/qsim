@@ -112,6 +112,60 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
         Base::num_threads_, Base::raw_size_ / 16, f, Op(), state);
   }
 
+  std::complex<double> InnerProduct(
+      const State& state1, const State& state2) const {
+    using Op = std::plus<std::complex<double>>;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
+              const State& state2) -> std::complex<double> {
+      __m256 re1 = _mm256_load_ps(state1.get() + 16 * i);
+      __m256 im1 = _mm256_load_ps(state1.get() + 16 * i + 8);
+      __m256 re2 = _mm256_load_ps(state2.get() + 16 * i);
+      __m256 im2 = _mm256_load_ps(state2.get() + 16 * i + 8);
+
+      __m256 ip_re = _mm256_fmadd_ps(im1, im2, _mm256_mul_ps(re1, re2));
+      __m256 ip_im = _mm256_fnmadd_ps(im1, re2, _mm256_mul_ps(re1, im2));
+
+      float bre[8];
+      float bim[8];
+      _mm256_storeu_ps(bre, ip_re);
+      _mm256_storeu_ps(bim, ip_im);
+
+      double re = bre[0] + bre[1] + bre[2] + bre[3]
+          + bre[4] + bre[5] + bre[6] + bre[7];
+      double im = bim[0] + bim[1] + bim[2] + bim[3]
+          + bim[4] + bim[5] + bim[6] + bim[7];
+
+      return std::complex<double>{re, im};
+    };
+
+    return ParallelFor::RunReduce(
+        Base::num_threads_, Base::raw_size_ / 16, f, Op(), state1, state2);
+  }
+
+  double RealInnerProduct(const State& state1, const State& state2) const {
+    using Op = std::plus<double>;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
+              const State& state2) -> double {
+      __m256 re1 = _mm256_load_ps(state1.get() + 16 * i);
+      __m256 im1 = _mm256_load_ps(state1.get() + 16 * i + 8);
+      __m256 re2 = _mm256_load_ps(state2.get() + 16 * i);
+      __m256 im2 = _mm256_load_ps(state2.get() + 16 * i + 8);
+
+      __m256 ip_re = _mm256_fmadd_ps(im1, im2, _mm256_mul_ps(re1, re2));
+
+      float bre[8];
+      _mm256_storeu_ps(bre, ip_re);
+
+      return bre[0] + bre[1] + bre[2] + bre[3]
+          + bre[4] + bre[5] + bre[6] + bre[7];
+    };
+
+    return ParallelFor::RunReduce(
+        Base::num_threads_, Base::raw_size_ / 16, f, Op(), state1, state2);
+  }
+
   template <typename DistrRealType = double>
   std::vector<uint64_t> Sample(
       const State& state, uint64_t num_samples, unsigned seed) const {
