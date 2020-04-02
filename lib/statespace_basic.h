@@ -20,8 +20,8 @@
 #include <cstdint>
 #include <functional>
 
-#include "parfor.h"
 #include "statespace.h"
+#include "util.h"
 
 namespace qsim {
 
@@ -92,6 +92,38 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
 
     return ParallelFor::RunReduce(
         Base::num_threads_, Base::size_, f, Op(), state);
+  }
+
+  template <typename DistrRealType = double>
+  std::vector<uint64_t> Sample(
+      const State& state, uint64_t num_samples, unsigned seed) const {
+    std::vector<uint64_t> bitstrings;
+
+    if (num_samples > 0) {
+      double norm = 0;
+      uint64_t size = 2 * Base::size_;
+      const fp_type* v = state.get();
+
+      for (uint64_t k = 0; k < size; k += 2) {
+        norm += v[k] * v[k] + v[k + 1] * v[k + 1];
+      }
+
+      auto rs = GenerateRandomValues<DistrRealType>(num_samples, seed, norm);
+
+      uint64_t m = 0;
+      double csum = 0;
+      bitstrings.reserve(num_samples);
+
+      for (uint64_t k = 0; k < size; k += 2) {
+        csum += v[k] * v[k] + v[k + 1] * v[k + 1];
+        while (rs[m] < csum && m < num_samples) {
+          bitstrings.emplace_back(k / 2);
+          ++m;
+        }
+      }
+    }
+
+    return bitstrings;
   }
 };
 
