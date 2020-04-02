@@ -22,20 +22,27 @@
 
 namespace qsim {
 
-struct ParallelFor {
+template <uint64_t MIN_SIZE>
+struct ParallelForT {
   template <typename Function, typename... Args>
   static void Run(
       unsigned num_threads, uint64_t size, Function&& func, Args&&... args) {
-    #pragma omp parallel num_threads(num_threads)
-    {
-      unsigned n = omp_get_num_threads();
-      unsigned m = omp_get_thread_num();
+    if (num_threads > 1 && size >= MIN_SIZE) {
+      #pragma omp parallel num_threads(num_threads)
+      {
+        unsigned n = omp_get_num_threads();
+        unsigned m = omp_get_thread_num();
 
-      uint64_t i0 = size * m / n;
-      uint64_t i1 = size * (m + 1) / n;
+        uint64_t i0 = size * m / n;
+        uint64_t i1 = size * (m + 1) / n;
 
-      for (uint64_t i = i0; i < i1; ++i) {
-        func(n, m, i, args...);
+        for (uint64_t i = i0; i < i1; ++i) {
+          func(n, m, i, args...);
+        }
+      }
+    } else {
+      for (uint64_t i = 0; i < size; ++i) {
+        func(1, 0, i, args...);
       }
     }
   }
@@ -44,36 +51,42 @@ struct ParallelFor {
   static typename Op::result_type RunReduce(unsigned num_threads,
                                             uint64_t size, Function&& func,
                                             Op&& op, Args&&... args) {
-    if (num_threads == 0) return typename Op::result_type();
+    typename Op::result_type result = 0;
 
-    std::vector<typename Op::result_type> partial_results(num_threads, 0);
+    if (num_threads > 1 && size >= MIN_SIZE) {
+      std::vector<typename Op::result_type> partial_results(num_threads, 0);
 
-    #pragma omp parallel num_threads(num_threads)
-    {
-      unsigned n = omp_get_num_threads();
-      unsigned m = omp_get_thread_num();
+      #pragma omp parallel num_threads(num_threads)
+      {
+        unsigned n = omp_get_num_threads();
+        unsigned m = omp_get_thread_num();
 
-      uint64_t i0 = size * m / n;
-      uint64_t i1 = size * (m + 1) / n;
+        uint64_t i0 = size * m / n;
+        uint64_t i1 = size * (m + 1) / n;
 
-      typename Op::result_type partial_result = 0;
+        typename Op::result_type partial_result = 0;
 
-      for (uint64_t i = i0; i < i1; ++i) {
-        partial_result = op(partial_result, func(n, m, i, args...));
+        for (uint64_t i = i0; i < i1; ++i) {
+          partial_result = op(partial_result, func(n, m, i, args...));
+        }
+
+        partial_results[m] = partial_result;
       }
 
-      partial_results[m] = partial_result;
-    }
-
-    typename Op::result_type result = partial_results[0];
-
-    for (unsigned i = 1; i < num_threads; ++i) {
-      result = op(result, partial_results[i]);
+      for (unsigned i = 0; i < num_threads; ++i) {
+        result = op(result, partial_results[i]);
+      }
+    } else if (num_threads > 0) {
+      for (uint64_t i = 0; i < size; ++i) {
+        result = op(result, func(1, 0, i, args...));
+      }
     }
 
     return result;
   }
 };
+
+using ParallelFor = ParallelForT<1024>;
 
 }  // namespace qsim
 
