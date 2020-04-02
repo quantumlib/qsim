@@ -22,6 +22,14 @@
 
 namespace qsim {
 
+TEST(StateSpaceAVXTest, NormAndInnerProductSmall) {
+  TestNormAndInnerProductSmall<StateSpaceAVX<ParallelFor>>();
+}
+
+TEST(StateSpaceAVXTest, NormAndInnerProduct) {
+  TestNormAndInnerProduct<SimulatorAVX<ParallelFor>>();
+}
+
 TEST(StateSpaceAVXTest, SamplingSmall) {
   TestSamplingSmall<StateSpaceAVX<ParallelFor>>();
 }

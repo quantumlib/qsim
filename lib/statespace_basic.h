@@ -37,6 +37,15 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
   StateSpaceBasic(unsigned num_qubits, unsigned num_threads)
       : Base(num_qubits, num_threads, 2 * (uint64_t{1} << num_qubits)) {}
 
+  void SetAllZeros(State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
+      state.get()[2 * i + 0] = 0;
+      state.get()[2 * i + 1] = 0;
+    };
+
+    ParallelFor::Run(Base::num_threads_, Base::size_, f, state);
+  }
+
   // Uniform superposition.
   void SetStateUniform(State& state) const {
     fp_type val = fp_type{1} / std::sqrt(Base::size_);
@@ -53,13 +62,7 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
 
   // |0> state.
   void SetStateZero(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      state.get()[2 * i + 0] = 0;
-      state.get()[2 * i + 1] = 0;
-    };
-
-    ParallelFor::Run(Base::num_threads_, Base::size_, f, state);
-
+    SetAllZeros(state);
     state.get()[0] = 1;
   }
 
@@ -92,6 +95,40 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
 
     return ParallelFor::RunReduce(
         Base::num_threads_, Base::size_, f, Op(), state);
+  }
+
+  std::complex<double> InnerProduct(
+      const State& state1, const State& state2) const {
+    using Op = std::plus<std::complex<double>>;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
+              const State& state2) -> std::complex<double> {
+      auto s1 = state1.get() + 2 * i;
+      auto s2 = state2.get() + 2 * i;
+
+      double re = s1[0] * s2[0] + s1[1] * s2[1];
+      double im = s1[0] * s2[1] - s1[1] * s2[0];
+
+      return std::complex<double>{re, im};
+    };
+
+    return ParallelFor::RunReduce(
+        Base::num_threads_, Base::size_, f, Op(), state1, state2);
+  }
+
+  double RealInnerProduct(const State& state1, const State& state2) const {
+    using Op = std::plus<double>;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
+              const State& state2) -> double {
+      auto s1 = state1.get() + 2 * i;
+      auto s2 = state2.get() + 2 * i;
+
+      return s1[0] * s2[0] + s1[1] * s2[1];
+    };
+
+    return ParallelFor::RunReduce(
+        Base::num_threads_, Base::size_, f, Op(), state1, state2);
   }
 
   template <typename DistrRealType = double>
