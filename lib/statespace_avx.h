@@ -43,6 +43,18 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
              2 * std::max(uint64_t{8}, uint64_t{1} << num_qubits)),
         num_qubits_(num_qubits) {}
 
+  void SetAllZeros(State& state) const {
+    __m256 val0 = _mm256_setzero_ps();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const __m256& val0, State& state) {
+      _mm256_store_ps(state.get() + 16 * i + 0, val0);
+      _mm256_store_ps(state.get() + 16 * i + 8, val0);
+    };
+
+    ParallelFor::Run(Base::num_threads_, Base::raw_size_ / 16, f, val0, state);
+  }
+
   // Uniform superposition.
   void SetStateUniform(State& state) const {
     uint64_t size = uint64_t{1} << num_qubits_;
@@ -62,16 +74,7 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
 
   // |0> state.
   void SetStateZero(State& state) const {
-    __m256 val0 = _mm256_setzero_ps();
-
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const __m256& val0, State& state) {
-      _mm256_store_ps(state.get() + 16 * i + 0, val0);
-      _mm256_store_ps(state.get() + 16 * i + 8, val0);
-    };
-
-    ParallelFor::Run(Base::num_threads_, Base::raw_size_ / 16, f, val0, state);
-
+    SetAllZeros(state);
     state.get()[0] = 1;
   }
 

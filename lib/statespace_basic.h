@@ -37,6 +37,15 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
   StateSpaceBasic(unsigned num_qubits, unsigned num_threads)
       : Base(num_qubits, num_threads, 2 * (uint64_t{1} << num_qubits)) {}
 
+  void SetAllZeros(State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
+      state.get()[2 * i + 0] = 0;
+      state.get()[2 * i + 1] = 0;
+    };
+
+    ParallelFor::Run(Base::num_threads_, Base::size_, f, state);
+  }
+
   // Uniform superposition.
   void SetStateUniform(State& state) const {
     fp_type val = fp_type{1} / std::sqrt(Base::size_);
@@ -53,13 +62,7 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
 
   // |0> state.
   void SetStateZero(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      state.get()[2 * i + 0] = 0;
-      state.get()[2 * i + 1] = 0;
-    };
-
-    ParallelFor::Run(Base::num_threads_, Base::size_, f, state);
-
+    SetAllZeros(state);
     state.get()[0] = 1;
   }
 
