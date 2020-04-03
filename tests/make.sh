@@ -30,5 +30,7 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsim_test
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsimh_test.x run_qsimh_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_avx_test.x simulator_avx_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o simulator_basic_test.x simulator_basic_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o simulator_sse_test.x simulator_sse_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o statespace_avx_test.x statespace_avx_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o statespace_basic_test.x statespace_basic_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o statespace_basic_test.x statespace_basic_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o statespace_sse_test.x statespace_sse_test.cc -lgtest -lpthread
