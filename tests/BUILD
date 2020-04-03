@@ -70,10 +70,21 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "simulator_test",
+    hdrs = ["simulator_test.h"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+    testonly = 1,
+)
+
 cc_test(
     name = "simulator_avx_test",
     srcs = ["simulator_avx_test.cc"],
     deps = [
+        ":simulator_test",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
@@ -83,6 +94,17 @@ cc_test(
     name = "simulator_basic_test",
     srcs = ["simulator_basic_test.cc"],
     deps = [
+        ":simulator_test",
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+)
+
+cc_test(
+    name = "simulator_sse_test",
+    srcs = ["simulator_sse_test.cc"],
+    deps = [
+        ":simulator_test",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
@@ -111,6 +133,16 @@ cc_test(
 cc_test(
     name = "statespace_basic_test",
     srcs = ["statespace_basic_test.cc"],
+    deps = [
+        ":statespace_test",
+        "@com_google_googletest//:gtest_main",
+        "//lib:qsim_lib",
+    ],
+)
+
+cc_test(
+    name = "statespace_sse_test",
+    srcs = ["statespace_sse_test.cc"],
     deps = [
         ":statespace_test",
         "@com_google_googletest//:gtest_main",

@@ -29,7 +29,7 @@ namespace qsim {
 // State is a non-vectorized sequence of one real amplitude followed by
 // one imaginary amplitude.
 template <typename ParallelFor, typename FP>
-struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
+struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
   using Base = StateSpace<ParallelFor, FP>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
