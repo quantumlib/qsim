@@ -15,6 +15,7 @@
 import unittest
 import cirq
 import qsimcirq
+import numpy as np
 
 
 class MainTest(unittest.TestCase):
@@ -82,6 +83,38 @@ class MainTest(unittest.TestCase):
     # to other simulators. This is fine, as the result is equivalent.
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
+
+  def test_cirq_qsim_simulate_random_unitary(self):
+
+    q0, q1 = cirq.LineQubit.range(2)
+    qsimSim = qsimcirq.QSimSimulator(qsim_options={'t': 16, 'v': 0})
+    for _ in range(10):
+        random_circuit = cirq.testing.random_circuit(qubits=[q0, q1],
+                                                     n_moments=8,
+                                                     op_density=0.99)
+        cirq.ConvertToCzAndSingleGates().optimize_circuit(random_circuit) # cannot work with params
+        cirq.ExpandComposite().optimize_circuit(random_circuit)
+        qsim_circuit = qsimcirq.QSimCircuit(random_circuit)
+        circuit_unitary = []
+        for x in range(4):
+            result = qsimSim.simulate(qsim_circuit, qubit_order=[q0, q1])
+            circuit_unitary.append(result.final_state)
+            assert result.state_vector().shape == (4,)
+
+            cirqSim = cirq.Simulator()
+            cirq_result = cirqSim.simulate(random_circuit, qubit_order=[q0, q1])
+            # When using rotation gates such as S, qsim may add a global phase relative
+            # to other simulators. This is fine, as the result is equivalent.
+            assert cirq.linalg.allclose_up_to_global_phase(
+                result.state_vector(),
+                cirq_result.state_vector(),
+                atol = 1.e-6
+            )
+
+        cirq.linalg.allclose_up_to_global_phase(
+            np.transpose(circuit_unitary),
+            random_circuit.unitary(qubit_order=[q0, q1])
+        )
 
   def test_cirq_qsimh_simulate(self):
     # Pick qubits.
