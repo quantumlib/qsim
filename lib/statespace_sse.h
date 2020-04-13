@@ -29,8 +29,8 @@
 namespace qsim {
 
 // Routines for state-vector manipulations.
-// State is a vectorized sequence of four real amplitudes followed by four
-// imaginary amplitudes. Four single-precison floating numbers can be loaded
+// State is a vectorized sequence of four real components followed by four
+// imaginary components. Four single-precison floating numbers can be loaded
 // into an SSE register.
 template <typename ParallelFor>
 struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
