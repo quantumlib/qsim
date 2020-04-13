@@ -24,7 +24,7 @@
 
 namespace qsim {
 
-// Quantim circuit simulator with AVX vectorization.
+// Quantum circuit simulator with AVX vectorization.
 template <typename ParallelFor>
 class SimulatorAVX final {
  public:
@@ -213,6 +213,9 @@ class SimulatorAVX final {
       case 2:
         rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
         in = _mm256_blend_ps(in, im, 240);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 
@@ -497,6 +500,9 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
         in = _mm256_blend_ps(in, im, 240);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       p = si;
@@ -568,6 +574,9 @@ class SimulatorAVX final {
       case 2:
         rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
         in = _mm256_blend_ps(in, im, 240);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 
@@ -700,6 +709,9 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 12);  // 00001100
         in = _mm256_blend_ps(in, im, 12);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       ru = _mm256_set1_ps(matrix[16]);
@@ -743,6 +755,9 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 48);  // 00110000
         in = _mm256_blend_ps(in, im, 48);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       ru = _mm256_set1_ps(matrix[24]);
@@ -785,6 +800,9 @@ class SimulatorAVX final {
       case 3:
         rn = _mm256_blend_ps(rn, rm, 192);  // 11000000
         in = _mm256_blend_ps(in, im, 192);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 

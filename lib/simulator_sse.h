@@ -25,7 +25,7 @@
 
 namespace qsim {
 
-// Quantim circuit simulator with SSE vectorization.
+// Quantum circuit simulator with SSE vectorization.
 template <typename ParallelFor>
 class SimulatorSSE final {
  public:
@@ -162,6 +162,9 @@ class SimulatorSSE final {
         r1 = _mm_shuffle_ps(r0, r0, 14);  // 00001110
         i1 = _mm_shuffle_ps(i0, i0, 14);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       ru = _mm_set1_ps(matrix[0]);
@@ -200,6 +203,9 @@ class SimulatorSSE final {
       case 1:
         rn = _mm_shuffle_ps(rn, rm, 68);  // 01000100
         in = _mm_shuffle_ps(in, im, 68);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 
@@ -406,6 +412,9 @@ class SimulatorSSE final {
         r3 = _mm_shuffle_ps(r2, r2, 14);
         i3 = _mm_shuffle_ps(i2, i2, 14);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       ru = _mm_set1_ps(matrix[0]);
@@ -468,6 +477,9 @@ class SimulatorSSE final {
       case 1:
         rn = _mm_shuffle_ps(rn, rm, 68);  // 01000100
         in = _mm_shuffle_ps(in, im, 68);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 
@@ -535,6 +547,9 @@ class SimulatorSSE final {
       case 1:
         rn = _mm_shuffle_ps(rn, rm, 68);  // 01000100
         in = _mm_shuffle_ps(in, im, 68);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 
