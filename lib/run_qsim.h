@@ -124,7 +124,7 @@ struct QSimRunner final {
   template <typename Circuit>
   static bool Run(const Parameter& param, unsigned maxtime,
                   const Circuit& circuit, typename Simulator::State& state) {
-    double t0, t1;
+    double t0=0.0, t1=0.0;
     if (param.verbosity > 0) {
       t0 = GetTime();
     }
