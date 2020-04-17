@@ -198,7 +198,7 @@ struct StateSpaceAVX final : public StateSpace<ParallelFor, float> {
           auto re = v[k * 16 + j];
           auto im = v[k * 16 + 8 + j];
           csum += re * re + im * im;
-          while (rs[m] < csum && m < num_samples) {
+          while (m < num_samples && rs[m] < csum) {
             bitstrings.emplace_back(8 * k + j);
             ++m;
           }

@@ -153,7 +153,7 @@ struct StateSpaceBasic final : public StateSpace<ParallelFor, FP> {
 
       for (uint64_t k = 0; k < size; k += 2) {
         csum += v[k] * v[k] + v[k + 1] * v[k + 1];
-        while (rs[m] < csum && m < num_samples) {
+        while (m < num_samples && rs[m] < csum) {
           bitstrings.emplace_back(k / 2);
           ++m;
         }
