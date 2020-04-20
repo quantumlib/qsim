@@ -15,7 +15,6 @@
 import unittest
 import cirq
 import qsimcirq
-import numpy as np
 
 
 class MainTest(unittest.TestCase):
