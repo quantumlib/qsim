@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef STATESPACE_TEST_H_
-#define STATESPACE_TEST_H_
+#ifndef STATESPACE_TESTFIXTURE_H_
+#define STATESPACE_TESTFIXTURE_H_
 
 #include <array>
 #include <cmath>
@@ -523,4 +523,4 @@ void TestSamplingCrossEntropyDifference() {
 
 }  // namespace qsim
 
-#endif  // STATESPACE_TEST_H_
+#endif  // STATESPACE_TESTFIXTURE_H_

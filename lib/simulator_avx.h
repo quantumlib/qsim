@@ -24,7 +24,7 @@
 
 namespace qsim {
 
-// Quantim circuit simulator with AVX vectorization.
+// Quantum circuit simulator with AVX vectorization.
 template <typename ParallelFor>
 class SimulatorAVX final {
  public:
@@ -71,10 +71,10 @@ class SimulatorAVX final {
   }
 
  private:
-  // Apply a single-qubit gate for qubit > 2.
-  // Perform a vectorized sparse matrix-vector multiplication.
+  // Applies a single-qubit gate for qubit > 2.
+  // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Perform full AVX vectorization.
+  // Performs full AVX vectorization.
   void ApplyGate1H(unsigned q0, const fp_type* matrix, State& state) const {
     uint64_t sizei = uint64_t{1} << num_qubits_;
     uint64_t sizek = uint64_t{1} << (q0 + 1);
@@ -87,8 +87,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizek, uint64_t mask0, uint64_t mask1,
                 const fp_type* matrix, fp_type* rstate) {
-      i *= 16;
-      uint64_t si = (2 * i & mask1) | (i & mask0);
+      uint64_t si = (32 * i & mask1) | (16 * i & mask0);
 
       __m256 r0, i0, r1, i1, ru, iu, rn, in;
 
@@ -135,10 +134,10 @@ class SimulatorAVX final {
                      sizek, mask0, mask1, matrix, rstate);
   }
 
-  // Apply a single-qubit gate for qubit <= 2.
-  // Perform a vectorized sparse matrix-vector multiplication.
+  // Applies a single-qubit gate for qubit <= 2.
+  // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Perform partial AVX vectorization with permutations.
+  // Performs partial AVX vectorization with permutations.
   void ApplyGate1L(unsigned q0, const fp_type* matrix, State& state) const {
     __m256i ml;
 
@@ -165,10 +164,10 @@ class SimulatorAVX final {
                 const __m256i& ml, const fp_type* matrix, fp_type* rstate) {
       __m256 r0, i0, r1, i1, ru, iu, rn, in, rm, im;
 
-      auto p = rstate + 16 * i;
+      auto p = 16 * i;
 
-      r0 = _mm256_load_ps(p);
-      i0 = _mm256_load_ps(p + 8);
+      r0 = _mm256_load_ps(rstate + p);
+      i0 = _mm256_load_ps(rstate + p + 8);
 
       r1 = _mm256_permutevar8x32_ps(r0, ml);
       i1 = _mm256_permutevar8x32_ps(i0, ml);
@@ -215,20 +214,23 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
         in = _mm256_blend_ps(in, im, 240);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
-      _mm256_store_ps(p, rn);
-      _mm256_store_ps(p + 8, in);
+      _mm256_store_ps(rstate + p, rn);
+      _mm256_store_ps(rstate + p + 8, in);
     };
 
     ParallelFor::Run(num_threads_, std::max(uint64_t{1}, sizei / 16), f,
                      q0, ml, matrix, rstate);
   }
 
-  // Apply a two-qubit gate for qubit0 > 2 and qubit1 > 2.
-  // Perform a vectorized sparse matrix-vector multiplication.
+  // Applies two-qubit gate for qubit0 > 2 and qubit1 > 2.
+  // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Perform full AVX vectorization.
+  // Performs full AVX vectorization.
   void ApplyGate2HH(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     uint64_t sizei = uint64_t{1} << (num_qubits_ - 1);
@@ -245,8 +247,7 @@ class SimulatorAVX final {
                 uint64_t sizej, uint64_t sizek,
                 uint64_t mask0, uint64_t mask1, uint64_t mask2,
                 const fp_type* matrix, fp_type* rstate) {
-      i *= 16;
-      uint64_t si = (4 * i & mask2) | (2 * i & mask1) | (i & mask0);
+      uint64_t si = (64 * i & mask2) | (32 * i & mask1) | (16 * i & mask0);
 
       __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in;
 
@@ -379,10 +380,10 @@ class SimulatorAVX final {
                      sizej, sizek, mask0, mask1, mask2, matrix, rstate);
   }
 
-  // Apply a two-qubit gate for qubit0 <= 2 and qubit1 > 2.
-  // Perform a vectorized sparse matrix-vector multiplication.
+  // Applies a two-qubit gate for qubit0 <= 2 and qubit1 > 2.
+  // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Perform partial AVX vectorization with permutations.
+  // Performs partial AVX vectorization with permutations.
   void ApplyGate2HL(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     __m256i ml;
@@ -413,8 +414,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizej, uint64_t mask0, uint64_t mask1, unsigned q0,
                 const __m256i& ml, const fp_type* matrix, fp_type* rstate) {
-      i *= 16;
-      uint64_t si = (2 * i & mask1) | (i & mask0);
+      uint64_t si = (32 * i & mask1) | (16 * i & mask0);
 
       __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in, rm, im;
 
@@ -500,6 +500,9 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
         in = _mm256_blend_ps(in, im, 240);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       p = si;
@@ -572,6 +575,9 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
         in = _mm256_blend_ps(in, im, 240);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       p = si | sizej;
@@ -583,10 +589,10 @@ class SimulatorAVX final {
                      sizej, mask0, mask1, q0, ml, matrix, rstate);
   }
 
-  // Apply a two-qubit gate for qubit0 <= 2 and qubit1 <= 2.
-  // Perform a vectorized sparse matrix-vector multiplication.
+  // Applies a two-qubit gate for qubit0 <= 2 and qubit1 <= 2.
+  // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Perform partial AVX vectorization with permutations.
+  // Performs partial AVX vectorization with permutations.
   void ApplyGate2LL(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     unsigned q = q0 + q1;
@@ -623,10 +629,10 @@ class SimulatorAVX final {
                 const fp_type* matrix, fp_type* rstate) {
       __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in, rm, im;
 
-      auto p = rstate + 16 * i;
+      auto p = 16 * i;
 
-      r0 = _mm256_load_ps(p);
-      i0 = _mm256_load_ps(p + 8);
+      r0 = _mm256_load_ps(rstate + p);
+      i0 = _mm256_load_ps(rstate + p + 8);
 
       r1 = _mm256_permutevar8x32_ps(r0, ml1);
       i1 = _mm256_permutevar8x32_ps(i0, ml1);
@@ -703,6 +709,9 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 12);  // 00001100
         in = _mm256_blend_ps(in, im, 12);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
       ru = _mm256_set1_ps(matrix[16]);
@@ -745,6 +754,9 @@ class SimulatorAVX final {
       case 3:
         rn = _mm256_blend_ps(rn, rm, 48);  // 00110000
         in = _mm256_blend_ps(in, im, 48);
+        break;
+      default:
+        // Cannot reach here.
         break;
       }
 
@@ -789,10 +801,13 @@ class SimulatorAVX final {
         rn = _mm256_blend_ps(rn, rm, 192);  // 11000000
         in = _mm256_blend_ps(in, im, 192);
         break;
+      default:
+        // Cannot reach here.
+        break;
       }
 
-      _mm256_store_ps(p, rn);
-      _mm256_store_ps(p + 8, in);
+      _mm256_store_ps(rstate + p, rn);
+      _mm256_store_ps(rstate + p + 8, in);
     };
 
     ParallelFor::Run(num_threads_, std::max(uint64_t{1}, sizei / 16), f,

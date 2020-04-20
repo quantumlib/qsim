@@ -12,30 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "statespace_testfixture.h"
+#include "simulator_testfixture.h"
 
 #include "gtest/gtest.h"
 
 #include "../lib/parfor.h"
-#include "../lib/simulator_avx.h"
-#include "../lib/statespace_avx.h"
+#include "../lib/simulator_sse.h"
 
 namespace qsim {
 
-TEST(StateSpaceAVXTest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceAVX<ParallelFor>>();
+TEST(SimulatorSSETest, ApplyGate1) {
+  TestApplyGate1<SimulatorSSE<ParallelFor>>();
 }
 
-TEST(StateSpaceAVXTest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorAVX<ParallelFor>>();
+TEST(SimulatorSSETest, ApplyGate2) {
+  TestApplyGate2<SimulatorSSE<ParallelFor>>();
 }
 
-TEST(StateSpaceAVXTest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceAVX<ParallelFor>>();
+TEST(SimulatorSSETest, ApplyGate3) {
+  TestApplyGate3<SimulatorSSE<ParallelFor>>();
 }
 
-TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorAVX<ParallelFor>>();
+TEST(SimulatorSSETest, ApplyGate5) {
+  TestApplyGate5<SimulatorSSE<ParallelFor>>();
 }
 
 }  // namespace qsim
