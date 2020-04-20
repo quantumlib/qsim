@@ -72,6 +72,8 @@ inline std::vector<DistrRealType> GenerateRandomValues(
   }
 
   std::sort(rs.begin(), rs.end());
+  // Populate the final element to prevent sanitizer errors.
+  rs.emplace_back(norm);
 
   return rs;
 }
