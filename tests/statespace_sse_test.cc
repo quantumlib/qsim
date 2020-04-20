@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "statespace_test.h"
+#include "statespace_testfixture.h"
 
 #include "gtest/gtest.h"
 
