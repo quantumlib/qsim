@@ -105,7 +105,7 @@ class QSimCircuit(cirq.Circuit):
           qsim_gate = "rz"
           qsim_params = str(op.gate.exponent*np.pi)
         elif isinstance(op.gate, cirq.ops.CZPowGate) \
-                and ( op.gate.exponent == 1.0 or op.gate.exponent == -1.0 ):
+                and op.gate.exponent == 1.0:
           qsim_gate = "cz"
         elif isinstance(op.gate, cirq.ops.CNotPowGate) \
                 and op.gate.exponent == 1.0:
@@ -113,6 +113,9 @@ class QSimCircuit(cirq.Circuit):
         elif isinstance(op.gate, cirq.ops.ISwapPowGate) \
                 and op.gate.exponent == 1.0:
           qsim_gate = "is"
+        elif isinstance(op.gate, cirq.ops.CZPowGate):
+          qsim_gate = "cp"
+          qsim_params = str(op.gate.exponent*np.pi)
         elif isinstance(op.gate, cirq.ops.FSimGate):
           qsim_gate = "fs"
           qsim_params = "{} {}".format(op.gate.theta, op.gate.phi)
