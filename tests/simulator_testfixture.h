@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SIMULATOR_TEST_H_
-#define SIMULATOR_TEST_H_
+#ifndef SIMULATOR_TESTFIXTURE_H_
+#define SIMULATOR_TESTFIXTURE_H_
 
 #include <complex>
 
@@ -343,4 +343,4 @@ void TestApplyGate5() {
 
 }  // namespace qsim
 
-#endif  // SIMULATOR_TEST_H_
+#endif  // SIMULATOR_TESTFIXTURE_H_

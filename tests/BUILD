@@ -71,8 +71,8 @@ cc_test(
 )
 
 cc_library(
-    name = "simulator_test",
-    hdrs = ["simulator_test.h"],
+    name = "simulator_testfixture",
+    hdrs = ["simulator_testfixture.h"],
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
@@ -84,7 +84,7 @@ cc_test(
     name = "simulator_avx_test",
     srcs = ["simulator_avx_test.cc"],
     deps = [
-        ":simulator_test",
+        ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
@@ -94,7 +94,7 @@ cc_test(
     name = "simulator_basic_test",
     srcs = ["simulator_basic_test.cc"],
     deps = [
-        ":simulator_test",
+        ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
@@ -104,15 +104,15 @@ cc_test(
     name = "simulator_sse_test",
     srcs = ["simulator_sse_test.cc"],
     deps = [
-        ":simulator_test",
+        ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
 )
 
 cc_library(
-    name = "statespace_test",
-    hdrs = ["statespace_test.h"],
+    name = "statespace_testfixture",
+    hdrs = ["statespace_testfixture.h"],
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
@@ -124,7 +124,7 @@ cc_test(
     name = "statespace_avx_test",
     srcs = ["statespace_avx_test.cc"],
     deps = [
-        ":statespace_test",
+        ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
@@ -134,7 +134,7 @@ cc_test(
     name = "statespace_basic_test",
     srcs = ["statespace_basic_test.cc"],
     deps = [
-        ":statespace_test",
+        ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
@@ -144,7 +144,7 @@ cc_test(
     name = "statespace_sse_test",
     srcs = ["statespace_sse_test.cc"],
     deps = [
-        ":statespace_test",
+        ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "simulator_test.h"
+#include "simulator_testfixture.h"
 
 #include "gtest/gtest.h"
 
