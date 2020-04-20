@@ -6,7 +6,7 @@ GMOCK_DIR = $(CURDIR)/googletest/googlemock
 
 CMAKE=cmake
 
-TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/make/lib -lpthread -lgtest
+TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/make/lib -mavx2 -mfma -fopenmp -lgtest
 
 .PHONY: all
 all: $(TARGETS)
