@@ -52,7 +52,7 @@ struct QSimHRunner final {
                   const std::vector<Gate>& gates,
                   const std::vector<uint64_t>& bitstrings,
                   std::vector<std::complex<fp_type>>& results) {
-    double t0;
+    double t0 = 0.0;
 
     if (param.verbosity > 0) {
       t0 = GetTime();
