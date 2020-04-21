@@ -27,7 +27,7 @@
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsimh.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 #include "../lib/util.h"
 
 constexpr char usage[] = "usage:\n  ./qsimh_base -c circuit_file "
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
     bitstrings.push_back(i);
   }
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = qsim::Simulator<ParallelFor>;
   using HybridSimulator = HybridSimulator<IO, BasicGateFuser, Simulator,
                                           ParallelFor>;
   using Runner = QSimHRunner<IO, HybridSimulator>;

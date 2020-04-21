@@ -28,7 +28,7 @@
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 #include "../lib/util.h"
 
 constexpr char usage[] = "usage:\n  ./qsim_amplitudes -c circuit_file "
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = qsim::Simulator<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
