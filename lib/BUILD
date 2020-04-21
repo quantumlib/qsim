@@ -19,6 +19,7 @@ cc_library(
         "run_qsim.h",
         "run_qsimh.h",
         "seqfor.h",
+        "simmux.h",
         "simulator_avx.h",
         "simulator_basic.h",
         "simulator_sse.h",
