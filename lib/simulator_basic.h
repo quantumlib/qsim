@@ -22,7 +22,7 @@
 namespace qsim {
 
 // Quantim circuit simulator without vectorization.
-template <typename ParallelFor, typename FP>
+template <typename ParallelFor, typename FP = float>
 class SimulatorBasic final {
  public:
   using StateSpace = StateSpaceBasic<ParallelFor, FP>;

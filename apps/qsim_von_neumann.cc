@@ -27,7 +27,7 @@
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 
 struct Options {
   std::string circuit_file;
@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = qsim::Simulator<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
