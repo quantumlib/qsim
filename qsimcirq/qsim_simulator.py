@@ -20,6 +20,7 @@ from cirq import (
   protocols,
   sim,
   study,
+  value,
   SimulatesAmplitudes,
   SimulatesFinalState,
 )
@@ -64,7 +65,7 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
   def compute_amplitudes_sweep(
       self,
       program: circuits.Circuit,
-      bitstrings: Sequence[str],
+      bitstrings: Sequence[int],
       params: study.Sweepable,
       qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
   ) -> Sequence[Sequence[complex]]:
@@ -89,8 +90,12 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
     if not isinstance(program, qsimc.QSimCircuit):
       raise ValueError('{!r} is not a QSimCircuit'.format(program))
 
+    n_qubits = len(program.all_qubits())
+    bitstrings = [value.big_endian_int_to_bits(bitstring, bit_count=n_qubits)
+                  for bitstring in bitstrings]
     # qsim numbers qubits in reverse order from cirq
     bitstrings = [bs[::-1] for bs in bitstrings]
+    bitstrings = [''.join(str(b) for b in bs) for bs in bitstrings]
 
     options = {'i': '\n'.join(bitstrings)}
     options.update(self.qsim_options)
