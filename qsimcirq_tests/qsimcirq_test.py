@@ -40,7 +40,7 @@ class MainTest(unittest.TestCase):
 
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.compute_amplitudes(
-        qsim_circuit, bitstrings=['0100', '1011'])
+        qsim_circuit, bitstrings=[0b0100, 0b1011])
     self.assertSequenceEqual(result, [0.5j, 0j])
 
   def test_cirq_qsim_simulate_fullstate(self):
@@ -122,7 +122,7 @@ class MainTest(unittest.TestCase):
     qsimh_options = {'k': [0], 'w': 0, 'p': 1, 'r': 1}
     qsimhSim = qsimcirq.QSimhSimulator(qsimh_options)
     result = qsimhSim.compute_amplitudes(
-        qsim_circuit, bitstrings=['00', '01', '10', '11'])
+        qsim_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11])
     self.assertSequenceEqual(result, [0j, 0j, (1 + 0j), 0j])
 
 
