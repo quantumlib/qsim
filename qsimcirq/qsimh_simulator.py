@@ -38,11 +38,9 @@ class QSimhSimulator(SimulatesAmplitudes):
       raise ValueError('{!r} is not a QSimCircuit'.format(program))
 
     n_qubits = len(program.all_qubits())
-    bitstrings = [value.big_endian_int_to_bits(bitstring, bit_count=n_qubits)
-                  for bitstring in bitstrings]
     # qsim numbers qubits in reverse order from cirq
-    bitstrings = [bs[::-1] for bs in bitstrings]
-    bitstrings = [''.join(str(b) for b in bs) for bs in bitstrings]
+    bitstrings = [format(bitstring, 'b').zfill(n_qubits)[::-1]
+                  for bitstring in bitstrings]
 
     options = {'i': '\n'.join(bitstrings)}
     options.update(self.qsimh_options)
