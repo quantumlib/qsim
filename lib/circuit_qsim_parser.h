@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CIRCUIT_READER_H_
-#define CIRCUIT_READER_H_
+#ifndef CIRCUIT_QSIM_PARSER_H_
+#define CIRCUIT_QSIM_PARSER_H_
 
 #include <algorithm>
 #include <string>
@@ -21,12 +21,12 @@
 #include <vector>
 
 #include "circuit.h"
-#include "gates_def.h"
+#include "gates_qsim.h"
 
 namespace qsim {
 
 template <typename IO>
-class CircuitReader final {
+class CircuitQsimParser final {
  public:
   /**
    * Parses the given input stream into a Circuit object, following the rules
@@ -247,4 +247,4 @@ class CircuitReader final {
 
 }  // namespace qsim
 
-#endif  // CIRCUIT_READER_H_
+#endif  // CIRCUIT_QSIM_PARSER_H_

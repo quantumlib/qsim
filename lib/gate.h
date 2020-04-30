@@ -15,8 +15,12 @@
 #ifndef GATE_H_
 #define GATE_H_
 
+#include <algorithm>
 #include <array>
+#include <utility>
 #include <vector>
+
+#include "matrix.h"
 
 namespace qsim {
 
@@ -25,7 +29,6 @@ enum GateAnyKind {
 };
 
 // Gate is a generic gate to make it easier to use qsim with external gate sets.
-// Internal gate set is implemented in gates_def.h.
 template <typename fp_type, typename GK = GateAnyKind>
 struct Gate {
   using GateKind = GK;
@@ -45,6 +48,48 @@ using Matrix1q = std::array<fp_type, 8>;
 
 template <typename fp_type>
 using Matrix2q = std::array<fp_type, 32>;
+
+template <typename Gate, typename GateDef, typename Params, typename Matrix>
+inline Gate CreateGate(
+    unsigned time, unsigned q0, Params&& params, Matrix&& matrix) {
+  return Gate{GateDef::kind, time, GateDef::num_qubits, {q0}, false, false,
+              std::move(params), std::move(matrix)};
+}
+
+template <typename Gate, typename GateDef>
+inline Gate CreateStaticGate(unsigned time, unsigned q0) {
+  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0}, false, false};
+  auto begin = GateDef::matrix.begin();
+  std::copy(begin, begin + GateDef::matrix.size(), gate.matrix.begin());
+  return gate;
+}
+
+template <typename Gate, typename GateDef, typename Params, typename Matrix>
+inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
+                       Params&& params, Matrix&& matrix) {
+  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1}, false,
+               false, std::move(params), std::move(matrix)};
+  if (q0 > q1) {
+    gate.inverse = true;
+    std::swap(gate.qubits[0], gate.qubits[1]);
+    Matrix4Permute(gate.matrix);
+  }
+  return gate;
+}
+
+template <typename Gate, typename GateDef>
+inline Gate CreateStaticGate(unsigned time, unsigned q0, unsigned q1) {
+  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1}, false,
+               false};
+  auto begin = GateDef::matrix.begin();
+  std::copy(begin, begin + GateDef::matrix.size(), gate.matrix.begin());
+  if (q0 > q1) {
+    gate.inverse = true;
+    std::swap(gate.qubits[0], gate.qubits[1]);
+    Matrix4Permute(gate.matrix);
+  }
+  return gate;
+}
 
 template <typename fp_type>
 using schmidt_decomp_type = std::vector<std::array<Matrix1q<fp_type>, 2>>;

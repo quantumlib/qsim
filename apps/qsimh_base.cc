@@ -22,8 +22,9 @@
 #include <vector>
 
 #include "../lib/bitstring.h"
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsimh.h"
@@ -131,7 +132,8 @@ int main(int argc, char* argv[]) {
   }
 
   Circuit<GateQSim<float>> circuit;
-  if (!CircuitReader<IO>::FromFile(opt.maxtime, opt.circuit_file, circuit)) {
+  if (!CircuitQsimParser<IO>::FromFile(opt.maxtime, opt.circuit_file,
+                                       circuit)) {
     return 1;
   }
 
@@ -150,8 +152,8 @@ int main(int argc, char* argv[]) {
   }
 
   using Simulator = qsim::Simulator<ParallelFor>;
-  using HybridSimulator = HybridSimulator<IO, BasicGateFuser, Simulator,
-                                          ParallelFor>;
+  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
+                                          Simulator, ParallelFor>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;

@@ -23,9 +23,9 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gates_def.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/run_qsim.h"
 
@@ -408,7 +408,7 @@ void TestNormAndInnerProduct() {
 
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
-  EXPECT_EQ(CircuitReader<IO>::FromStream(depth, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit), true);
   circuit.gates.emplace_back(GateT<float>::Create(depth + 1, 0));
 
   using StateSpace = typename Simulator::StateSpace;
@@ -487,7 +487,8 @@ void TestSamplingCrossEntropyDifference() {
 
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
-  EXPECT_EQ(CircuitReader<IO>::FromStream(depth, provider, ss, circuit), true);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit), true);
 
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;

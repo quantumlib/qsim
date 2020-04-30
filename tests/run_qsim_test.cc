@@ -19,9 +19,9 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gate.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
@@ -66,7 +66,7 @@ TEST(QSimRunner, RunQSim1) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
@@ -103,7 +103,7 @@ TEST(QSimRunner, RunQSim2) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 

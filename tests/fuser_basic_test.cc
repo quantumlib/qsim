@@ -17,9 +17,9 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gate.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 
 namespace qsim {
@@ -61,7 +61,7 @@ TEST(FuserBasicTest, NoTimesToSplitAt) {
   std::stringstream ss(circuit_string1);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
@@ -226,7 +226,7 @@ TEST(FuserBasicTest, TimesToSplitAt1) {
   std::stringstream ss(circuit_string1);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
@@ -401,7 +401,7 @@ TEST(FuserBasicTest, TimesToSplitAt2) {
   std::stringstream ss(circuit_string1);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
@@ -581,7 +581,7 @@ TEST(FuserBasicTest, OrphanedQubits1) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
@@ -637,7 +637,7 @@ TEST(FuserBasicTest, OrphanedQubits2) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
@@ -718,7 +718,7 @@ TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 

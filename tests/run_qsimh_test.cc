@@ -19,8 +19,9 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsimh.h"
@@ -101,13 +102,13 @@ TEST(QSimRunner, RunQSimH) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
   using Simulator = SimulatorAVX<ParallelFor>;
-  using HybridSimulator = HybridSimulator<IO, BasicGateFuser, Simulator,
-                                          ParallelFor>;
+  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
+                                          Simulator, ParallelFor>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;

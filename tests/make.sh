@@ -21,9 +21,9 @@ path_to_include=googletest/googletest/include
 path_to_lib=googletest/lib
 
 g++ -O3 -I$path_to_include -L$path_to_lib -o bitstring_test.x bitstring_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -o circuit_reader_test.x circuit_reader_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o circuit_qsim_parser_test.x circuit_qsim_parser_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_basic_test.x fuser_basic_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -o gates_def_test.x gates_def_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o gates_qsim_test.x gates_qsim_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o matrix_test.x matrix_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o hybrid_test.x hybrid_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsim_test.x run_qsim_test.cc -lgtest -lpthread

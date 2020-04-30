@@ -17,13 +17,11 @@
 
 #include <vector>
 
-#include "gate.h"
-
 namespace qsim {
 
 template <typename Gate>
 struct GateFused {
-  typename Gate::GateKind kind;  // kind of the (first) master gate.
+  typename Gate::GateKind kind;  // Kind of the (first) master gate.
   unsigned time;
   unsigned num_qubits;
   unsigned qubits[3];

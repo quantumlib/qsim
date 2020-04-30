@@ -18,7 +18,6 @@
 #include <utility>
 #include <vector>
 
-#include "gate.h"
 #include "fuser.h"
 
 namespace qsim {

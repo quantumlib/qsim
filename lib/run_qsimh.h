@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "gates_def.h"
 #include "hybrid.h"
 #include "util.h"
 
@@ -28,8 +27,8 @@ namespace qsim {
 
 template <typename IO, typename HybridSimulator>
 struct QSimHRunner final {
+  using Gate = typename HybridSimulator::Gate;
   using fp_type = typename HybridSimulator::fp_type;
-  using Gate = GateQSim<fp_type>;
 
   using Parameter = typename HybridSimulator::Parameter;
   using HybridData = typename HybridSimulator::HybridData;

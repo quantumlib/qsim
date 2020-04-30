@@ -21,22 +21,21 @@
 
 #include "fuser_basic.h"
 #include "gates_appl.h"
-#include "gates_def.h"
 #include "util.h"
 
 namespace qsim {
 
 // Hybrid Feynmann-Schrodiner simulator.
-template <typename IO, template <typename> class FuserT, typename Simulator,
-          typename ParallelFor>
+template <typename IO, typename GateT, template <typename> class FuserT,
+          typename Simulator, typename ParallelFor>
 struct HybridSimulator final {
  public:
+  using Gate = GateT;
   using fp_type = typename Simulator::fp_type;
 
  private:
   using StateSpace = typename Simulator::StateSpace;
   using State = typename Simulator::State;
-  using Gate = GateQSim<fp_type>;
 
   // Note that one can use "struct GateHybrid : public Gate {" in C++17.
   struct GateHybrid {

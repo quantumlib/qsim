@@ -23,9 +23,9 @@
 #include <vector>
 
 #include "../lib/bitstring.h"
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gates_def.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
@@ -57,8 +57,8 @@ Circuit<GateQSim<float>> getCircuit(const py::dict &options) {
     throw;
   }
   std::stringstream ss(circuit_str);
-  if (!CircuitReader<IO>::FromStream(std::numeric_limits<unsigned>::max(),
-                                     "cirq_circuit_str", ss, circuit)) {
+  if (!CircuitQsimParser<IO>::FromStream(std::numeric_limits<unsigned>::max(),
+                                         "cirq_circuit_str", ss, circuit)) {
     throw std::invalid_argument("Unable to parse provided circuit.");
   }
   return circuit;
@@ -223,8 +223,8 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   using Simulator = SimulatorAVX<ParallelFor>;
-  using HybridSimulator =
-      HybridSimulator<IO, BasicGateFuser, Simulator, ParallelFor>;
+  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
+                                          Simulator, ParallelFor>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Circuit<GateQSim<float>> circuit;
