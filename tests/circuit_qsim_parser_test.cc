@@ -16,14 +16,14 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/io.h"
 
 namespace qsim {
 
-constexpr char provider[] = "circuit_reader_test";
+constexpr char provider[] = "circuit_qsim_parser_test";
 
-TEST(CircuitReaderTest, ValidCircuit) {
+TEST(CircuitQsimParserTest, ValidCircuit) {
   constexpr char valid_circuit[] =
 R"(2
 0 id1 0
@@ -51,20 +51,22 @@ R"(2
   Circuit<GateQSim<float>> circuit;
   std::stringstream ss1(valid_circuit);
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss1, circuit), true);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss1, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 18);
 
   std::stringstream ss2(valid_circuit);
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(4, provider, ss2, circuit), true);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(4, provider, ss2, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 10);
 }
 
 // The following tests print error messages if passed. This is okay.
 
-TEST(CircuitReaderTest, InvalidGateName) {
+TEST(CircuitQsimParserTest, InvalidGateName) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -74,10 +76,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, TrailingSpace) {
+TEST(CircuitQsimParserTest, TrailingSpace) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -87,10 +90,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, TrailingCharacters) {
+TEST(CircuitQsimParserTest, TrailingCharacters) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -100,10 +104,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidQubitRange) {
+TEST(CircuitQsimParserTest, InvalidQubitRange) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -113,10 +118,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, QubitIsNotNumber) {
+TEST(CircuitQsimParserTest, QubitIsNotNumber) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -126,10 +132,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, SameQubits) {
+TEST(CircuitQsimParserTest, SameQubits) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -139,10 +146,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidSingleQubitGate) {
+TEST(CircuitQsimParserTest, InvalidSingleQubitGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -152,10 +160,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidTwoQubitGate) {
+TEST(CircuitQsimParserTest, InvalidTwoQubitGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -165,10 +174,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidRxGate) {
+TEST(CircuitQsimParserTest, InvalidRxGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -179,10 +189,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidRyGate) {
+TEST(CircuitQsimParserTest, InvalidRyGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -193,10 +204,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidRzGate) {
+TEST(CircuitQsimParserTest, InvalidRzGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -207,10 +219,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidRxyGate) {
+TEST(CircuitQsimParserTest, InvalidRxyGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -221,10 +234,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidFsimGate) {
+TEST(CircuitQsimParserTest, InvalidFsimGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -234,10 +248,11 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
-TEST(CircuitReaderTest, InvalidCpGate) {
+TEST(CircuitQsimParserTest, InvalidCpGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -247,7 +262,8 @@ R"(2
   std::stringstream ss(invalid_circuit);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), false);
+  EXPECT_EQ(
+      CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), false);
 }
 
 }  // namespace qsim

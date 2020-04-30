@@ -21,9 +21,9 @@
 #include <limits>
 #include <string>
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gate.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
@@ -85,7 +85,8 @@ int main(int argc, char* argv[]) {
   }
 
   Circuit<GateQSim<float>> circuit;
-  if (!CircuitReader<IO>::FromFile(opt.maxtime, opt.circuit_file, circuit)) {
+  if (!CircuitQsimParser<IO>::FromFile(opt.maxtime, opt.circuit_file,
+                                       circuit)) {
     return 1;
   }
 

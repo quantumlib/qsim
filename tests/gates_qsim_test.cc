@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/gates_def.h"
+#include "../lib/gates_qsim.h"
 
 namespace qsim {
 

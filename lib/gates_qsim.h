@@ -12,17 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GATES_DEF_H_
-#define GATES_DEF_H_
+#ifndef GATES_QSIM_H_
+#define GATES_QSIM_H_
 
-#include <algorithm>
 #include <array>
 #include <cmath>
-#include <utility>
 #include <vector>
 
 #include "gate.h"
-#include "matrix.h"
 
 namespace qsim {
 
@@ -51,56 +48,9 @@ enum GateKind {
   kGateDecomp,  // single qubit gate from Schmidt decomposition
 };
 
-// Specialization of Gate (defined in gate.h) for the gate set implemented in
-// qsim.
+// Specialization of Gate (defined in gate.h) for the qsim gate set.
 template <typename fp_type>
 using GateQSim = Gate<fp_type, GateKind>;
-
-namespace detail {
-
-template <typename Gate, typename GateDef, typename Params, typename Matrix>
-inline Gate CreateGate(
-    unsigned time, unsigned q0, Params&& params, Matrix&& matrix) {
-  return Gate{GateDef::kind, time, GateDef::num_qubits, {q0}, false, false,
-              std::move(params), std::move(matrix)};
-}
-
-template <typename Gate, typename GateDef>
-inline Gate CreateStaticGate(unsigned time, unsigned q0) {
-  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0}, false, false};
-  auto begin = GateDef::matrix.begin();
-  std::copy(begin, begin + GateDef::matrix.size(), gate.matrix.begin());
-  return gate;
-}
-
-template <typename Gate, typename GateDef, typename Params, typename Matrix>
-inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
-                       Params&& params, Matrix&& matrix) {
-  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1}, false,
-               false, std::move(params), std::move(matrix)};
-  if (q0 > q1) {
-    gate.inverse = true;
-    std::swap(gate.qubits[0], gate.qubits[1]);
-    Matrix4Permute(gate.matrix);
-  }
-  return gate;
-}
-
-template <typename Gate, typename GateDef>
-inline Gate CreateStaticGate(unsigned time, unsigned q0, unsigned q1) {
-  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1}, false,
-               false};
-  auto begin = GateDef::matrix.begin();
-  std::copy(begin, begin + GateDef::matrix.size(), gate.matrix.begin());
-  if (q0 > q1) {
-    gate.inverse = true;
-    std::swap(gate.qubits[0], gate.qubits[1]);
-    Matrix4Permute(gate.matrix);
-  }
-  return gate;
-}
-
-}  // namespace detail
 
 constexpr double h = 0.5;
 constexpr double is2 = 0.7071067811865475;
@@ -114,7 +64,7 @@ struct GateId1 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateId1>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateId1>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -130,7 +80,7 @@ struct GateHd {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateHd>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateHd>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -146,7 +96,7 @@ struct GateT {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateT>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateT>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -162,7 +112,7 @@ struct GateX {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateX>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateX>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -178,7 +128,7 @@ struct GateY {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateY>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateY>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -194,7 +144,7 @@ struct GateZ {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateZ>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateZ>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -210,7 +160,7 @@ struct GateX2 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateX2>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateX2>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -226,7 +176,7 @@ struct GateY2 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateY2>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateY2>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -245,7 +195,7 @@ struct GateRX {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
-    return detail::CreateGate<GateQSim<fp_type>, GateRX>(
+    return CreateGate<GateQSim<fp_type>, GateRX>(
         time, q0, std::vector<fp_type>{phi},
         std::array<fp_type, 32>{c, 0, 0, s, 0, s, c, 0});
   }
@@ -261,7 +211,7 @@ struct GateRY {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
-    return detail::CreateGate<GateQSim<fp_type>, GateRY>(
+    return CreateGate<GateQSim<fp_type>, GateRY>(
         time, q0, std::vector<fp_type>{phi},
         std::array<fp_type, 32>{c, 0, s, 0, -s, 0, c, 0});
   }
@@ -277,7 +227,7 @@ struct GateRZ {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
-    return detail::CreateGate<GateQSim<fp_type>, GateRZ>(
+    return CreateGate<GateQSim<fp_type>, GateRZ>(
         time, q0, std::vector<fp_type>{phi},
         std::array<fp_type, 32>{c, s, 0, 0, 0, 0, c, -s});
   }
@@ -296,7 +246,7 @@ struct GateRXY {
     fp_type sp = std::sin(phi2);
     fp_type ct = std::cos(theta) * sp;
     fp_type st = std::sin(theta) * sp;
-    return detail::CreateGate<GateQSim<fp_type>, GateRXY>(
+    return CreateGate<GateQSim<fp_type>, GateRXY>(
         time, q0, std::vector<fp_type>{phi},
         std::array<fp_type, 32>{cp, 0, st, ct, -st, ct, cp, 0});
   }
@@ -309,7 +259,7 @@ struct GateHZ2 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateHZ2>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateHZ2>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -325,7 +275,7 @@ struct GateS {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateS>(time, q0);
+    return CreateStaticGate<GateQSim<fp_type>, GateS>(time, q0);
   }
 
   static Matrix1q<fp_type> matrix;
@@ -343,7 +293,7 @@ struct GateId2 {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateId2>(time, q0, q1);
+    return CreateStaticGate<GateQSim<fp_type>, GateId2>(time, q0, q1);
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -369,7 +319,7 @@ struct GateCZ {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateCZ>(time, q0, q1);
+    return CreateStaticGate<GateQSim<fp_type>, GateCZ>(time, q0, q1);
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -397,7 +347,7 @@ struct GateCNot {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateCNot>(time, q0, q1);
+    return CreateStaticGate<GateQSim<fp_type>, GateCNot>(time, q0, q1);
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -427,7 +377,7 @@ struct GateIS {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return detail::CreateStaticGate<GateQSim<fp_type>, GateIS>(time, q0, q1);
+    return CreateStaticGate<GateQSim<fp_type>, GateIS>(time, q0, q1);
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -469,7 +419,7 @@ struct GateFS {
     fp_type cp = std::cos(phi);
     fp_type sp = std::sin(phi);
 
-    return detail::CreateGate<GateQSim<fp_type>, GateFS>(
+    return CreateGate<GateQSim<fp_type>, GateFS>(
         time, q0, q1, std::vector<fp_type>{theta, phi},
         std::array<fp_type, 32>{1, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, ct, 0, 0, -st, 0, 0,
@@ -534,7 +484,7 @@ struct GateCP {
       unsigned time, unsigned q0, unsigned q1, fp_type phi) {
     fp_type cp = std::cos(phi);
     fp_type sp = std::sin(phi);
-    return detail::CreateGate<GateQSim<fp_type>, GateCP>(
+    return CreateGate<GateQSim<fp_type>, GateCP>(
         time, q0, q1, std::vector<fp_type>{phi},
         std::array<fp_type, 32>{1, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, 1, 0, 0, 0, 0, 0,
@@ -579,4 +529,4 @@ inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
 
 }  // namespace qsim
 
-#endif  // GATES_DEF_H_
+#endif  // GATES_QSIM_H_

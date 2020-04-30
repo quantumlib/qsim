@@ -19,7 +19,7 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_reader.h"
+#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/hybrid.h"
 #include "../lib/io.h"
@@ -60,13 +60,13 @@ R"(2
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 22);
 
   using Simulator = SimulatorAVX<ParallelFor>;
-  using HybridSimulator = HybridSimulator<IO, BasicGateFuser, Simulator,
-                                          ParallelFor>;
+  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
+                                          Simulator, ParallelFor>;
   using Fuser = HybridSimulator::Fuser;
 
   std::vector<unsigned> parts = {0, 1};
@@ -238,13 +238,13 @@ R"(4
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitReader<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
   using Simulator = SimulatorAVX<ParallelFor>;
-  using HybridSimulator = HybridSimulator<IO, BasicGateFuser, Simulator,
-                                          ParallelFor>;
+  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
+                                          Simulator, ParallelFor>;
   using Fuser = HybridSimulator::Fuser;
 
   std::vector<unsigned> parts = {0, 0, 1, 1};

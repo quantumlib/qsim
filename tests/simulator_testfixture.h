@@ -21,7 +21,7 @@
 
 #include "../lib/fuser.h"
 #include "../lib/gates_appl.h"
-#include "../lib/gates_def.h"
+#include "../lib/gates_qsim.h"
 
 namespace qsim {
 
