@@ -60,9 +60,9 @@ struct QSimHRunner final {
     HybridData hd = HybridSimulator::SplitLattice(parts, gates);
 
     if (hd.num_gatexs < param.num_prefix_gatexs + param.num_root_gatexs) {
-      IO::errorf("invalid breakup: %up+%ur > num_gatexs=%u\n",
-                 param.num_prefix_gatexs, param.num_root_gatexs,
-                 hd.num_gatexs);
+      IO::errorf("error: num_prefix_gates (%u) plus num_root gates (%u) is "
+                 "greater than num_gates_on_the_cut (%u).\n",
+                 param.num_prefix_gatexs, param.num_root_gatexs, hd.num_gatexs);
       return false;
     }
 

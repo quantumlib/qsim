@@ -41,7 +41,7 @@ template <typename T>
 T parseOptions(const py::dict &options, const char *key) {
   if (!options.contains(key)) {
     char msg[100];
-    std::sprintf(msg, "Argument %s is not provided.", key);
+    std::sprintf(msg, "Argument %s is not provided.\n", key);
     throw std::invalid_argument(msg);
   }
   const auto &value = options[key];
@@ -59,7 +59,7 @@ Circuit<GateQSim<float>> getCircuit(const py::dict &options) {
   std::stringstream ss(circuit_str);
   if (!CircuitQsimParser<IO>::FromStream(std::numeric_limits<unsigned>::max(),
                                          "cirq_circuit_str", ss, circuit)) {
-    throw std::invalid_argument("Unable to parse provided circuit.");
+    throw std::invalid_argument("Unable to parse provided circuit.\n");
   }
   return circuit;
 }
@@ -76,7 +76,7 @@ std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
 
   if (!BitstringsFromStream<IO>(num_qubits, "bitstrings_str", bitstrings_stream,
                                 bitstrings)) {
-    throw std::invalid_argument("Unable to parse provided bit strings.");
+    throw std::invalid_argument("Unable to parse provided bit strings.\n");
   }
   return bitstrings;
 }
@@ -171,7 +171,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
   const uint64_t buff_size = std::max(fsv_size, (uint64_t)16);
   if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed");
+    IO::errorf("Memory allocation failed.\n");
     return {};
   }
 
@@ -196,7 +196,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 
   if (!Runner::Run(param, std::numeric_limits<unsigned>::max(), circuit,
                    state)) {
-    IO::errorf("Qsim full state simulation of the circuit errored out.");
+    IO::errorf("qsim full state simulation of the circuit errored out.\n");
     return {};
   }
 
@@ -250,7 +250,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   for (auto i : dense_parts) {
     unsigned idx = i.cast<unsigned>();
     if (idx >= circuit.num_qubits) {
-      IO::errorf("Invalid arguments are provided for arg k.");
+      IO::errorf("Invalid arguments are provided for arg k.\n");
       return {};
     }
     parts[i.cast<unsigned>()] = 1;
@@ -263,6 +263,6 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
                   circuit.gates, bitstrings, amplitudes)) {
     return amplitudes;
   }
-  IO::errorf("Qsimh simulation of the circuit errored out.");
+  IO::errorf("qsimh simulation of the circuit errored out.\n");
   return {};
 }
