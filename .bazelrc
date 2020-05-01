@@ -25,16 +25,17 @@ build:msan --linkopt -fsanitize=leak
 build:avx --copt -O3
 build:avx --copt -mavx2
 build:avx --copt -mfma
-build:avx --copt -fopenmp
-build:avx --linkopt -lgomp
 
-# Build with SSE - currently unsupported
-build:sse --copt -msse2
-build:sse --copt -msse3
+# Build with SSE
+build:sse --copt -O3
 build:sse --copt -msse4
 
-# Build without AVX or SSE - currently unsupported
-build:basic
+# Build without AVX or SSE
+build:basic --copt -O3
+
+# Build with OpenMP
+build:openmp --copt -fopenmp
+build:openmp --linkopt -lgomp
 
 # Test flags
 test --test_output=errors

@@ -30,6 +30,6 @@ jobs:
           wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
           sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
       - name: Run C++ tests
-        run: bazel test --config=avx tests:all
+        run: bazel test tests:all
       - name: Run sample simulation
-        run: bazel run --config=avx apps:qsim_base -- -c circuits/circuit_q24
+        run: bazel run --config=avx --config=openmp apps:qsim_base -- -c circuits/circuit_q24
