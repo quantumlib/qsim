@@ -19,11 +19,12 @@ they fulfill the same expectations.
 | Function (parfor.h)     | Any function; args are specified with `Args`.     |
 | FuserT                  | [`BasicGateFuser`](lib/fuser_basic.h)             |
 | Gate                    | [`Gate`](lib/gate.h)                              |
-| GateQSim                | [`GateQSim`](lib/gates_def.h)                     |
-| GateDef                 | [`GateRX`](lib/gates_def.h)                       |
+| GateDef                 | [`GateRX`](lib/gate.h)                            |
+| GateQSim                | [`GateQSim`](lib/gates_qsim.h)                    |
 | GK / GateKind           | [`GateKind`](lib/gate.h)                          |
 | HybridSimulator         | [`HybridSimulator`](lib/hybrid.h)                 |
 | IO                      | [`IO`](lib/io.h)                                  |
+| IOFile                  | [`IOFile`](lib/io_file.h)                         |
 | Matrix                  | Same as `Array(1|2)`.                             |
 | MeasurementFunc         | [`measure` (in `PrintAmplitudes`)](apps/qsim_base.cc) |
 | Op (util.h)             | [`to_int` (in `Options`)](apps/qsim_amplitudes.cc)    |

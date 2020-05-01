@@ -25,7 +25,7 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
-#include "../lib/io.h"
+#include "../lib/io_file.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
@@ -158,7 +158,7 @@ bool WriteAmplitudes(const std::string& file,
        << std::setw(width + 8) << std::imag(a) << "\n";
   }
 
-  return qsim::IO::WriteToFile(file, ss.str());
+  return qsim::IOFile::WriteToFile(file, ss.str());
 }
 
 int main(int argc, char* argv[]) {
@@ -170,8 +170,8 @@ int main(int argc, char* argv[]) {
   }
 
   Circuit<GateQSim<float>> circuit;
-  if (!CircuitQsimParser<IO>::FromFile(opt.maxtime, opt.circuit_file,
-                                       circuit)) {
+  if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
+                                           circuit)) {
     return 1;
   }
 
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
 
   std::vector<Bitstring> bitstrings;
   auto num_qubits = circuit.num_qubits;
-  if (!BitstringsFromFile<IO>(num_qubits, opt.input_file, bitstrings)) {
+  if (!BitstringsFromFile<IOFile>(num_qubits, opt.input_file, bitstrings)) {
     return 1;
   }
 
