@@ -27,7 +27,7 @@ build:avx --copt -mavx2
 build:avx --copt -mfma
 
 # Build with SSE
-build:sse --copt -msse4.1
+build:sse --copt -msse4
 
 # Build without AVX or SSE
 build:basic

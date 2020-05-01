@@ -1,3 +1,9 @@
+# Options for testing different simulator types.
+avx_copts = ['-mavx2', '-mfma']
+sse_copts = ['-msse4']
+omp_copts = ['-fopenmp']
+omp_linkopts = ['-lgomp']
+
 cc_test(
     name = "bitstring_test",
     srcs = ["bitstring_test.cc"],
@@ -41,6 +47,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = avx_copts + omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -59,6 +67,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = avx_copts + omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -68,6 +78,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = avx_copts + omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_library(
@@ -88,6 +100,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = avx_copts + omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -98,6 +112,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -108,6 +124,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = sse_copts + omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_library(
@@ -128,6 +146,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = avx_copts + omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -138,6 +158,8 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = omp_copts,
+    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -148,4 +170,6 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:qsim_lib",
     ],
+    copts = sse_copts + omp_copts,
+    linkopts = omp_linkopts,
 )

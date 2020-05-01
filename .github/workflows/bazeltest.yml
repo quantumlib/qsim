@@ -32,4 +32,4 @@ jobs:
       - name: Run C++ tests
         run: bazel test tests:all
       - name: Run sample simulation
-        run: bazel run apps:qsim_base -- -c circuits/circuit_q24
+        run: bazel run --config=avx --config=openmp apps:qsim_base -- -c circuits/circuit_q24
