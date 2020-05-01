@@ -13,7 +13,7 @@ cc_library(
         "gates_appl.h",
         "gates_qsim.h",
         "hybrid.h",
-        "io_file.h"
+        "io_file.h",
         "io.h",
         "matrix.h",
         "parfor.h",
