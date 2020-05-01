@@ -30,7 +30,7 @@
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
 #include "../lib/run_qsimh.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 #include "../lib/util.h"
 
 using namespace qsim;
@@ -128,7 +128,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = qsim::Simulator<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
@@ -175,7 +175,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = qsim::Simulator<ParallelFor>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
@@ -222,7 +222,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 }
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = qsim::Simulator<ParallelFor>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
                                           Simulator, ParallelFor>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
