@@ -25,7 +25,7 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
-#include "../lib/io.h"
+#include "../lib/io_file.h"
 #include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
@@ -135,7 +135,7 @@ bool WriteAmplitudes(const std::string& file,
        << std::setw(width + 8) << std::imag(a) << "\n";
   }
 
-  return qsim::IO::WriteToFile(file, ss.str());
+  return qsim::IOFile::WriteToFile(file, ss.str());
 }
 
 int main(int argc, char* argv[]) {
@@ -148,7 +148,8 @@ int main(int argc, char* argv[]) {
 
   Circuit<GateQSim<float>> circuit;
   unsigned maxtime = opt.times.back();
-  if (!CircuitQsimParser<IO>::FromFile(maxtime, opt.circuit_file, circuit)) {
+  if (!CircuitQsimParser<IOFile>::FromFile(maxtime, opt.circuit_file,
+                                           circuit)) {
     return 1;
   }
 
@@ -159,7 +160,8 @@ int main(int argc, char* argv[]) {
   auto measure = [&opt, &circuit](
       unsigned k, const StateSpace& state_space, const State& state) {
     std::vector<Bitstring> bitstrings;
-    BitstringsFromFile<IO>(circuit.num_qubits, opt.input_files[k], bitstrings);
+    BitstringsFromFile<IOFile>(
+        circuit.num_qubits, opt.input_files[k], bitstrings);
     if (bitstrings.size() > 0) {
       WriteAmplitudes(opt.output_files[k], state_space, state, bitstrings);
     }

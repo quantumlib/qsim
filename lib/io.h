@@ -16,10 +16,7 @@
 #define IO_H_
 
 #include <cstdarg>
-#include <cstdint>
 #include <cstdio>
-#include <fstream>
-#include <string>
 
 namespace qsim {
 
@@ -36,44 +33,6 @@ struct IO {
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
-  }
-
-  static std::ifstream StreamFromFile(const std::string& file) {
-    std::ifstream fs;
-    fs.open(file);
-    if (!fs) {
-      errorf("cannot open %s for reading.\n", file.c_str());
-    }
-    return fs;
-  }
-
-  static void CloseStream(std::ifstream& fs) {
-    fs.close();
-  }
-
-  static bool WriteToFile(
-      const std::string& file, const std::string& content) {
-    return WriteToFile(file, content.data(), content.size());
-  }
-
-  static bool WriteToFile(
-      const std::string& file, const void* data, uint64_t size) {
-    auto fs = std::fstream(file, std::ios::out | std::ios::binary);
-
-    if (!fs) {
-      errorf("cannot open %s for writing.\n", file.c_str());
-      return false;
-    } else {
-      fs.write((const char*) data, size);
-      if (!fs) {
-        errorf("cannot write to %s.\n", file.c_str());
-        return false;
-      }
-
-      fs.close();
-    }
-
-    return true;
   }
 };
 
