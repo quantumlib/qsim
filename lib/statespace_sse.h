@@ -119,7 +119,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
     using Op = std::plus<std::complex<double>>;
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-              const State& state2) -> std::complex<double> {
+                const State& state2) -> std::complex<double> {
       __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
       __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
       __m128 re2 = _mm_load_ps(state2.get() + 8 * i);
@@ -147,7 +147,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
     using Op = std::plus<double>;
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-              const State& state2) -> double {
+                const State& state2) -> double {
       __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
       __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
       __m128 re2 = _mm_load_ps(state2.get() + 8 * i);
