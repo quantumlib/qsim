@@ -16,12 +16,13 @@
 #define HYBRID_H_
 
 #include <algorithm>
+#include <array>
 #include <complex>
 #include <vector>
 
 #include "fuser_basic.h"
+#include "gate.h"
 #include "gates_appl.h"
-#include "gates_qsim.h"
 #include "util.h"
 
 namespace qsim {
@@ -32,6 +33,7 @@ template <typename IO, typename GateT, template <typename> class FuserT,
 struct HybridSimulator final {
  public:
   using Gate = GateT;
+  using GateKind = typename Gate::GateKind;
   using fp_type = typename Simulator::fp_type;
 
  private:
@@ -40,7 +42,7 @@ struct HybridSimulator final {
 
   // Note that one can use "struct GateHybrid : public Gate {" in C++17.
   struct GateHybrid {
-    using GateKind = typename Gate::GateKind;
+    using GateKind = HybridSimulator::GateKind;
 
     GateKind kind;
     unsigned time;
@@ -137,20 +139,20 @@ struct HybridSimulator final {
               false, gate.inverse, gate.params, gate.matrix, nullptr});
             break;
           case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
-            hd.gates0.push_back(GateHybrid{kGateDecomp, gate.time, 1,
+            hd.gates0.push_back(GateHybrid{GateKind::kGateDecomp, gate.time, 1,
               {hd.qubit_map[gate.qubits[1]]}, true, gate.inverse, gate.params,
               {}, &gate, hd.num_gatexs});
-            hd.gates1.push_back(GateHybrid{kGateDecomp, gate.time, 1,
+            hd.gates1.push_back(GateHybrid{GateKind::kGateDecomp, gate.time, 1,
               {hd.qubit_map[gate.qubits[0]]}, true, gate.inverse, gate.params,
               {}, &gate, hd.num_gatexs});
 
             ++hd.num_gatexs;
             break;
           case 2:  // Gate on the cut, qubit 0 in part 0, qubit 1 in part 1.
-            hd.gates0.push_back(GateHybrid{kGateDecomp, gate.time, 1,
+            hd.gates0.push_back(GateHybrid{GateKind::kGateDecomp, gate.time, 1,
               {hd.qubit_map[gate.qubits[0]]}, true, gate.inverse, gate.params,
               {}, &gate, hd.num_gatexs});
-            hd.gates1.push_back(GateHybrid{kGateDecomp, gate.time, 1,
+            hd.gates1.push_back(GateHybrid{GateKind::kGateDecomp, gate.time, 1,
               {hd.qubit_map[gate.qubits[1]]}, true, gate.inverse, gate.params,
               {}, &gate, hd.num_gatexs});
 
