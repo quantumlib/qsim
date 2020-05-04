@@ -102,7 +102,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
     using Op = std::plus<std::complex<double>>;
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-              const State& state2) -> std::complex<double> {
+                const State& state2) -> std::complex<double> {
       auto s1 = state1.get() + 2 * i;
       auto s2 = state2.get() + 2 * i;
 
@@ -120,7 +120,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
     using Op = std::plus<double>;
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-              const State& state2) -> double {
+                const State& state2) -> double {
       auto s1 = state1.get() + 2 * i;
       auto s2 = state2.get() + 2 * i;
 
