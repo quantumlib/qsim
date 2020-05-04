@@ -20,10 +20,8 @@
 #include <complex>
 #include <vector>
 
-#include "fuser_basic.h"
 #include "gate.h"
 #include "gates_appl.h"
-#include "util.h"
 
 namespace qsim {
 
