@@ -124,7 +124,7 @@ struct HybridSimulator final {
         case 1:
           hd.gates1.push_back(GateHybrid{gate.kind, gate.time, 1,
             {hd.qubit_map[gate.qubits[0]]}, false, false, gate.params,
-             gate.matrix, nullptr});
+             gate.matrix, nullptr, 0});
           break;
         }
         break;
@@ -134,7 +134,7 @@ struct HybridSimulator final {
           case 0:  // Both qubits in part 0.
             hd.gates0.push_back(GateHybrid{gate.kind, gate.time, 2,
               {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
-              false, gate.inverse, gate.params, gate.matrix, nullptr});
+              false, gate.inverse, gate.params, gate.matrix, nullptr, 0});
             break;
           case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
             hd.gates0.push_back(GateHybrid{GateKind::kGateDecomp, gate.time, 1,
@@ -159,7 +159,7 @@ struct HybridSimulator final {
           case 3:  // Both qubits in part 1.
             hd.gates1.push_back(GateHybrid{gate.kind, gate.time, 2,
               {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
-              false, gate.inverse, gate.params, gate.matrix, nullptr});
+              false, gate.inverse, gate.params, gate.matrix, nullptr, 0});
             break;
           }
         }

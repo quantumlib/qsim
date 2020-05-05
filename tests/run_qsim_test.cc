@@ -75,7 +75,7 @@ TEST(QSimRunner, RunQSim1) {
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
-  float entropy;
+  float entropy = 0;
 
   auto measure = [&entropy](
       unsigned k, const StateSpace& state_space, const State& state) {

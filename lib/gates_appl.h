@@ -24,13 +24,11 @@ namespace qsim {
 
 /**
  * Calculates the 2x2 matrix for a single-qubit fused gate.
- * @param q0 Index of the qubit affected by the fused gate.
  * @param gates Component gates that make up the fused gate.
  * @param matrix Output matrix representing the entire fused gate.
  */
 template <typename Gate, typename Array2>
-inline void CalcMatrix2(
-    unsigned q0, const std::vector<Gate*>& gates, Array2& matrix) {
+inline void CalcMatrix2(const std::vector<Gate*>& gates, Array2& matrix) {
   Matrix2SetId(matrix);
 
   for (auto pgate : gates) {
@@ -99,7 +97,7 @@ inline void ApplyFusedGate(
   typename Simulator::fp_type matrix[32];
 
   if (gate.num_qubits == 1) {
-    CalcMatrix2(gate.qubits[0], gate.gates, matrix);
+    CalcMatrix2(gate.gates, matrix);
     simulator.ApplyGate1(gate.qubits[0], matrix, state);
   } else if (gate.num_qubits == 2) {
     // Here we should have gate.qubits[0] < gate.qubits[1].

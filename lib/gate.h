@@ -58,7 +58,8 @@ inline Gate CreateGate(
 
 template <typename Gate, typename GateDef>
 inline Gate CreateStaticGate(unsigned time, unsigned q0) {
-  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0}, false, false};
+  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0}, false, false,
+               {}, {}};
   auto begin = GateDef::matrix.begin();
   std::copy(begin, begin + GateDef::matrix.size(), gate.matrix.begin());
   return gate;
@@ -79,8 +80,8 @@ inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
 
 template <typename Gate, typename GateDef>
 inline Gate CreateStaticGate(unsigned time, unsigned q0, unsigned q1) {
-  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1}, false,
-               false};
+  Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1}, false, false,
+               {}, {}};
   auto begin = GateDef::matrix.begin();
   std::copy(begin, begin + GateDef::matrix.size(), gate.matrix.begin());
   if (q0 > q1) {

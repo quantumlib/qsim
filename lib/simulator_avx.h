@@ -153,6 +153,7 @@ class SimulatorAVX final {
       break;
     default:
       // Cannot reach here.
+      ml = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
       break;
     }
 
@@ -400,6 +401,7 @@ class SimulatorAVX final {
       break;
     default:
       // Cannot reach here.
+      ml = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
       break;
     }
 
@@ -617,6 +619,9 @@ class SimulatorAVX final {
       break;
     default:
       // Cannot reach here.
+      ml1 = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
+      ml2 = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
+      ml3 = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
       break;
     }
 

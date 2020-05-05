@@ -48,8 +48,11 @@ class StateSpace {
       return State((fp_type*) _aligned_alloc(vector_size, 64), &_aligned_free);
     #else
       void* p = nullptr;
-      posix_memalign(&p, 64, vector_size);
-      return State((fp_type*) p, &free);
+      if (posix_memalign(&p, 64, vector_size) == 0) {
+        return State((fp_type*) p, &free);
+      } else {
+        return State(nullptr, &free);
+      }
     #endif
   }
 
