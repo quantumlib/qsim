@@ -104,7 +104,7 @@ struct BasicGateFuser final {
         if (pgate->num_qubits == 1) {
           unsigned q0 = pgate->qubits[0];
 
-          GateFused gate_f = {pgate->kind, pgate->time, 1, {q0}, pgate};
+          GateFused gate_f = {pgate->kind, pgate->time, 1, {q0}, pgate, {}};
 
           last[q0] = Advance(last[q0], gates_lat[q0], gate_f.gates);
           gate_f.gates.push_back(gates_lat[q0][last[q0]]);
@@ -117,7 +117,7 @@ struct BasicGateFuser final {
 
           if (Done(last[q0], pgate->time, gates_lat[q0])) continue;
 
-          GateFused gate_f = {pgate->kind, pgate->time, 2, {q0, q1}, pgate};
+          GateFused gate_f = {pgate->kind, pgate->time, 2, {q0, q1}, pgate, {}};
 
           do {
             last[q0] = Advance(last[q0], gates_lat[q0], gate_f.gates);
@@ -142,7 +142,7 @@ struct BasicGateFuser final {
 
         auto pgate = gates_lat[q][l];
 
-        GateFused gate_f = {pgate->kind, pgate->time, 1, {q}, pgate};
+        GateFused gate_f = {pgate->kind, pgate->time, 1, {q}, pgate, {}};
         gate_f.gates.push_back(gates_lat[q][l]);
 
         l = Advance(l + 1, gates_lat[q], gate_f.gates);

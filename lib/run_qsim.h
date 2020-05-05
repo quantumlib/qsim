@@ -59,7 +59,9 @@ struct QSimRunner final {
   static bool Run(const Parameter& param,
                   const std::vector<unsigned>& times_to_measure_at,
                   const Circuit& circuit, MeasurementFunc measure) {
-    double t0, t1;
+    double t0 = 0.0;
+    double t1 = 0.0;
+
     if (param.verbosity > 0) {
       t0 = GetTime();
     }
@@ -124,7 +126,9 @@ struct QSimRunner final {
   template <typename Circuit>
   static bool Run(const Parameter& param, unsigned maxtime,
                   const Circuit& circuit, typename Simulator::State& state) {
-    double t0=0.0, t1=0.0;
+    double t0 = 0.0;
+    double t1 = 0.0;
+
     if (param.verbosity > 0) {
       t0 = GetTime();
     }
