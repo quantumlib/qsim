@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 
 namespace qsim {

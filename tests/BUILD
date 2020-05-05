@@ -9,7 +9,8 @@ cc_test(
     srcs = ["bitstring_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:bitstring",
+        "//lib:io",
     ],
 )
 
@@ -18,7 +19,9 @@ cc_test(
     srcs = ["circuit_qsim_parser_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:gates_qsim",
+        "//lib:io",
     ],
 )
 
@@ -27,7 +30,10 @@ cc_test(
     srcs = ["fuser_basic_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io",
     ],
 )
 
@@ -36,7 +42,7 @@ cc_test(
     srcs = ["gates_qsim_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:gates_qsim",
     ],
 )
 
@@ -45,7 +51,13 @@ cc_test(
     srcs = ["hybrid_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:hybrid",
+        "//lib:io",
+        "//lib:parfor",
+        "//lib:simulator_avx",
     ],
     copts = avx_copts + omp_copts,
     linkopts = omp_linkopts,
@@ -56,7 +68,7 @@ cc_test(
     srcs = ["matrix_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:matrix",
     ],
 )
 
@@ -65,7 +77,7 @@ cc_test(
     srcs = ["run_qsim_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:run_qsim_lib",
     ],
     copts = avx_copts + omp_copts,
     linkopts = omp_linkopts,
@@ -76,7 +88,7 @@ cc_test(
     srcs = ["run_qsimh_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:run_qsimh_lib",
     ],
     copts = avx_copts + omp_copts,
     linkopts = omp_linkopts,
@@ -87,7 +99,9 @@ cc_library(
     hdrs = ["simulator_testfixture.h"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:fuser",
+        "//lib:gates_appl",
+        "//lib:gates_qsim",
     ],
     testonly = 1,
 )
@@ -98,7 +112,8 @@ cc_test(
     deps = [
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:parfor",
+        "//lib:simulator_avx",
     ],
     copts = avx_copts + omp_copts,
     linkopts = omp_linkopts,
@@ -110,7 +125,8 @@ cc_test(
     deps = [
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:parfor",
+        "//lib:simulator_basic",
     ],
     copts = omp_copts,
     linkopts = omp_linkopts,
@@ -122,7 +138,8 @@ cc_test(
     deps = [
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:parfor",
+        "//lib:simulator_sse",
     ],
     copts = sse_copts + omp_copts,
     linkopts = omp_linkopts,
@@ -133,7 +150,11 @@ cc_library(
     hdrs = ["statespace_testfixture.h"],
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io",
+        "//lib:run_qsim",
     ],
     testonly = 1,
 )
@@ -144,7 +165,9 @@ cc_test(
     deps = [
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:parfor",
+        "//lib:simulator_avx",
+        "//lib:statespace_avx",
     ],
     copts = avx_copts + omp_copts,
     linkopts = omp_linkopts,
@@ -156,7 +179,9 @@ cc_test(
     deps = [
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:parfor",
+        "//lib:simulator_basic",
+        "//lib:statespace_basic",
     ],
     copts = omp_copts,
     linkopts = omp_linkopts,
@@ -168,7 +193,9 @@ cc_test(
     deps = [
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:qsim_lib",
+        "//lib:parfor",
+        "//lib:simulator_sse",
+        "//lib:statespace_sse",
     ],
     copts = sse_copts + omp_copts,
     linkopts = omp_linkopts,

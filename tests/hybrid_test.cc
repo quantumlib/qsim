@@ -21,6 +21,7 @@
 
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
+#include "../lib/gates_qsim.h"
 #include "../lib/hybrid.h"
 #include "../lib/io.h"
 #include "../lib/parfor.h"
