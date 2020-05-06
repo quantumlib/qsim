@@ -352,6 +352,35 @@ R"(20
 )";
 
 template <typename StateSpace>
+void TestNormSmall() {
+  using State = typename StateSpace::State;
+
+  constexpr unsigned num_qubits1 = 1;
+  StateSpace state_space1(num_qubits1, 1);
+  State state1 = state_space1.CreateState();
+  state_space1.SetStateZero(state1);
+  EXPECT_NEAR(state_space1.Norm(state1), 1, 1e-6);
+  state_space1.SetStateUniform(state1);
+  EXPECT_NEAR(state_space1.Norm(state1), 1, 1e-6);
+
+  constexpr unsigned num_qubits2 = 2;
+  StateSpace state_space2(num_qubits2, 1);
+  State state2 = state_space2.CreateState();
+  state_space2.SetStateZero(state2);
+  EXPECT_NEAR(state_space2.Norm(state2), 1, 1e-6);
+  state_space2.SetStateUniform(state2);
+  EXPECT_NEAR(state_space2.Norm(state2), 1, 1e-6);
+
+  constexpr unsigned num_qubits3 = 3;
+  StateSpace state_space3(num_qubits3, 1);
+  State state3 = state_space3.CreateState();
+  state_space3.SetStateZero(state3);
+  EXPECT_NEAR(state_space3.Norm(state3), 1, 1e-6);
+  state_space3.SetStateUniform(state3);
+  EXPECT_NEAR(state_space3.Norm(state3), 1, 1e-6);
+}
+
+template <typename StateSpace>
 void TestNormAndInnerProductSmall() {
   constexpr unsigned num_qubits = 2;
   constexpr uint64_t size = uint64_t{1} << num_qubits;

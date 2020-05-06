@@ -22,6 +22,10 @@
 
 namespace qsim {
 
+TEST(StateSpaceSSETest, NormSmall) {
+  TestNormSmall<StateSpaceSSE<ParallelFor>>();
+}
+
 TEST(StateSpaceSSETest, NormAndInnerProductSmall) {
   TestNormAndInnerProductSmall<StateSpaceSSE<ParallelFor>>();
 }

@@ -57,7 +57,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
     };
 
     ParallelFor::Run(
-        Base::num_threads_, Base::size_, f, state, val, state);
+        Base::num_threads_, Base::size_, f, val, state);
   }
 
   // |0> state.
