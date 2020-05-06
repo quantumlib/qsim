@@ -60,7 +60,15 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
     uint64_t size = uint64_t{1} << num_qubits_;
 
     __m128 val0 = _mm_setzero_ps();
-    __m128 valu = _mm_set1_ps(fp_type{1} / std::sqrt(size));
+    __m128 valu;
+
+    fp_type v = double{1} / std::sqrt(size);
+
+    if (num_qubits_ == 1) {
+      valu = _mm_set_ps(0, 0, v, v);
+    } else {
+      valu = _mm_set1_ps(v);
+    }
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 const __m128& val0, const __m128& valu, State& state) {

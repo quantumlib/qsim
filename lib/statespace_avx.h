@@ -60,7 +60,21 @@ struct StateSpaceAVX : public StateSpace<ParallelFor, float> {
     uint64_t size = uint64_t{1} << num_qubits_;
 
     __m256 val0 = _mm256_setzero_ps();
-    __m256 valu = _mm256_set1_ps(fp_type{1} / std::sqrt(size));
+    __m256 valu;
+
+    fp_type v = double{1} / std::sqrt(size);
+
+    switch (num_qubits_) {
+    case 1:
+      valu = _mm256_set_ps(0, 0, 0, 0, 0, 0, v, v);
+      break;
+    case 2:
+      valu = _mm256_set_ps(0, 0, 0, 0, v, v, v, v);
+      break;
+    default:
+      valu = _mm256_set1_ps(v);
+      break;
+    }
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 const __m256& val0, const __m256& valu, State& state) {
