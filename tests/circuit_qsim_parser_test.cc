@@ -18,9 +18,13 @@
 
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/gates_qsim.h"
-#include "../lib/io.h"
 
 namespace qsim {
+
+struct IO {
+  static void errorf(const char* format, ...) {}
+  static void messagef(const char* format, ...) {}
+};
 
 constexpr char provider[] = "circuit_qsim_parser_test";
 
@@ -64,8 +68,6 @@ R"(2
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 10);
 }
-
-// The following tests print error messages if passed. This is okay.
 
 TEST(CircuitQsimParserTest, InvalidGateName) {
   constexpr char invalid_circuit[] =

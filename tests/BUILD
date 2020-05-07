@@ -10,7 +10,6 @@ cc_test(
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:bitstring",
-        "//lib:io",
     ],
 )
 
@@ -21,7 +20,6 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
         "//lib:gates_qsim",
-        "//lib:io",
     ],
 )
 
