@@ -98,7 +98,7 @@ R"(4
 21 h 3
 )";
 
-TEST(QSimRunner, RunQSimH) {
+TEST(RunQSimHTest, QSimHRunner) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 

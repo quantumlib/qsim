@@ -31,7 +31,7 @@ namespace qsim {
 
 constexpr char provider[] = "hybrid_test";
 
-TEST(QSimRunner, Hybrid2) {
+TEST(HybridTest, Hybrid2) {
   constexpr char circuit_string[] =
 R"(2
 0 h 0
@@ -168,7 +168,7 @@ R"(2
   param.num_root_gatexs = 6;
 }
 
-TEST(QSimRunner, Hybrid4) {
+TEST(HybridTest, Hybrid4) {
   constexpr char circuit_string[] =
 R"(4
 0 h 0

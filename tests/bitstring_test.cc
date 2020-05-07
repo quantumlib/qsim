@@ -17,9 +17,13 @@
 #include "gtest/gtest.h"
 
 #include "../lib/bitstring.h"
-#include "../lib/io.h"
 
 namespace qsim {
+
+struct IO {
+  static void errorf(const char* format, ...) {}
+  static void messagef(const char* format, ...) {}
+};
 
 constexpr char provider[] = "bitstring_test";
 
@@ -79,8 +83,6 @@ R"(1000000
   EXPECT_EQ(BitstringsFromStream<IO>(7, provider, ss, bitstrings), false);
   EXPECT_EQ(bitstrings.size(), 0);
 }
-
-// The following tests print error messages if passed. This is okay.
 
 }  // namespace qsim
 
