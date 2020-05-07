@@ -12,9 +12,90 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Union, Sequence, Dict, Optional, TYPE_CHECKING
+
 import unittest
 import cirq
 import qsimcirq
+import random
+
+DEFAULT_GATE_DOMAIN: Dict[cirq.ops.Gate, int] = {
+    cirq.ops.CNOT: 2,
+    cirq.ops.CZ: 2,
+    cirq.ops.H: 1,
+    cirq.ops.ISWAP: 2,
+    cirq.ops.CZPowGate(): 2,
+    cirq.ops.S: 1,
+    cirq.ops.SWAP: 2,
+    cirq.ops.T: 1,
+    cirq.ops.X: 1,
+    cirq.ops.Y: 1,
+    cirq.ops.Z: 1
+}
+
+
+def random_circuit(qubits: Union[Sequence[cirq.ops.Qid], int],
+                   n_moments: int,
+                   op_density: float,
+                   gate_domain: Optional[Dict[cirq.ops.Gate, int]] = None,
+                   random_state: 'cirq.RANDOM_STATE_OR_SEED_LIKE' = None
+                  ) -> cirq.Circuit:
+    """Generates a random circuit.
+
+    Args:
+        qubits: If a sequence of qubits, then these are the qubits that
+            the circuit should act on. Because the qubits on which an
+            operation acts are chosen randomly, not all given qubits
+            may be acted upon. If an int, then this number of qubits will
+            be automatically generated.
+        n_moments: the number of moments in the generated circuit.
+        op_density: the expected proportion of qubits that are acted on in any
+            moment.
+        gate_domain: The set of gates to choose from, with a specified arity.
+        random_state: Random state or random state seed.
+
+    Raises:
+        ValueError:
+            * op_density is not in (0, 1).
+            * gate_domain is empty.
+            * qubits is an int less than 1 or an empty sequence.
+
+    Returns:
+        The randomly generated Circuit.
+    """
+    if not 0 < op_density < 1:
+        raise ValueError('op_density must be in (0, 1).')
+    if gate_domain is None:
+        gate_domain = DEFAULT_GATE_DOMAIN
+    if not gate_domain:
+        raise ValueError('gate_domain must be non-empty')
+    max_arity = max(gate_domain.values())
+
+    if isinstance(qubits, int):
+        qubits = tuple(cirq.ops.NamedQubit(str(i)) for i in range(qubits))
+    n_qubits = len(qubits)
+    if n_qubits < 1:
+        raise ValueError('At least one qubit must be specified.')
+
+    prng = cirq.value.parse_random_state(random_state)
+
+    moments: List[cirq.ops.Moment] = []
+    gate_arity_pairs = sorted(gate_domain.items(), key=repr)
+    num_gates = len(gate_domain)
+    for _ in range(n_moments):
+        operations = []
+        free_qubits = set(qubits)
+        while len(free_qubits) >= max_arity:
+            gate, arity = gate_arity_pairs[prng.randint(num_gates)]
+            op_qubits = prng.choice(sorted(free_qubits),
+                                    size=arity,
+                                    replace=False)
+            free_qubits.difference_update(op_qubits)
+            if prng.rand() <= op_density:
+                operations.append(gate(*op_qubits) ** random.uniform(0, 1))
+        moments.append(cirq.ops.Moment(operations))
+
+    return cirq.Circuit(moments)
 
 
 class MainTest(unittest.TestCase):
@@ -85,23 +166,21 @@ class MainTest(unittest.TestCase):
 
   def test_cirq_qsim_simulate_random_unitary(self):
 
-    q0, q1 = cirq.LineQubit.range(2)
+    num_qubits = 20
+    q = cirq.LineQubit.range(num_qubits)
     qsimSim = qsimcirq.QSimSimulator(qsim_options={'t': 16, 'v': 0})
     for iter in range(10):
-        random_circuit = cirq.testing.random_circuit(qubits=[q0, q1],
-                                                     n_moments=8,
-                                                     op_density=0.99,
-                                                     random_state=iter)
+        rc = random_circuit(qubits=q, n_moments=8, op_density=0.99, random_state=iter)
 
-        cirq.ConvertToCzAndSingleGates().optimize_circuit(random_circuit) # cannot work with params
-        cirq.ExpandComposite().optimize_circuit(random_circuit)
-        qsim_circuit = qsimcirq.QSimCircuit(random_circuit)
+        cirq.ConvertToCzAndSingleGates().optimize_circuit(rc) # cannot work with params
+        cirq.ExpandComposite().optimize_circuit(rc)
+        qsim_circuit = qsimcirq.QSimCircuit(rc)
 
-        result = qsimSim.simulate(qsim_circuit, qubit_order=[q0, q1])
-        assert result.state_vector().shape == (4,)
+        result = qsimSim.simulate(qsim_circuit, qubit_order=q)
+        assert result.state_vector().shape == (2 ** num_qubits,)
 
         cirqSim = cirq.Simulator()
-        cirq_result = cirqSim.simulate(random_circuit, qubit_order=[q0, q1])
+        cirq_result = cirqSim.simulate(rc, qubit_order=q)
         # When using rotation gates such as S, qsim may add a global phase relative
         # to other simulators. This is fine, as the result is equivalent.
         assert cirq.linalg.allclose_up_to_global_phase(
