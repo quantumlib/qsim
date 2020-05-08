@@ -36,11 +36,9 @@ class MainTest(unittest.TestCase):
         cirq.CZ(a, d)  # ControlZ.
     )
 
-    qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
-
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.compute_amplitudes(
-        qsim_circuit, bitstrings=[0b0100, 0b1011])
+        cirq_circuit, bitstrings=[0b0100, 0b1011])
     self.assertSequenceEqual(result, [0.5j, 0j])
 
   def test_cirq_qsim_simulate_fullstate(self):
@@ -71,10 +69,8 @@ class MainTest(unittest.TestCase):
         ])
     )
 
-    qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
-
     qsimSim = qsimcirq.QSimSimulator()
-    result = qsimSim.simulate(qsim_circuit, qubit_order=[a, b, c, d])
+    result = qsimSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
     assert result.state_vector().shape == (16,)
     cirqSim = cirq.Simulator()
     cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
@@ -95,9 +91,8 @@ class MainTest(unittest.TestCase):
 
         cirq.ConvertToCzAndSingleGates().optimize_circuit(random_circuit) # cannot work with params
         cirq.ExpandComposite().optimize_circuit(random_circuit)
-        qsim_circuit = qsimcirq.QSimCircuit(random_circuit)
 
-        result = qsimSim.simulate(qsim_circuit, qubit_order=[q0, q1])
+        result = qsimSim.simulate(random_circuit, qubit_order=[q0, q1])
         assert result.state_vector().shape == (4,)
 
         cirqSim = cirq.Simulator()
@@ -117,12 +112,10 @@ class MainTest(unittest.TestCase):
     # Create a circuit
     cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
 
-    qsim_circuit = qsimcirq.QSimCircuit(cirq_circuit)
-
     qsimh_options = {'k': [0], 'w': 0, 'p': 1, 'r': 1}
     qsimhSim = qsimcirq.QSimhSimulator(qsimh_options)
     result = qsimhSim.compute_amplitudes(
-        qsim_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11])
+        cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11])
     self.assertSequenceEqual(result, [0j, 0j, (1 + 0j), 0j])
 
 
