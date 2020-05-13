@@ -2,7 +2,13 @@ cc_binary(
     name = "qsim_base",
     srcs = ["qsim_base.cc"],
     deps = [
-        "//lib:run_qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io_file",
+        "//lib:parfor",
+        "//lib:run_qsim",
+        "//lib:simulator",
     ],
     data = ["//circuits:circuit_q24"],
 )
@@ -11,7 +17,13 @@ cc_binary(
     name = "qsim_von_neumann",
     srcs = ["qsim_von_neumann.cc"],
     deps = [
-        "//lib:run_qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io_file",
+        "//lib:parfor",
+        "//lib:run_qsim",
+        "//lib:simulator",
     ],
 )
 
@@ -20,7 +32,13 @@ cc_binary(
     srcs = ["qsim_amplitudes.cc"],
     deps = [
         "//lib:bitstring",
-        "//lib:run_qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io_file",
+        "//lib:parfor",
+        "//lib:run_qsim",
+        "//lib:simulator",
         "//lib:util",
     ],
 )
@@ -30,7 +48,13 @@ cc_binary(
     srcs = ["qsimh_base.cc"],
     deps = [
         "//lib:bitstring",
-        "//lib:run_qsimh_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io_file",
+        "//lib:parfor",
+        "//lib:run_qsimh",
+        "//lib:simulator",
         "//lib:util",
     ],
 )
@@ -40,7 +64,13 @@ cc_binary(
     srcs = ["qsimh_amplitudes.cc"],
     deps = [
         "//lib:bitstring",
-        "//lib:run_qsimh_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:fuser_basic",
+        "//lib:gates_qsim",
+        "//lib:io_file",
+        "//lib:parfor",
+        "//lib:run_qsimh",
+        "//lib:simulator",
         "//lib:util",
     ],
 )
