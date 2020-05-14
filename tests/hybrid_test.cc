@@ -56,6 +56,7 @@ R"(2
 12 cz 0 1
 13 x_1_2 0
 13 y_1_2 1
+14 sw 0 1
 )";
 
   std::stringstream ss(circuit_string);
@@ -63,7 +64,7 @@ R"(2
 
   EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 22);
+  EXPECT_EQ(circuit.gates.size(), 23);
 
   using Simulator = SimulatorAVX<ParallelFor>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
@@ -74,19 +75,19 @@ R"(2
 
   auto hd = HybridSimulator::SplitLattice(parts, circuit.gates);
 
-  EXPECT_EQ(hd.gates0.size(), 14);
-  EXPECT_EQ(hd.gates1.size(), 14);
-  EXPECT_EQ(hd.gatexs.size(), 6);
+  EXPECT_EQ(hd.gates0.size(), 15);
+  EXPECT_EQ(hd.gates1.size(), 15);
+  EXPECT_EQ(hd.gatexs.size(), 7);
   EXPECT_EQ(hd.qubit_map.size(), 2);
   EXPECT_EQ(hd.num_qubits0, 1);
   EXPECT_EQ(hd.num_qubits1, 1);
-  EXPECT_EQ(hd.num_gatexs, 6);
+  EXPECT_EQ(hd.num_gatexs, 7);
 
   auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, 99);
   auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, 99);
 
-  EXPECT_EQ(fgates0.size(), 6);
-  EXPECT_EQ(fgates1.size(), 6);
+  EXPECT_EQ(fgates0.size(), 7);
+  EXPECT_EQ(fgates1.size(), 7);
 
   HybridSimulator::Parameter param;
   param.prefix = 1;
@@ -108,10 +109,10 @@ R"(2
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
-  EXPECT_NEAR(std::real(results[1]), -0.03155057, 1e-6);
-  EXPECT_NEAR(std::imag(results[1]), 0.56567556, 1e-6);
-  EXPECT_NEAR(std::real(results[2]), 0.22667059, 1e-6);
-  EXPECT_NEAR(std::imag(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[1]), 0.22667059, 1e-6);
+  EXPECT_NEAR(std::imag(results[1]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::imag(results[2]), 0.56567556, 1e-6);
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
@@ -124,10 +125,10 @@ R"(2
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
-  EXPECT_NEAR(std::real(results[1]), -0.03155057, 1e-6);
-  EXPECT_NEAR(std::imag(results[1]), 0.56567556, 1e-6);
-  EXPECT_NEAR(std::real(results[2]), 0.22667059, 1e-6);
-  EXPECT_NEAR(std::imag(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[1]), 0.22667059, 1e-6);
+  EXPECT_NEAR(std::imag(results[1]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::imag(results[2]), 0.56567556, 1e-6);
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
@@ -140,10 +141,10 @@ R"(2
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
-  EXPECT_NEAR(std::real(results[1]), -0.03155057, 1e-6);
-  EXPECT_NEAR(std::imag(results[1]), 0.56567556, 1e-6);
-  EXPECT_NEAR(std::real(results[2]), 0.22667059, 1e-6);
-  EXPECT_NEAR(std::imag(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[1]), 0.22667059, 1e-6);
+  EXPECT_NEAR(std::imag(results[1]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::imag(results[2]), 0.56567556, 1e-6);
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
@@ -156,10 +157,10 @@ R"(2
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
-  EXPECT_NEAR(std::real(results[1]), -0.03155057, 1e-6);
-  EXPECT_NEAR(std::imag(results[1]), 0.56567556, 1e-6);
-  EXPECT_NEAR(std::real(results[2]), 0.22667059, 1e-6);
-  EXPECT_NEAR(std::imag(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[1]), 0.22667059, 1e-6);
+  EXPECT_NEAR(std::imag(results[1]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::real(results[2]), -0.03155057, 1e-6);
+  EXPECT_NEAR(std::imag(results[2]), 0.56567556, 1e-6);
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 

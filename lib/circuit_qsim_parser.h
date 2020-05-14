@@ -153,6 +153,10 @@ class CircuitQsimParser final {
           ss >> q0 >> q1;
           if (!ValidateGate(ss, num_qubits, q0, q1, provider, k)) return false;
           gates.push_back(GateCNot<fp_type>::Create(time, q0, q1));
+        } else if (gate_name == "sw") {
+          ss >> q0 >> q1;
+          if (!ValidateGate(ss, num_qubits, q0, q1, provider, k)) return false;
+          gates.push_back(GateSwap<fp_type>::Create(time, q0, q1));
         } else if (gate_name == "is") {
           ss >> q0 >> q1;
           if (!ValidateGate(ss, num_qubits, q0, q1, provider, k)) return false;
