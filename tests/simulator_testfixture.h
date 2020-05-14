@@ -88,6 +88,7 @@ void TestApplyGate2() {
   auto gate7 = GateZ<fp_type>::Create(3, 0);
   auto gate8 = GateHZ2<fp_type>::Create(3, 1);
   auto gate9 = GateCZ<fp_type>::Create(4, 0, 1);
+  auto gate10 = GateSwap<fp_type>::Create(5, 0, 1);
 
   ApplyGate(simulator, gate1, state);
   ApplyGate(simulator, gate2, state);
@@ -98,6 +99,7 @@ void TestApplyGate2() {
   ApplyGate(simulator, gate7, state);
   ApplyGate(simulator, gate8, state);
   ApplyGate(simulator, gate9, state);
+  ApplyGate(simulator, gate10, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 
@@ -106,11 +108,11 @@ void TestApplyGate2() {
     EXPECT_NEAR(std::real(ampl0), 0.53100818, 1e-6);
     EXPECT_NEAR(std::imag(ampl0), -0.17631586, 1e-6);
     auto ampl1 = state_space.GetAmpl(state, 1);
-    EXPECT_NEAR(std::real(ampl1), -0.32348031, 1e-6);
-    EXPECT_NEAR(std::imag(ampl1), -0.11164886, 1e-6);
+    EXPECT_NEAR(std::real(ampl1), 0.64307469, 1e-6);
+    EXPECT_NEAR(std::imag(ampl1), 0.03410439, 1e-6);
     auto ampl2 = state_space.GetAmpl(state, 2);
-    EXPECT_NEAR(std::real(ampl2), 0.64307469, 1e-6);
-    EXPECT_NEAR(std::imag(ampl2), 0.03410439, 1e-6);
+    EXPECT_NEAR(std::real(ampl2), -0.32348031, 1e-6);
+    EXPECT_NEAR(std::imag(ampl2), -0.11164886, 1e-6);
     auto ampl3 = state_space.GetAmpl(state, 3);
     EXPECT_NEAR(std::real(ampl3), 0.29973805, 1e-6);
     EXPECT_NEAR(std::imag(ampl3), 0.25551257, 1e-6);

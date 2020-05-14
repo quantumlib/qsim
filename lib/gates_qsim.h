@@ -42,6 +42,7 @@ enum GateKind {
   kGateId2,     // two-qubit Id
   kGateCZ,      // CZ
   kGateCNot,    // CNOT (CX)
+  kGateSwap,    // swap
   kGateIS,      // iSwap
   kGateFS,      // fSim
   kGateCP,      // control phase
@@ -371,6 +372,38 @@ Matrix2q<fp_type> GateCNot<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
                                                0, 0, 1, 0, 0, 0, 0, 0};
 
 template <typename fp_type>
+struct GateSwap {
+  static constexpr GateKind kind = kGateSwap;
+  static constexpr char name[] = "sw";
+  static constexpr unsigned num_qubits = 2;
+
+  static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
+    return CreateStaticGate<GateQSim<fp_type>, GateSwap>(time, q0, q1);
+  }
+
+  static schmidt_decomp_type<fp_type> SchmidtDecomp() {
+    schmidt_decomp_type<fp_type> schmidt_decomp(4);
+    schmidt_decomp[0][0] = {is2, 0, 0, 0, 0, 0, is2, 0};
+    schmidt_decomp[0][1] = {is2, 0, 0, 0, 0, 0, is2, 0};
+    schmidt_decomp[1][0] = {0, 0, is2, 0, is2, 0, 0, 0};
+    schmidt_decomp[1][1] = {0, 0, is2, 0, is2, 0, 0, 0};
+    schmidt_decomp[2][0] = {0, 0, 0, -is2, 0, is2, 0, 0};
+    schmidt_decomp[2][1] = {0, 0, 0, -is2, 0, is2, 0, 0};
+    schmidt_decomp[3][0] = {is2, 0, 0, 0, 0, 0, -is2, 0};
+    schmidt_decomp[3][1] = {is2, 0, 0, 0, 0, 0, -is2, 0};
+    return schmidt_decomp;
+  }
+
+  static Matrix2q<fp_type> matrix;
+};
+
+template <typename fp_type>
+Matrix2q<fp_type> GateSwap<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
+                                               0, 0, 0, 0, 1, 0, 0, 0,
+                                               0, 0, 1, 0, 0, 0, 0, 0,
+                                               0, 0, 0, 0, 0, 0, 1, 0};
+
+template <typename fp_type>
 struct GateIS {
   static constexpr GateKind kind = kGateIS;
   static constexpr char name[] = "is";
@@ -515,6 +548,8 @@ inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
     return GateCZ<fp_type>::SchmidtDecomp();
   case kGateCNot:
     return GateCNot<fp_type>::SchmidtDecomp();
+  case kGateSwap:
+    return GateSwap<fp_type>::SchmidtDecomp();
   case kGateIS:
     return GateIS<fp_type>::SchmidtDecomp();
   case kGateFS:

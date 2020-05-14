@@ -110,6 +110,9 @@ class QSimCircuit(cirq.Circuit):
         elif isinstance(op.gate, cirq.ops.CNotPowGate) \
                 and op.gate.exponent == 1.0:
           qsim_gate = "cnot"
+        elif isinstance(op.gate, cirq.ops.SwapPowGate) \
+                and op.gate.exponent == 1.0:
+          qsim_gate = "sw"
         elif isinstance(op.gate, cirq.ops.ISwapPowGate) \
                 and op.gate.exponent == 1.0:
           qsim_gate = "is"
