@@ -21,7 +21,6 @@ cc_binary(
     deps = [
         "//lib:bitstring",
         "//lib:run_qsim_lib",
-        "//lib:util",
     ],
 )
 
@@ -31,7 +30,6 @@ cc_binary(
     deps = [
         "//lib:bitstring",
         "//lib:run_qsimh_lib",
-        "//lib:util",
     ],
 )
 
@@ -41,6 +39,5 @@ cc_binary(
     deps = [
         "//lib:bitstring",
         "//lib:run_qsimh_lib",
-        "//lib:util",
     ],
 )
