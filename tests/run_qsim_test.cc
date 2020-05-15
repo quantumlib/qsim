@@ -136,6 +136,8 @@ TEST(RunQSimTest, QSimRunner2) {
   }
 
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
+  // DO NOT SUBMIT: test code
+  FAIL();
 }
 
 }  // namespace qsim
