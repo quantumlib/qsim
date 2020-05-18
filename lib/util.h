@@ -15,9 +15,8 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
-#include <time.h>
-
 #include <algorithm>
+#include <chrono>
 #include <random>
 #include <sstream>
 #include <string>
@@ -53,9 +52,10 @@ inline void SplitString(
 }
 
 inline double GetTime() {
-  struct timespec time;
-  clock_gettime(CLOCK_MONOTONIC, &time);
-  return time.tv_sec + 1e-9 * time.tv_nsec;
+  using namespace std::chrono;
+  steady_clock::duration since_epoch = steady_clock::now().time_since_epoch();
+  return double(since_epoch.count() * steady_clock::period::num)
+                                    / steady_clock::period::den;
 }
 
 template <typename DistrRealType>
