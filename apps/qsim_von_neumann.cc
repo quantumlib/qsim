@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cmath>
 #include <complex>
 #include <functional>
 #include <limits>
