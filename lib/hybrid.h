@@ -192,6 +192,12 @@ struct HybridSimulator final {
         }
 
         unsigned schmidt_bits = SchmidtBits(d.size());
+        if (schmidt_bits > 2) {
+          IO::errorf("Schmidt rank is too large for gate kind %u.\n",
+                     gate0.parent->kind);
+          return false;
+        }
+
         unsigned inverse = parts[gate0.parent->qubits[0]];
         if (gate0.parent->inverse) inverse = 1 - inverse;
         hd.gatexs.push_back(GateX{&gate0, nullptr, std::move(d), schmidt_bits,
@@ -203,6 +209,12 @@ struct HybridSimulator final {
     for (auto& gate1 : hd.gates1) {
       if (gate1.parent != nullptr) {
         hd.gatexs[count++].decomposed1 = &gate1;
+      }
+    }
+
+    for (auto& gatex : hd.gatexs) {
+      if (gatex.schmidt_decomp.size() == 1) {
+        FillSchmidtMatrices(0, gatex);
       }
     }
 
@@ -298,12 +310,16 @@ struct HybridSimulator final {
 
     std::vector<unsigned> prev(hd.num_gatexs, -1);
 
-    if (SetSchmidtMatrices(0, num_p_gates, param.prefix, prev, hd.gatexs)) {
+    unsigned gatex_index = SetSchmidtMatrices(
+        0, num_p_gates, param.prefix, prev, hd.gatexs);
+
+    if (gatex_index == 0) {
       // Apply gates before the first checkpoint.
       ApplyGates(fgates0, 0, loc0[0], sim0, state0p);
       ApplyGates(fgates1, 0, loc1[0], sim1, state1p);
     } else {
-      IO::errorf("invalid prefix.\n");
+      IO::errorf("invalid prefix %lu for prefix gate index %u.\n",
+                 param.prefix, gatex_index - 1);
       return false;
     }
 
@@ -314,7 +330,8 @@ struct HybridSimulator final {
         sspace1.CopyState(state1p, state1r);
       }
 
-      if (SetSchmidtMatrices(num_p_gates, num_pr_gates, r, prev, hd.gatexs)) {
+      if (SetSchmidtMatrices(num_p_gates, num_pr_gates,
+                             r, prev, hd.gatexs) == 0) {
         // Apply gates before the second checkpoint.
         ApplyGates(fgates0, loc0[0], loc0[1], sim0, state0r);
         ApplyGates(fgates1, loc1[0], loc1[1], sim1, state1r);
@@ -329,8 +346,8 @@ struct HybridSimulator final {
           sspace1.CopyState(rmax > 1 ? state1r : state1p, state1s);
         }
 
-        if (SetSchmidtMatrices(num_pr_gates,
-                               hd.num_gatexs, s, prev, hd.gatexs)) {
+        if (SetSchmidtMatrices(num_pr_gates, hd.num_gatexs,
+                               s, prev, hd.gatexs) == 0) {
           // Apply the rest of the gates.
           ApplyGates(fgates0, loc0[1], fgates0.size(), sim0, state0s);
           ApplyGates(fgates1, loc1[1], fgates1.size(), sim1, state1s);
@@ -424,38 +441,49 @@ struct HybridSimulator final {
     return bits;
   }
 
-  static bool SetSchmidtMatrices(std::size_t i0, std::size_t i1,
-                                 uint64_t mask, std::vector<unsigned>& prev_k,
-                                 std::vector<GateX>& gatexs) {
+  static unsigned SetSchmidtMatrices(std::size_t i0, std::size_t i1,
+                                     uint64_t path,
+                                     std::vector<unsigned>& prev_k,
+                                     std::vector<GateX>& gatexs) {
     unsigned shift_length = 0;
 
     for (std::size_t i = i0; i < i1; ++i) {
       const auto& gatex = gatexs[i];
-      unsigned k = (mask >> shift_length) & ((1 << gatex.schmidt_bits) - 1);
+
+      if (gatex.schmidt_bits == 0) {
+        continue;
+      }
+
+      unsigned k = (path >> shift_length) & ((1 << gatex.schmidt_bits) - 1);
       shift_length += gatex.schmidt_bits;
 
       if (k != prev_k[i]) {
         if (k >= gatex.schmidt_decomp.size()) {
-          return false;
+          return i + 1;
         }
 
-        unsigned part0 = gatex.inverse;
-        unsigned part1 = 1 - part0;
-        {
-          auto begin = gatex.schmidt_decomp[k][part0].begin();
-          auto end = gatex.schmidt_decomp[k][part0].end();
-          std::copy(begin, end, gatex.decomposed0->matrix.begin());
-        }
-        {
-          auto begin = gatex.schmidt_decomp[k][part1].begin();
-          auto end = gatex.schmidt_decomp[k][part1].end();
-          std::copy(begin, end, gatex.decomposed1->matrix.begin());
-        }
+        FillSchmidtMatrices(k, gatex);
+
         prev_k[i] = k;
       }
     }
 
-    return true;
+    return 0;
+  }
+
+  static void FillSchmidtMatrices(unsigned k, const GateX& gatex) {
+    unsigned part0 = gatex.inverse;
+    unsigned part1 = 1 - part0;
+    {
+      auto begin = gatex.schmidt_decomp[k][part0].begin();
+      auto end = gatex.schmidt_decomp[k][part0].end();
+      std::copy(begin, end, gatex.decomposed0->matrix.begin());
+    }
+    {
+      auto begin = gatex.schmidt_decomp[k][part1].begin();
+      auto end = gatex.schmidt_decomp[k][part1].end();
+      std::copy(begin, end, gatex.decomposed1->matrix.begin());
+    }
   }
 
   static void ApplyGates(const std::vector<GateFused>& gates,
@@ -467,14 +495,31 @@ struct HybridSimulator final {
   }
 
   static unsigned SchmidtBits(unsigned size) {
-    if (size == 2 || size == 1) {
+    switch (size) {
+    case 1:
+      return 0;
+    case 2:
+      return 1;
+    case 3:
+      return 2;
+    case 4:
+      return 2;
+    default:
+      // Not supported.
+      return 42;
+    }
+/*
+    if (size == 2) {
       return 1;
     } else if (size == 4 || size == 3) {
       return 2;
+    } else if (size == 1) {
+      return 0;
     }
 
     // Not supported.
     return 0;
+*/
   }
 
   static bool CreateStates(

@@ -65,29 +65,31 @@ struct QSimHRunner final {
     HybridData hd;
     bool rc = HybridSimulator::SplitLattice(parts, circuit.gates, hd);
 
-    if (rc) {
-      if (hd.num_gatexs < param.num_prefix_gatexs + param.num_root_gatexs) {
-        IO::errorf("error: num_prefix_gates (%u) plus num_root gates (%u) is "
-                   "greater than num_gates_on_the_cut (%u).\n",
-                   param.num_prefix_gatexs, param.num_root_gatexs,
-                   hd.num_gatexs);
-        return false;
-      }
+    if (!rc) {
+      return false;
+    }
 
-      if (param.verbosity > 0) {
-        PrintInfo(param, hd);
-      }
+    if (hd.num_gatexs < param.num_prefix_gatexs + param.num_root_gatexs) {
+      IO::errorf("error: num_prefix_gates (%u) plus num_root gates (%u) is "
+                 "greater than num_gates_on_the_cut (%u).\n",
+                 param.num_prefix_gatexs, param.num_root_gatexs,
+                 hd.num_gatexs);
+      return false;
+    }
 
-      auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, maxtime);
-      auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, maxtime);
+    if (param.verbosity > 0) {
+      PrintInfo(param, hd);
+    }
 
-      rc = HybridSimulator::Run(
-          param, hd, parts, fgates0, fgates1, bitstrings, results);
+    auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, maxtime);
+    auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, maxtime);
 
-      if (rc && param.verbosity > 0) {
-        double t1 = GetTime();
-        IO::messagef("time elapsed %g seconds.\n", t1 - t0);
-      }
+    rc = HybridSimulator::Run(
+        param, hd, parts, fgates0, fgates1, bitstrings, results);
+
+    if (rc && param.verbosity > 0) {
+      double t1 = GetTime();
+      IO::messagef("time elapsed %g seconds.\n", t1 - t0);
     }
 
     return rc;
