@@ -508,18 +508,6 @@ struct HybridSimulator final {
       // Not supported.
       return 42;
     }
-/*
-    if (size == 2) {
-      return 1;
-    } else if (size == 4 || size == 3) {
-      return 2;
-    } else if (size == 1) {
-      return 0;
-    }
-
-    // Not supported.
-    return 0;
-*/
   }
 
   static bool CreateStates(
