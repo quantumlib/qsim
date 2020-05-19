@@ -129,7 +129,7 @@ TEST(RunQSimHTest, QSimHRunner) {
     std::vector<unsigned> parts = {0, 0, 1, 1};
 
     EXPECT_EQ(Runner::Run(
-        param, 99, parts, circuit.gates, bitstrings, results), true);
+        param, 99, circuit, parts, bitstrings, results), true);
 
     EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
     EXPECT_NEAR(std::imag(results[0]), 0.08956901, 1e-6);
@@ -148,7 +148,7 @@ TEST(RunQSimHTest, QSimHRunner) {
     param.num_root_gatexs = 3;
 
     EXPECT_EQ(Runner::Run(
-        param, 99, parts, circuit.gates, bitstrings, results), true);
+        param, 99, circuit, parts, bitstrings, results), true);
 
     EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
     EXPECT_NEAR(std::imag(results[0]), 0.08956903, 1e-6);

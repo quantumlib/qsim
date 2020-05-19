@@ -89,11 +89,11 @@ struct HybridSimulator final {
    * on the cut.
    * @param parts Lattice sections to be simulated.
    * @param gates List of all gates in the circuit.
+   * @param hd Output data with splitted parts.
+   * @return True if the splitting done successfully; false otherwise.
    */
-  static HybridData SplitLattice(const std::vector<unsigned>& parts,
-                                 const std::vector<Gate>& gates) {
-    HybridData hd;
-
+  static bool SplitLattice(const std::vector<unsigned>& parts,
+                           const std::vector<Gate>& gates, HybridData& hd) {
     hd.num_gatexs = 0;
     hd.num_qubits0 = 0;
     hd.num_qubits1 = 0;
@@ -185,6 +185,12 @@ struct HybridSimulator final {
     for (auto& gate0 : hd.gates0) {
       if (gate0.parent != nullptr) {
         auto d = GetSchmidtDecomp(gate0.parent->kind, gate0.parent->params);
+        if (d.size() == 0) {
+          IO::errorf("no Schmidt decomposition for gate kind %u.\n",
+                     gate0.parent->kind);
+          return false;
+        }
+
         unsigned schmidt_bits = SchmidtBits(d.size());
         unsigned inverse = parts[gate0.parent->qubits[0]];
         if (gate0.parent->inverse) inverse = 1 - inverse;
@@ -200,7 +206,7 @@ struct HybridSimulator final {
       }
     }
 
-    return hd;
+    return true;
   }
 
   /**
@@ -292,11 +298,14 @@ struct HybridSimulator final {
 
     std::vector<unsigned> prev(hd.num_gatexs, -1);
 
-    SetSchmidtMatrices(0, num_p_gates, param.prefix, prev, hd.gatexs);
-
-    // Apply gates before the first checkpoint.
-    ApplyGates(fgates0, 0, loc0[0], sim0, state0p);
-    ApplyGates(fgates1, 0, loc1[0], sim1, state1p);
+    if (SetSchmidtMatrices(0, num_p_gates, param.prefix, prev, hd.gatexs)) {
+      // Apply gates before the first checkpoint.
+      ApplyGates(fgates0, 0, loc0[0], sim0, state0p);
+      ApplyGates(fgates1, 0, loc1[0], sim1, state1p);
+    } else {
+      IO::errorf("invalid prefix.\n");
+      return false;
+    }
 
     // Branch over root gates on the cut.
     for (uint64_t r = 0; r < rmax; ++r) {
@@ -305,11 +314,13 @@ struct HybridSimulator final {
         sspace1.CopyState(state1p, state1r);
       }
 
-      SetSchmidtMatrices(num_p_gates, num_pr_gates, r, prev, hd.gatexs);
-
-      // Apply gates before the second checkpoint.
-      ApplyGates(fgates0, loc0[0], loc0[1], sim0, state0r);
-      ApplyGates(fgates1, loc1[0], loc1[1], sim1, state1r);
+      if (SetSchmidtMatrices(num_p_gates, num_pr_gates, r, prev, hd.gatexs)) {
+        // Apply gates before the second checkpoint.
+        ApplyGates(fgates0, loc0[0], loc0[1], sim0, state0r);
+        ApplyGates(fgates1, loc1[0], loc1[1], sim1, state1r);
+      } else {
+        continue;
+      }
 
       // Branch over suffix gates on the cut.
       for (uint64_t s = 0; s < smax; ++s) {
@@ -318,11 +329,14 @@ struct HybridSimulator final {
           sspace1.CopyState(rmax > 1 ? state1r : state1p, state1s);
         }
 
-        SetSchmidtMatrices(num_pr_gates, hd.num_gatexs, s, prev, hd.gatexs);
-
-        // Apply the rest of the gates.
-        ApplyGates(fgates0, loc0[1], fgates0.size(), sim0, state0s);
-        ApplyGates(fgates1, loc1[1], fgates1.size(), sim1, state1s);
+        if (SetSchmidtMatrices(num_pr_gates,
+                               hd.num_gatexs, s, prev, hd.gatexs)) {
+          // Apply the rest of the gates.
+          ApplyGates(fgates0, loc0[1], fgates0.size(), sim0, state0s);
+          ApplyGates(fgates1, loc1[1], fgates1.size(), sim1, state1s);
+        } else {
+          continue;
+        }
 
         auto f = [](unsigned n, unsigned m, uint64_t i,
                     const StateSpace& sspace0, const StateSpace& sspace1,
@@ -410,7 +424,7 @@ struct HybridSimulator final {
     return bits;
   }
 
-  static void SetSchmidtMatrices(std::size_t i0, std::size_t i1,
+  static bool SetSchmidtMatrices(std::size_t i0, std::size_t i1,
                                  uint64_t mask, std::vector<unsigned>& prev_k,
                                  std::vector<GateX>& gatexs) {
     unsigned shift_length = 0;
@@ -419,7 +433,12 @@ struct HybridSimulator final {
       const auto& gatex = gatexs[i];
       unsigned k = (mask >> shift_length) & ((1 << gatex.schmidt_bits) - 1);
       shift_length += gatex.schmidt_bits;
+
       if (k != prev_k[i]) {
+        if (k >= gatex.schmidt_decomp.size()) {
+          return false;
+        }
+
         unsigned part0 = gatex.inverse;
         unsigned part1 = 1 - part0;
         {
@@ -435,6 +454,8 @@ struct HybridSimulator final {
         prev_k[i] = k;
       }
     }
+
+    return true;
   }
 
   static void ApplyGates(const std::vector<GateFused>& gates,
@@ -446,9 +467,9 @@ struct HybridSimulator final {
   }
 
   static unsigned SchmidtBits(unsigned size) {
-    if (size >= 1 && size <= 2) {
+    if (size == 2 || size == 1) {
       return 1;
-    } else if (size >= 3 && size <= 4) {
+    } else if (size == 4 || size == 3) {
       return 2;
     }
 

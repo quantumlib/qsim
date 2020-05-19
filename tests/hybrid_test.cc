@@ -73,7 +73,8 @@ R"(2
 
   std::vector<unsigned> parts = {0, 1};
 
-  auto hd = HybridSimulator::SplitLattice(parts, circuit.gates);
+  HybridSimulator::HybridData hd;
+  EXPECT_EQ(HybridSimulator::SplitLattice(parts, circuit.gates, hd), true);
 
   EXPECT_EQ(hd.gates0.size(), 15);
   EXPECT_EQ(hd.gates1.size(), 15);
@@ -251,7 +252,8 @@ R"(4
 
   std::vector<unsigned> parts = {0, 0, 1, 1};
 
-  auto hd = HybridSimulator::SplitLattice(parts, circuit.gates);
+  HybridSimulator::HybridData hd;
+  EXPECT_EQ(HybridSimulator::SplitLattice(parts, circuit.gates, hd), true);
 
   EXPECT_EQ(hd.gates0.size(), 34);
   EXPECT_EQ(hd.gates1.size(), 34);
