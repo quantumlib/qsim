@@ -187,7 +187,7 @@ inline void Matrix4Multiply(const Array1& u, Array2& matrix) {
   }
 }
 
-// Permute 4x4 matrix to switch between two qubits.
+// Permute 4x4 matrix to swap qubits.
 template <typename Array2>
 inline void Matrix4Permute(Array2& matrix) {
   std::swap(matrix[ 2], matrix[ 4]); std::swap(matrix[ 3], matrix[ 5]);

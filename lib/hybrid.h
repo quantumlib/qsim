@@ -311,6 +311,7 @@ struct HybridSimulator final {
 
     std::vector<unsigned> prev(hd.num_gatexs, -1);
 
+    // param.prefix encodes the prefix path.
     unsigned gatex_index = SetSchmidtMatrices(
         0, num_p_gates, param.prefix, prev, hd.gatexs);
 
@@ -324,7 +325,7 @@ struct HybridSimulator final {
       return false;
     }
 
-    // Branch over root gates on the cut.
+    // Branch over root gates on the cut. r encodes the root path.
     for (uint64_t r = 0; r < rmax; ++r) {
       if (rmax > 1) {
         sspace0.CopyState(state0p, state0r);
@@ -340,7 +341,7 @@ struct HybridSimulator final {
         continue;
       }
 
-      // Branch over suffix gates on the cut.
+      // Branch over suffix gates on the cut. s encodes the suffix path.
       for (uint64_t s = 0; s < smax; ++s) {
         if (smax > 1) {
           sspace0.CopyState(rmax > 1 ? state0r : state0p, state0s);
@@ -452,6 +453,7 @@ struct HybridSimulator final {
       const auto& gatex = gatexs[i];
 
       if (gatex.schmidt_bits == 0) {
+        // Continue if gatex has Schmidt rank 1.
         continue;
       }
 
@@ -460,6 +462,8 @@ struct HybridSimulator final {
 
       if (k != prev_k[i]) {
         if (k >= gatex.schmidt_decomp.size()) {
+          // Invalid path. Returns gatex index plus one to report error in case
+          // of invalid prefix.
           return i + 1;
         }
 
