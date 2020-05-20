@@ -20,7 +20,7 @@
 #include "gtest/gtest.h"
 
 #include "../lib/fuser.h"
-#include "../lib/gates_appl.h"
+#include "../lib/gate_appl.h"
 #include "../lib/gates_qsim.h"
 
 namespace qsim {

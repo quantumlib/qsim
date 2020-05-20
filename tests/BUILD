@@ -98,7 +98,7 @@ cc_library(
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:fuser",
-        "//lib:gates_appl",
+        "//lib:gate_appl",
         "//lib:gates_qsim",
     ],
     testonly = 1,

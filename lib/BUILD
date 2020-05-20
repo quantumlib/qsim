@@ -12,7 +12,7 @@ cc_library(
         "fuser_basic.h",
         "fuser.h",
         "gate.h",
-        "gates_appl.h",
+        "gate_appl.h",
         "gates_qsim.h",
         "hybrid.h",
         "io_file.h",
@@ -43,7 +43,7 @@ cc_library(
         "fuser.h",
         "fuser_basic.h",
         "gate.h",
-        "gates_appl.h",
+        "gate_appl.h",
         "gates_qsim.h",
         "io.h",
         "io_file.h",
@@ -71,7 +71,7 @@ cc_library(
         "fuser.h",
         "fuser_basic.h",
         "gate.h",
-        "gates_appl.h",
+        "gate_appl.h",
         "gates_qsim.h",
         "hybrid.h",
         "io.h",
@@ -147,8 +147,8 @@ cc_library(
 )
 
 cc_library(
-    name = "gates_appl",
-    hdrs = ["gates_appl.h"],
+    name = "gate_appl",
+    hdrs = ["gate_appl.h"],
     deps = [":matrix"],
 )
 
@@ -194,7 +194,7 @@ cc_library(
     name = "run_qsim",
     hdrs = ["run_qsim.h"],
     deps = [
-        ":gates_appl",
+        ":gate_appl",
         ":util",
     ],
 )
@@ -279,6 +279,6 @@ cc_library(
     hdrs = ["hybrid.h"],
     deps = [
         ":gate",
-        ":gates_appl",
+        ":gate_appl",
     ],
 )
