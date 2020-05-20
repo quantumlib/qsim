@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "gates_appl.h"
+#include "gate_appl.h"
 #include "util.h"
 
 namespace qsim {

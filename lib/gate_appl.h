@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GATES_APPL_H_
-#define GATES_APPL_H_
+#ifndef GATE_APPL_H_
+#define GATE_APPL_H_
 
 #include <utility>
 #include <vector>
@@ -111,4 +111,4 @@ inline void ApplyFusedGate(
 
 }  // namespace qsim
 
-#endif  // GATES_APPL_H_
+#endif  // GATE_APPL_H_

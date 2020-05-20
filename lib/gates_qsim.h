@@ -56,7 +56,7 @@ using GateQSim = Gate<fp_type, GateKind>;
 constexpr double h = 0.5;
 constexpr double is2 = 0.7071067811865475;
 
-// 1-qubit gates.
+// One-qubit gates:
 
 template <typename fp_type>
 struct GateId1 {
@@ -65,14 +65,10 @@ struct GateId1 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateId1>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateId1>(
+        time, q0, {1, 0, 0, 0, 0, 0, 1, 0});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateId1<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 1, 0};
 
 template <typename fp_type>
 struct GateHd {
@@ -81,14 +77,10 @@ struct GateHd {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateHd>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateHd>(
+        time, q0, {is2, 0, is2, 0, is2, 0, -is2, 0});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateHd<fp_type>::matrix = {is2, 0, is2, 0, is2, 0, -is2, 0};
 
 template <typename fp_type>
 struct GateT {
@@ -97,14 +89,10 @@ struct GateT {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateT>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateT>(
+        time, q0, {1, 0, 0, 0, 0, 0, is2, is2});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateT<fp_type>::matrix = {1, 0, 0, 0, 0, 0, is2, is2};
 
 template <typename fp_type>
 struct GateX {
@@ -113,14 +101,10 @@ struct GateX {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateX>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateX>(
+        time, q0, {0, 0, 1, 0, 1, 0, 0, 0});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateX<fp_type>::matrix = {0, 0, 1, 0, 1, 0, 0, 0};
 
 template <typename fp_type>
 struct GateY {
@@ -129,14 +113,10 @@ struct GateY {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateY>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateY>(
+        time, q0, {0, 0, 0, -1, 0, 1, 0, 0});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateY<fp_type>::matrix = {0, 0, 0, -1, 0, 1, 0, 0};
 
 template <typename fp_type>
 struct GateZ {
@@ -145,14 +125,10 @@ struct GateZ {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateZ>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateZ>(
+        time, q0, {1, 0, 0, 0, 0, 0, -1, 0});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateZ<fp_type>::matrix = {1, 0, 0, 0, 0, 0, -1, 0};
 
 template <typename fp_type>
 struct GateX2 {
@@ -161,14 +137,10 @@ struct GateX2 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateX2>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateX2>(
+        time, q0, {h, h, h, -h, h, -h, h, h});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateX2<fp_type>::matrix = {h, h, h, -h, h, -h, h, h};
 
 template <typename fp_type>
 struct GateY2 {
@@ -177,14 +149,10 @@ struct GateY2 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateY2>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateY2>(
+        time, q0, {h, h, -h, -h, h, h, h, h});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateY2<fp_type>::matrix = {h, h, -h, -h, h, h, h, h};
 
 template <typename fp_type>
 struct GateRX {
@@ -196,9 +164,9 @@ struct GateRX {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
+
     return CreateGate<GateQSim<fp_type>, GateRX>(
-        time, q0, std::vector<fp_type>{phi},
-        std::array<fp_type, 32>{c, 0, 0, s, 0, s, c, 0});
+        time, q0, {c, 0, 0, s, 0, s, c, 0}, {phi});
   }
 };
 
@@ -212,9 +180,9 @@ struct GateRY {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
+
     return CreateGate<GateQSim<fp_type>, GateRY>(
-        time, q0, std::vector<fp_type>{phi},
-        std::array<fp_type, 32>{c, 0, s, 0, -s, 0, c, 0});
+        time, q0, {c, 0, s, 0, -s, 0, c, 0}, {phi});
   }
 };
 
@@ -228,9 +196,9 @@ struct GateRZ {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
+
     return CreateGate<GateQSim<fp_type>, GateRZ>(
-        time, q0, std::vector<fp_type>{phi},
-        std::array<fp_type, 32>{c, s, 0, 0, 0, 0, c, -s});
+        time, q0, {c, s, 0, 0, 0, 0, c, -s}, {phi});
   }
 };
 
@@ -247,9 +215,9 @@ struct GateRXY {
     fp_type sp = std::sin(phi2);
     fp_type ct = std::cos(theta) * sp;
     fp_type st = std::sin(theta) * sp;
+
     return CreateGate<GateQSim<fp_type>, GateRXY>(
-        time, q0, std::vector<fp_type>{phi},
-        std::array<fp_type, 32>{cp, 0, st, ct, -st, ct, cp, 0});
+        time, q0, {cp, 0, st, ct, -st, ct, cp, 0}, {theta, phi});
   }
 };
 
@@ -260,14 +228,10 @@ struct GateHZ2 {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateHZ2>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateHZ2>(
+        time, q0, {h, h, 0, -is2, is2, 0, h, h});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix1q<fp_type> GateHZ2<fp_type>::matrix = {h, h, 0, -is2, is2, 0, h, h};
 
 template <typename fp_type>
 struct GateS {
@@ -276,16 +240,12 @@ struct GateS {
   static constexpr unsigned num_qubits = 1;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
-    return CreateStaticGate<GateQSim<fp_type>, GateS>(time, q0);
+    return CreateGate<GateQSim<fp_type>, GateS>(
+        time, q0, {1, 0, 0, 0, 0, 0, 0, 1});
   }
-
-  static Matrix1q<fp_type> matrix;
 };
 
-template <typename fp_type>
-Matrix1q<fp_type> GateS<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 1};
-
-// 2-qubit gates.
+// Two-qubit gates:
 
 template <typename fp_type>
 struct GateId2 {
@@ -294,24 +254,19 @@ struct GateId2 {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return CreateStaticGate<GateQSim<fp_type>, GateId2>(time, q0, q1);
+    return CreateGate<GateQSim<fp_type>, GateId2>(
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 1, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 1, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
-    schmidt_decomp_type<fp_type> schmidt_decomp(1);
-    schmidt_decomp[0][0] = {1, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[0][1] = {1, 0, 0, 0, 0, 0, 1, 0};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{1, 0, 0, 0, 0, 0, 1, 0}, {1, 0, 0, 0, 0, 0, 1, 0}},
+    };
   }
-
-  static Matrix2q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix2q<fp_type> GateId2<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
-                                              0, 0, 1, 0, 0, 0, 0, 0,
-                                              0, 0, 0, 0, 1, 0, 0, 0,
-                                              0, 0, 0, 0, 0, 0, 1, 0};
 
 template <typename fp_type>
 struct GateCZ {
@@ -320,26 +275,20 @@ struct GateCZ {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return CreateStaticGate<GateQSim<fp_type>, GateCZ>(time, q0, q1);
+    return CreateGate<GateQSim<fp_type>, GateCZ>(
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 1, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 1, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, -1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
-    schmidt_decomp_type<fp_type> schmidt_decomp(2);
-    schmidt_decomp[0][0] = {1, 0, 0, 0, 0, 0, 0, 0};
-    schmidt_decomp[0][1] = {1, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[1][0] = {0, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[1][1] = {1, 0, 0, 0, 0, 0, -1, 0};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{1, 0, 0, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0, 1, 0}},
+      {{0, 0, 0, 0, 0, 0, 1, 0}, {1, 0, 0, 0, 0, 0, -1, 0}},
+    };
   }
-
-  static Matrix2q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix2q<fp_type> GateCZ<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
-                                             0, 0, 1, 0, 0, 0, 0, 0,
-                                             0, 0, 0, 0, 1, 0, 0, 0,
-                                             0, 0, 0, 0, 0, 0, -1, 0};
 
 template <typename fp_type>
 struct GateCNot {
@@ -348,28 +297,21 @@ struct GateCNot {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return CreateStaticGate<GateQSim<fp_type>, GateCNot>(time, q0, q1);
+    // Matrix is in this form because the simulator uses inverse qubit order.
+    return CreateGate<GateQSim<fp_type>, GateCNot>(
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 1, 0,
+                       0, 0, 0, 0, 1, 0, 0, 0,
+                       0, 0, 1, 0, 0, 0, 0, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
-    schmidt_decomp_type<fp_type> schmidt_decomp(2);
-    schmidt_decomp[0][0] = {1, 0, 0, 0, 0, 0, 0, 0};
-    schmidt_decomp[0][1] = {1, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[1][0] = {0, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[1][1] = {0, 0, 1, 0, 1, 0, 0, 0};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{1, 0, 0, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0, 1, 0}},
+      {{0, 0, 0, 0, 0, 0, 1, 0}, {0, 0, 1, 0, 1, 0, 0, 0}},
+    };
   }
-
-  static Matrix2q<fp_type> matrix;
 };
-
-// The matrix is in this form because the simulator uses the inverse order of
-// qubits.
-template <typename fp_type>
-Matrix2q<fp_type> GateCNot<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
-                                               0, 0, 0, 0, 0, 0, 1, 0,
-                                               0, 0, 0, 0, 1, 0, 0, 0,
-                                               0, 0, 1, 0, 0, 0, 0, 0};
 
 template <typename fp_type>
 struct GateSwap {
@@ -378,30 +320,22 @@ struct GateSwap {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return CreateStaticGate<GateQSim<fp_type>, GateSwap>(time, q0, q1);
+    return CreateGate<GateQSim<fp_type>, GateSwap>(
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 1, 0, 0, 0,
+                       0, 0, 1, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
-    schmidt_decomp_type<fp_type> schmidt_decomp(4);
-    schmidt_decomp[0][0] = {is2, 0, 0, 0, 0, 0, is2, 0};
-    schmidt_decomp[0][1] = {is2, 0, 0, 0, 0, 0, is2, 0};
-    schmidt_decomp[1][0] = {0, 0, is2, 0, is2, 0, 0, 0};
-    schmidt_decomp[1][1] = {0, 0, is2, 0, is2, 0, 0, 0};
-    schmidt_decomp[2][0] = {0, 0, 0, -is2, 0, is2, 0, 0};
-    schmidt_decomp[2][1] = {0, 0, 0, -is2, 0, is2, 0, 0};
-    schmidt_decomp[3][0] = {is2, 0, 0, 0, 0, 0, -is2, 0};
-    schmidt_decomp[3][1] = {is2, 0, 0, 0, 0, 0, -is2, 0};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{is2, 0, 0, 0, 0, 0, is2, 0}, {is2, 0, 0, 0, 0, 0, is2, 0}},
+      {{0, 0, is2, 0, is2, 0, 0, 0}, {0, 0, is2, 0, is2, 0, 0, 0}},
+      {{0, 0, 0, -is2, 0, is2, 0, 0}, {0, 0, 0, -is2, 0, is2, 0, 0}},
+      {{is2, 0, 0, 0, 0, 0, -is2, 0}, {is2, 0, 0, 0, 0, 0, -is2, 0}},
+    };
   }
-
-  static Matrix2q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix2q<fp_type> GateSwap<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
-                                               0, 0, 0, 0, 1, 0, 0, 0,
-                                               0, 0, 1, 0, 0, 0, 0, 0,
-                                               0, 0, 0, 0, 0, 0, 1, 0};
 
 template <typename fp_type>
 struct GateIS {
@@ -410,30 +344,22 @@ struct GateIS {
   static constexpr unsigned num_qubits = 2;
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
-    return CreateStaticGate<GateQSim<fp_type>, GateIS>(time, q0, q1);
+    return CreateGate<GateQSim<fp_type>, GateIS>(
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 1, 0, 0,
+                       0, 0, 0, 1, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
-    schmidt_decomp_type<fp_type> schmidt_decomp(4);
-    schmidt_decomp[0][0] = {is2, 0, 0, 0, 0, 0, is2, 0};
-    schmidt_decomp[0][1] = {is2, 0, 0, 0, 0, 0, is2, 0};
-    schmidt_decomp[1][0] = {0, 0, 0.5, 0.5, 0.5, 0.5, 0, 0};
-    schmidt_decomp[1][1] = {0, 0, 0.5, 0.5, 0.5, 0.5, 0, 0};
-    schmidt_decomp[2][0] = {0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0};
-    schmidt_decomp[2][1] = {0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0};
-    schmidt_decomp[3][0] = {is2, 0, 0, 0, 0, 0, -is2, 0};
-    schmidt_decomp[3][1] = {is2, 0, 0, 0, 0, 0, -is2, 0};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{is2, 0, 0, 0, 0, 0, is2, 0}, {is2, 0, 0, 0, 0, 0, is2, 0}},
+      {{0, 0, h, h, h, h, 0, 0}, {0, 0, h, h, h, h, 0, 0}},
+      {{0, 0, h, -h, -h, h, 0, 0}, {0, 0, h, -h, -h, h, 0, 0}},
+      {{is2, 0, 0, 0, 0, 0, -is2, 0}, {is2, 0, 0, 0, 0, 0, -is2, 0}},
+    };
   }
-
-  static Matrix2q<fp_type> matrix;
 };
-
-template <typename fp_type>
-Matrix2q<fp_type> GateIS<fp_type>::matrix = {1, 0, 0, 0, 0, 0, 0, 0,
-                                             0, 0, 0, 0, 0, 1, 0, 0,
-                                             0, 0, 0, 1, 0, 0, 0, 0,
-                                             0, 0, 0, 0, 0, 0, 1, 0};
 
 template <typename fp_type>
 struct GateFS {
@@ -453,11 +379,10 @@ struct GateFS {
     fp_type sp = std::sin(phi);
 
     return CreateGate<GateQSim<fp_type>, GateFS>(
-        time, q0, q1, std::vector<fp_type>{theta, phi},
-        std::array<fp_type, 32>{1, 0, 0, 0, 0, 0, 0, 0,
-                                0, 0, ct, 0, 0, -st, 0, 0,
-                                0, 0, 0, -st, ct, 0, 0, 0,
-                                0, 0, 0, 0, 0, 0, cp, -sp});
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, ct, 0, 0, -st, 0, 0,
+                       0, 0, 0, -st, ct, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, cp, -sp}, {theta, phi});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp(
@@ -494,16 +419,12 @@ struct GateFS {
     fp_type g = -(cp4 * c1 + sp4 * s1);
     fp_type h = -(cp4 * s1 - sp4 * c1);
 
-    schmidt_decomp_type<fp_type> schmidt_decomp(4);
-    schmidt_decomp[0][0] = {a, b, 0, 0, 0, 0, c, d};
-    schmidt_decomp[0][1] = {a, b, 0, 0, 0, 0, c, d};
-    schmidt_decomp[1][0] = {0, 0, st2, -st2, st2, -st2, 0, 0};
-    schmidt_decomp[1][1] = {0, 0, st2, -st2, st2, -st2, 0, 0};
-    schmidt_decomp[2][0] = {0, 0, -st2, -st2, st2, st2, 0, 0};
-    schmidt_decomp[2][1] = {0, 0, -st2, -st2, st2, st2, 0, 0};
-    schmidt_decomp[3][0] = {e, f, 0, 0, 0, 0, g, h};
-    schmidt_decomp[3][1] = {e, f, 0, 0, 0, 0, g, h};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{a, b, 0, 0, 0, 0, c, d}, {a, b, 0, 0, 0, 0, c, d}},
+      {{0, 0, st2, -st2, st2, -st2, 0, 0}, {0, 0, st2, -st2, st2, -st2, 0, 0}},
+      {{0, 0, -st2, -st2, st2, st2, 0, 0}, {0, 0, -st2, -st2, st2, st2, 0, 0}},
+      {{e, f, 0, 0, 0, 0, g, h}, {e, f, 0, 0, 0, 0, g, h}},
+    };
   }
 };
 
@@ -517,24 +438,22 @@ struct GateCP {
       unsigned time, unsigned q0, unsigned q1, fp_type phi) {
     fp_type cp = std::cos(phi);
     fp_type sp = std::sin(phi);
+
     return CreateGate<GateQSim<fp_type>, GateCP>(
-        time, q0, q1, std::vector<fp_type>{phi},
-        std::array<fp_type, 32>{1, 0, 0, 0, 0, 0, 0, 0,
-                                0, 0, 1, 0, 0, 0, 0, 0,
-                                0, 0, 0, 0, 1, 0, 0, 0,
-                                0, 0, 0, 0, 0, 0, cp, -sp});
+        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 1, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 1, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, cp, -sp}, {phi});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp(fp_type phi) {
     fp_type cp = std::cos(phi);
     fp_type sp = std::sin(phi);
 
-    schmidt_decomp_type<fp_type> schmidt_decomp(2);
-    schmidt_decomp[0][0] = {1, 0, 0, 0, 0, 0, 0, 0};
-    schmidt_decomp[0][1] = {1, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[1][0] = {0, 0, 0, 0, 0, 0, 1, 0};
-    schmidt_decomp[1][1] = {1, 0, 0, 0, 0, 0, cp, -sp};
-    return schmidt_decomp;
+    return schmidt_decomp_type<fp_type>{
+      {{1, 0, 0, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0, 1, 0}},
+      {{0, 0, 0, 0, 0, 0, 1, 0}, {1, 0, 0, 0, 0, 0, cp, -sp}},
+    };
   }
 };
 
