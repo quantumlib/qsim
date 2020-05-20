@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
   std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
 
   bool rc = Runner::Run(
-      param, opt.maxtime, parts, circuit.gates, bitstrings, results);
+      param, opt.maxtime, circuit, parts, bitstrings, results);
 
   if (rc) {
     static constexpr char const* bits[8] = {

@@ -39,30 +39,41 @@ struct QSimHRunner final {
    * @param param Options for parallelism and logging. Also specifies the size
    *   of the 'prefix' and 'root' sections of the lattice.
    * @param maxtime Maximum number of time steps to run.
+   * @param circuit The circuit to be simulated.
    * @param parts Lattice sections to be simulated.
-   * @param gates List of all gates in the circuit.
    * @param bitstrings List of output states to simulate, as bitstrings.
    * @param results Output vector of amplitudes. After a successful run, this
    *   will be populated with amplitudes for each state in 'bitstrings'.
    * @return True if the simulation completed successfully; false otherwise.
    */
+  template <typename Circuit>
   static bool Run(const Parameter& param, unsigned maxtime,
-                  const std::vector<unsigned>& parts,
-                  const std::vector<Gate>& gates,
+                  const Circuit& circuit, const std::vector<unsigned>& parts,
                   const std::vector<uint64_t>& bitstrings,
                   std::vector<std::complex<fp_type>>& results) {
+    if (circuit.num_qubits != parts.size()) {
+      IO::errorf("parts size is not equal to the number of qubits.");
+      return false;
+    }
+
     double t0 = 0.0;
 
     if (param.verbosity > 0) {
       t0 = GetTime();
     }
 
-    HybridData hd = HybridSimulator::SplitLattice(parts, gates);
+    HybridData hd;
+    bool rc = HybridSimulator::SplitLattice(parts, circuit.gates, hd);
+
+    if (!rc) {
+      return false;
+    }
 
     if (hd.num_gatexs < param.num_prefix_gatexs + param.num_root_gatexs) {
       IO::errorf("error: num_prefix_gates (%u) plus num_root gates (%u) is "
                  "greater than num_gates_on_the_cut (%u).\n",
-                 param.num_prefix_gatexs, param.num_root_gatexs, hd.num_gatexs);
+                 param.num_prefix_gatexs, param.num_root_gatexs,
+                 hd.num_gatexs);
       return false;
     }
 
@@ -73,7 +84,7 @@ struct QSimHRunner final {
     auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, maxtime);
     auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, maxtime);
 
-    bool rc = HybridSimulator::Run(
+    rc = HybridSimulator::Run(
         param, hd, parts, fgates0, fgates1, bitstrings, results);
 
     if (rc && param.verbosity > 0) {

@@ -259,8 +259,8 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   // Define container for amplitudes
   std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
 
-  if (Runner::Run(param, std::numeric_limits<unsigned>::max(), parts,
-                  circuit.gates, bitstrings, amplitudes)) {
+  if (Runner::Run(param, std::numeric_limits<unsigned>::max(), circuit,
+                  parts, bitstrings, amplitudes)) {
     return amplitudes;
   }
   IO::errorf("qsimh simulation of the circuit errored out.\n");
