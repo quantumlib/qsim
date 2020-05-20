@@ -457,7 +457,7 @@ struct GateCP {
   }
 };
 
-template <typename fp_type, typename GateKind>
+template <typename fp_type>
 inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
     GateKind kind, const std::vector<fp_type>& params) {
   switch (kind) {
