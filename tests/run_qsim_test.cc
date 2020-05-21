@@ -141,7 +141,8 @@ TEST(RunQSimTest, QSimRunner2) {
 }
 
 TEST(RunQSimTest, CirqGates) {
-  auto circuit = GetCircuit<float>();
+  auto circuit = CirqCircuit1::GetCircuit<float>();
+  const auto& expected_results = CirqCircuit1::expected_results;
 
   using Simulator = SimulatorAVX<ParallelFor>;
   using StateSpace = Simulator::StateSpace;

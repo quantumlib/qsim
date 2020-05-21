@@ -24,6 +24,8 @@
 
 namespace qsim {
 
+namespace CirqCircuit1 {
+
 template <typename fp_type>
 Circuit<Cirq::GateCirq<fp_type>> GetCircuit() {
   Circuit<Cirq::GateCirq<fp_type>> circuit{4, {}};
@@ -290,6 +292,8 @@ if __name__ == '__main__':
     main()
 
 */
+
+}  // namespace CirqCircuit1
 
 }  // namespace qsim
 

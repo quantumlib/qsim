@@ -281,7 +281,11 @@ struct rx {
   static constexpr unsigned num_qubits = 1;
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
-    return XPowGate<fp_type>::Create(time, q0, inv_pi * phi, -0.5);
+    fp_type c = std::cos(-0.5 * phi);
+    fp_type s = std::sin(-0.5 * phi);
+
+    return CreateGate<GateCirq<fp_type>, rx>(
+        time, q0, {c, 0, 0, s, 0, s, c, 0}, {phi});
   }
 };
 
@@ -294,7 +298,11 @@ struct ry {
   static constexpr unsigned num_qubits = 1;
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
-    return YPowGate<fp_type>::Create(time, q0, inv_pi * phi, -0.5);
+    fp_type c = std::cos(-0.5 * phi);
+    fp_type s = std::sin(-0.5 * phi);
+
+    return CreateGate<GateCirq<fp_type>, ry>(
+        time, q0, {c, 0, s, 0, -s, 0, c, 0}, {phi});
   }
 };
 
@@ -307,7 +315,11 @@ struct rz {
   static constexpr unsigned num_qubits = 1;
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
-    return ZPowGate<fp_type>::Create(time, q0, inv_pi * phi, -0.5);
+    fp_type c = std::cos(-0.5 * phi);
+    fp_type s = std::sin(-0.5 * phi);
+
+    return CreateGate<GateCirq<fp_type>, rz>(
+        time, q0, {c, s, 0, 0, 0, 0, c, -s}, {phi});
   }
 };
 
