@@ -4,9 +4,44 @@ sse_copts = ['-msse4']
 omp_copts = ['-fopenmp']
 omp_linkopts = ['-lgomp']
 
+windows_copts = [
+    "/D__CLANG_SUPPORT_DYN_ANNOTATION__",
+    "/D_USE_MATH_DEFINES",
+    "/DEIGEN_MAX_ALIGN_BYTES=64",
+    "/DEIGEN_HAS_TYPE_TRAITS=0",
+    "/DTF_USE_SNAPPY",
+    "/showIncludes",
+    "/MD",
+    "/O2",
+    "/DNDEBUG",
+    "/w",
+    "-DWIN32_LEAN_AND_MEAN",
+    "-DNOGDI",
+    "/d2ReducedOptimizeHugeFunctions",
+    "/arch:AVX",
+    "/std:c++11",
+    "/DPLATFORM_WINDOWS",
+    "/DEIGEN_HAS_C99_MATH",
+    "/DEIGEN_AVOID_STL_ARRAY",
+    "/Iexternal/gemmlowp",
+    "/wd4018",
+    "/wd4577",
+    "/DNOGDI",
+    "/UTF_COMPILE_LIBRARY",
+]
+
+config_setting(
+    name = "windows",
+    constraint_values = ["@bazel_tools//platforms:windows"],
+)
+
 cc_test(
     name = "bitstring_test",
     srcs = ["bitstring_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:bitstring",
@@ -16,6 +51,10 @@ cc_test(
 cc_test(
     name = "circuit_qsim_parser_test",
     srcs = ["circuit_qsim_parser_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
@@ -26,6 +65,10 @@ cc_test(
 cc_test(
     name = "fuser_basic_test",
     srcs = ["fuser_basic_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
@@ -38,6 +81,10 @@ cc_test(
 cc_test(
     name = "gates_qsim_test",
     srcs = ["gates_qsim_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:gates_qsim",
@@ -57,13 +104,20 @@ cc_test(
         "//lib:parfor",
         "//lib:simulator_avx",
     ],
-    copts = avx_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": avx_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
 cc_test(
     name = "matrix_test",
     srcs = ["matrix_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:matrix",
@@ -77,7 +131,10 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:run_qsim_lib",
     ],
-    copts = avx_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": avx_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
@@ -88,13 +145,20 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:run_qsimh_lib",
     ],
-    copts = avx_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": avx_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
 cc_library(
     name = "simulator_testfixture",
     hdrs = ["simulator_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:fuser",
@@ -113,7 +177,10 @@ cc_test(
         "//lib:parfor",
         "//lib:simulator_avx",
     ],
-    copts = avx_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": avx_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
@@ -126,7 +193,10 @@ cc_test(
         "//lib:parfor",
         "//lib:simulator_basic",
     ],
-    copts = omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
@@ -139,13 +209,20 @@ cc_test(
         "//lib:parfor",
         "//lib:simulator_sse",
     ],
-    copts = sse_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": sse_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
 cc_library(
     name = "statespace_testfixture",
     hdrs = ["statespace_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
@@ -167,7 +244,10 @@ cc_test(
         "//lib:simulator_avx",
         "//lib:statespace_avx",
     ],
-    copts = avx_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": avx_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
@@ -181,7 +261,10 @@ cc_test(
         "//lib:simulator_basic",
         "//lib:statespace_basic",
     ],
-    copts = omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
 
@@ -195,6 +278,9 @@ cc_test(
         "//lib:simulator_sse",
         "//lib:statespace_sse",
     ],
-    copts = sse_copts + omp_copts,
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": sse_copts + omp_copts,
+    }),
     linkopts = omp_linkopts,
 )
