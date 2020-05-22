@@ -293,7 +293,7 @@ struct rx {
 // This is a function in Cirq.
 template <typename fp_type>
 struct ry {
-  static constexpr GateKind kind = krx;
+  static constexpr GateKind kind = kry;
   static constexpr char name[] = "ry";
   static constexpr unsigned num_qubits = 1;
 
@@ -310,7 +310,7 @@ struct ry {
 // This is a function in Cirq.
 template <typename fp_type>
 struct rz {
-  static constexpr GateKind kind = krx;
+  static constexpr GateKind kind = krz;
   static constexpr char name[] = "rz";
   static constexpr unsigned num_qubits = 1;
 
