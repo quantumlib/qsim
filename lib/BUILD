@@ -13,6 +13,7 @@ cc_library(
         "fuser.h",
         "gate.h",
         "gate_appl.h",
+        "gates_cirq.h",
         "gates_qsim.h",
         "hybrid.h",
         "io_file.h",
@@ -150,6 +151,12 @@ cc_library(
     name = "gate_appl",
     hdrs = ["gate_appl.h"],
     deps = [":matrix"],
+)
+
+cc_library(
+    name = "gates_cirq",
+    hdrs = ["gates_cirq.h"],
+    deps = [":gate"],
 )
 
 cc_library(

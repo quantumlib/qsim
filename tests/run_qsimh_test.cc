@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <sstream>
 
+#include "gates_cirq_testfixture.h"
+
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
@@ -102,7 +104,7 @@ TEST(RunQSimHTest, QSimHRunner) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
@@ -128,8 +130,7 @@ TEST(RunQSimHTest, QSimHRunner) {
     std::vector<std::complex<Simulator::fp_type>> results(8, 0);
     std::vector<unsigned> parts = {0, 0, 1, 1};
 
-    EXPECT_EQ(Runner::Run(
-        param, 99, circuit, parts, bitstrings, results), true);
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
 
     EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
     EXPECT_NEAR(std::imag(results[0]), 0.08956901, 1e-6);
@@ -147,8 +148,7 @@ TEST(RunQSimHTest, QSimHRunner) {
 
     param.num_root_gatexs = 3;
 
-    EXPECT_EQ(Runner::Run(
-        param, 99, circuit, parts, bitstrings, results), true);
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
 
     EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
     EXPECT_NEAR(std::imag(results[0]), 0.08956903, 1e-6);
@@ -158,6 +158,104 @@ TEST(RunQSimHTest, QSimHRunner) {
     EXPECT_NEAR(std::imag(results[2]), 0.31299597, 1e-6);
     EXPECT_NEAR(std::real(results[3]), 0.12226093, 1e-6);
     EXPECT_NEAR(std::imag(results[3]), 0.26690706, 1e-6);
+  }
+}
+
+TEST(RunQSimHTest, CirqGates) {
+  auto circuit = CirqCircuit1::GetCircuit<float>();
+  const auto& expected_results = CirqCircuit1::expected_results;
+
+  using Simulator = SimulatorAVX<ParallelFor>;
+  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
+                                          BasicGateFuser, Simulator,
+                                          ParallelFor>;
+  using Runner = QSimHRunner<IO, HybridSimulator>;
+
+  Runner::Parameter param;
+  param.prefix = 0;
+  param.num_prefix_gatexs = 0;
+  param.num_root_gatexs = 0;
+  param.num_threads = 1;
+  param.verbosity = 0;
+
+  uint64_t num_bitstrings = expected_results.size();
+
+  std::vector<uint64_t> bitstrings;
+  bitstrings.reserve(num_bitstrings);
+  for (std::size_t i = 0; i < num_bitstrings; ++i) {
+    bitstrings.push_back(i);
+  }
+
+  {
+    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<unsigned> parts = {1, 1, 0, 0};
+
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
+
+    for (uint64_t i = 0; i < num_bitstrings; ++i) {
+      EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
+      EXPECT_NEAR(std::imag(results[i]), std::imag(expected_results[i]), 2e-6);
+    }
+  }
+
+  {
+    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<unsigned> parts = {1, 0, 1, 0};
+
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
+
+    for (uint64_t i = 0; i < num_bitstrings; ++i) {
+      EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
+      EXPECT_NEAR(std::imag(results[i]), std::imag(expected_results[i]), 2e-6);
+    }
+  }
+
+  {
+    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<unsigned> parts = {1, 0, 0, 0};
+
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
+
+    for (uint64_t i = 0; i < num_bitstrings; ++i) {
+      EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
+      EXPECT_NEAR(std::imag(results[i]), std::imag(expected_results[i]), 2e-6);
+    }
+  }
+
+  {
+    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<unsigned> parts = {0, 1, 0, 0};
+
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
+
+    for (uint64_t i = 0; i < num_bitstrings; ++i) {
+      EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
+      EXPECT_NEAR(std::imag(results[i]), std::imag(expected_results[i]), 2e-6);
+    }
+  }
+
+  {
+    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<unsigned> parts = {0, 0, 1, 0};
+
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
+
+    for (uint64_t i = 0; i < num_bitstrings; ++i) {
+      EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
+      EXPECT_NEAR(std::imag(results[i]), std::imag(expected_results[i]), 2e-6);
+    }
+  }
+
+  {
+    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<unsigned> parts = {0, 0, 0, 1};
+
+    EXPECT_TRUE(Runner::Run(param, 99, circuit, parts, bitstrings, results));
+
+    for (uint64_t i = 0; i < num_bitstrings; ++i) {
+      EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
+      EXPECT_NEAR(std::imag(results[i]), std::imag(expected_results[i]), 2e-6);
+    }
   }
 }
 

@@ -35,6 +35,17 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "gates_cirq_testfixture",
+    hdrs = ["gates_cirq_testfixture.h"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:circuit",
+        "//lib:gates_cirq",
+    ],
+    testonly = 1,
+)
+
 cc_test(
     name = "gates_qsim_test",
     srcs = ["gates_qsim_test.cc"],
@@ -74,6 +85,7 @@ cc_test(
     name = "run_qsim_test",
     srcs = ["run_qsim_test.cc"],
     deps = [
+        ":gates_cirq_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:run_qsim_lib",
     ],
@@ -85,6 +97,7 @@ cc_test(
     name = "run_qsimh_test",
     srcs = ["run_qsimh_test.cc"],
     deps = [
+        ":gates_cirq_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:run_qsimh_lib",
     ],

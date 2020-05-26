@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <sstream>
 
+#include "gates_cirq_testfixture.h"
+
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
@@ -66,7 +68,7 @@ TEST(RunQSimTest, QSimRunner1) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
@@ -94,7 +96,7 @@ TEST(RunQSimTest, QSimRunner1) {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_EQ(Runner::Run(param, 99, circuit, measure), true);
+  EXPECT_TRUE(Runner::Run(param, 99, circuit, measure));
 
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
@@ -103,7 +105,7 @@ TEST(RunQSimTest, QSimRunner2) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
@@ -115,7 +117,7 @@ TEST(RunQSimTest, QSimRunner2) {
   StateSpace state_space(circuit.num_qubits, 1);
   State state = state_space.CreateState();
 
-  EXPECT_EQ(state_space.IsNull(state), false);
+  EXPECT_FALSE(state_space.IsNull(state));
 
   state_space.SetStateZero(state);
 
@@ -123,7 +125,7 @@ TEST(RunQSimTest, QSimRunner2) {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_EQ(Runner::Run(param, 99, circuit, state), true);
+  EXPECT_TRUE(Runner::Run(param, 99, circuit, state));
 
   // Calculate entropy.
 
@@ -136,6 +138,37 @@ TEST(RunQSimTest, QSimRunner2) {
   }
 
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
+}
+
+TEST(RunQSimTest, CirqGates) {
+  auto circuit = CirqCircuit1::GetCircuit<float>();
+  const auto& expected_results = CirqCircuit1::expected_results;
+
+  using Simulator = SimulatorAVX<ParallelFor>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
+                            Simulator>;
+
+  StateSpace state_space(circuit.num_qubits, 1);
+  State state = state_space.CreateState();
+
+  EXPECT_FALSE(state_space.IsNull(state));
+  EXPECT_EQ(state_space.Size(state), expected_results.size());
+
+  state_space.SetStateZero(state);
+
+  Runner::Parameter param;
+  param.num_threads = 1;
+  param.verbosity = 0;
+
+  EXPECT_TRUE(Runner::Run(param, 99, circuit, state));
+
+  for (uint64_t i = 0; i < state_space.Size(state); ++i) {
+    auto ampl = state_space.GetAmpl(state, i);
+    EXPECT_NEAR(std::real(ampl), std::real(expected_results[i]), 2e-6);
+    EXPECT_NEAR(std::imag(ampl), std::imag(expected_results[i]), 2e-6);
+  }
 }
 
 }  // namespace qsim
