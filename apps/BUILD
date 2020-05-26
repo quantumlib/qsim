@@ -13,7 +13,7 @@ windows_copts = [
     "-DNOGDI",
     "/d2ReducedOptimizeHugeFunctions",
     "/arch:AVX",
-    "/std:c++11",
+    "/std:c++14",
     "/DPLATFORM_WINDOWS",
     "/DEIGEN_HAS_C99_MATH",
     "/DEIGEN_AVOID_STL_ARRAY",
