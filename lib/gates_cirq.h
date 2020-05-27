@@ -76,10 +76,9 @@ using Matrix1q = std::array<std::array<std::complex<fp_type>, 2>, 2>;
 template <typename fp_type>
 using Matrix2q = std::array<std::array<std::complex<fp_type>, 4>, 4>;
 
-constexpr double h = 0.5;
-constexpr double pi = M_PI;
-constexpr double inv_pi = 1.0 / pi;
-constexpr double is2 = 0.7071067811865475;
+constexpr double h_double = 0.5;
+constexpr double pi_double = M_PI;
+constexpr double is2_double = 0.7071067811865475;
 
 // Gates from cirq/ops/identity.py:
 
@@ -124,6 +123,8 @@ struct XPowGate {
   static constexpr char name[] = "XPowGate";
   static constexpr unsigned num_qubits = 1;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0,
                                   fp_type exponent, fp_type global_shift = 0) {
     fp_type c = std::cos(pi * exponent * 0.5);
@@ -142,6 +143,8 @@ struct YPowGate {
   static constexpr GateKind kind = kYPowGate;
   static constexpr char name[] = "YPowGate";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0,
                                   fp_type exponent, fp_type global_shift = 0) {
@@ -162,6 +165,8 @@ struct ZPowGate {
   static constexpr char name[] = "ZPowGate";
   static constexpr unsigned num_qubits = 1;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0,
                                   fp_type exponent, fp_type global_shift = 0) {
     fp_type c = std::cos(pi * exponent);
@@ -180,6 +185,9 @@ struct HPowGate {
   static constexpr GateKind kind = kHPowGate;
   static constexpr char name[] = "HPowGate";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0,
                                   fp_type exponent, fp_type global_shift = 0) {
@@ -202,6 +210,8 @@ struct CZPowGate {
   static constexpr GateKind kind = kCZPowGate;
   static constexpr char name[] = "CZPowGate";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
@@ -236,6 +246,8 @@ struct CXPowGate {
   static constexpr GateKind kind = kCXPowGate;
   static constexpr char name[] = "CXPowGate";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
@@ -330,6 +342,8 @@ struct H {
   static constexpr char name[] = "H";
   static constexpr unsigned num_qubits = 1;
 
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateCirq<fp_type>, H>(
         time, q0, {is2, 0, is2, 0, is2, 0, -is2, 0});
@@ -355,6 +369,8 @@ struct T {
   static constexpr GateKind kind = kT;
   static constexpr char name[] = "T";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateCirq<fp_type>, T>(
@@ -464,6 +480,8 @@ struct PhasedXPowGate {
   static constexpr char name[] = "PhasedXPowGate";
   static constexpr unsigned num_qubits = 1;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0,
                                   fp_type phase_exponent, fp_type exponent = 1,
                                   fp_type global_shift = 0) {
@@ -493,6 +511,8 @@ struct PhasedXZGate {
   static constexpr GateKind kind = kPhasedXZGate;
   static constexpr char name[] = "PhasedXZGate";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0,
                                   fp_type x_exponent, fp_type z_exponent,
@@ -526,6 +546,8 @@ struct XXPowGate {
   static constexpr GateKind kind = kXXPowGate;
   static constexpr char name[] = "XXPowGate";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
@@ -569,6 +591,8 @@ struct YYPowGate {
   static constexpr char name[] = "YYPowGate";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
     fp_type gc = std::cos(pi * exponent * global_shift);
@@ -610,6 +634,8 @@ struct ZZPowGate {
   static constexpr GateKind kind = kZZPowGate;
   static constexpr char name[] = "ZZPowGate";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
@@ -717,6 +743,9 @@ struct SwapPowGate {
   static constexpr char name[] = "SwapPowGate";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
     fp_type gc = std::cos(pi * exponent * global_shift);
@@ -761,6 +790,9 @@ struct ISwapPowGate {
   static constexpr char name[] = "ISwapPowGate";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type exponent, fp_type global_shift = 0) {
     fp_type gc = std::cos(pi * exponent * global_shift);
@@ -803,6 +835,9 @@ struct riswap {
   static constexpr char name[] = "riswap";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type phi) {
     fp_type c = std::cos(phi);
@@ -835,6 +870,8 @@ struct SWAP {
   static constexpr char name[] = "SWAP";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateCirq<fp_type>, SWAP>(
         time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
@@ -859,6 +896,9 @@ struct ISWAP {
   static constexpr GateKind kind = kISWAP;
   static constexpr char name[] = "ISWAP";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateCirq<fp_type>, ISWAP>(
@@ -885,6 +925,9 @@ struct PhasedISwapPowGate {
   static constexpr GateKind kind = kPhasedISwapPowGate;
   static constexpr char name[] = "PhasedISwapPowGate";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
 
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type phase_exponent = 0.25,
@@ -927,6 +970,9 @@ struct givens {
   static constexpr char name[] = "givens";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type pi = static_cast<fp_type>(pi_double);
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+
   static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
                                   fp_type phi) {
     fp_type c = std::cos(phi);
@@ -960,6 +1006,8 @@ struct FSimGate {
   static constexpr GateKind kind = kFSimGate;
   static constexpr char name[] = "FSimGate";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateCirq<fp_type> Create(
       unsigned time, unsigned q0, unsigned q1, fp_type theta, fp_type phi) {
