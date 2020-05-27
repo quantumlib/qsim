@@ -11,7 +11,6 @@ windows_copts = [
     "/w",
     "-DWIN32_LEAN_AND_MEAN",
     "-DNOGDI",
-    "/d2ReducedOptimizeHugeFunctions",
     "/arch:AVX",
     "/std:c++14",
     "/DPLATFORM_WINDOWS",
