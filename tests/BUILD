@@ -5,28 +5,8 @@ omp_copts = ['-fopenmp']
 omp_linkopts = ['-lgomp']
 
 windows_copts = [
-    "/D__CLANG_SUPPORT_DYN_ANNOTATION__",
-    "/D_USE_MATH_DEFINES",
-    "/DEIGEN_MAX_ALIGN_BYTES=64",
-    "/DEIGEN_HAS_TYPE_TRAITS=0",
-    "/DTF_USE_SNAPPY",
-    "/showIncludes",
-    "/MD",
-    "/O2",
-    "/DNDEBUG",
-    "/w",
-    "-DWIN32_LEAN_AND_MEAN",
-    "-DNOGDI",
     "/arch:AVX",
     "/std:c++14",
-    "/DPLATFORM_WINDOWS",
-    "/DEIGEN_HAS_C99_MATH",
-    "/DEIGEN_AVOID_STL_ARRAY",
-    "/Iexternal/gemmlowp",
-    "/wd4018",
-    "/wd4577",
-    "/DNOGDI",
-    "/UTF_COMPILE_LIBRARY",
 ]
 
 config_setting(
