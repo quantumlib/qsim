@@ -384,6 +384,8 @@ struct GateFS {
   static constexpr char name[] = "fs";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
+
   static GateQSim<fp_type> Create(
       unsigned time, unsigned q0, unsigned q1, fp_type theta, fp_type phi) {
     if (phi < 0) {
