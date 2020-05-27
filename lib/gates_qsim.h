@@ -53,8 +53,8 @@ enum GateKind {
 template <typename fp_type>
 using GateQSim = Gate<fp_type, GateKind>;
 
-constexpr double h = 0.5;
-constexpr double is2 = 0.7071067811865475;
+constexpr double h_double = 0.5;
+constexpr double is2_double = 0.7071067811865475;
 
 // One-qubit gates:
 
@@ -76,6 +76,8 @@ struct GateHd {
   static constexpr char name[] = "h";
   static constexpr unsigned num_qubits = 1;
 
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
+
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateHd>(
         time, q0, {is2, 0, is2, 0, is2, 0, -is2, 0});
@@ -87,6 +89,8 @@ struct GateT {
   static constexpr GateKind kind = kGateT;
   static constexpr char name[] = "t";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateT>(
@@ -136,6 +140,8 @@ struct GateX2 {
   static constexpr char name[] = "x_1_2";
   static constexpr unsigned num_qubits = 1;
 
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateX2>(
         time, q0, {h, h, h, -h, h, -h, h, h});
@@ -147,6 +153,8 @@ struct GateY2 {
   static constexpr GateKind kind = kGateY2;
   static constexpr char name[] = "y_1_2";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateY2>(
@@ -226,6 +234,10 @@ struct GateHZ2 {
   static constexpr GateKind kind = kGateHZ2;
   static constexpr char name[] = "hz_1_2";
   static constexpr unsigned num_qubits = 1;
+
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateHZ2>(
@@ -319,6 +331,8 @@ struct GateSwap {
   static constexpr char name[] = "sw";
   static constexpr unsigned num_qubits = 2;
 
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
+
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateQSim<fp_type>, GateSwap>(
         time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
@@ -342,6 +356,9 @@ struct GateIS {
   static constexpr GateKind kind = kGateIS;
   static constexpr char name[] = "is";
   static constexpr unsigned num_qubits = 2;
+
+  static constexpr fp_type h = static_cast<fp_type>(h_double);
+  static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateQSim<fp_type>, GateIS>(
