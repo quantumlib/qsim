@@ -26,6 +26,7 @@ windows_copts = [
     "/Iexternal/gemmlowp",
     "/wd4018",
     "/wd4577",
+    "/wd4267",  # Silence "narrowing conversion" errors.
     "/DNOGDI",
     "/UTF_COMPILE_LIBRARY",
 ]
