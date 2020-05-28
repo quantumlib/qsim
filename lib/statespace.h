@@ -45,7 +45,7 @@ class StateSpace {
   State CreateState() const {
     auto vector_size = sizeof(fp_type) * raw_size_;
     #ifdef _WIN32
-      return State((fp_type*) _aligned_alloc(vector_size, 64), &_aligned_free);
+      return State((fp_type*) _aligned_malloc(vector_size, 64), &_aligned_free);
     #else
       void* p = nullptr;
       if (posix_memalign(&p, 64, vector_size) == 0) {
