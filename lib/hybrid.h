@@ -27,7 +27,7 @@ namespace qsim {
 
 // Hybrid Feynmann-Schrodiner simulator.
 template <typename IO, typename GateT, template <typename> class FuserT,
-          typename Simulator, typename ParallelFor>
+          typename Simulator, typename For>
 struct HybridSimulator final {
  public:
   using Gate = GateT;
@@ -368,9 +368,8 @@ struct HybridSimulator final {
         };
 
         // Collect results.
-        ParallelFor::Run(param.num_threads, results.size(), f,
-                         sspace0, sspace1, *rstate0, *rstate1, indices,
-                         results);
+        For::Run(param.num_threads, results.size(), f, sspace0, sspace1,
+                 *rstate0, *rstate1, indices, results);
       }
     }
 

@@ -16,30 +16,30 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/parfor.h"
+#include "../lib/formux.h"
 #include "../lib/simulator_basic.h"
 #include "../lib/statespace_basic.h"
 
 namespace qsim {
 
 TEST(StateSpaceBasicTest, NormSmall) {
-  TestNormSmall<StateSpaceBasic<ParallelFor, float>>();
+  TestNormSmall<StateSpaceBasic<For, float>>();
 }
 
 TEST(StateSpaceBasicTest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceBasic<ParallelFor, float>>();
+  TestNormAndInnerProductSmall<StateSpaceBasic<For, float>>();
 }
 
 TEST(StateSpaceBasicTest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorBasic<ParallelFor, float>>();
+  TestNormAndInnerProduct<SimulatorBasic<For, float>>();
 }
 
 TEST(StateSpaceBasicTest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceBasic<ParallelFor, float>>();
+  TestSamplingSmall<StateSpaceBasic<For, float>>();
 }
 
 TEST(StateSpaceBasicTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorBasic<ParallelFor, float>>();
+  TestSamplingCrossEntropyDifference<SimulatorBasic<For, float>>();
 }
 
 }  // namespace qsim

@@ -28,9 +28,9 @@ namespace qsim {
 // Routines for state-vector manipulations.
 // State is a non-vectorized sequence of one real amplitude followed by
 // one imaginary amplitude.
-template <typename ParallelFor, typename FP>
-struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
-  using Base = StateSpace<ParallelFor, FP>;
+template <typename For, typename FP>
+struct StateSpaceBasic : public StateSpace<For, FP> {
+  using Base = StateSpace<For, FP>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
@@ -43,7 +43,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
       state.get()[2 * i + 1] = 0;
     };
 
-    ParallelFor::Run(Base::num_threads_, Base::size_, f, state);
+    For::Run(Base::num_threads_, Base::size_, f, state);
   }
 
   // Uniform superposition.
@@ -56,8 +56,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
       state.get()[2 * i + 1] = 0;
     };
 
-    ParallelFor::Run(
-        Base::num_threads_, Base::size_, f, val, state);
+    For::Run(Base::num_threads_, Base::size_, f, val, state);
   }
 
   // |0> state.
@@ -93,8 +92,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
       return s[0] * s[0] + s[1] * s[1];
     };
 
-    return ParallelFor::RunReduce(
-        Base::num_threads_, Base::size_, f, Op(), state);
+    return For::RunReduce(Base::num_threads_, Base::size_, f, Op(), state);
   }
 
   std::complex<double> InnerProduct(
@@ -112,7 +110,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
       return std::complex<double>{re, im};
     };
 
-    return ParallelFor::RunReduce(
+    return For::RunReduce(
         Base::num_threads_, Base::size_, f, Op(), state1, state2);
   }
 
@@ -127,7 +125,7 @@ struct StateSpaceBasic : public StateSpace<ParallelFor, FP> {
       return s1[0] * s2[0] + s1[1] * s2[1];
     };
 
-    return ParallelFor::RunReduce(
+    return For::RunReduce(
         Base::num_threads_, Base::size_, f, Op(), state1, state2);
   }
 

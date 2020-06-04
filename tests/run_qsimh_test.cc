@@ -22,10 +22,10 @@
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
-#include "../lib/parfor.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simulator_avx.h"
 
@@ -108,9 +108,9 @@ TEST(RunQSimHTest, QSimHRunner) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = SimulatorAVX<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, ParallelFor>;
+                                          Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
@@ -165,10 +165,9 @@ TEST(RunQSimHTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>();
   const auto& expected_results = CirqCircuit1::expected_results;
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = SimulatorAVX<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
-                                          BasicGateFuser, Simulator,
-                                          ParallelFor>;
+                                          BasicGateFuser, Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;

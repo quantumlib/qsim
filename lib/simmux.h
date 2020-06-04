@@ -18,20 +18,20 @@
 #ifdef __AVX2__
 # include "simulator_avx.h"
   namespace qsim {
-    template <typename ParallelFor>
-    using Simulator = SimulatorAVX<ParallelFor>;
+    template <typename For>
+    using Simulator = SimulatorAVX<For>;
   }
 #elif __SSE4_1__
 # include "simulator_sse.h"
   namespace qsim {
-    template <typename ParallelFor>
-    using Simulator = SimulatorSSE<ParallelFor>;
+    template <typename For>
+    using Simulator = SimulatorSSE<For>;
   }
 #else
 # include "simulator_basic.h"
   namespace qsim {
-    template <typename ParallelFor>
-    using Simulator = SimulatorBasic<ParallelFor>;
+    template <typename For>
+    using Simulator = SimulatorBasic<For>;
   }
 #endif
 

@@ -22,10 +22,10 @@
 namespace qsim {
 
 // Quantim circuit simulator without vectorization.
-template <typename ParallelFor, typename FP = float>
+template <typename For, typename FP = float>
 class SimulatorBasic final {
  public:
-  using StateSpace = StateSpaceBasic<ParallelFor, FP>;
+  using StateSpace = StateSpaceBasic<For, FP>;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
 
@@ -66,8 +66,7 @@ class SimulatorBasic final {
       rstate[si1 + 1] = s0r * u[5] + s0i * u[4] + s1r * u[7] + s1i * u[6];
     };
 
-    ParallelFor::Run(num_threads_, sizei / 2, f,
-                     sizek, mask0, mask1, matrix, rstate);
+    For::Run(num_threads_, sizei / 2, f, sizek, mask0, mask1, matrix, rstate);
   }
 
   /**
@@ -130,8 +129,8 @@ class SimulatorBasic final {
           + s2r * u[29] + s2i * u[28] + s3r * u[31] + s3i * u[30];
     };
 
-    ParallelFor::Run(num_threads_, sizei / 2, f,
-                     sizej, sizek, mask0, mask1, mask2, matrix, rstate);
+    For::Run(num_threads_, sizei / 2, f, sizej, sizek, mask0, mask1, mask2,
+             matrix, rstate);
   }
 
  private:

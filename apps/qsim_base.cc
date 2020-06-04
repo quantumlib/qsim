@@ -20,10 +20,10 @@
 #include <string>
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
-#include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 
@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  using Simulator = qsim::Simulator<ParallelFor>;
+  using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;

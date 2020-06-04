@@ -24,10 +24,10 @@
 
 #include "../lib/bitstring.h"
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
-#include "../lib/parfor.h"
 #include "../lib/run_qsim.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
@@ -128,7 +128,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<ParallelFor>;
+  using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
@@ -175,7 +175,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<ParallelFor>;
+  using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
@@ -213,7 +213,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     fsv[5] = fsv[10];
     fsv[7] = fsv[11];
   } else {
-    ParallelFor::Run(param.num_threads, buff_size / 16, reorder_fsv, fsv);
+    For::Run(param.num_threads, buff_size / 16, reorder_fsv, fsv);
   }
 
   auto capsule = py::capsule(
@@ -222,9 +222,9 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 }
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
-  using Simulator = qsim::Simulator<ParallelFor>;
+  using Simulator = qsim::Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, ParallelFor>;
+                                          Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Circuit<GateQSim<float>> circuit;
