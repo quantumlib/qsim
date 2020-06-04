@@ -32,7 +32,7 @@ inline void do_not_free(void*) noexcept {}
 }  // namespace detail
 
 // Routines for state-vector manipulations.
-template <typename ParallelFor, typename FP>
+template <typename For, typename FP>
 class StateSpace {
  public:
   using fp_type = FP;
@@ -90,7 +90,7 @@ class StateSpace {
       dest.get()[i] = src.get()[i];
     };
 
-    ParallelFor::Run(num_threads_, raw_size_, f, src, dest);
+    For::Run(num_threads_, raw_size_, f, src, dest);
   }
 
  protected:

@@ -12,34 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "simulator_testfixture.h"
+#ifndef FORMUX_H_
+#define FORMUX_H_
 
-#include "gtest/gtest.h"
+#ifdef _OPENMP
+# include "parfor.h"
+  namespace qsim {
+    using For = ParallelFor;
+  }
+#else
+# include "seqfor.h"
+  namespace qsim {
+    using For = SequentialFor;
+  }
+#endif
 
-#include "../lib/formux.h"
-#include "../lib/simulator_sse.h"
-
-namespace qsim {
-
-TEST(SimulatorSSETest, ApplyGate1) {
-  TestApplyGate1<SimulatorSSE<For>>();
-}
-
-TEST(SimulatorSSETest, ApplyGate2) {
-  TestApplyGate2<SimulatorSSE<For>>();
-}
-
-TEST(SimulatorSSETest, ApplyGate3) {
-  TestApplyGate3<SimulatorSSE<For>>();
-}
-
-TEST(SimulatorSSETest, ApplyGate5) {
-  TestApplyGate5<SimulatorSSE<For>>();
-}
-
-}  // namespace qsim
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+#endif  // FORMUX_H_

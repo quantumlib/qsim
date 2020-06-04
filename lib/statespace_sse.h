@@ -32,9 +32,9 @@ namespace qsim {
 // State is a vectorized sequence of four real components followed by four
 // imaginary components. Four single-precison floating numbers can be loaded
 // into an SSE register.
-template <typename ParallelFor>
-struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
-  using Base = StateSpace<ParallelFor, float>;
+template <typename For>
+struct StateSpaceSSE : public StateSpace<For, float> {
+  using Base = StateSpace<For, float>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
@@ -52,7 +52,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
       _mm_store_ps(state.get() + 8 * i + 4, val0);
     };
 
-    ParallelFor::Run(Base::num_threads_, Base::raw_size_ / 8, f, val0, state);
+    For::Run(Base::num_threads_, Base::raw_size_ / 8, f, val0, state);
   }
 
   // Uniform superposition.
@@ -76,8 +76,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
       _mm_store_ps(state.get() + 8 * i + 4, val0);
     };
 
-    ParallelFor::Run(Base::num_threads_, Base::raw_size_ / 8, f,
-                     val0, valu, state);
+    For::Run(Base::num_threads_, Base::raw_size_ / 8, f, val0, valu, state);
   }
 
   // |0> state.
@@ -118,7 +117,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
       return buffer[0] + buffer[1] + buffer[2] + buffer[3];
     };
 
-    return ParallelFor::RunReduce(
+    return For::RunReduce(
         Base::num_threads_, Base::raw_size_ / 8, f, Op(), state);
   }
 
@@ -147,7 +146,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
       return std::complex<double>{re, im};
     };
 
-    return ParallelFor::RunReduce(
+    return For::RunReduce(
         Base::num_threads_, Base::raw_size_ / 8, f, Op(), state1, state2);
   }
 
@@ -169,7 +168,7 @@ struct StateSpaceSSE : public StateSpace<ParallelFor, float> {
       return bre[0] + bre[1] + bre[2] + bre[3];
     };
 
-    return ParallelFor::RunReduce(
+    return For::RunReduce(
         Base::num_threads_, Base::raw_size_ / 8, f, Op(), state1, state2);
   }
 

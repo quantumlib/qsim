@@ -30,6 +30,7 @@ they fulfill the same expectations.
 | Op (util.h)             | [`to_int` (in `Options`)](apps/qsim_amplitudes.cc)    |
 | ParallelFor             | [`ParallelFor`](lib/parfor.h)                     |
 | Params                  | Vector of `fp_type`.                              |
+| SequentialFor           | [`SequentialFor`](lib/seqfor.h)                   |
 | Simulator               | [`SimulatorAVX`](lib/simulator_avx.h)             |
 | State                   | Unique pointer to `fp_type`.                      |
 | StateSpace              | [`StateSpace`](lib/statespace.h)                  |

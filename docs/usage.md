@@ -135,10 +135,3 @@ Example:
 ./qsimh_amplitudes.x -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 1 -p 9 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w1 -v 1
 ...
 ```
-
-# Running without AVX
-
-SimulatorBasic can be used on older systems that do not support AVX
-instructions. In this case, simulator_basic.h should be included instead of
-simulator_avx.h and SimulatorAVX should be replaced by
-SimulatorBasic<ParallelFor, float>.

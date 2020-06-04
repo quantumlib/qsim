@@ -26,10 +26,10 @@
 namespace qsim {
 
 // Quantum circuit simulator with SSE vectorization.
-template <typename ParallelFor>
+template <typename For>
 class SimulatorSSE final {
  public:
-  using StateSpace = StateSpaceSSE<ParallelFor>;
+  using StateSpace = StateSpaceSSE<For>;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
 
@@ -131,8 +131,7 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    ParallelFor::Run(num_threads_, sizei / 8, f,
-                     sizek, mask0, mask1, matrix, rstate);
+    For::Run(num_threads_, sizei / 8, f, sizek, mask0, mask1, matrix, rstate);
   }
 
   // Applies a single-qubit gate for qubit <= 1.
@@ -213,8 +212,8 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    ParallelFor::Run(num_threads_, std::max(uint64_t{1}, sizei / 8), f,
-                     q0, matrix, rstate);
+    For::Run(num_threads_, std::max(uint64_t{1}, sizei / 8), f, q0,
+             matrix, rstate);
   }
 
   // Applies two-qubit gate for qubit0 > 1 and qubit1 > 1.
@@ -366,8 +365,8 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    ParallelFor::Run(num_threads_, sizei / 8, f,
-                     sizej, sizek, mask0, mask1, mask2, matrix, rstate);
+    For::Run(num_threads_, sizei / 8, f, sizej, sizek, mask0, mask1, mask2,
+             matrix, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 <= 1 and qubit1 > 1.
@@ -558,8 +557,8 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    ParallelFor::Run(num_threads_, sizei / 8, f,
-                     sizej, mask0, mask1, q0, matrix, rstate);
+    For::Run(num_threads_, sizei / 8, f, sizej, mask0, mask1, q0,
+             matrix, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 = 0 and qubit1 = 1.
@@ -602,7 +601,7 @@ class SimulatorSSE final {
           + s2r * u[29] + s2i * u[28] + s3r * u[31] + s3i * u[30];
     };
 
-    ParallelFor::Run(num_threads_, sizei / 8, f, matrix, rstate);
+    For::Run(num_threads_, sizei / 8, f, matrix, rstate);
   }
 
   unsigned num_qubits_;

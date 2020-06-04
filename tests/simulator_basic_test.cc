@@ -16,25 +16,25 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/parfor.h"
+#include "../lib/formux.h"
 #include "../lib/simulator_basic.h"
 
 namespace qsim {
 
 TEST(SimulatorBasicTest, ApplyGate1) {
-  TestApplyGate1<SimulatorBasic<ParallelFor, double>>();
+  TestApplyGate1<SimulatorBasic<For, double>>();
 }
 
 TEST(SimulatorBasicTest, ApplyGate2) {
-  TestApplyGate2<SimulatorBasic<ParallelFor, double>>();
+  TestApplyGate2<SimulatorBasic<For, double>>();
 }
 
 TEST(SimulatorBasicTest, ApplyGate3) {
-  TestApplyGate3<SimulatorBasic<ParallelFor, double>>();
+  TestApplyGate3<SimulatorBasic<For, double>>();
 }
 
 TEST(SimulatorBasicTest, ApplyGate5) {
-  TestApplyGate5<SimulatorBasic<ParallelFor, double>>();
+  TestApplyGate5<SimulatorBasic<For, double>>();
 }
 
 }  // namespace qsim

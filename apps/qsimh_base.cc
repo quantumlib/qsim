@@ -23,10 +23,10 @@
 
 #include "../lib/bitstring.h"
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
-#include "../lib/parfor.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
@@ -151,9 +151,9 @@ int main(int argc, char* argv[]) {
     bitstrings.push_back(i);
   }
 
-  using Simulator = qsim::Simulator<ParallelFor>;
+  using Simulator = qsim::Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, ParallelFor>;
+                                          Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;

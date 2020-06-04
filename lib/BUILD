@@ -9,6 +9,7 @@ cc_library(
         "bitstring.h",
         "circuit_qsim_parser.h",
         "circuit.h",
+        "formux.h",
         "fuser_basic.h",
         "fuser.h",
         "gate.h",
@@ -41,6 +42,7 @@ cc_library(
     hdrs = [
         "circuit.h",
         "circuit_qsim_parser.h",
+        "formux.h",
         "fuser.h",
         "fuser_basic.h",
         "gate.h",
@@ -51,6 +53,7 @@ cc_library(
         "matrix.h",
         "parfor.h",
         "run_qsim.h",
+        "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
         "simulator_basic.h",
@@ -69,6 +72,7 @@ cc_library(
     hdrs = [
         "circuit.h",
         "circuit_qsim_parser.h",
+        "formux.h",
         "fuser.h",
         "fuser_basic.h",
         "gate.h",
@@ -80,6 +84,7 @@ cc_library(
         "matrix.h",
         "parfor.h",
         "run_qsimh.h",
+        "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
         "simulator_basic.h",
@@ -137,6 +142,16 @@ cc_library(
 cc_library(
     name = "seqfor",
     hdrs = ["seqfor.h"],
+)
+
+# All three state-vector simulators with multiplexer
+cc_library(
+    name = "formux",
+    hdrs = ["formux.h"],
+    deps = [
+        ":parfor",
+        ":seqfor",
+    ],
 )
 
 ### Gate libraries ###

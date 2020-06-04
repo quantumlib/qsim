@@ -20,11 +20,11 @@
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/hybrid.h"
 #include "../lib/io.h"
-#include "../lib/parfor.h"
 #include "../lib/simulator_avx.h"
 
 namespace qsim {
@@ -66,9 +66,9 @@ R"(2
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 23);
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = SimulatorAVX<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, ParallelFor>;
+                                          Simulator, For>;
   using Fuser = HybridSimulator::Fuser;
 
   std::vector<unsigned> parts = {0, 1};
@@ -245,9 +245,9 @@ R"(4
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using Simulator = SimulatorAVX<ParallelFor>;
+  using Simulator = SimulatorAVX<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, ParallelFor>;
+                                          Simulator, For>;
   using Fuser = HybridSimulator::Fuser;
 
   std::vector<unsigned> parts = {0, 0, 1, 1};
