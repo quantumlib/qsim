@@ -25,7 +25,7 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/hybrid.h"
 #include "../lib/io.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 
 namespace qsim {
 
@@ -66,7 +66,7 @@ R"(2
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 23);
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
                                           Simulator, For>;
   using Fuser = HybridSimulator::Fuser;
@@ -245,7 +245,7 @@ R"(4
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
                                           Simulator, For>;
   using Fuser = HybridSimulator::Fuser;

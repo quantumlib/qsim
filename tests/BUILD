@@ -1,8 +1,6 @@
 # Options for testing different simulator types.
 avx_copts = ['-mavx2', '-mfma']
 sse_copts = ['-msse4']
-omp_copts = ['-fopenmp']
-omp_linkopts = ['-lgomp']
 
 windows_copts = [
     "/arch:AVX",
@@ -92,13 +90,12 @@ cc_test(
         "//lib:gates_qsim",
         "//lib:hybrid",
         "//lib:io",
-        "//lib:simulator_avx",
+        "//lib:simulator",
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": avx_copts + omp_copts,
+        "//conditions:default": [],
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -124,9 +121,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": avx_copts + omp_copts,
+        "//conditions:default": [],
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -139,9 +135,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": avx_copts + omp_copts,
+        "//conditions:default": [],
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_library(
@@ -171,9 +166,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": avx_copts + omp_copts,
+        "//conditions:default": avx_copts,
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -187,9 +181,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": omp_copts,
+        "//conditions:default": [],
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -203,9 +196,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": sse_copts + omp_copts,
+        "//conditions:default": sse_copts,
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_library(
@@ -238,9 +230,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": avx_copts + omp_copts,
+        "//conditions:default": avx_copts,
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -255,9 +246,8 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": omp_copts,
+        "//conditions:default": [],
     }),
-    linkopts = omp_linkopts,
 )
 
 cc_test(
@@ -272,7 +262,6 @@ cc_test(
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": sse_copts + omp_copts,
+        "//conditions:default": sse_copts,
     }),
-    linkopts = omp_linkopts,
 )

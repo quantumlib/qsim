@@ -144,7 +144,7 @@ cc_library(
     hdrs = ["seqfor.h"],
 )
 
-# All three state-vector simulators with multiplexer
+# Both parallelism control paths with multiplexer
 cc_library(
     name = "formux",
     hdrs = ["formux.h"],

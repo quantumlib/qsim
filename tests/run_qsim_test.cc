@@ -27,7 +27,7 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/run_qsim.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 
 namespace qsim {
 
@@ -72,7 +72,7 @@ TEST(RunQSimTest, QSimRunner1) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
@@ -109,7 +109,7 @@ TEST(RunQSimTest, QSimRunner2) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
@@ -144,7 +144,7 @@ TEST(RunQSimTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>();
   const auto& expected_results = CirqCircuit1::expected_results;
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
