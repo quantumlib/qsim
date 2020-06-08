@@ -27,7 +27,7 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/run_qsimh.h"
-#include "../lib/simulator_avx.h"
+#include "../lib/simmux.h"
 
 namespace qsim {
 
@@ -108,7 +108,7 @@ TEST(RunQSimHTest, QSimHRunner) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
                                           Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
@@ -165,7 +165,7 @@ TEST(RunQSimHTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>();
   const auto& expected_results = CirqCircuit1::expected_results;
 
-  using Simulator = SimulatorAVX<For>;
+  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
                                           BasicGateFuser, Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;

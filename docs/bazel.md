@@ -1,16 +1,41 @@
 # Building with Bazel
 
-<!-- TODO: expand to explain other Bazel build options. -->
 qsim provides [Bazel](https://github.com/bazelbuild/bazel) build rules for its
 applications and tests. To build and run all tests using Bazel, run the
 following command:
 ```
-bazel test --config=avx tests:all
+# AVX and OpenMP are recommended for best performance.
+# See "Build configs" section below for more information.
+bazel test --config=avx --config=openmp tests:all
 ```
 
 To run a sample simulation, use the command below. Note that this command
 requires the circuit file to be specified both on the command line and in the
 `data` field of the `qsim_base` BUILD rule.
 ```
-bazel run --config=avx apps:qsim_base -- -c circuits/circuit_q24
+bazel run --config=avx --config=openmp apps:qsim_base -- -c circuits/circuit_q24
 ```
+
+## Build configs
+
+Depending on the optimizers available on your machine, different config flags
+(such as `--config=avx`, above) can be set to control which optimizers are
+included in a given build or test run.
+
+Vector arithmetic optimizers (pick one at most):
+```
+# Use AVX instructions for vector arithmetic.
+--config=avx
+
+# Use SSE instructions for vector arithmetic.
+--config=sse
+```
+
+Parallelism optimizers (pick one at most):
+```
+# Use OpenMP to run operations in parallel when possible.
+--config=avx
+```
+
+We also provide `--config=basic`. This flag does not affect the build or test,
+but can be useful in scripts (e.g. where `--config=" "` is not valid).
