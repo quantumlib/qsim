@@ -20,6 +20,12 @@ jobs:
   test:
     name: Test with Bazel
     runs-on: ubuntu-16.04
+    strategy:
+      matrix:
+        # Hardware optimizers.
+        hardware_opt: [avx,sse,basic]
+        # Optimizers for parallelism.
+        parallel_opt: [openmp,basic]
 
     steps:
       - uses: actions/checkout@v2
@@ -30,6 +36,11 @@ jobs:
           wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
           sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
       - name: Run C++ tests
-        run: bazel test tests:all
+        run: |
+          bazel test --config=${{ matrix.hardware_opt }} \
+          --config=${{ matrix.parallel_opt }} tests:all
       - name: Run sample simulation
-        run: bazel run --config=avx --config=openmp apps:qsim_base -- -c circuits/circuit_q24
+        run: |
+          bazel run --config=${{ matrix.hardware_opt }} \
+          --config=${{ matrix.parallel_opt }} apps:qsim_base \
+          -- -c circuits/circuit_q24
