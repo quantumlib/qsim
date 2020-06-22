@@ -20,9 +20,13 @@ from qsimcirq import qsim
 
 def _cirq_gate_kind(gate):
   if isinstance(gate, cirq.ops.identity.IdentityGate):
-    if gate.num_qubits == 1:
+    if gate.num_qubits() == 1:
       return qsim.kI
-    return qsim.kI2
+    if gate.num_qubits() == 2:
+      return qsim.kI2
+    raise NotImplementedError(
+      f'Received identity on {gate.num_qubits()} qubits; '
+      + 'only 1- or 2-qubit gates are supported.')
   if isinstance(gate, cirq.ops.XPowGate):
     # cirq.rx also uses this path.
     if gate.exponent == 1:
@@ -85,12 +89,15 @@ def _cirq_gate_kind(gate):
   if isinstance(gate, cirq.ops.FSimGate):
     return qsim.kFSimGate
   if isinstance(gate, cirq.ops.MatrixGate):
-    if gate.num_qubits == 1:
+    if gate.num_qubits() == 1:
       return qsim.kMatrixGate1
-    return qsim.kMatrixGate2
-  # No matches - decomposition is required.
-  # TODO: support decomposition.
-  return qsim.kGateDecomp
+    if gate.num_qubits() == 2:
+      return qsim.kMatrixGate2
+    raise NotImplementedError(
+      f'Received matrix on {gate.num_qubits()} qubits; '
+      + 'only 1- or 2-qubit gates are supported.')
+  # TODO: support decomposing unrecognized gates.
+  raise NotImplementedError(f'Gate {gate} is of unrecognized type.')
 
 
 class QSimCircuit(cirq.Circuit):

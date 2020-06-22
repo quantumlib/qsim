@@ -20,6 +20,32 @@ import qsimcirq
 
 class MainTest(unittest.TestCase):
 
+  def test_cirq_unimplemented_gate(self):
+    a = cirq.GridQubit(0, 0)
+
+    # Create a circuit with an unsupported gate.
+    cirq_circuit = cirq.Circuit(cirq.QuantumFourierTransformGate(1).on(a))
+
+    qsimSim = qsimcirq.QSimSimulator()
+    with self.assertRaises(NotImplementedError):
+      qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
+
+  def test_cirq_too_big_gate(self):
+    # Pick qubits.
+    a, b, c, d = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+        cirq.GridQubit(1, 1),
+        cirq.GridQubit(1, 0)
+    ]
+
+    # Create a circuit with a gate larger than 2 qubits.
+    cirq_circuit = cirq.Circuit(cirq.IdentityGate(4).on(a, b, c, d))
+
+    qsimSim = qsimcirq.QSimSimulator()
+    with self.assertRaises(NotImplementedError):
+      qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
+
   def test_cirq_qsim_simulate(self):
     # Pick qubits.
     a, b, c, d = [
