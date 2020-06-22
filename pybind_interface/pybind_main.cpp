@@ -48,20 +48,12 @@ T parseOptions(const py::dict &options, const char *key) {
   return value.cast<T>();
 }
 
-Circuit<GateQSim<float>> getCircuit(const py::dict &options) {
-  Circuit<GateQSim<float>> circuit;
-  std::string circuit_str;
+Circuit<Cirq::GateCirq<float>> getCircuit(const py::dict &options) {
   try {
-    circuit_str = parseOptions<std::string>(options, "c\0");
+    return options["c\0"].cast<Circuit<Cirq::GateCirq<float>>>();
   } catch (const std::invalid_argument &exp) {
     throw;
   }
-  std::stringstream ss(circuit_str);
-  if (!CircuitQsimParser<IO>::FromStream(std::numeric_limits<unsigned>::max(),
-                                         "cirq_circuit_str", ss, circuit)) {
-    throw std::invalid_argument("Unable to parse provided circuit.\n");
-  }
-  return circuit;
 }
 
 std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
@@ -117,8 +109,181 @@ auto reorder_fsv = [](unsigned n, unsigned m, uint64_t i, float *fsv) {
 
 }  // namespace
 
+void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
+              const std::vector<unsigned>& qubits,
+              const std::map<std::string, float>& params,
+              Circuit<Cirq::GateCirq<float>>* circuit) {
+  switch (gate_kind) {
+    case Cirq::kI:
+      circuit->gates.push_back(Cirq::I<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kI2:
+      circuit->gates.push_back(
+        Cirq::I2<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kXPowGate:
+      circuit->gates.push_back(
+        Cirq::XPowGate<float>::Create(time, qubits[0], params.at("exponent"),
+                                      params.at("global_shift")));
+      break;
+    case Cirq::kYPowGate:
+      circuit->gates.push_back(
+        Cirq::YPowGate<float>::Create(time, qubits[0], params.at("exponent"),
+                                      params.at("global_shift")));
+      break;
+    case Cirq::kZPowGate:
+      circuit->gates.push_back(
+        Cirq::ZPowGate<float>::Create(time, qubits[0], params.at("exponent"),
+                                      params.at("global_shift")));
+      break;
+    case Cirq::kHPowGate:
+      circuit->gates.push_back(
+        Cirq::HPowGate<float>::Create(time, qubits[0], params.at("exponent"),
+                                      params.at("global_shift")));
+      break;
+    case Cirq::kCZPowGate:
+      circuit->gates.push_back(
+        Cirq::CZPowGate<float>::Create(time, qubits[0], qubits[1],
+                                       params.at("exponent"),
+                                       params.at("global_shift")));
+      break;
+    case Cirq::kCXPowGate:
+      circuit->gates.push_back(
+        Cirq::CXPowGate<float>::Create(time, qubits[0], qubits[1],
+                                       params.at("exponent"),
+                                       params.at("global_shift")));
+      break;
+    case Cirq::krx:
+      circuit->gates.push_back(
+        Cirq::rx<float>::Create(time, qubits[0], params.at("phi")));
+      break;
+    case Cirq::kry:
+      circuit->gates.push_back(
+        Cirq::ry<float>::Create(time, qubits[0], params.at("phi")));
+      break;
+    case Cirq::krz:
+      circuit->gates.push_back(
+        Cirq::rz<float>::Create(time, qubits[0], params.at("phi")));
+      break;
+    case Cirq::kH:
+      circuit->gates.push_back(Cirq::H<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kS:
+      circuit->gates.push_back(Cirq::S<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kCZ:
+      circuit->gates.push_back(
+        Cirq::CZ<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kCX:
+      circuit->gates.push_back(
+        Cirq::CX<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kT:
+      circuit->gates.push_back(Cirq::T<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kX:
+      circuit->gates.push_back(Cirq::X<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kY:
+      circuit->gates.push_back(Cirq::Y<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kZ:
+      circuit->gates.push_back(Cirq::Z<float>::Create(time, qubits[0]));
+      break;
+    case Cirq::kPhasedXPowGate:
+      circuit->gates.push_back(
+        Cirq::PhasedXPowGate<float>::Create(time, qubits[0],
+                                            params.at("phase_exponent"),
+                                            params.at("exponent"),
+                                            params.at("global_shift")));
+      break;
+    case Cirq::kPhasedXZGate:
+      circuit->gates.push_back(
+        Cirq::PhasedXZGate<float>::Create(time, qubits[0],
+                                          params.at("x_exponent"),
+                                          params.at("z_exponent"),
+                                          params.at("axis_phase_exponent")));
+      break;
+    case Cirq::kXXPowGate:
+      circuit->gates.push_back(
+        Cirq::XXPowGate<float>::Create(time, qubits[0], qubits[1],
+                                       params.at("exponent"),
+                                       params.at("global_shift")));
+      break;
+    case Cirq::kYYPowGate:
+      circuit->gates.push_back(
+        Cirq::YYPowGate<float>::Create(time, qubits[0], qubits[1],
+                                       params.at("exponent"),
+                                       params.at("global_shift")));
+      break;
+    case Cirq::kZZPowGate:
+      circuit->gates.push_back(
+        Cirq::ZZPowGate<float>::Create(time, qubits[0], qubits[1],
+                                       params.at("exponent"),
+                                       params.at("global_shift")));
+      break;
+    case Cirq::kXX:
+      circuit->gates.push_back(
+        Cirq::XX<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kYY:
+      circuit->gates.push_back(
+        Cirq::YY<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kZZ:
+      circuit->gates.push_back(
+        Cirq::ZZ<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kSwapPowGate:
+      circuit->gates.push_back(
+        Cirq::SwapPowGate<float>::Create(time, qubits[0], qubits[1],
+                                         params.at("exponent"),
+                                         params.at("global_shift")));
+      break;
+    case Cirq::kISwapPowGate:
+      circuit->gates.push_back(
+        Cirq::ISwapPowGate<float>::Create(time, qubits[0], qubits[1],
+                                          params.at("exponent"),
+                                          params.at("global_shift")));
+      break;
+    case Cirq::kriswap:
+      circuit->gates.push_back(
+        Cirq::riswap<float>::Create(time, qubits[0], qubits[1],
+                                    params.at("phi")));
+      break;
+    case Cirq::kSWAP:
+      circuit->gates.push_back(
+        Cirq::SWAP<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kISWAP:
+      circuit->gates.push_back(
+        Cirq::ISWAP<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kPhasedISwapPowGate:
+      circuit->gates.push_back(
+        Cirq::PhasedISwapPowGate<float>::Create(time, qubits[0], qubits[1],
+                                                params.at("phase_exponent"),
+                                                params.at("exponent")));
+      break;
+    case Cirq::kgivens:
+      circuit->gates.push_back(
+        Cirq::givens<float>::Create(time, qubits[0], qubits[1],
+                                    params.at("phi")));
+      break;
+    case Cirq::kFSimGate:
+      circuit->gates.push_back(
+        Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
+                                      params.at("theta"), params.at("phi")));
+      break;
+    // TODO: support translating matrix gates.
+    default:
+      throw std::invalid_argument("GateKind not supported.");
+  }
+}
+
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Cirq::GateCirq<float>> circuit;
   std::vector<Bitstring> bitstrings;
   try {
     circuit = getCircuit(options);
@@ -144,7 +309,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     }
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>, Simulator>;
 
   Runner::Parameter param;
   try {
@@ -159,7 +324,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 }
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Cirq::GateCirq<float>> circuit;
   try {
     circuit = getCircuit(options);
   } catch (const std::invalid_argument &exp) {
@@ -178,7 +343,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>, Simulator>;
 
   Runner::Parameter param;
   try {
@@ -223,11 +388,11 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
-  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
+  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>, BasicGateFuser,
                                           Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Cirq::GateCirq<float>> circuit;
   std::vector<Bitstring> bitstrings;
   Runner::Parameter param;
   py::list dense_parts;
