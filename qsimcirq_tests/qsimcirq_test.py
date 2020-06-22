@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import unittest
 import cirq
 import qsimcirq
@@ -39,7 +40,7 @@ class MainTest(unittest.TestCase):
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b0100, 0b1011])
-    self.assertSequenceEqual(result, [0.5j, 0j])
+    assert np.allclose(result, [0.5j, 0j])
 
   def test_cirq_qsim_simulate_fullstate(self):
     # Pick qubits.
@@ -116,7 +117,7 @@ class MainTest(unittest.TestCase):
     qsimhSim = qsimcirq.QSimhSimulator(qsimh_options)
     result = qsimhSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11])
-    self.assertSequenceEqual(result, [0j, 0j, (1 + 0j), 0j])
+    assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
 
 
 if __name__ == '__main__':

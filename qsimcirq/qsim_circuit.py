@@ -15,6 +15,82 @@
 import numpy as np
 
 import cirq
+from qsimcirq import qsim
+
+
+def _cirq_gate_kind(gate):
+  if isinstance(gate, cirq.ops.identity.IdentityGate):
+    if gate.num_qubits == 1:
+      return qsim.kI
+    return qsim.kI2
+  if isinstance(gate, cirq.ops.XPowGate):
+    # cirq.rx also uses this path.
+    if gate.exponent == 1:
+      return qsim.kX
+    return qsim.kXPowGate
+  if isinstance(gate, cirq.ops.YPowGate):
+    # cirq.ry also uses this path.
+    if gate.exponent == 1:
+      return qsim.kY
+    return qsim.kYPowGate
+  if isinstance(gate, cirq.ops.ZPowGate):
+    # cirq.rz also uses this path.
+    if gate.exponent == 1:
+      return qsim.kZ
+    if gate.exponent == 0.5:
+      return qsim.kS
+    if gate.exponent == 0.25:
+      return qsim.kT
+    return qsim.kZPowGate
+  if isinstance(gate, cirq.ops.HPowGate):
+    if gate.exponent == 1:
+      return qsim.kH
+    return qsim.kHPowGate
+  if isinstance(gate, cirq.ops.CZPowGate):
+    if gate.exponent == 1:
+      return qsim.kCZ
+    return qsim.kCZPowGate
+  if isinstance(gate, cirq.ops.CXPowGate):
+    if gate.exponent == 1:
+      return qsim.kCX
+    return qsim.kCXPowGate
+  if isinstance(gate, cirq.ops.PhasedXPowGate):
+    return qsim.kPhasedXPowGate
+  if isinstance(gate, cirq.ops.PhasedXZGate):
+    return qsim.kPhasedXZGate
+  if isinstance(gate, cirq.ops.XXPowGate):
+    if gate.exponent == 1:
+      return qsim.kXX
+    return qsim.kXXPowGate
+  if isinstance(gate, cirq.ops.YYPowGate):
+    if gate.exponent == 1:
+      return qsim.kYY
+    return qsim.kYYPowGate
+  if isinstance(gate, cirq.ops.ZZPowGate):
+    if gate.exponent == 1:
+      return qsim.kZZ
+    return qsim.kZZPowGate
+  if isinstance(gate, cirq.ops.SwapPowGate):
+    if gate.exponent == 1:
+      return qsim.kSWAP
+    return qsim.kSwapPowGate
+  if isinstance(gate, cirq.ops.ISwapPowGate):
+    # cirq.riswap also uses this path.
+    if gate.exponent == 1:
+      return qsim.kISWAP
+    return qsim.kISwapPowGate
+  if isinstance(gate, cirq.ops.PhasedISwapPowGate):
+    # cirq.givens also uses this path.
+    return qsim.kPhasedISwapPowGate
+  if isinstance(gate, cirq.ops.FSimGate):
+    return qsim.kFSimGate
+  if isinstance(gate, cirq.ops.MatrixGate):
+    if gate.num_qubits == 1:
+      return qsim.kMatrixGate1
+    return qsim.kMatrixGate2
+  # No matches - decomposition is required.
+  # TODO: support decomposition.
+  return qsim.kGateDecomp
 
 
 class QSimCircuit(cirq.Circuit):
@@ -50,14 +126,15 @@ class QSimCircuit(cirq.Circuit):
   def translate_cirq_to_qsim(
       self,
       qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
-  ) -> str:
+  ) -> qsim.Circuit:
     """
-        Translates this Cirq circuit to the qsim representation
+        Translates this Cirq circuit to the qsim representation.
         :qubit_order: Ordering of qubits
-        :return: the string representing line-by-line the qsim circuit
+        :return: a C++ qsim Circuit object
         """
 
-    circuit_data = []
+    qsim_circuit = qsim.Circuit()
+    qsim_circuit.num_qubits = len(self.all_qubits())
     ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         self.all_qubits())
 
@@ -67,74 +144,13 @@ class QSimCircuit(cirq.Circuit):
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
     for mi, moment in enumerate(self):
       for op in moment:
+        gate_kind = _cirq_gate_kind(op.gate)
+        time = mi
+        qubits = [qubit_to_index_dict[q] for q in op.qubits]
+        params = {
+          p.strip('_'): val for p, val in vars(op.gate).items()
+          if isinstance(val, float)
+        }
+        qsim.add_gate(gate_kind, time, qubits, params, qsim_circuit)
 
-        qub_str = ""
-        for qub in op.qubits:
-          qub_str += "{} ".format(qubit_to_index_dict[qub])
-
-        qsim_gate = ""
-        qsim_params = ""
-        if isinstance(op.gate, cirq.ops.HPowGate)\
-                and op.gate.exponent == 1.0:
-          qsim_gate = "h"
-        elif isinstance(op.gate, cirq.ops.ZPowGate) \
-                and op.gate.exponent == 0.25:
-          qsim_gate = "t"
-        elif isinstance(op.gate, cirq.ops.XPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "x"
-        elif isinstance(op.gate, cirq.ops.YPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "y"
-        elif isinstance(op.gate, cirq.ops.ZPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "z"
-        elif isinstance(op.gate, cirq.ops.XPowGate) \
-                and op.gate.exponent == 0.5:
-          qsim_gate = "x_1_2"
-        elif isinstance(op.gate, cirq.ops.YPowGate) \
-                and op.gate.exponent == 0.5:
-          qsim_gate = "y_1_2"
-        elif isinstance(op.gate, cirq.ops.XPowGate):
-          qsim_gate = "rx"
-          qsim_params = str(op.gate.exponent*np.pi)
-        elif isinstance(op.gate, cirq.ops.YPowGate):
-          qsim_gate = "ry"
-          qsim_params = str(op.gate.exponent*np.pi)
-        elif isinstance(op.gate, cirq.ops.ZPowGate):
-          qsim_gate = "rz"
-          qsim_params = str(op.gate.exponent*np.pi)
-        elif isinstance(op.gate, cirq.ops.CZPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "cz"
-        elif isinstance(op.gate, cirq.ops.CNotPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "cnot"
-        elif isinstance(op.gate, cirq.ops.SwapPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "sw"
-        elif isinstance(op.gate, cirq.ops.ISwapPowGate) \
-                and op.gate.exponent == 1.0:
-          qsim_gate = "is"
-        elif isinstance(op.gate, cirq.ops.CZPowGate):
-          qsim_gate = "cp"
-          qsim_params = str(op.gate.exponent*np.pi)
-        elif isinstance(op.gate, cirq.ops.FSimGate):
-          qsim_gate = "fs"
-          qsim_params = "{} {}".format(op.gate.theta, op.gate.phi)
-        elif isinstance(op.gate, cirq.ops.identity.IdentityGate) \
-                and op.gate.num_qubits() == 1:
-          qsim_gate = "id1"
-        elif isinstance(op.gate, cirq.ops.identity.IdentityGate) \
-                and op.gate.num_qubits() == 2:
-          qsim_gate = "id2"
-        else:
-          raise ValueError("{!r} No translation for ".format(op))
-
-        # The moment is missing
-        qsim_gate = "{} {} {} {}".format(mi, qsim_gate, qub_str.strip(),
-                                         qsim_params.strip())
-        circuit_data.append(qsim_gate.strip())
-
-    circuit_data.insert(0, str(len(ordered_qubits)))
-    return "\n".join(circuit_data)
+    return qsim_circuit

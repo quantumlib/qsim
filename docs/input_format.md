@@ -1,5 +1,10 @@
 #  Input circuit file format
 
+**WARNING:** This format only supports the `gates_qsim` gate set, and is no
+longer actively maintained. For other gates, circuits must be defined in code
+or through the qsimcirq interface using 
+[Cirq](https://github.com/quantumlib/cirq).
+
 The first line contains the number of qubits. The rest of the lines specify
 gates with one gate per line. The format for a gate is
 

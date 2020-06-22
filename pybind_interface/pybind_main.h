@@ -23,6 +23,14 @@ namespace py = pybind11;
 
 #include <vector>
 
+#include "../lib/circuit.h"
+#include "../lib/gates_cirq.h"
+
+void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
+              const std::vector<unsigned>& qubits,
+              const std::map<std::string, float>& params,
+              qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options);
@@ -36,6 +44,58 @@ PYBIND11_MODULE(qsim, m) {
   m.def("qsim_simulate_fullstate", &qsim_simulate_fullstate,
         "Call the qsim simulator for full state vector simulation");
   m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");
+
+  using GateCirq = qsim::Cirq::GateCirq<float>;
+  using GateKind = qsim::Cirq::GateKind;
+  using Circuit = qsim::Circuit<GateCirq>;
+
+  py::class_<Circuit>(m, "Circuit")
+    .def(py::init<>())
+    .def_readwrite("num_qubits", &Circuit::num_qubits)
+    .def_readwrite("gates", &Circuit::gates);
+
+  py::enum_<GateKind>(m, "GateKind")
+    .value("kI", GateKind::kI)
+    .value("kI2", GateKind::kI2)
+    .value("kXPowGate", GateKind::kXPowGate)
+    .value("kYPowGate", GateKind::kYPowGate)
+    .value("kZPowGate", GateKind::kZPowGate)
+    .value("kHPowGate", GateKind::kHPowGate)
+    .value("kCZPowGate", GateKind::kCZPowGate)
+    .value("kCXPowGate", GateKind::kCXPowGate)
+    .value("krx", GateKind::krx)
+    .value("kry", GateKind::kry)
+    .value("krz", GateKind::krz)
+    .value("kH", GateKind::kH)
+    .value("kS", GateKind::kS)
+    .value("kCZ", GateKind::kCZ)
+    .value("kCX", GateKind::kCX)
+    .value("kT", GateKind::kT)
+    .value("kX", GateKind::kX)
+    .value("kY", GateKind::kY)
+    .value("kZ", GateKind::kZ)
+    .value("kPhasedXPowGate", GateKind::kPhasedXPowGate)
+    .value("kPhasedXZGate", GateKind::kPhasedXZGate)
+    .value("kXXPowGate", GateKind::kXXPowGate)
+    .value("kYYPowGate", GateKind::kYYPowGate)
+    .value("kZZPowGate", GateKind::kZZPowGate)
+    .value("kXX", GateKind::kXX)
+    .value("kYY", GateKind::kYY)
+    .value("kZZ", GateKind::kZZ)
+    .value("kSwapPowGate", GateKind::kSwapPowGate)
+    .value("kISwapPowGate", GateKind::kISwapPowGate)
+    .value("kriswap", GateKind::kriswap)
+    .value("kSWAP", GateKind::kSWAP)
+    .value("kISWAP", GateKind::kISWAP)
+    .value("kPhasedISwapPowGate", GateKind::kPhasedISwapPowGate)
+    .value("kgivens", GateKind::kgivens)
+    .value("kFSimGate", GateKind::kFSimGate)
+    .value("kMatrixGate1", GateKind::kMatrixGate1)
+    .value("kMatrixGate2", GateKind::kMatrixGate2)
+    .value("kGateDecomp", GateKind::kGateDecomp)
+    .export_values();
+
+  m.def("add_gate", &add_gate, "Adds a gate to the given circuit.");
 }
 
 #endif
