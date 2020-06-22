@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "../lib/bitstring.h"
-#include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
