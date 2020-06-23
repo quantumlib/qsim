@@ -96,8 +96,8 @@ def _cirq_gate_kind(gate):
     raise NotImplementedError(
       f'Received matrix on {gate.num_qubits()} qubits; '
       + 'only 1- or 2-qubit gates are supported.')
-  # TODO: support decomposing unrecognized gates.
-  raise NotImplementedError(f'Gate {gate} is of unrecognized type.')
+  # Unrecognized gates will be decomposed.
+  return None
 
 
 class QSimCircuit(cirq.Circuit):
@@ -149,15 +149,32 @@ class QSimCircuit(cirq.Circuit):
     ordered_qubits = list(reversed(ordered_qubits))
 
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
+    time_offset = 0
     for mi, moment in enumerate(self):
+      moment_length = 1
       for op in moment:
-        gate_kind = _cirq_gate_kind(op.gate)
-        time = mi
-        qubits = [qubit_to_index_dict[q] for q in op.qubits]
-        params = {
-          p.strip('_'): val for p, val in vars(op.gate).items()
-          if isinstance(val, float)
-        }
-        qsim.add_gate(gate_kind, time, qubits, params, qsim_circuit)
+        qsim_ops = cirq.decompose(
+          op, keep=lambda x: _cirq_gate_kind(x.gate) != None)
+        moment_length = max(moment_length, len(qsim_ops))
+
+        for gi, qsim_op in enumerate(qsim_ops):
+          gate_kind = _cirq_gate_kind(qsim_op.gate)
+          time = mi + time_offset + gi
+          qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
+          params = {
+            p.strip('_'): val for p, val in vars(qsim_op.gate).items()
+            if isinstance(val, float)
+          }
+          if gate_kind == qsim.kMatrixGate1:
+            qsim.add_matrix1(time, qubits,
+                             cirq.unitary(qsim_op.gate).tolist(),
+                             qsim_circuit)
+          elif gate_kind == qsim.kMatrixGate2:
+            qsim.add_matrix2(time, qubits,
+                             cirq.unitary(qsim_op.gate).tolist(),
+                             qsim_circuit)
+          else:
+            qsim.add_gate(gate_kind, time, qubits, params, qsim_circuit)
+      time_offset += moment_length
 
     return qsim_circuit
