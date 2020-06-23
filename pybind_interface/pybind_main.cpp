@@ -275,7 +275,7 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
         Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
                                       params.at("theta"), params.at("phi")));
       break;
-    // TODO: support translating matrix gates.
+    // Matrix gates are handled in the add_matrix methods below.
     default:
       throw std::invalid_argument("GateKind not supported.");
   }

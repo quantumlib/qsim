@@ -150,7 +150,7 @@ class QSimCircuit(cirq.Circuit):
 
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
     time_offset = 0
-    for mi, moment in enumerate(self):
+    for moment in self:
       moment_length = 1
       for op in moment:
         qsim_ops = cirq.decompose(
@@ -159,7 +159,7 @@ class QSimCircuit(cirq.Circuit):
 
         for gi, qsim_op in enumerate(qsim_ops):
           gate_kind = _cirq_gate_kind(qsim_op.gate)
-          time = mi + time_offset + gi
+          time = time_offset + gi
           qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
           params = {
             p.strip('_'): val for p, val in vars(qsim_op.gate).items()
