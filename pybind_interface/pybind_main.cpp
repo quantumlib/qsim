@@ -275,10 +275,24 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
         Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
                                       params.at("theta"), params.at("phi")));
       break;
-    // TODO: support translating matrix gates.
+    // Matrix gates are handled in the add_matrix methods below.
     default:
       throw std::invalid_argument("GateKind not supported.");
   }
+}
+
+// The Matrix(1|2)q objects are typedefs for Python-compatible objects.
+void add_matrix1(const unsigned time, const std::vector<unsigned>& qubits,
+                 const qsim::Cirq::Matrix1q<float>& matrix,
+                 Circuit<Cirq::GateCirq<float>>* circuit) {
+  circuit->gates.push_back(
+    Cirq::MatrixGate1<float>::Create(time, qubits[0], matrix));
+}
+void add_matrix2(const unsigned time, const std::vector<unsigned>& qubits,
+                 const qsim::Cirq::Matrix2q<float>& matrix,
+                 Circuit<Cirq::GateCirq<float>>* circuit) {
+  circuit->gates.push_back(
+    Cirq::MatrixGate2<float>::Create(time, qubits[0], qubits[1], matrix));
 }
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
