@@ -31,6 +31,14 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::map<std::string, float>& params,
               qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
 
+void add_matrix1(const unsigned time, const std::vector<unsigned>& qubits,
+                 const qsim::Cirq::Matrix1q<float>& matrix,
+                 qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+
+void add_matrix2(const unsigned time, const std::vector<unsigned>& qubits,
+                 const qsim::Cirq::Matrix2q<float>& matrix,
+                 qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options);
@@ -96,6 +104,10 @@ PYBIND11_MODULE(qsim, m) {
     .export_values();
 
   m.def("add_gate", &add_gate, "Adds a gate to the given circuit.");
+  m.def("add_matrix1", &add_matrix1,
+        "Adds a one-qubit matrix-defined gate to the given circuit.");
+  m.def("add_matrix2", &add_matrix2,
+        "Adds a two-qubit matrix-defined gate to the given circuit.");
 }
 
 #endif

@@ -20,16 +20,6 @@ import qsimcirq
 
 class MainTest(unittest.TestCase):
 
-  def test_cirq_unimplemented_gate(self):
-    a = cirq.GridQubit(0, 0)
-
-    # Create a circuit with an unsupported gate.
-    cirq_circuit = cirq.Circuit(cirq.QuantumFourierTransformGate(1).on(a))
-
-    qsimSim = qsimcirq.QSimSimulator()
-    with self.assertRaises(NotImplementedError):
-      qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
-
   def test_cirq_too_big_gate(self):
     # Pick qubits.
     a, b, c, d = [
@@ -105,6 +95,68 @@ class MainTest(unittest.TestCase):
     # to other simulators. This is fine, as the result is equivalent.
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
+
+  def test_matrix1_gate(self):
+    q = cirq.LineQubit(0)
+    m = np.array([[1, 1j], [1j, 1]]) * np.sqrt(0.5)
+
+    cirq_circuit = cirq.Circuit(cirq.MatrixGate(m).on(q))
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit)
+    assert result.state_vector().shape == (2,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+  def test_matrix2_gate(self):
+    qubits = cirq.LineQubit.range(2)
+    m = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+
+    cirq_circuit = cirq.Circuit(cirq.MatrixGate(m).on(*qubits))
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (4,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+  def test_decomposable_gate(self):
+    qubits = cirq.LineQubit.range(3)
+
+    # The Toffoli gate (CCX) decomposes into multiple qsim-supported gates.
+    cirq_circuit = cirq.Circuit(
+        cirq.H(qubits[0]),
+        cirq.H(qubits[1]),
+        cirq.CCX(*qubits),
+        cirq.H(qubits[2]),
+    )
+
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    # Decomposition may result in gates which add a global phase.
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+  def test_cirq_irreconcilable_gate(self):
+    a, b, c, d = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+        cirq.GridQubit(1, 1),
+        cirq.GridQubit(1, 0)
+    ]
+
+    # The QFT gate does not decompose cleanly into the qsim gateset.
+    cirq_circuit = cirq.Circuit(
+        cirq.QuantumFourierTransformGate(4).on(a, b, c, d))
+
+    qsimSim = qsimcirq.QSimSimulator()
+    with self.assertRaises(ValueError):
+      qsimSim.simulate(cirq_circuit)
 
   def test_cirq_qsim_simulate_random_unitary(self):
 
