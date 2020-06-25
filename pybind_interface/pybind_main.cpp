@@ -72,40 +72,6 @@ std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
   return bitstrings;
 }
 
-auto reorder_fsv = [](unsigned n, unsigned m, uint64_t i, float *fsv) {
-  auto a = fsv + 16 * i;
-
-  auto r1 = a[1];
-  auto r2 = a[2];
-  auto r3 = a[3];
-  auto r4 = a[4];
-  auto r5 = a[5];
-  auto r6 = a[6];
-  auto r7 = a[7];
-  auto i0 = a[8];
-  auto i1 = a[9];
-  auto i2 = a[10];
-  auto i3 = a[11];
-  auto i4 = a[12];
-  auto i5 = a[13];
-  auto i6 = a[14];
-
-  a[1] = i0;
-  a[2] = r1;
-  a[3] = i1;
-  a[4] = r2;
-  a[5] = i2;
-  a[6] = r3;
-  a[7] = i3;
-  a[8] = r4;
-  a[9] = i4;
-  a[10] = r5;
-  a[11] = i5;
-  a[12] = r6;
-  a[13] = i6;
-  a[14] = r7;
-};
-
 }  // namespace
 
 void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
@@ -322,7 +288,8 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     }
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
+                            Simulator>;
 
   Runner::Parameter param;
   try {
@@ -356,7 +323,8 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
+                            Simulator>;
 
   Runner::Parameter param;
   try {
@@ -378,21 +346,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     return {};
   }
 
-  if (circuit.num_qubits == 1) {
-    fsv[2] = fsv[1];
-    fsv[1] = fsv[8];
-    fsv[3] = fsv[9];
-  } else if (circuit.num_qubits == 2) {
-    fsv[6] = fsv[3];
-    fsv[4] = fsv[2];
-    fsv[2] = fsv[1];
-    fsv[1] = fsv[8];
-    fsv[3] = fsv[9];
-    fsv[5] = fsv[10];
-    fsv[7] = fsv[11];
-  } else {
-    For::Run(param.num_threads, buff_size / 16, reorder_fsv, fsv);
-  }
+  state_space.InternalToNormalOrder(state);
 
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
@@ -401,8 +355,8 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
-  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>, BasicGateFuser,
-                                          Simulator, For>;
+  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
+                                          BasicGateFuser, Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Circuit<Cirq::GateCirq<float>> circuit;

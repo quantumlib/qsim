@@ -43,6 +43,102 @@ struct StateSpaceAVX : public StateSpace<For, float> {
              2 * std::max(uint64_t{8}, uint64_t{1} << num_qubits)),
         num_qubits_(num_qubits) {}
 
+  void InternalToNormalOrder(State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
+      auto s = state.get() + 16 * i;
+
+      fp_type re[7];
+      fp_type im[7];
+
+      for (uint64_t i = 0; i < 7; ++i) {
+        re[i] = s[i + 1];
+        im[i] = s[i + 8];
+      }
+
+      for (uint64_t i = 0; i < 7; ++i) {
+        s[2 * i + 1] = im[i];
+        s[2 * i + 2] = re[i];
+      }
+    };
+
+    if (num_qubits_ == 1) {
+      auto s = state.get();
+
+      s[2] = s[1];
+      s[1] = s[8];
+      s[3] = s[9];
+
+      for (uint64_t i = 4; i < 16; ++i) {
+        s[i] = 0;
+      }
+    } else if (num_qubits_ == 2) {
+      auto s = state.get();
+
+      s[6] = s[3];
+      s[4] = s[2];
+      s[2] = s[1];
+      s[1] = s[8];
+      s[3] = s[9];
+      s[5] = s[10];
+      s[7] = s[11];
+
+      for (uint64_t i = 8; i < 16; ++i) {
+        s[i] = 0;
+      }
+    } else {
+      For::Run(Base::num_threads_, Base::raw_size_ / 16, f, state);
+    }
+  }
+
+  void NormalToInternalOrder(State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
+      auto s = state.get() + 16 * i;
+
+      fp_type re[7];
+      fp_type im[7];
+
+      for (uint64_t i = 0; i < 7; ++i) {
+        im[i] = s[2 * i + 1];
+        re[i] = s[2 * i + 2];
+      }
+
+      for (uint64_t i = 0; i < 7; ++i) {
+        s[i + 1] = re[i];
+        s[i + 8] = im[i];
+      }
+    };
+
+    if (num_qubits_ == 1) {
+      auto s = state.get();
+
+      s[8] = s[1];
+      s[1] = s[2];
+      s[9] = s[3];
+
+      for (uint64_t i = 2; i < 8; ++i) {
+        s[i] = 0;
+        s[i + 8] = 0;
+      }
+    } else if (num_qubits_ == 2) {
+      auto s = state.get();
+
+      s[8] = s[1];
+      s[9] = s[3];
+      s[10] = s[5];
+      s[11] = s[7];
+      s[1] = s[2];
+      s[2] = s[4];
+      s[3] = s[6];
+
+      for (uint64_t i = 4; i < 8; ++i) {
+        s[i] = 0;
+        s[i + 8] = 0;
+      }
+    } else {
+      For::Run(Base::num_threads_, Base::raw_size_ / 16, f, state);
+    }
+  }
+
   void SetAllZeros(State& state) const {
     __m256 val0 = _mm256_setzero_ps();
 
