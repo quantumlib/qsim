@@ -42,6 +42,10 @@ TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
   TestSamplingCrossEntropyDifference<SimulatorAVX<For>>();
 }
 
+TEST(StateSpaceAVXTest, Ordering) {
+  TestOrdering<StateSpaceAVX<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

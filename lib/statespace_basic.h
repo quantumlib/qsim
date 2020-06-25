@@ -37,6 +37,10 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
   StateSpaceBasic(unsigned num_qubits, unsigned num_threads)
       : Base(num_qubits, num_threads, 2 * (uint64_t{1} << num_qubits)) {}
 
+  void InternalToNormalOrder(State& state) const {}
+
+  void NormalToInternalOrder(State& state) const {}
+
   void SetAllZeros(State& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
       state.get()[2 * i + 0] = 0;
