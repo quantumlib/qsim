@@ -20,6 +20,7 @@
 #include <complex>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -549,6 +550,40 @@ void TestSamplingCrossEntropyDifference() {
   double ced = circuit.num_qubits * std::log(2) + gamma + sum / num_samples;
 
   EXPECT_NEAR(ced, 1.0, 2e-3);
+}
+
+template <typename StateSpace>
+void TestOrdering() {
+  using fp_type = typename StateSpace::fp_type;
+  using State = typename StateSpace::State;
+
+  for (unsigned num_qubits : {1, 2, 5}) {
+    uint64_t size = uint64_t{1} << num_qubits;
+
+    std::vector<fp_type> vec(2 * std::max(uint64_t{8}, size), 0);
+
+    StateSpace state_space(num_qubits, 1);
+    State state = state_space.CreateState(vec.data());
+
+    for (uint64_t i = 0; i < size; ++i) {
+      state_space.SetAmpl(state, i, std::complex<fp_type>(i, size + i));
+    }
+
+    state_space.InternalToNormalOrder(state);
+
+    for (uint64_t i = 0; i < size; ++i) {
+      EXPECT_NEAR(vec[2 * i], fp_type(i), 1e-8);
+      EXPECT_NEAR(vec[2 * i + 1], fp_type(size + i), 1e-8);
+    }
+
+    state_space.NormalToInternalOrder(state);
+
+    for (uint64_t i = 0; i < size; ++i) {
+      auto a = state_space.GetAmpl(state, i);
+      EXPECT_NEAR(std::real(a), fp_type(i), 1e-8);
+      EXPECT_NEAR(std::imag(a), fp_type(size + i), 1e-8);
+    }
+  }
 }
 
 }  // namespace qsim

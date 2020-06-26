@@ -42,6 +42,10 @@ TEST(StateSpaceSSETest, SamplingCrossEntropyDifference) {
   TestSamplingCrossEntropyDifference<SimulatorSSE<For>>();
 }
 
+TEST(StateSpaceSSETest, Ordering) {
+  TestOrdering<StateSpaceSSE<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
