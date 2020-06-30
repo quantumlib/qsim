@@ -31,7 +31,7 @@ from qsimcirq import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
-class QSimSimulatorState(sim.WaveFunctionSimulatorState):
+class QSimSimulatorState(sim.StateVectorSimulatorState):
 
     def __init__(self,
                  qsim_data: np.ndarray,
@@ -40,7 +40,7 @@ class QSimSimulatorState(sim.WaveFunctionSimulatorState):
       super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
-class QSimSimulatorTrialResult(sim.WaveFunctionTrialResult):
+class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
     
     def __init__(self,
                  params: study.ParamResolver,
@@ -122,7 +122,7 @@ class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
     """Simulates the supplied Circuit.
 
       This method returns a result which allows access to the entire
-      wave function. In contrast to simulate, this allows for sweeping
+      state vector. In contrast to simulate, this allows for sweeping
       over different parameter values.
 
       Args:

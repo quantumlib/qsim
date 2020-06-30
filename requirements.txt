@@ -1,6 +1,6 @@
 # Runtime requirements for the python 3 version of cirq.
 
-cirq==0.8.0
+cirq==0.9.0
 numpy~=1.16
 typing_extensions
 
