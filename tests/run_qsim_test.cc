@@ -85,7 +85,7 @@ TEST(RunQSimTest, QSimRunner1) {
 
     entropy = 0;
 
-    for (uint64_t i = 0; i < state_space.Size(state); ++i) {
+    for (uint64_t i = 0; i < state_space.Size(); ++i) {
       auto ampl = state_space.GetAmpl(state, i);
       float p = std::norm(ampl);
       entropy -= p * std::log(p);
@@ -93,6 +93,7 @@ TEST(RunQSimTest, QSimRunner1) {
   };
 
   Runner::Parameter param;
+  param.seed = 1;
   param.num_threads = 1;
   param.verbosity = 0;
 
@@ -122,6 +123,7 @@ TEST(RunQSimTest, QSimRunner2) {
   state_space.SetStateZero(state);
 
   Runner::Parameter param;
+  param.seed = 1;
   param.num_threads = 1;
   param.verbosity = 0;
 
@@ -131,7 +133,7 @@ TEST(RunQSimTest, QSimRunner2) {
 
   float entropy = 0;
 
-  for (uint64_t i = 0; i < state_space.Size(state); ++i) {
+  for (uint64_t i = 0; i < state_space.Size(); ++i) {
     auto ampl = state_space.GetAmpl(state, i);
     float p = std::norm(ampl);
     entropy -= p * std::log(p);
@@ -154,17 +156,18 @@ TEST(RunQSimTest, CirqGates) {
   State state = state_space.CreateState();
 
   EXPECT_FALSE(state_space.IsNull(state));
-  EXPECT_EQ(state_space.Size(state), expected_results.size());
+  EXPECT_EQ(state_space.Size(), expected_results.size());
 
   state_space.SetStateZero(state);
 
   Runner::Parameter param;
+  param.seed = 1;
   param.num_threads = 1;
   param.verbosity = 0;
 
   EXPECT_TRUE(Runner::Run(param, 99, circuit, state));
 
-  for (uint64_t i = 0; i < state_space.Size(state); ++i) {
+  for (uint64_t i = 0; i < state_space.Size(); ++i) {
     auto ampl = state_space.GetAmpl(state, i);
     EXPECT_NEAR(std::real(ampl), std::real(expected_results[i]), 2e-6);
     EXPECT_NEAR(std::imag(ampl), std::imag(expected_results[i]), 2e-6);

@@ -58,14 +58,20 @@ inline double GetTime() {
                                     / steady_clock::period::den;
 }
 
+template <typename DistrRealType, typename RGen>
+inline DistrRealType RandomValue(RGen& rgen, DistrRealType max_value) {
+  std::uniform_real_distribution<DistrRealType> distr(0.0, max_value);
+  return distr(rgen);
+}
+
 template <typename DistrRealType>
 inline std::vector<DistrRealType> GenerateRandomValues(
-    uint64_t num_samples, unsigned seed, double norm) {
+    uint64_t num_samples, unsigned seed, DistrRealType max_value) {
   std::vector<DistrRealType> rs;
   rs.reserve(num_samples + 1);
 
   std::mt19937 rgen(seed);
-  std::uniform_real_distribution<DistrRealType> distr(0.0, norm);
+  std::uniform_real_distribution<DistrRealType> distr(0.0, max_value);
 
   for (uint64_t i = 0; i < num_samples; ++i) {
     rs.emplace_back(distr(rgen));
@@ -73,7 +79,7 @@ inline std::vector<DistrRealType> GenerateRandomValues(
 
   std::sort(rs.begin(), rs.end());
   // Populate the final element to prevent sanitizer errors.
-  rs.emplace_back(norm);
+  rs.emplace_back(max_value);
 
   return rs;
 }

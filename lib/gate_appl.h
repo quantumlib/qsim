@@ -73,10 +73,10 @@ inline void ApplyGate(
     const Simulator& simulator, const Gate& gate, State& state) {
   typename Simulator::fp_type matrix[32];
 
-  if (gate.num_qubits == 1) {
+  if (gate.num_qubits == 1 && gate.matrix.size() == 8) {
     std::copy(gate.matrix.begin(), gate.matrix.begin() + 8, matrix);
     simulator.ApplyGate1(gate.qubits[0], matrix, state);
-  } else if (gate.num_qubits == 2) {
+  } else if (gate.num_qubits == 2 && gate.matrix.size() == 32) {
     std::copy(gate.matrix.begin(), gate.matrix.begin() + 32, matrix);
 
     // Here we should have gate.qubits[0] < gate.qubits[1].
@@ -96,16 +96,13 @@ inline void ApplyFusedGate(
     const Simulator& simulator, const Gate& gate, State& state) {
   typename Simulator::fp_type matrix[32];
 
-  if (gate.num_qubits == 1) {
+  if (gate.num_qubits == 1 && gate.pmaster->matrix.size() == 8) {
     CalcMatrix2(gate.gates, matrix);
     simulator.ApplyGate1(gate.qubits[0], matrix, state);
-  } else if (gate.num_qubits == 2) {
+  } else if (gate.num_qubits == 2 && gate.pmaster->matrix.size() == 32) {
     // Here we should have gate.qubits[0] < gate.qubits[1].
-    unsigned q0 = gate.qubits[0];
-    unsigned q1 = gate.qubits[1];
-
-    CalcMatrix4(q0, q1, gate.gates, matrix);
-    simulator.ApplyGate2(q0, q1, matrix, state);
+    CalcMatrix4(gate.qubits[0], gate.qubits[1], gate.gates, matrix);
+    simulator.ApplyGate2(gate.qubits[0], gate.qubits[1], matrix, state);
   }
 }
 

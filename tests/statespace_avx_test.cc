@@ -46,6 +46,14 @@ TEST(StateSpaceAVXTest, Ordering) {
   TestOrdering<StateSpaceAVX<For>>();
 }
 
+TEST(StateSpaceAVXTest, MeasurementSmall) {
+  TestMeasurementSmall<StateSpaceAVX<For>, For>();
+}
+
+TEST(StateSpaceAVXTest, MeasurementLarge) {
+  TestMeasurementLarge<SimulatorAVX<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

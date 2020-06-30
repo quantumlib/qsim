@@ -46,6 +46,14 @@ TEST(StateSpaceSSETest, Ordering) {
   TestOrdering<StateSpaceSSE<For>>();
 }
 
+TEST(StateSpaceSSETest, MeasurementSmall) {
+  TestMeasurementSmall<StateSpaceSSE<For>, For>();
+}
+
+TEST(StateSpaceSSETest, MeasurementLarge) {
+  TestMeasurementLarge<SimulatorSSE<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

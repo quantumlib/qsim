@@ -22,6 +22,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
+#include <vector>
+
+#include "util.h"
 
 namespace qsim {
 
@@ -38,9 +41,16 @@ class StateSpace {
   using fp_type = FP;
   using State = std::unique_ptr<fp_type, decltype(&free)>;
 
+  struct MeasurementResult {
+    uint64_t mask;
+    uint64_t bits;
+    std::vector<unsigned> bitstring;
+    bool valid;
+  };
+
   StateSpace(unsigned num_qubits, unsigned num_threads, uint64_t raw_size)
-      : size_(uint64_t{1} << num_qubits), raw_size_(raw_size),
-        num_threads_(num_threads) {}
+      : num_qubits_(num_qubits), num_threads_(num_threads),
+        raw_size_(raw_size) {}
 
   State CreateState() const {
     auto vector_size = sizeof(fp_type) * raw_size_;
@@ -56,7 +66,7 @@ class StateSpace {
     #endif
   }
 
-  State CreateState(fp_type* p) const {
+  static State CreateState(fp_type* p) {
     return State(p, &detail::do_not_free);
   }
 
@@ -64,11 +74,11 @@ class StateSpace {
     return State(nullptr, &free);
   }
 
-  uint64_t Size(const State& state) const {
-    return size_;
+  uint64_t Size() const {
+    return uint64_t{1} << num_qubits_;
   }
 
-  uint64_t RawSize(const State& state) const {
+  uint64_t RawSize() const {
     return raw_size_;
   }
 
@@ -94,9 +104,67 @@ class StateSpace {
   }
 
  protected:
-  uint64_t size_;
-  uint64_t raw_size_;
+  template <typename Func>
+  double Norm(uint64_t size, Func&& PartialNorms, const State& state) const {
+    auto partial_norms = PartialNorms(num_threads_, size, state);
+
+    double norm = partial_norms[0];
+    for (std::size_t i = 1; i < partial_norms.size(); ++i) {
+      norm += partial_norms[i];
+    }
+
+    return norm;
+  }
+
+  template <typename RGen, typename Func1, typename Func2>
+  MeasurementResult VirtualMeasure(
+      const std::vector<unsigned>& qubits, RGen& rgen, const State& state,
+      uint64_t size, Func1&& PartialNorms, Func2&& FindMeasuredBits) const {
+    MeasurementResult result;
+
+    result.valid = true;
+    result.mask = 0;
+
+    for (auto q : qubits) {
+      if (q >= num_qubits_) {
+        result.valid = false;
+        return result;
+      }
+
+      result.mask |= uint64_t{1} << q;
+    }
+
+    auto partial_norms = PartialNorms(num_threads_, size, state);
+
+    for (std::size_t i = 1; i < partial_norms.size(); ++i) {
+      partial_norms[i] += partial_norms[i - 1];
+    }
+
+    auto norm = partial_norms.back();
+    auto r = RandomValue(rgen, norm);
+
+    unsigned m = 0;
+    while (r > partial_norms[m]) ++m;
+    r -= m > 0 ? partial_norms[m - 1] : 0;
+
+    uint64_t k0 = For::GetIndex0(size, num_threads_, m);
+    uint64_t k1 = For::GetIndex1(size, num_threads_, m);
+
+    result.bits = FindMeasuredBits(k0, k1, r, result.mask, state);
+
+    result.bitstring.reserve(qubits.size());
+    result.bitstring.resize(0);
+
+    for (auto q : qubits) {
+      result.bitstring.push_back((result.bits >> q) & 1);
+    }
+
+    return result;
+  }
+
+  unsigned num_qubits_;
   unsigned num_threads_;
+  uint64_t raw_size_;
 };
 
 }  // namespace qsim

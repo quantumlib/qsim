@@ -47,12 +47,12 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
       state.get()[2 * i + 1] = 0;
     };
 
-    For::Run(Base::num_threads_, Base::size_, f, state);
+    For::Run(Base::num_threads_, Base::raw_size_ / 2, f, state);
   }
 
   // Uniform superposition.
   void SetStateUniform(State& state) const {
-    fp_type val = fp_type{1} / std::sqrt(Base::size_);
+    fp_type val = fp_type{1} / std::sqrt(Base::Size());
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 fp_type val, State& state) {
@@ -60,7 +60,7 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
       state.get()[2 * i + 1] = 0;
     };
 
-    For::Run(Base::num_threads_, Base::size_, f, val, state);
+    For::Run(Base::num_threads_, Base::raw_size_ / 2, f, val, state);
   }
 
   // |0> state.
@@ -88,15 +88,7 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
   }
 
   double Norm(const State& state) const {
-    using Op = std::plus<double>;
-
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      auto s = state.get() + 2 * i;
-      return s[0] * s[0] + s[1] * s[1];
-    };
-
-    return For::RunReduce(Base::num_threads_, Base::size_, f, Op(), state);
+    return Base::Norm(Base::raw_size_ / 2, PartialNorms, state);
   }
 
   std::complex<double> InnerProduct(
@@ -115,7 +107,7 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
     };
 
     return For::RunReduce(
-        Base::num_threads_, Base::size_, f, Op(), state1, state2);
+        Base::num_threads_, Base::raw_size_ / 2, f, Op(), state1, state2);
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
@@ -130,7 +122,7 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
     };
 
     return For::RunReduce(
-        Base::num_threads_, Base::size_, f, Op(), state1, state2);
+        Base::num_threads_, Base::raw_size_ / 2, f, Op(), state1, state2);
   }
 
   template <typename DistrRealType = double>
@@ -140,11 +132,12 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
 
     if (num_samples > 0) {
       double norm = 0;
-      uint64_t size = 2 * Base::size_;
-      const fp_type* v = state.get();
+      uint64_t size = Base::raw_size_ / 2;
 
-      for (uint64_t k = 0; k < size; k += 2) {
-        norm += v[k] * v[k] + v[k + 1] * v[k + 1];
+      for (uint64_t k = 0; k < size; ++k) {
+        auto re = state.get()[2 * k];
+        auto im = state.get()[2 * k + 1];
+        norm += re * re + im * im;
       }
 
       auto rs = GenerateRandomValues<DistrRealType>(num_samples, seed, norm);
@@ -153,16 +146,100 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
       double csum = 0;
       bitstrings.reserve(num_samples);
 
-      for (uint64_t k = 0; k < size; k += 2) {
-        csum += v[k] * v[k] + v[k + 1] * v[k + 1];
+      for (uint64_t k = 0; k < size; ++k) {
+        auto re = state.get()[2 * k];
+        auto im = state.get()[2 * k + 1];
+        csum += re * re + im * im;
         while (rs[m] < csum && m < num_samples) {
-          bitstrings.emplace_back(k / 2);
+          bitstrings.emplace_back(k);
           ++m;
         }
       }
     }
 
     return bitstrings;
+  }
+
+  using MeasurementResult = typename Base::MeasurementResult;
+
+  template <typename RGen>
+  MeasurementResult Measure(const std::vector<unsigned>& qubits,
+                            RGen& rgen, State& state) const {
+    auto result = VirtualMeasure(qubits, rgen, state);
+
+    if (result.valid) {
+      CollapseState(result, state);
+    }
+
+    return result;
+  }
+
+  template <typename RGen>
+  MeasurementResult VirtualMeasure(const std::vector<unsigned>& qubits,
+                                   RGen& rgen, const State& state) const {
+    return Base::VirtualMeasure(qubits, rgen, state, Base::raw_size_ / 2,
+                                PartialNorms, FindMeasuredBits);
+  }
+
+
+  void CollapseState(MeasurementResult& result, State& state) const {
+    CollapseState(Base::num_threads_, Base::raw_size_ / 2, result.mask,
+                  result.bits, state);
+  }
+
+ private:
+  static std::vector<double> PartialNorms(
+      unsigned num_threads, uint64_t size, const State& state) {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const State& state) -> double {
+      auto s = state.get() + 2 * i;
+      return s[0] * s[0] + s[1] * s[1];
+    };
+
+    using Op = std::plus<double>;
+    return For::RunReduceP(num_threads, size, f, Op(), state);
+  }
+
+  static uint64_t FindMeasuredBits(uint64_t k0, uint64_t k1, double r,
+                                   uint64_t mask, const State& state) {
+    double csum = 0;
+
+    for (uint64_t k = k0; k < k1; ++k) {
+      auto re = state.get()[2 * k];
+      auto im = state.get()[2 * k + 1];
+      csum += re * re + im * im;
+      if (r < csum) {
+        return k & mask;
+      }
+    }
+
+    return 0;
+  }
+
+  static void CollapseState(unsigned num_threads, uint64_t size,
+                            uint64_t mask, uint64_t bits, State& state) {
+    auto f1 = [](unsigned n, unsigned m, uint64_t i, const State& state,
+                 uint64_t mask, uint64_t bits) -> double {
+      auto s = state.get() + 2 * i;
+      return (i & mask) == bits ? s[0] * s[0] + s[1] * s[1] : 0;
+    };
+
+    using Op = std::plus<double>;
+    double norm = For::RunReduce(num_threads, size, f1, Op(),
+                                 state, mask, bits);
+
+    double renorm = 1.0 / std::sqrt(norm);
+
+    auto f2 = [](unsigned n, unsigned m, uint64_t i,  State& state,
+                 uint64_t mask, uint64_t bits, fp_type renorm) {
+      auto s = state.get() + 2 * i;
+      bool not_zero = (i & mask) == bits;
+
+      s[0] = not_zero ? s[0] * renorm : 0;
+      s[1] = not_zero ? s[1] * renorm : 0;
+    };
+
+    For::Run(num_threads, size, f2, state, mask, bits, renorm);
   }
 };
 

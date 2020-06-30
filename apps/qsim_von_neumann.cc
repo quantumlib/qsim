@@ -32,25 +32,29 @@
 struct Options {
   std::string circuit_file;
   unsigned maxtime = std::numeric_limits<unsigned>::max();
+  unsigned seed = 1;
   unsigned num_threads = 1;
   unsigned verbosity = 0;
 };
 
 Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_von_neumann -c circuit -d maxtime "
-                           "-t threads -v verbosity\n";
+                           "-s seed -t threads -v verbosity\n";
 
   Options opt;
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:t:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
         break;
       case 'd':
         opt.maxtime = std::atoi(optarg);
+        break;
+      case 's':
+        opt.seed = std::atoi(optarg);
         break;
       case 't':
         opt.num_threads = std::atoi(optarg);
@@ -104,15 +108,15 @@ int main(int argc, char* argv[]) {
       return p != 0 ? p * std::log(p) : 0;
     };
 
-    auto size = state_space.Size(state);
-    double entropy = -For::RunReduce(opt.num_threads, size, f, Op(),
-                                     state_space, state);
+    double entropy = -For::RunReduce(opt.num_threads, state_space.Size(), f,
+                                     Op(), state_space, state);
     IO::messagef("entropy=%g\n", entropy);
   };
 
   using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
 
   Runner::Parameter param;
+  param.seed = opt.seed;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 

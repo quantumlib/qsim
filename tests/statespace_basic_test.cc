@@ -46,6 +46,14 @@ TEST(StateSpaceBasicTest, Ordering) {
   TestOrdering<StateSpaceBasic<For, float>>();
 }
 
+TEST(StateSpaceBasicTest, MeasurementSmall) {
+  TestMeasurementSmall<StateSpaceBasic<For, float>, For>();
+}
+
+TEST(StateSpaceBasicTest, MeasurementLarge) {
+  TestMeasurementLarge<SimulatorBasic<For, float>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

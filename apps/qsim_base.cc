@@ -30,25 +30,29 @@
 struct Options {
   std::string circuit_file;
   unsigned maxtime = std::numeric_limits<unsigned>::max();
+  unsigned seed = 1;
   unsigned num_threads = 1;
   unsigned verbosity = 0;
 };
 
 Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_base -c circuit -d maxtime "
-                           "-t threads -v verbosity\n";
+                           "-s seed -t threads -v verbosity\n";
 
   Options opt;
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:t:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
         break;
       case 'd':
         opt.maxtime = std::atoi(optarg);
+        break;
+      case 's':
+        opt.seed = std::atoi(optarg);
         break;
       case 't':
         opt.num_threads = std::atoi(optarg);
@@ -81,7 +85,7 @@ void PrintAmplitudes(
     "000", "001", "010", "011", "100", "101", "110", "111",
   };
 
-  uint64_t size = std::min(uint64_t{8}, state_space.Size(state));
+  uint64_t size = std::min(uint64_t{8}, state_space.Size());
   unsigned s = 3 - std::min(unsigned{3}, num_qubits);
 
   for (uint64_t i = 0; i < size; ++i) {
@@ -121,6 +125,7 @@ int main(int argc, char* argv[]) {
   state_space.SetStateZero(state);
 
   Runner::Parameter param;
+  param.seed = opt.seed;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 

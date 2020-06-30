@@ -46,7 +46,8 @@ enum GateKind {
   kGateIS,      // iSwap
   kGateFS,      // fSim
   kGateCP,      // control phase
-  kGateDecomp,  // single qubit gate from Schmidt decomposition
+  kDecomp = gate::kDecomp,
+  kMeasurement = gate::kMeasurement,
 };
 
 // Specialization of Gate (defined in gate.h) for the qsim gate set.
