@@ -169,6 +169,21 @@ class CircuitQsimParser final {
           ss >> q0 >> q1 >> phi;
           if (!ValidateGate(ss, num_qubits, q0, q1, provider, k)) return false;
           gates.push_back(GateCP<fp_type>::Create(time, q0, q1, phi));
+        } else if (gate_name == "m") {
+          std::vector<unsigned> qubits;
+          qubits.reserve(num_qubits);
+          do {
+            ss >> q0;
+            if (ss) {
+              qubits.push_back(q0);
+            } else {
+              InvalidGateError(provider, k);
+              return false;
+            }
+          } while (ss.peek() != std::stringstream::traits_type::eof());
+          if (!ValidateGate(ss, num_qubits, qubits, provider, k)) return false;
+          gates.push_back(gate::Measurement<GateQSim<fp_type>>::Create(
+              time, std::move(qubits)));
         } else {
           InvalidGateError(provider, k);
           return false;
@@ -243,6 +258,27 @@ class CircuitQsimParser final {
         || q0 >= num_qubits || q1 >= num_qubits || q0 == q1) {
       InvalidGateError(provider, line);
       return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Checks formatting for a multiqubit gate parsed from 'ss'.
+   * @param ss Input stream containing the gate specification.
+   * @param num_qubits Number of qubits, as defined at the start of the file.
+   * @param qubits Indices of affected qubits.
+   * @param provider Circuit source; only used for error reporting.
+   * @param line Line number of the parsed gate; only used for error reporting.
+   */
+  static bool ValidateGate(std::stringstream& ss, unsigned num_qubits,
+                           const std::vector<unsigned>& qubits,
+                           const std::string& provider, unsigned line) {
+    for (auto q : qubits) {
+      if (q >= num_qubits) {
+        InvalidGateError(provider, line);
+        return false;
+      }
     }
 
     return true;

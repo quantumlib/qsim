@@ -114,6 +114,11 @@ struct HybridSimulator final {
 
     // Split the lattice.
     for (const auto& gate : gates) {
+      if (gate.kind == gate::kMeasurement) {
+        IO::errorf("measurement gates are not suported by qsimh.\n");
+        return false;
+      }
+
       switch (gate.num_qubits) {
       case 1:  // Single qubit gates.
         switch (parts[gate.qubits[0]]) {
@@ -138,20 +143,20 @@ struct HybridSimulator final {
               gate.params, gate.matrix, false, gate.inverse, nullptr, 0});
             break;
           case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
-            hd.gates0.emplace_back(GateHybrid{GateKind::kGateDecomp, gate.time,
+            hd.gates0.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
               1, {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
               true, gate.inverse, &gate, hd.num_gatexs});
-            hd.gates1.emplace_back(GateHybrid{GateKind::kGateDecomp, gate.time,
+            hd.gates1.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
               1, {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
               true, gate.inverse, &gate, hd.num_gatexs});
 
             ++hd.num_gatexs;
             break;
           case 2:  // Gate on the cut, qubit 0 in part 0, qubit 1 in part 1.
-            hd.gates0.emplace_back(GateHybrid{GateKind::kGateDecomp, gate.time,
+            hd.gates0.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
               1, {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
               true, gate.inverse, &gate, hd.num_gatexs});
-            hd.gates1.emplace_back(GateHybrid{GateKind::kGateDecomp, gate.time,
+            hd.gates1.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
               1, {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
               true, gate.inverse, &gate, hd.num_gatexs});
 

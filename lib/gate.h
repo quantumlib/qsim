@@ -65,12 +65,40 @@ inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
   return gate;
 }
 
+template <typename Gate, typename GateDef>
+inline Gate CreateGate(unsigned time, std::vector<unsigned>&& qubits,
+                       std::vector<typename Gate::fp_type>&& matrix = {},
+                       std::vector<typename Gate::fp_type>&& params = {}) {
+  return Gate{GateDef::kind, time, static_cast<unsigned>(qubits.size()),
+              std::move(qubits), std::move(params), std::move(matrix),
+              false, false};
+}
+
 template <typename fp_type>
 using schmidt_decomp_type = std::vector<std::vector<std::vector<fp_type>>>;
 
 template <typename fp_type, typename GateKind>
 schmidt_decomp_type<fp_type> GetSchmidtDecomp(
     GateKind kind, const std::vector<fp_type>& params);
+
+namespace gate {
+
+constexpr int kDecomp = 100001;       // gate from Schmidt decomposition
+constexpr int kMeasurement = 100002;  // measurement gate
+
+template <typename Gate>
+struct Measurement {
+  using GateKind = typename Gate::GateKind;
+
+  static constexpr GateKind kind = GateKind::kMeasurement;
+  static constexpr char name[] = "m";
+
+  static Gate Create(unsigned time, std::vector<unsigned>&& qubits) {
+    return CreateGate<Gate, Measurement>(time, std::move(qubits));
+  }
+};
+
+}  // namespace gate
 
 }  // namespace qsim
 

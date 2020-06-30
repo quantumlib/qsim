@@ -19,6 +19,7 @@
 #include <cmath>
 #include <complex>
 #include <cstdint>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -394,10 +395,10 @@ void TestNormAndInnerProductSmall() {
   State state1 = state_space.CreateState();
   State state2 = state_space.CreateState();
 
-  EXPECT_EQ(state_space.IsNull(state1), false);
-  EXPECT_EQ(state_space.IsNull(state2), false);
-  EXPECT_EQ(state_space.Size(state1), size);
-  EXPECT_EQ(state_space.Size(state2), size);
+  EXPECT_FALSE(state_space.IsNull(state1));
+  EXPECT_FALSE(state_space.IsNull(state2));
+  EXPECT_EQ(state_space.Size(), size);
+  EXPECT_EQ(state_space.Size(), size);
 
   state_space.SetAllZeros(state1);
   state_space.SetAllZeros(state2);
@@ -438,7 +439,7 @@ void TestNormAndInnerProduct() {
 
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
   circuit.gates.emplace_back(GateT<float>::Create(depth + 1, 0));
 
   using StateSpace = typename Simulator::StateSpace;
@@ -448,7 +449,7 @@ void TestNormAndInnerProduct() {
   StateSpace state_space(circuit.num_qubits, 1);
   State state0 = state_space.CreateState();
 
-  EXPECT_EQ(state_space.IsNull(state0), false);
+  EXPECT_FALSE(state_space.IsNull(state0));
 
   auto measure = [&state0](unsigned k,
                            const StateSpace& state_space, const State& state) {
@@ -467,11 +468,12 @@ void TestNormAndInnerProduct() {
   };
 
   typename Runner::Parameter param;
+  param.seed = 1;
   param.num_threads = 1;
   param.verbosity = 0;
 
   std::vector<unsigned> times{depth, depth + 1};
-  EXPECT_EQ(Runner::Run(param, times, circuit, measure), true);
+  EXPECT_TRUE(Runner::Run(param, times, circuit, measure));
 }
 
 template <typename StateSpace>
@@ -485,8 +487,8 @@ void TestSamplingSmall() {
   StateSpace state_space(num_qubits, 1);
   State state = state_space.CreateState();
 
-  EXPECT_EQ(state_space.IsNull(state), false);
-  EXPECT_EQ(state_space.Size(state), size);
+  EXPECT_FALSE(state_space.IsNull(state));
+  EXPECT_EQ(state_space.Size(), size);
 
   std::array<float, size> ps = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
 
@@ -517,8 +519,7 @@ void TestSamplingCrossEntropyDifference() {
 
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
-  EXPECT_EQ(
-      CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
 
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
@@ -527,15 +528,16 @@ void TestSamplingCrossEntropyDifference() {
   StateSpace state_space(circuit.num_qubits, 1);
   State state = state_space.CreateState();
 
-  EXPECT_EQ(state_space.IsNull(state), false);
+  EXPECT_FALSE(state_space.IsNull(state));
 
   state_space.SetStateZero(state);
 
   typename Runner::Parameter param;
+  param.seed = 1;
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_EQ(Runner::Run(param, depth, circuit, state), true);
+  EXPECT_TRUE(Runner::Run(param, depth, circuit, state));
 
   auto bitstrings = state_space.Sample(state, num_samples, 1);
   EXPECT_EQ(bitstrings.size(), num_samples);
@@ -583,6 +585,169 @@ void TestOrdering() {
       EXPECT_NEAR(std::real(a), fp_type(i), 1e-8);
       EXPECT_NEAR(std::imag(a), fp_type(size + i), 1e-8);
     }
+  }
+}
+
+template <typename StateSpace, typename RGen>
+void MeasureSmall(unsigned num_measurements, unsigned num_threads,
+                  unsigned num_qubits,
+                  const std::vector<unsigned>& qubits_to_measure,
+                  const std::vector<float>& ps, RGen& rgen) {
+  uint64_t size = uint64_t{1} << num_qubits;
+
+  using State = typename StateSpace::State;
+
+  StateSpace state_space(num_qubits, num_threads);
+  State state = state_space.CreateState();
+
+  EXPECT_FALSE(state_space.IsNull(state));
+  EXPECT_EQ(state_space.Size(), size);
+
+  state_space.SetStateZero(state);
+
+  std::vector<std::complex<float>> ampls;
+  ampls.reserve(size);
+
+  std::vector<double> bins(size, 0);
+
+  for (uint64_t i = 0; i < size; ++i) {
+    float r = std::sqrt(ps[i]);
+    float re = r * std::cos(i);
+    float im = r * std::sin(i);
+    ampls.emplace_back(std::complex<float>{re, im});
+  }
+
+  std::vector<unsigned> measured_bits;
+
+  for (unsigned m = 0; m < num_measurements; ++m) {
+    for (uint64_t i = 0; i < size; ++i) {
+      state_space.SetAmpl(state, i, std::real(ampls[i]), std::imag(ampls[i]));
+    }
+
+    auto result = state_space.Measure(qubits_to_measure, rgen, state);
+    ASSERT_TRUE(result.valid);
+
+    ASSERT_NEAR(state_space.Norm(state), 1, 1e-6);
+
+    uint64_t bin = 0;
+    for (std::size_t k = 0; k < qubits_to_measure.size(); ++k) {
+      bin |= uint64_t{result.bitstring[k]} << qubits_to_measure[k];
+    }
+
+    EXPECT_EQ(bin, result.bits);
+
+    bins[bin] += 1;
+  }
+
+  uint64_t mask = 0;
+  for (std::size_t k = 0; k < qubits_to_measure.size(); ++k) {
+    mask |= uint64_t{1} << qubits_to_measure[k];
+  }
+
+  std::vector<float> expected_ps(size, 0);
+
+  for (uint64_t i = 0; i < size; ++i) {
+    expected_ps[i & mask] += ps[i];
+  }
+
+  for (uint64_t i = 0; i < size; ++i) {
+    if (expected_ps[i] == 0) {
+      EXPECT_EQ(bins[i], 0);
+    } else {
+      auto p = bins[i] / num_measurements;
+      auto rel_error = (p - expected_ps[i]) / expected_ps[i];
+      EXPECT_LE(rel_error, 0.02);
+    }
+  }
+}
+
+template <typename StateSpace, typename For>
+void TestMeasurementSmall() {
+  using S = StateSpace;
+
+  constexpr unsigned num_measurements = 200000;
+
+  std::mt19937 rgen(1);
+
+  std::vector<float> ps1 = {0.37, 0.63};
+  MeasureSmall<S>(num_measurements, 1, 1, {0}, ps1, rgen);
+
+  std::vector<float> ps2 = {0.22, 0.42, 0.15, 0.21};
+  MeasureSmall<S>(num_measurements, 1, 2, {1}, ps2, rgen);
+
+  std::vector<float> ps3 = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
+  MeasureSmall<S>(num_measurements, 1, 3, {2}, ps3, rgen);
+  MeasureSmall<S>(num_measurements, 1, 3, {0, 1, 2}, ps3, rgen);
+
+  std::vector<float> ps5 = {
+    0.041, 0.043, 0.028, 0.042, 0.002, 0.008, 0.039, 0.020,
+    0.017, 0.030, 0.020, 0.048, 0.020, 0.044, 0.032, 0.048,
+    0.025, 0.050, 0.030, 0.001, 0.039, 0.045, 0.005, 0.051,
+    0.030, 0.039, 0.012, 0.049, 0.034, 0.029, 0.050, 0.029
+  };
+  MeasureSmall<S>(num_measurements, 1, 5, {1, 3}, ps5, rgen);
+  MeasureSmall<S>(num_measurements, 1, 5, {1, 2, 3, 4}, ps5, rgen);
+}
+
+template <typename Simulator>
+void TestMeasurementLarge() {
+  unsigned depth = 20;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<float>> circuit;
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
+
+  using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
+  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+
+  StateSpace state_space(circuit.num_qubits, 1);
+  State state = state_space.CreateState();
+
+  EXPECT_FALSE(state_space.IsNull(state));
+
+  state_space.SetStateZero(state);
+
+  typename Runner::Parameter param;
+  param.seed = 1;
+  param.num_threads = 1;
+  param.verbosity = 0;
+
+  EXPECT_TRUE(Runner::Run(param, depth, circuit, state));
+
+  std::mt19937 rgen(1);
+  auto result = state_space.Measure({0, 4}, rgen, state);
+
+  EXPECT_TRUE(result.valid);
+  EXPECT_EQ(result.mask, 17);
+  EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
+
+  auto ampl0 = state_space.GetAmpl(state, 0);
+  EXPECT_NEAR(std::real(ampl0), -0.00208748, 1e-6);
+  EXPECT_NEAR(std::imag(ampl0), -0.00153427, 1e-6);
+
+  auto ampl2 = state_space.GetAmpl(state, 2);
+  EXPECT_NEAR(std::real(ampl2), -0.00076403, 1e-6);
+  EXPECT_NEAR(std::imag(ampl2), 0.00123912, 1e-6);
+
+  auto ampl4 = state_space.GetAmpl(state, 4);
+  EXPECT_NEAR(std::real(ampl4), -0.00349379, 1e-6);
+  EXPECT_NEAR(std::imag(ampl4), 0.00110578, 1e-6);
+
+  auto ampl6 = state_space.GetAmpl(state, 6);
+  EXPECT_NEAR(std::real(ampl6), -0.00180432, 1e-6);
+  EXPECT_NEAR(std::imag(ampl6), 0.00153727, 1e-6);
+
+  for (uint64_t i = 0; i < 8; ++i) {
+    auto ampl = state_space.GetAmpl(state, 2 * i + 1);
+    EXPECT_EQ(std::real(ampl), 0);
+    EXPECT_EQ(std::imag(ampl), 0);
+  }
+
+  for (uint64_t i = 16; i < 32; ++i) {
+    auto ampl = state_space.GetAmpl(state, 2 * i + 1);
+    EXPECT_EQ(std::real(ampl), 0);
+    EXPECT_EQ(std::imag(ampl), 0);
   }
 }
 
