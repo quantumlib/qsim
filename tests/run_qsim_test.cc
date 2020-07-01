@@ -75,7 +75,7 @@ TEST(RunQSimTest, QSimRunner1) {
   using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   float entropy = 0;
 
@@ -113,7 +113,7 @@ TEST(RunQSimTest, QSimRunner2) {
   using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, 1);
   State state = state_space.CreateState();
@@ -149,7 +149,7 @@ TEST(RunQSimTest, CirqGates) {
   using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
   StateSpace state_space(circuit.num_qubits, 1);

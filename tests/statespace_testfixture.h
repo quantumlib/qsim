@@ -444,7 +444,7 @@ void TestNormAndInnerProduct() {
 
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, 1);
   State state0 = state_space.CreateState();
@@ -523,7 +523,7 @@ void TestSamplingCrossEntropyDifference() {
 
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, 1);
   State state = state_space.CreateState();
@@ -699,7 +699,7 @@ void TestMeasurementLarge() {
 
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, 1);
   State state = state_space.CreateState();

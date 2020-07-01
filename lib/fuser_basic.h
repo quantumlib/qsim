@@ -24,7 +24,7 @@
 
 namespace qsim {
 
-template <typename Gate>
+template <typename IO, typename Gate>
 struct BasicGateFuser final {
   using GateFused = qsim::GateFused<Gate>;
 
@@ -103,8 +103,8 @@ struct BasicGateFuser final {
 
         if (gate.time < prev_time) {
           // This function assumes that gate times are ordered.
-          // Just stop sielently if this is not the case.
-          // TODO: report an error here.
+          // Just stop silently if this is not the case.
+          IO::errorf("gate times should be ordered.\n");
           gates_fused.resize(0);
           return gates_fused;
         }

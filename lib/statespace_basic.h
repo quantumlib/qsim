@@ -29,8 +29,8 @@ namespace qsim {
 // State is a non-vectorized sequence of one real amplitude followed by
 // one imaginary amplitude.
 template <typename For, typename FP>
-struct StateSpaceBasic : public StateSpace<For, FP> {
-  using Base = StateSpace<For, FP>;
+struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
+  using Base = StateSpace<StateSpaceBasic<For, FP>, For, FP>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
@@ -85,10 +85,6 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
     uint64_t p = 2 * i;
     state.get()[p + 0] = re;
     state.get()[p + 1] = im;
-  }
-
-  double Norm(const State& state) const {
-    return Base::Norm(Base::raw_size_ / 2, PartialNorms, state);
   }
 
   std::complex<double> InnerProduct(
@@ -162,62 +158,7 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  template <typename RGen>
-  MeasurementResult Measure(const std::vector<unsigned>& qubits,
-                            RGen& rgen, State& state) const {
-    auto result = VirtualMeasure(qubits, rgen, state);
-
-    if (result.valid) {
-      CollapseState(result, state);
-    }
-
-    return result;
-  }
-
-  template <typename RGen>
-  MeasurementResult VirtualMeasure(const std::vector<unsigned>& qubits,
-                                   RGen& rgen, const State& state) const {
-    return Base::VirtualMeasure(qubits, rgen, state, Base::raw_size_ / 2,
-                                PartialNorms, FindMeasuredBits);
-  }
-
-
-  void CollapseState(MeasurementResult& result, State& state) const {
-    CollapseState(Base::num_threads_, Base::raw_size_ / 2, result.mask,
-                  result.bits, state);
-  }
-
- private:
-  static std::vector<double> PartialNorms(
-      unsigned num_threads, uint64_t size, const State& state) {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      auto s = state.get() + 2 * i;
-      return s[0] * s[0] + s[1] * s[1];
-    };
-
-    using Op = std::plus<double>;
-    return For::RunReduceP(num_threads, size, f, Op(), state);
-  }
-
-  static uint64_t FindMeasuredBits(uint64_t k0, uint64_t k1, double r,
-                                   uint64_t mask, const State& state) {
-    double csum = 0;
-
-    for (uint64_t k = k0; k < k1; ++k) {
-      auto re = state.get()[2 * k];
-      auto im = state.get()[2 * k + 1];
-      csum += re * re + im * im;
-      if (r < csum) {
-        return k & mask;
-      }
-    }
-
-    return 0;
-  }
-
-  static void CollapseState(unsigned num_threads, uint64_t size,
-                            uint64_t mask, uint64_t bits, State& state) {
+  void CollapseState(const MeasurementResult& mr, State& state) const {
     auto f1 = [](unsigned n, unsigned m, uint64_t i, const State& state,
                  uint64_t mask, uint64_t bits) -> double {
       auto s = state.get() + 2 * i;
@@ -225,8 +166,8 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
     };
 
     using Op = std::plus<double>;
-    double norm = For::RunReduce(num_threads, size, f1, Op(),
-                                 state, mask, bits);
+    double norm = For::RunReduce(Base::num_threads_, Base::raw_size_ / 2, f1,
+                                 Op(), state, mr.mask, mr.bits);
 
     double renorm = 1.0 / std::sqrt(norm);
 
@@ -239,7 +180,39 @@ struct StateSpaceBasic : public StateSpace<For, FP> {
       s[1] = not_zero ? s[1] * renorm : 0;
     };
 
-    For::Run(num_threads, size, f2, state, mask, bits, renorm);
+    For::Run(Base::num_threads_, Base::raw_size_ / 2, f2,
+             state, mr.mask, mr.bits, renorm);
+  }
+
+  std::vector<double> PartialNorms(const State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const State& state) -> double {
+      auto s = state.get() + 2 * i;
+      return s[0] * s[0] + s[1] * s[1];
+    };
+
+    using Op = std::plus<double>;
+    return For::RunReduceP(
+        Base::num_threads_, Base::raw_size_ / 2, f, Op(), state);
+  }
+
+  uint64_t FindMeasuredBits(
+      unsigned m, double r, uint64_t mask, const State& state) const {
+    double csum = 0;
+
+    uint64_t k0 = For::GetIndex0(Base::raw_size_ / 2, Base::num_threads_, m);
+    uint64_t k1 = For::GetIndex1(Base::raw_size_ / 2, Base::num_threads_, m);
+
+    for (uint64_t k = k0; k < k1; ++k) {
+      auto re = state.get()[2 * k];
+      auto im = state.get()[2 * k + 1];
+      csum += re * re + im * im;
+      if (r < csum) {
+        return k & mask;
+      }
+    }
+
+    return 0;
   }
 };
 

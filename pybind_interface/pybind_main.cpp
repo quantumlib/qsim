@@ -288,7 +288,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     }
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
   Runner::Parameter param;
@@ -323,7 +323,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<Cirq::GateCirq<float>>,
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
   Runner::Parameter param;

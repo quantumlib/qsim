@@ -45,7 +45,7 @@ inline __m128i GetZeroMaskSSE(uint64_t i, uint64_t mask, uint64_t bits) {
   return _mm_blend_epi16(s1, s2, 204);  // 11001100
 }
 
-inline double HorisontalSumSSE(__m128 s) {
+inline double HorizontalSumSSE(__m128 s) {
   float buf[4];
   _mm_storeu_ps(buf, s);
   return buf[0] + buf[1] + buf[2] + buf[3];
@@ -58,8 +58,8 @@ inline double HorisontalSumSSE(__m128 s) {
 // imaginary components. Four single-precison floating numbers can be loaded
 // into an SSE register.
 template <typename For>
-struct StateSpaceSSE : public StateSpace<For, float> {
-  using Base = StateSpace<For, float>;
+struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
+  using Base = StateSpace<StateSpaceSSE<For>, For, float>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
@@ -192,10 +192,6 @@ struct StateSpaceSSE : public StateSpace<For, float> {
     state.get()[p + 4] = im;
   }
 
-  double Norm(const State& state) const {
-    return Base::Norm(Base::raw_size_ / 8, PartialNorms, state);
-  }
-
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
     using Op = std::plus<std::complex<double>>;
@@ -210,8 +206,8 @@ struct StateSpaceSSE : public StateSpace<For, float> {
       __m128 ip_re = _mm_add_ps(_mm_mul_ps(re1, re2), _mm_mul_ps(im1, im2));
       __m128 ip_im = _mm_sub_ps(_mm_mul_ps(re1, im2), _mm_mul_ps(im1, re2));
 
-      double re = detail::HorisontalSumSSE(ip_re);
-      double im = detail::HorisontalSumSSE(ip_im);
+      double re = detail::HorizontalSumSSE(ip_re);
+      double im = detail::HorizontalSumSSE(ip_im);
 
       return std::complex<double>{re, im};
     };
@@ -232,7 +228,7 @@ struct StateSpaceSSE : public StateSpace<For, float> {
 
       __m128 ip_re = _mm_add_ps(_mm_mul_ps(re1, re2), _mm_mul_ps(im1, im2));
 
-      return detail::HorisontalSumSSE(ip_re);
+      return detail::HorizontalSumSSE(ip_re);
     };
 
     return For::RunReduce(
@@ -281,67 +277,7 @@ struct StateSpaceSSE : public StateSpace<For, float> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  template <typename RGen>
-  MeasurementResult Measure(const std::vector<unsigned>& qubits,
-                            RGen& rgen, State& state) const {
-    auto result = VirtualMeasure(qubits, rgen, state);
-
-    if (result.valid) {
-      CollapseState(result, state);
-    }
-
-    return result;
-  }
-
-  template <typename RGen>
-  MeasurementResult VirtualMeasure(const std::vector<unsigned>& qubits,
-                                   RGen& rgen, const State& state) const {
-    return Base::VirtualMeasure(qubits, rgen, state, Base::raw_size_ / 8,
-                                PartialNorms, FindMeasuredBits);
-  }
-
-
-  void CollapseState(MeasurementResult& result, State& state) const {
-    CollapseState(Base::num_threads_, Base::raw_size_ / 8, result.mask,
-                  result.bits, state);
-  }
-
- private:
-  static std::vector<double> PartialNorms(
-      unsigned num_threads, uint64_t size, const State& state) {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      __m128 re = _mm_load_ps(state.get() + 8 * i);
-      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
-      __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
-
-      return detail::HorisontalSumSSE(s1);
-    };
-
-    using Op = std::plus<double>;
-    return For::RunReduceP(num_threads, size, f, Op(), state);
-  }
-
-  static uint64_t FindMeasuredBits(uint64_t k0, uint64_t k1, double r,
-                                   uint64_t mask, const State& state) {
-    double csum = 0;
-
-    for (uint64_t k = k0; k < k1; ++k) {
-      for (uint64_t j = 0; j < 4; ++j) {
-        auto re = state.get()[8 * k + j];
-        auto im = state.get()[8 * k + 4 + j];
-        csum += re * re + im * im;
-        if (r < csum) {
-          return (4 * k + j) & mask;
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  static void CollapseState(unsigned num_threads, uint64_t size,
-                            uint64_t mask, uint64_t bits, State& state) {
+  void CollapseState(const MeasurementResult& mr, State& state) const {
     __m128 zero = _mm_set1_ps(0);
 
     auto f1 = [](unsigned n, unsigned m, uint64_t i, const State& state,
@@ -354,12 +290,12 @@ struct StateSpaceSSE : public StateSpace<For, float> {
 
       s1 = _mm_blendv_ps(zero, s1, ml);
 
-      return detail::HorisontalSumSSE(s1);
+      return detail::HorizontalSumSSE(s1);
     };
 
     using Op = std::plus<double>;
-    double norm = For::RunReduce(num_threads, size, f1, Op(),
-                                 state, mask, bits, zero);
+    double norm = For::RunReduce(Base::num_threads_, Base::raw_size_ / 8, f1,
+                                 Op(), state, mr.mask, mr.bits, zero);
 
     __m128 renorm = _mm_set1_ps(1.0 / std::sqrt(norm));
 
@@ -377,7 +313,44 @@ struct StateSpaceSSE : public StateSpace<For, float> {
       _mm_store_ps(state.get() + 8 * i + 4, im);
     };
 
-    For::Run(num_threads, size, f2, state, mask, bits, renorm, zero);
+    For::Run(Base::num_threads_, Base::raw_size_ / 8, f2,
+             state, mr.mask, mr.bits, renorm, zero);
+  }
+
+  std::vector<double> PartialNorms(const State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const State& state) -> double {
+      __m128 re = _mm_load_ps(state.get() + 8 * i);
+      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+      __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
+
+      return detail::HorizontalSumSSE(s1);
+    };
+
+    using Op = std::plus<double>;
+    return For::RunReduceP(
+        Base::num_threads_, Base::raw_size_ / 8, f, Op(), state);
+  }
+
+  uint64_t FindMeasuredBits(
+      unsigned m, double r, uint64_t mask, const State& state) const {
+    double csum = 0;
+
+    uint64_t k0 = For::GetIndex0(Base::raw_size_ / 8, Base::num_threads_, m);
+    uint64_t k1 = For::GetIndex1(Base::raw_size_ / 8, Base::num_threads_, m);
+
+    for (uint64_t k = k0; k < k1; ++k) {
+      for (uint64_t j = 0; j < 4; ++j) {
+        auto re = state.get()[8 * k + j];
+        auto im = state.get()[8 * k + 4 + j];
+        csum += re * re + im * im;
+        if (r < csum) {
+          return (4 * k + j) & mask;
+        }
+      }
+    }
+
+    return 0;
   }
 };
 
