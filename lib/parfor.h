@@ -18,16 +18,13 @@
 #include <omp.h>
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace qsim {
 
 template <uint64_t MIN_SIZE>
 struct ParallelForT {
-  static bool CanBeParallel(uint64_t size) {
-    return size >= MIN_SIZE;
-  }
-
   static uint64_t GetIndex0(
       uint64_t size, unsigned num_threads, unsigned thread_id) {
     return size >= MIN_SIZE ? size * thread_id / num_threads : 0;
@@ -63,7 +60,7 @@ struct ParallelForT {
 
   template <typename Function, typename Op, typename... Args>
   static std::vector<typename Op::result_type> RunReduceP(
-      unsigned num_threads, uint64_t size, Function&& func, const Op& op,
+      unsigned num_threads, uint64_t size, Function&& func, Op&& op,
       Args&&... args) {
     std::vector<typename Op::result_type> partial_results;
 
@@ -101,8 +98,9 @@ struct ParallelForT {
   template <typename Function, typename Op, typename... Args>
   static typename Op::result_type RunReduce(unsigned num_threads,
                                             uint64_t size, Function&& func,
-                                            const Op& op, Args&&... args) {
-    auto partial_results = RunReduceP(num_threads, size, func, op, args...);
+                                            Op&& op, Args&&... args) {
+    auto partial_results = RunReduceP(
+        num_threads, size, func, std::move(op), args...);
 
     typename Op::result_type result = 0;
 

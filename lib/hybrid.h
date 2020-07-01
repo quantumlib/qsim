@@ -26,7 +26,8 @@
 namespace qsim {
 
 // Hybrid Feynmann-Schrodiner simulator.
-template <typename IO, typename GateT, template <typename> class FuserT,
+template <typename IO, typename GateT,
+          template <typename, typename> class FuserT,
           typename Simulator, typename For>
 struct HybridSimulator final {
  public:
@@ -64,7 +65,7 @@ struct HybridSimulator final {
   };
 
  public:
-  using Fuser = FuserT<GateHybrid>;
+  using Fuser = FuserT<IO, GateHybrid>;
   using GateFused = typename Fuser::GateFused;
 
   struct HybridData {

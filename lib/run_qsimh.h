@@ -82,7 +82,14 @@ struct QSimHRunner final {
     }
 
     auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, maxtime);
+    if (fgates0.size() == 0 && hd.gates0.size() > 0) {
+      return false;
+    }
+
     auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, maxtime);
+    if (fgates1.size() == 0 && hd.gates1.size() > 0) {
+      return false;
+    }
 
     rc = HybridSimulator::Run(
         param, hd, parts, fgates0, fgates1, bitstrings, results);

@@ -86,6 +86,9 @@ struct QSimRunner final {
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
                                         times_to_measure_at);
+    if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
+      return false;
+    }
 
     unsigned cur_time_index = 0;
 
@@ -148,6 +151,9 @@ struct QSimRunner final {
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
                                         maxtime);
+    if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
+      return false;
+    }
 
     // Apply fused gates.
     for (std::size_t i = 0; i < fused_gates.size(); ++i) {

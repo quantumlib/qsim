@@ -35,7 +35,7 @@ inline void do_not_free(void*) noexcept {}
 }  // namespace detail
 
 // Routines for state-vector manipulations.
-template <typename For, typename FP>
+template <typename Impl, typename For, typename FP>
 class StateSpace {
  public:
   using fp_type = FP;
@@ -103,10 +103,8 @@ class StateSpace {
     For::Run(num_threads_, raw_size_, f, src, dest);
   }
 
- protected:
-  template <typename Func>
-  double Norm(uint64_t size, Func&& PartialNorms, const State& state) const {
-    auto partial_norms = PartialNorms(num_threads_, size, state);
+  double Norm(const State& state) const {
+    auto partial_norms = static_cast<const Impl&>(*this).PartialNorms(state);
 
     double norm = partial_norms[0];
     for (std::size_t i = 1; i < partial_norms.size(); ++i) {
@@ -116,10 +114,22 @@ class StateSpace {
     return norm;
   }
 
-  template <typename RGen, typename Func1, typename Func2>
-  MeasurementResult VirtualMeasure(
-      const std::vector<unsigned>& qubits, RGen& rgen, const State& state,
-      uint64_t size, Func1&& PartialNorms, Func2&& FindMeasuredBits) const {
+  template <typename RGen>
+  MeasurementResult Measure(const std::vector<unsigned>& qubits,
+                            RGen& rgen, State& state) const {
+    auto result =
+        static_cast<const Impl&>(*this).VirtualMeasure(qubits, rgen, state);
+
+    if (result.valid) {
+      static_cast<const Impl&>(*this).CollapseState(result, state);
+    }
+
+    return result;
+  }
+
+  template <typename RGen>
+  MeasurementResult VirtualMeasure(const std::vector<unsigned>& qubits,
+                                   RGen& rgen, const State& state) const {
     MeasurementResult result;
 
     result.valid = true;
@@ -134,7 +144,7 @@ class StateSpace {
       result.mask |= uint64_t{1} << q;
     }
 
-    auto partial_norms = PartialNorms(num_threads_, size, state);
+    auto partial_norms = static_cast<const Impl&>(*this).PartialNorms(state);
 
     for (std::size_t i = 1; i < partial_norms.size(); ++i) {
       partial_norms[i] += partial_norms[i - 1];
@@ -145,12 +155,12 @@ class StateSpace {
 
     unsigned m = 0;
     while (r > partial_norms[m]) ++m;
-    r -= m > 0 ? partial_norms[m - 1] : 0;
+    if (m > 0) {
+      r -= partial_norms[m - 1];
+    }
 
-    uint64_t k0 = For::GetIndex0(size, num_threads_, m);
-    uint64_t k1 = For::GetIndex1(size, num_threads_, m);
-
-    result.bits = FindMeasuredBits(k0, k1, r, result.mask, state);
+    result.bits = static_cast<const Impl&>(*this).FindMeasuredBits(
+        m, r, result.mask, state);
 
     result.bitstring.reserve(qubits.size());
     result.bitstring.resize(0);

@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
     IO::messagef("entropy=%g\n", entropy);
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   Runner::Parameter param;
   param.seed = opt.seed;

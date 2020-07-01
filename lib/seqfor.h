@@ -16,15 +16,12 @@
 #define SEQFOR_H_
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace qsim {
 
 struct SequentialFor {
-  static bool CanBeParallel(uint64_t size) {
-    return false;
-  }
-
   static uint64_t GetIndex0(
       uint64_t size, unsigned num_threads, unsigned thread_id) {
     return 0;
@@ -45,7 +42,7 @@ struct SequentialFor {
 
   template <typename Function, typename Op, typename... Args>
   static std::vector<typename Op::result_type> RunReduceP(
-      unsigned num_threads, uint64_t size, Function&& func, const Op& op,
+      unsigned num_threads, uint64_t size, Function&& func, Op&& op,
       Args&&... args) {
     typename Op::result_type result = 0;
 
@@ -59,8 +56,8 @@ struct SequentialFor {
   template <typename Function, typename Op, typename... Args>
   static typename Op::result_type RunReduce(unsigned num_threads,
                                             uint64_t size, Function&& func,
-                                            const Op& op, Args&&... args) {
-    return RunReduceP(num_threads, size, func, op, args...)[0];
+                                            Op&& op, Args&&... args) {
+    return RunReduceP(num_threads, size, func, std::move(op), args...)[0];
   }
 };
 

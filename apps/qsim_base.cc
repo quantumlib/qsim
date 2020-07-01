@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
   StateSpace state_space(circuit.num_qubits, opt.num_threads);
   State state = state_space.CreateState();

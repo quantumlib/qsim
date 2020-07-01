@@ -45,7 +45,7 @@ inline __m256i GetZeroMaskAVX(uint64_t i, uint64_t mask, uint64_t bits) {
   return _mm256_blend_epi32(s1, s2, 170);  // 10101010
 }
 
-inline double HorisontalSumAVX(__m256 s) {
+inline double HorizontalSumAVX(__m256 s) {
   float buf[8];
   _mm256_storeu_ps(buf, s);
   return buf[0] + buf[1] + buf[2] + buf[3] + buf[4] + buf[5] + buf[6] + buf[7];
@@ -58,8 +58,8 @@ inline double HorisontalSumAVX(__m256 s) {
 // imaginary components. Eight single-precison floating numbers can be loaded
 // into an AVX register.
 template <typename For>
-struct StateSpaceAVX : public StateSpace<For, float> {
-  using Base = StateSpace<For, float>;
+struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
+  using Base = StateSpace<StateSpaceAVX<For>, For, float>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
@@ -227,10 +227,6 @@ struct StateSpaceAVX : public StateSpace<For, float> {
     state.get()[p + 8] = im;
   }
 
-  double Norm(const State& state) const {
-    return Base::Norm(Base::raw_size_ / 16, PartialNorms, state);
-  }
-
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
     using Op = std::plus<std::complex<double>>;
@@ -245,8 +241,8 @@ struct StateSpaceAVX : public StateSpace<For, float> {
       __m256 ip_re = _mm256_fmadd_ps(im1, im2, _mm256_mul_ps(re1, re2));
       __m256 ip_im = _mm256_fnmadd_ps(im1, re2, _mm256_mul_ps(re1, im2));
 
-      double re = detail::HorisontalSumAVX(ip_re);
-      double im = detail::HorisontalSumAVX(ip_im);
+      double re = detail::HorizontalSumAVX(ip_re);
+      double im = detail::HorizontalSumAVX(ip_im);
 
       return std::complex<double>{re, im};
     };
@@ -267,7 +263,7 @@ struct StateSpaceAVX : public StateSpace<For, float> {
 
       __m256 ip_re = _mm256_fmadd_ps(im1, im2, _mm256_mul_ps(re1, re2));
 
-      return detail::HorisontalSumAVX(ip_re);
+      return detail::HorizontalSumAVX(ip_re);
     };
 
     return For::RunReduce(
@@ -316,67 +312,7 @@ struct StateSpaceAVX : public StateSpace<For, float> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  template <typename RGen>
-  MeasurementResult Measure(const std::vector<unsigned>& qubits,
-                            RGen& rgen, State& state) const {
-    auto result = VirtualMeasure(qubits, rgen, state);
-
-    if (result.valid) {
-      CollapseState(result, state);
-    }
-
-    return result;
-  }
-
-  template <typename RGen>
-  MeasurementResult VirtualMeasure(const std::vector<unsigned>& qubits,
-                                   RGen& rgen, const State& state) const {
-    return Base::VirtualMeasure(qubits, rgen, state, Base::raw_size_ / 16,
-                                PartialNorms, FindMeasuredBits);
-  }
-
-
-  void CollapseState(MeasurementResult& result, State& state) const {
-    CollapseState(Base::num_threads_, Base::raw_size_ / 16, result.mask,
-                  result.bits, state);
-  }
-
- private:
-  static std::vector<double> PartialNorms(
-      unsigned num_threads, uint64_t size, const State& state) {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      __m256 re = _mm256_load_ps(state.get() + 16 * i);
-      __m256 im = _mm256_load_ps(state.get() + 16 * i + 8);
-      __m256 s1 = _mm256_fmadd_ps(im, im, _mm256_mul_ps(re, re));
-
-      return detail::HorisontalSumAVX(s1);
-    };
-
-    using Op = std::plus<double>;
-    return For::RunReduceP(num_threads, size, f, Op(), state);
-  }
-
-  static uint64_t FindMeasuredBits(uint64_t k0, uint64_t k1, double r,
-                                   uint64_t mask, const State& state) {
-    double csum = 0;
-
-    for (uint64_t k = k0; k < k1; ++k) {
-      for (uint64_t j = 0; j < 8; ++j) {
-        auto re = state.get()[16 * k + j];
-        auto im = state.get()[16 * k + 8 + j];
-        csum += re * re + im * im;
-        if (r < csum) {
-          return (8 * k + j) & mask;
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  static void CollapseState(unsigned num_threads, uint64_t size,
-                            uint64_t mask, uint64_t bits, State& state) {
+  void CollapseState(const MeasurementResult& mr, State& state) const {
     auto f1 = [](unsigned n, unsigned m, uint64_t i,
                  const State& state, uint64_t mask, uint64_t bits) -> double {
       __m256i ml = detail::GetZeroMaskAVX(8 * i, mask, bits);
@@ -385,12 +321,12 @@ struct StateSpaceAVX : public StateSpace<For, float> {
       __m256 im = _mm256_maskload_ps(state.get() + 16 * i + 8, ml);
       __m256 s1 = _mm256_fmadd_ps(im, im, _mm256_mul_ps(re, re));
 
-      return detail::HorisontalSumAVX(s1);
+      return detail::HorizontalSumAVX(s1);
     };
 
     using Op = std::plus<double>;
-    double norm = For::RunReduce(
-        num_threads, size, f1, Op(), state, mask, bits);
+    double norm = For::RunReduce(Base::num_threads_, Base::raw_size_ / 16, f1,
+                                 Op(), state, mr.mask, mr.bits);
 
     __m256 renorm = _mm256_set1_ps(1.0 / std::sqrt(norm));
 
@@ -408,7 +344,44 @@ struct StateSpaceAVX : public StateSpace<For, float> {
       _mm256_store_ps(state.get() + 16 * i + 8, im);
     };
 
-    For::Run(num_threads, size, f2, state, mask, bits, renorm);
+    For::Run(Base::num_threads_, Base::raw_size_ / 16, f2,
+             state, mr.mask, mr.bits, renorm);
+  }
+
+  std::vector<double> PartialNorms(const State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const State& state) -> double {
+      __m256 re = _mm256_load_ps(state.get() + 16 * i);
+      __m256 im = _mm256_load_ps(state.get() + 16 * i + 8);
+      __m256 s1 = _mm256_fmadd_ps(im, im, _mm256_mul_ps(re, re));
+
+      return detail::HorizontalSumAVX(s1);
+    };
+
+    using Op = std::plus<double>;
+    return For::RunReduceP(
+        Base::num_threads_, Base::raw_size_ / 16, f, Op(), state);
+  }
+
+  uint64_t FindMeasuredBits(
+      unsigned m, double r, uint64_t mask, const State& state) const {
+    double csum = 0;
+
+    uint64_t k0 = For::GetIndex0(Base::raw_size_ / 16, Base::num_threads_, m);
+    uint64_t k1 = For::GetIndex1(Base::raw_size_ / 16, Base::num_threads_, m);
+
+    for (uint64_t k = k0; k < k1; ++k) {
+      for (uint64_t j = 0; j < 8; ++j) {
+        auto re = state.get()[16 * k + j];
+        auto im = state.get()[16 * k + 8 + j];
+        csum += re * re + im * im;
+        if (r < csum) {
+          return (8 * k + j) & mask;
+        }
+      }
+    }
+
+    return 0;
   }
 };
 

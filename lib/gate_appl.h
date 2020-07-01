@@ -62,7 +62,8 @@ inline void CalcMatrix4(unsigned q0, unsigned q1,
 }
 
 /**
- * Applies the given gate to the simulator state.
+ * Applies the given gate to the simulator state. Measurement gates should not
+ * be applied in this function.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying one- and two-qubit gates.
  * @param gate The gate to be applied.
@@ -85,7 +86,8 @@ inline void ApplyGate(
 }
 
 /**
- * Applies the given fused gate to the simulator state.
+ * Applies the given fused gate to the simulator state. Measurement gates
+ * should not be applied in this function.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying one- and two-qubit gates.
  * @param gate The gate to be applied.

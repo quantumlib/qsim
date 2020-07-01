@@ -65,7 +65,7 @@ TEST(FuserBasicTest, NoTimesToSplitAt) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 99);
 
   EXPECT_EQ(fused_gates.size(), 5);
@@ -232,7 +232,7 @@ TEST(FuserBasicTest, TimesToSplitAt1) {
 
   std::vector<unsigned> times_to_split_at{3, 8, 10};
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -407,7 +407,7 @@ TEST(FuserBasicTest, TimesToSplitAt2) {
 
   std::vector<unsigned> times_to_split_at{2, 10};
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -585,7 +585,7 @@ TEST(FuserBasicTest, OrphanedQubits1) {
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
 
   EXPECT_EQ(fused_gates.size(), 2);
@@ -643,7 +643,7 @@ TEST(FuserBasicTest, OrphanedQubits2) {
 
   std::vector<unsigned> times_to_split_at{1, 4};
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -725,7 +725,7 @@ TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   circuit.gates[1].unfusible = true;
   circuit.gates[2].unfusible = true;
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
 
   EXPECT_EQ(fused_gates.size(), 3);
@@ -807,7 +807,7 @@ TEST(FuserBasicTest, MeasurementGate) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 17);
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 6);
 
   EXPECT_EQ(fused_gates.size(), 11);
