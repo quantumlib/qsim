@@ -25,6 +25,9 @@ namespace qsim {
 
 template <uint64_t MIN_SIZE>
 struct ParallelForT {
+  // GetIndex0 and GetIndex1 are useful when we need to know how work was
+  // divided between threads, for instance, for reusing partial sums obtained
+  // by RunReduceP.
   static uint64_t GetIndex0(
       uint64_t size, unsigned num_threads, unsigned thread_id) {
     return size >= MIN_SIZE ? size * thread_id / num_threads : 0;
