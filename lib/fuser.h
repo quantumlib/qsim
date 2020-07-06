@@ -24,7 +24,7 @@ struct GateFused {
   typename Gate::GateKind kind;  // Kind of the (first) master gate.
   unsigned time;
   unsigned num_qubits;
-  unsigned qubits[3];
+  std::vector<unsigned> qubits;
   const Gate* pmaster;
   std::vector<const Gate*> gates;
 };

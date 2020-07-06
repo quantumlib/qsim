@@ -207,7 +207,10 @@ cc_library(
 cc_library(
     name = "fuser_basic",
     hdrs = ["fuser_basic.h"],
-    deps = [":fuser"],
+    deps = [
+        ":fuser",
+        ":gate",
+    ],
 )
 
 ### Helper libraries to run qsim and qsimh ###
@@ -216,6 +219,7 @@ cc_library(
     name = "run_qsim",
     hdrs = ["run_qsim.h"],
     deps = [
+        ":gate",
         ":gate_appl",
         ":util",
     ],
@@ -235,6 +239,7 @@ cc_library(
 cc_library(
     name = "statespace",
     hdrs = ["statespace.h"],
+    deps = [":util"],
 )
 
 cc_library(

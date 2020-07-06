@@ -61,11 +61,11 @@ TEST(FuserBasicTest, NoTimesToSplitAt) {
   std::stringstream ss(circuit_string1);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 99);
 
   EXPECT_EQ(fused_gates.size(), 5);
@@ -226,13 +226,13 @@ TEST(FuserBasicTest, TimesToSplitAt1) {
   std::stringstream ss(circuit_string1);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
   std::vector<unsigned> times_to_split_at{3, 8, 10};
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -401,13 +401,13 @@ TEST(FuserBasicTest, TimesToSplitAt2) {
   std::stringstream ss(circuit_string1);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
   std::vector<unsigned> times_to_split_at{2, 10};
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -581,11 +581,11 @@ TEST(FuserBasicTest, OrphanedQubits1) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
 
   EXPECT_EQ(fused_gates.size(), 2);
@@ -637,13 +637,13 @@ TEST(FuserBasicTest, OrphanedQubits2) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
   std::vector<unsigned> times_to_split_at{1, 4};
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(
       circuit.num_qubits, circuit.gates, times_to_split_at);
 
@@ -718,14 +718,14 @@ TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_EQ(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit), true);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.gates.size(), 9);
 
   circuit.gates[1].unfusible = true;
   circuit.gates[2].unfusible = true;
 
-  using Fuser = BasicGateFuser<GateQSim<float>>;
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
   auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
 
   EXPECT_EQ(fused_gates.size(), 3);
@@ -776,6 +776,168 @@ TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   EXPECT_EQ(fused_gates[2].gates[3]->time, 2);
   EXPECT_EQ(fused_gates[2].gates[3]->num_qubits, 1);
   EXPECT_EQ(fused_gates[2].gates[3]->qubits[0], 1);
+}
+
+constexpr char circuit_string3[] =
+R"(4
+0 h 0
+0 h 1
+0 h 2
+0 h 3
+1 cz 0 1
+1 m 2
+1 m 3
+2 x 0
+2 y 1
+2 is 2 3
+3 cz 0 1
+3 m 2 3
+4 x 0
+4 y 1
+4 is 2 3
+5 m 2 3
+5 m 0 1
+)";
+
+TEST(FuserBasicTest, MeasurementGate) {
+  std::stringstream ss(circuit_string3);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  EXPECT_EQ(circuit.num_qubits, 4);
+  EXPECT_EQ(circuit.gates.size(), 17);
+
+  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
+  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 6);
+
+  EXPECT_EQ(fused_gates.size(), 11);
+
+  EXPECT_EQ(fused_gates[0].kind, kGateCZ);
+  EXPECT_EQ(fused_gates[0].time, 1);
+  EXPECT_EQ(fused_gates[0].num_qubits, 2);
+  EXPECT_EQ(fused_gates[0].qubits[0], 0);
+  EXPECT_EQ(fused_gates[0].qubits[1], 1);
+  EXPECT_EQ(fused_gates[0].gates.size(), 3);
+  EXPECT_EQ(fused_gates[0].gates[0]->kind, kGateHd);
+  EXPECT_EQ(fused_gates[0].gates[0]->time, 0);
+  EXPECT_EQ(fused_gates[0].gates[0]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[0].gates[0]->qubits[0], 0);
+  EXPECT_EQ(fused_gates[0].gates[1]->kind, kGateHd);
+  EXPECT_EQ(fused_gates[0].gates[1]->time, 0);
+  EXPECT_EQ(fused_gates[0].gates[1]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[0].gates[1]->qubits[0], 1);
+  EXPECT_EQ(fused_gates[0].gates[2]->kind, kGateCZ);
+  EXPECT_EQ(fused_gates[0].gates[2]->time, 1);
+  EXPECT_EQ(fused_gates[0].gates[2]->num_qubits, 2);
+  EXPECT_EQ(fused_gates[0].gates[2]->qubits[0], 0);
+  EXPECT_EQ(fused_gates[0].gates[2]->qubits[1], 1);
+
+  EXPECT_EQ(fused_gates[1].kind, kGateHd);
+  EXPECT_EQ(fused_gates[1].time, 0);
+  EXPECT_EQ(fused_gates[1].num_qubits, 1);
+  EXPECT_EQ(fused_gates[1].qubits[0], 2);
+  EXPECT_EQ(fused_gates[1].gates.size(), 1);
+  EXPECT_EQ(fused_gates[1].gates[0]->kind, kGateHd);
+  EXPECT_EQ(fused_gates[1].gates[0]->time, 0);
+  EXPECT_EQ(fused_gates[1].gates[0]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[1].gates[0]->qubits[0], 2);
+
+  EXPECT_EQ(fused_gates[2].kind, kGateHd);
+  EXPECT_EQ(fused_gates[2].time, 0);
+  EXPECT_EQ(fused_gates[2].num_qubits, 1);
+  EXPECT_EQ(fused_gates[2].qubits[0], 3);
+  EXPECT_EQ(fused_gates[2].gates.size(), 1);
+  EXPECT_EQ(fused_gates[2].gates[0]->kind, kGateHd);
+  EXPECT_EQ(fused_gates[2].gates[0]->time, 0);
+  EXPECT_EQ(fused_gates[2].gates[0]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[2].gates[0]->qubits[0], 3);
+
+  EXPECT_EQ(fused_gates[3].kind, kMeasurement);
+  EXPECT_EQ(fused_gates[3].time, 1);
+  EXPECT_EQ(fused_gates[3].num_qubits, 2);
+  EXPECT_EQ(fused_gates[3].qubits[0], 2);
+  EXPECT_EQ(fused_gates[3].qubits[1], 3);
+  EXPECT_EQ(fused_gates[3].gates.size(), 0);
+
+  EXPECT_EQ(fused_gates[4].kind, kGateIS);
+  EXPECT_EQ(fused_gates[4].time, 2);
+  EXPECT_EQ(fused_gates[4].num_qubits, 2);
+  EXPECT_EQ(fused_gates[4].qubits[0], 2);
+  EXPECT_EQ(fused_gates[4].qubits[1], 3);
+  EXPECT_EQ(fused_gates[4].gates.size(), 1);
+  EXPECT_EQ(fused_gates[4].gates[0]->kind, kGateIS);
+  EXPECT_EQ(fused_gates[4].gates[0]->time, 2);
+  EXPECT_EQ(fused_gates[4].gates[0]->num_qubits, 2);
+  EXPECT_EQ(fused_gates[4].gates[0]->qubits[0], 2);
+  EXPECT_EQ(fused_gates[4].gates[0]->qubits[1], 3);
+
+  EXPECT_EQ(fused_gates[5].kind, kGateCZ);
+  EXPECT_EQ(fused_gates[5].time, 3);
+  EXPECT_EQ(fused_gates[5].num_qubits, 2);
+  EXPECT_EQ(fused_gates[5].qubits[0], 0);
+  EXPECT_EQ(fused_gates[5].qubits[1], 1);
+  EXPECT_EQ(fused_gates[5].gates.size(), 3);
+  EXPECT_EQ(fused_gates[5].gates[0]->kind, kGateX);
+  EXPECT_EQ(fused_gates[5].gates[0]->time, 2);
+  EXPECT_EQ(fused_gates[5].gates[0]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[5].gates[0]->qubits[0], 0);
+  EXPECT_EQ(fused_gates[5].gates[1]->kind, kGateY);
+  EXPECT_EQ(fused_gates[5].gates[1]->time, 2);
+  EXPECT_EQ(fused_gates[5].gates[1]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[5].gates[1]->qubits[0], 1);
+  EXPECT_EQ(fused_gates[5].gates[2]->kind, kGateCZ);
+  EXPECT_EQ(fused_gates[5].gates[2]->time, 3);
+  EXPECT_EQ(fused_gates[5].gates[2]->num_qubits, 2);
+  EXPECT_EQ(fused_gates[5].gates[2]->qubits[0], 0);
+  EXPECT_EQ(fused_gates[5].gates[2]->qubits[1], 1);
+
+  EXPECT_EQ(fused_gates[6].kind, kMeasurement);
+  EXPECT_EQ(fused_gates[6].time, 3);
+  EXPECT_EQ(fused_gates[6].num_qubits, 2);
+  EXPECT_EQ(fused_gates[6].qubits[0], 2);
+  EXPECT_EQ(fused_gates[6].qubits[1], 3);
+  EXPECT_EQ(fused_gates[6].gates.size(), 0);
+
+  EXPECT_EQ(fused_gates[7].kind, kGateIS);
+  EXPECT_EQ(fused_gates[7].time, 4);
+  EXPECT_EQ(fused_gates[7].num_qubits, 2);
+  EXPECT_EQ(fused_gates[7].qubits[0], 2);
+  EXPECT_EQ(fused_gates[7].qubits[1], 3);
+  EXPECT_EQ(fused_gates[7].gates.size(), 1);
+  EXPECT_EQ(fused_gates[7].gates[0]->kind, kGateIS);
+  EXPECT_EQ(fused_gates[7].gates[0]->time, 4);
+  EXPECT_EQ(fused_gates[7].gates[0]->num_qubits, 2);
+  EXPECT_EQ(fused_gates[7].gates[0]->qubits[0], 2);
+  EXPECT_EQ(fused_gates[7].gates[0]->qubits[1], 3);
+
+  EXPECT_EQ(fused_gates[8].kind, kGateX);
+  EXPECT_EQ(fused_gates[8].time, 4);
+  EXPECT_EQ(fused_gates[8].num_qubits, 1);
+  EXPECT_EQ(fused_gates[8].qubits[0], 0);
+  EXPECT_EQ(fused_gates[8].gates.size(), 1);
+  EXPECT_EQ(fused_gates[8].gates[0]->kind, kGateX);
+  EXPECT_EQ(fused_gates[8].gates[0]->time, 4);
+  EXPECT_EQ(fused_gates[8].gates[0]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[8].gates[0]->qubits[0], 0);
+
+  EXPECT_EQ(fused_gates[9].kind, kGateY);
+  EXPECT_EQ(fused_gates[9].time, 4);
+  EXPECT_EQ(fused_gates[9].num_qubits, 1);
+  EXPECT_EQ(fused_gates[9].qubits[0], 1);
+  EXPECT_EQ(fused_gates[9].gates.size(), 1);
+  EXPECT_EQ(fused_gates[9].gates[0]->kind, kGateY);
+  EXPECT_EQ(fused_gates[9].gates[0]->time, 4);
+  EXPECT_EQ(fused_gates[9].gates[0]->num_qubits, 1);
+  EXPECT_EQ(fused_gates[9].gates[0]->qubits[0], 1);
+
+  EXPECT_EQ(fused_gates[10].kind, kMeasurement);
+  EXPECT_EQ(fused_gates[10].time, 5);
+  EXPECT_EQ(fused_gates[10].num_qubits, 4);
+  EXPECT_EQ(fused_gates[10].qubits[0], 2);
+  EXPECT_EQ(fused_gates[10].qubits[1], 3);
+  EXPECT_EQ(fused_gates[10].qubits[2], 0);
+  EXPECT_EQ(fused_gates[10].qubits[3], 1);
+  EXPECT_EQ(fused_gates[10].gates.size(), 0);
 }
 
 }  // namespace qsim

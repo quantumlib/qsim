@@ -266,6 +266,9 @@ R"(4
   auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, 99);
   auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, 99);
 
+  EXPECT_EQ(fgates0.size(), 10);
+  EXPECT_EQ(fgates1.size(), 10);
+
   HybridSimulator::Parameter param;
   param.prefix = 1;
   param.num_prefix_gatexs = 2;

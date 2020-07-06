@@ -64,7 +64,8 @@ enum GateKind {
   kFSimGate,
   kMatrixGate1,  // One-qubit matrix gate.
   kMatrixGate2,  // Two-qubit matrix gate.
-  kGateDecomp,
+  kDecomp = gate::kDecomp,
+  kMeasurement = gate::kMeasurement,
 };
 
 template <typename fp_type>

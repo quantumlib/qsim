@@ -28,20 +28,44 @@
 
 namespace qsim {
 
+namespace detail {
+
+inline __m128i GetZeroMaskSSE(uint64_t i, uint64_t mask, uint64_t bits) {
+  __m128i s1 = _mm_set_epi64x(i + 2, i + 0);
+  __m128i s2 = _mm_set_epi64x(i + 3, i + 1);
+  __m128i ma = _mm_set1_epi64x(mask);
+  __m128i bi = _mm_set1_epi64x(bits);
+
+  s1 = _mm_and_si128(s1, ma);
+  s2 = _mm_and_si128(s2, ma);
+
+  s1 = _mm_cmpeq_epi64(s1, bi);
+  s2 = _mm_cmpeq_epi64(s2, bi);
+
+  return _mm_blend_epi16(s1, s2, 204);  // 11001100
+}
+
+inline double HorizontalSumSSE(__m128 s) {
+  float buf[4];
+  _mm_storeu_ps(buf, s);
+  return buf[0] + buf[1] + buf[2] + buf[3];
+}
+
+}  // namespace detail
+
 // Routines for state-vector manipulations.
 // State is a vectorized sequence of four real components followed by four
 // imaginary components. Four single-precison floating numbers can be loaded
 // into an SSE register.
 template <typename For>
-struct StateSpaceSSE : public StateSpace<For, float> {
-  using Base = StateSpace<For, float>;
+struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
+  using Base = StateSpace<StateSpaceSSE<For>, For, float>;
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
   StateSpaceSSE(unsigned num_qubits, unsigned num_threads)
       : Base(num_qubits, num_threads,
-             2 * std::max(uint64_t{4}, uint64_t{1} << num_qubits)),
-        num_qubits_(num_qubits) {}
+             2 * std::max(uint64_t{4}, uint64_t{1} << num_qubits)) {}
 
   void InternalToNormalOrder(State& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
@@ -61,7 +85,7 @@ struct StateSpaceSSE : public StateSpace<For, float> {
       }
     };
 
-    if (num_qubits_ == 1) {
+    if (Base::num_qubits_ == 1) {
       auto s = state.get();
 
       s[2] = s[1];
@@ -94,7 +118,7 @@ struct StateSpaceSSE : public StateSpace<For, float> {
       }
     };
 
-    if (num_qubits_ == 1) {
+    if (Base::num_qubits_ == 1) {
       auto s = state.get();
 
       s[4] = s[1];
@@ -124,14 +148,12 @@ struct StateSpaceSSE : public StateSpace<For, float> {
 
   // Uniform superposition.
   void SetStateUniform(State& state) const {
-    uint64_t size = uint64_t{1} << num_qubits_;
-
     __m128 val0 = _mm_setzero_ps();
     __m128 valu;
 
-    fp_type v = double{1} / std::sqrt(size);
+    fp_type v = double{1} / std::sqrt(Base::Size());
 
-    if (num_qubits_ == 1) {
+    if (Base::num_qubits_ == 1) {
       valu = _mm_set_ps(0, 0, v, v);
     } else {
       valu = _mm_set1_ps(v);
@@ -170,24 +192,6 @@ struct StateSpaceSSE : public StateSpace<For, float> {
     state.get()[p + 4] = im;
   }
 
-  double Norm(const State& state) const {
-    using Op = std::plus<double>;
-
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      __m128 re = _mm_load_ps(state.get() + 8 * i);
-      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
-      __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
-
-      float buffer[4];
-      _mm_storeu_ps(buffer, s1);
-      return buffer[0] + buffer[1] + buffer[2] + buffer[3];
-    };
-
-    return For::RunReduce(
-        Base::num_threads_, Base::raw_size_ / 8, f, Op(), state);
-  }
-
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
     using Op = std::plus<std::complex<double>>;
@@ -202,13 +206,8 @@ struct StateSpaceSSE : public StateSpace<For, float> {
       __m128 ip_re = _mm_add_ps(_mm_mul_ps(re1, re2), _mm_mul_ps(im1, im2));
       __m128 ip_im = _mm_sub_ps(_mm_mul_ps(re1, im2), _mm_mul_ps(im1, re2));
 
-      float bre[4];
-      float bim[4];
-      _mm_storeu_ps(bre, ip_re);
-      _mm_storeu_ps(bim, ip_im);
-
-      double re = bre[0] + bre[1] + bre[2] + bre[3];
-      double im = bim[0] + bim[1] + bim[2] + bim[3];
+      double re = detail::HorizontalSumSSE(ip_re);
+      double im = detail::HorizontalSumSSE(ip_im);
 
       return std::complex<double>{re, im};
     };
@@ -229,10 +228,7 @@ struct StateSpaceSSE : public StateSpace<For, float> {
 
       __m128 ip_re = _mm_add_ps(_mm_mul_ps(re1, re2), _mm_mul_ps(im1, im2));
 
-      float bre[4];
-      _mm_storeu_ps(bre, ip_re);
-
-      return bre[0] + bre[1] + bre[2] + bre[3];
+      return detail::HorizontalSumSSE(ip_re);
     };
 
     return For::RunReduce(
@@ -279,8 +275,83 @@ struct StateSpaceSSE : public StateSpace<For, float> {
     return bitstrings;
   }
 
- private:
-  unsigned num_qubits_;
+  using MeasurementResult = typename Base::MeasurementResult;
+
+  void CollapseState(const MeasurementResult& mr, State& state) const {
+    __m128 zero = _mm_set1_ps(0);
+
+    auto f1 = [](unsigned n, unsigned m, uint64_t i, const State& state,
+                 uint64_t mask, uint64_t bits, __m128 zero) -> double {
+      __m128 ml = _mm_castsi128_ps(detail::GetZeroMaskSSE(4 * i, mask, bits));
+
+      __m128 re = _mm_load_ps(state.get() + 8 * i);
+      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+      __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
+
+      s1 = _mm_blendv_ps(zero, s1, ml);
+
+      return detail::HorizontalSumSSE(s1);
+    };
+
+    using Op = std::plus<double>;
+    double norm = For::RunReduce(Base::num_threads_, Base::raw_size_ / 8, f1,
+                                 Op(), state, mr.mask, mr.bits, zero);
+
+    __m128 renorm = _mm_set1_ps(1.0 / std::sqrt(norm));
+
+    auto f2 = [](unsigned n, unsigned m, uint64_t i,  State& state,
+                 uint64_t mask, uint64_t bits, __m128 renorm, __m128 zero) {
+      __m128 ml = _mm_castsi128_ps(detail::GetZeroMaskSSE(4 * i, mask, bits));
+
+      __m128 re = _mm_load_ps(state.get() + 8 * i);
+      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+
+      re = _mm_blendv_ps(zero, _mm_mul_ps(re, renorm), ml);
+      im = _mm_blendv_ps(zero, _mm_mul_ps(im, renorm), ml);
+
+      _mm_store_ps(state.get() + 8 * i, re);
+      _mm_store_ps(state.get() + 8 * i + 4, im);
+    };
+
+    For::Run(Base::num_threads_, Base::raw_size_ / 8, f2,
+             state, mr.mask, mr.bits, renorm, zero);
+  }
+
+  std::vector<double> PartialNorms(const State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const State& state) -> double {
+      __m128 re = _mm_load_ps(state.get() + 8 * i);
+      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+      __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
+
+      return detail::HorizontalSumSSE(s1);
+    };
+
+    using Op = std::plus<double>;
+    return For::RunReduceP(
+        Base::num_threads_, Base::raw_size_ / 8, f, Op(), state);
+  }
+
+  uint64_t FindMeasuredBits(
+      unsigned m, double r, uint64_t mask, const State& state) const {
+    double csum = 0;
+
+    uint64_t k0 = For::GetIndex0(Base::raw_size_ / 8, Base::num_threads_, m);
+    uint64_t k1 = For::GetIndex1(Base::raw_size_ / 8, Base::num_threads_, m);
+
+    for (uint64_t k = k0; k < k1; ++k) {
+      for (uint64_t j = 0; j < 4; ++j) {
+        auto re = state.get()[8 * k + j];
+        auto im = state.get()[8 * k + 4 + j];
+        csum += re * re + im * im;
+        if (r < csum) {
+          return (4 * k + j) & mask;
+        }
+      }
+    }
+
+    return 0;
+  }
 };
 
 }  // namespace qsim

@@ -15,9 +15,11 @@
 #ifndef RUN_QSIM_H_
 #define RUN_QSIM_H_
 
+#include <random>
 #include <string>
 #include <vector>
 
+#include "gate.h"
 #include "gate_appl.h"
 #include "util.h"
 
@@ -25,9 +27,11 @@ namespace qsim {
 
 // Helper struct to run qsim.
 
-template <typename IO, typename Fuser, typename Simulator>
+template <typename IO, typename Fuser, typename Simulator,
+          typename RGen = std::mt19937>
 struct QSimRunner final {
   struct Parameter {
+    uint64_t seed;  // Random number gaenerator seed to perform measurements.
     unsigned num_threads;
     unsigned verbosity;
   };
@@ -66,6 +70,8 @@ struct QSimRunner final {
       t0 = GetTime();
     }
 
+    RGen rgen(param.seed);
+
     using StateSpace = typename Simulator::StateSpace;
     StateSpace state_space(circuit.num_qubits, param.num_threads);
 
@@ -80,6 +86,9 @@ struct QSimRunner final {
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
                                         times_to_measure_at);
+    if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
+      return false;
+    }
 
     unsigned cur_time_index = 0;
 
@@ -89,11 +98,11 @@ struct QSimRunner final {
         t1 = GetTime();
       }
 
-      ApplyFusedGate(simulator, fused_gates[i], state);
+      ApplyGate(state_space, simulator, fused_gates[i], rgen, state);
 
       if (param.verbosity > 1) {
         double t2 = GetTime();
-        IO::messagef("gate %lu done in %g seconds\n", i, t2 - t1);
+        IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
       }
 
       unsigned t = times_to_measure_at[cur_time_index];
@@ -133,10 +142,18 @@ struct QSimRunner final {
       t0 = GetTime();
     }
 
+    RGen rgen(param.seed);
+
+    using StateSpace = typename Simulator::StateSpace;
+    StateSpace state_space(circuit.num_qubits, param.num_threads);
+
     Simulator simulator(circuit.num_qubits, param.num_threads);
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
                                         maxtime);
+    if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
+      return false;
+    }
 
     // Apply fused gates.
     for (std::size_t i = 0; i < fused_gates.size(); ++i) {
@@ -144,17 +161,35 @@ struct QSimRunner final {
         t1 = GetTime();
       }
 
-      ApplyFusedGate(simulator, fused_gates[i], state);
+      ApplyGate(state_space, simulator, fused_gates[i], rgen, state);
 
       if (param.verbosity > 1) {
         double t2 = GetTime();
-        IO::messagef("gate %lu done in %g seconds\n", i, t2 - t1);
+        IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
       }
     }
 
     if (param.verbosity > 0) {
       double t2 = GetTime();
       IO::messagef("time elapsed %g seconds.\n", t2 - t0);
+    }
+
+    return true;
+  }
+
+ private:
+  template <typename StateSpace, typename FGate, typename State>
+  static bool ApplyGate(const StateSpace& state_space,
+                        const Simulator& simulator, const FGate& fgate,
+                        RGen& rgen, State& state) {
+    if (fgate.kind == gate::kMeasurement) {
+      auto result = state_space.Measure(fgate.qubits, rgen, state);
+      if (!result.valid) {
+        IO::errorf("measurement failed.\n");
+        return false;
+      }
+    } else {
+      ApplyFusedGate(simulator, fgate, state);
     }
 
     return true;
