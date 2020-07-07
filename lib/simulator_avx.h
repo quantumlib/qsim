@@ -32,8 +32,9 @@ class SimulatorAVX final {
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
 
-  SimulatorAVX(unsigned num_qubits, unsigned num_threads)
-      : num_qubits_(num_qubits), num_threads_(num_threads) {}
+  template <typename... Args>
+  explicit SimulatorAVX(unsigned num_qubits, Args&&... args)
+      : for_(args...), num_qubits_(num_qubits) {}
 
   /**
    * Applies a single-qubit gate using AVX instructions.
@@ -130,7 +131,7 @@ class SimulatorAVX final {
       _mm256_store_ps(rstate + p + 8, in);
     };
 
-    For::Run(num_threads_, sizei / 16, f, sizek, mask0, mask1, matrix, rstate);
+    for_.Run(sizei / 16, f, sizek, mask0, mask1, matrix, rstate);
   }
 
   // Applies a single-qubit gate for qubit <= 2.
@@ -223,8 +224,7 @@ class SimulatorAVX final {
       _mm256_store_ps(rstate + p + 8, in);
     };
 
-    For::Run(num_threads_, std::max(uint64_t{1}, sizei / 16), f, q0, ml,
-             matrix, rstate);
+    for_.Run(std::max(uint64_t{1}, sizei / 16), f, q0, ml, matrix, rstate);
   }
 
   // Applies two-qubit gate for qubit0 > 2 and qubit1 > 2.
@@ -376,8 +376,7 @@ class SimulatorAVX final {
       _mm256_store_ps(rstate + p + 8, in);
     };
 
-    For::Run(num_threads_, sizei / 16, f, sizej, sizek, mask0, mask1, mask2,
-             matrix, rstate);
+    for_.Run(sizei / 16, f, sizej, sizek, mask0, mask1, mask2, matrix, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 <= 2 and qubit1 > 2.
@@ -586,8 +585,7 @@ class SimulatorAVX final {
       _mm256_store_ps(rstate + p + 8, in);
     };
 
-    For::Run(num_threads_, sizei / 16, f, sizej, mask0, mask1, q0, ml,
-             matrix, rstate);
+    for_.Run(sizei / 16, f, sizej, mask0, mask1, q0, ml, matrix, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 <= 2 and qubit1 <= 2.
@@ -814,12 +812,12 @@ class SimulatorAVX final {
       _mm256_store_ps(rstate + p + 8, in);
     };
 
-    For::Run(num_threads_, std::max(uint64_t{1}, sizei / 16), f, q,
-             ml1, ml2, ml3, matrix, rstate);
+    for_.Run(
+        std::max(uint64_t{1}, sizei / 16), f, q, ml1, ml2, ml3, matrix, rstate);
   }
 
+  For for_;
   unsigned num_qubits_;
-  unsigned num_threads_;
 };
 
 }  // namespace qsim

@@ -86,6 +86,9 @@ struct HybridSimulator final {
     unsigned verbosity = 0;
   };
 
+  template <typename... Args>
+  explicit HybridSimulator(Args&&... args) : for_(args...) {}
+
   /**
    * Splits the lattice into two parts, using Schmidt decomposition for gates
    * on the cut.
@@ -242,12 +245,12 @@ struct HybridSimulator final {
    *   will be populated with amplitudes for each state in 'bitstrings'.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  static bool Run(const Parameter& param, HybridData& hd,
-                  const std::vector<unsigned>& parts,
-                  const std::vector<GateFused>& fgates0,
-                  const std::vector<GateFused>& fgates1,
-                  const std::vector<uint64_t>& bitstrings,
-                  std::vector<std::complex<fp_type>>& results) {
+  bool Run(const Parameter& param, HybridData& hd,
+           const std::vector<unsigned>& parts,
+           const std::vector<GateFused>& fgates0,
+           const std::vector<GateFused>& fgates1,
+           const std::vector<uint64_t>& bitstrings,
+           std::vector<std::complex<fp_type>>& results) const {
     unsigned num_p_gates = param.num_prefix_gatexs;
     unsigned num_pr_gates = num_p_gates + param.num_root_gatexs;
 
@@ -374,8 +377,8 @@ struct HybridSimulator final {
         };
 
         // Collect results.
-        For::Run(param.num_threads, results.size(), f, sspace0, sspace1,
-                 *rstate0, *rstate1, indices, results);
+        for_.Run(results.size(), f, sspace0, sspace1, *rstate0, *rstate1,
+                 indices, results);
       }
     }
 
@@ -541,6 +544,8 @@ struct HybridSimulator final {
 
     return true;
   }
+
+  For for_;
 };
 
 }  // namespace qsim

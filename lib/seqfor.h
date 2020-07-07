@@ -22,19 +22,18 @@
 namespace qsim {
 
 struct SequentialFor {
-  static uint64_t GetIndex0(
-      uint64_t size, unsigned num_threads, unsigned thread_id) {
+  explicit SequentialFor(unsigned num_threads) {}
+
+  static uint64_t GetIndex0(uint64_t size, unsigned thread_id) {
     return 0;
   }
 
-  static uint64_t GetIndex1(
-      uint64_t size, unsigned num_threads, unsigned thread_id) {
+  static uint64_t GetIndex1(uint64_t size, unsigned thread_id) {
     return size;
   }
 
   template <typename Function, typename... Args>
-  static void Run(
-    unsigned num_threads, uint64_t size, Function&& func, Args&&... args) {
+  static void Run(uint64_t size, Function&& func, Args&&... args) {
     for (uint64_t i = 0; i < size; ++i) {
       func(1, 0, i, args...);
     }
@@ -42,8 +41,7 @@ struct SequentialFor {
 
   template <typename Function, typename Op, typename... Args>
   static std::vector<typename Op::result_type> RunReduceP(
-      unsigned num_threads, uint64_t size, Function&& func, Op&& op,
-      Args&&... args) {
+      uint64_t size, Function&& func, Op&& op, Args&&... args) {
     typename Op::result_type result = 0;
 
     for (uint64_t i = 0; i < size; ++i) {
@@ -54,10 +52,9 @@ struct SequentialFor {
   }
 
   template <typename Function, typename Op, typename... Args>
-  static typename Op::result_type RunReduce(unsigned num_threads,
-                                            uint64_t size, Function&& func,
+  static typename Op::result_type RunReduce(uint64_t size, Function&& func,
                                             Op&& op, Args&&... args) {
-    return RunReduceP(num_threads, size, func, std::move(op), args...)[0];
+    return RunReduceP(size, func, std::move(op), args...)[0];
   }
 };
 
