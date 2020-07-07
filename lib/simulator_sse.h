@@ -33,8 +33,9 @@ class SimulatorSSE final {
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
 
-  SimulatorSSE(unsigned num_qubits, unsigned num_threads)
-      : num_qubits_(num_qubits), num_threads_(num_threads) {}
+  template <typename... Args>
+  explicit SimulatorSSE(unsigned num_qubits, Args&&... args)
+      : for_(args...), num_qubits_(num_qubits) {}
 
   /**
    * Applies a single-qubit gate using SSE instructions.
@@ -131,7 +132,7 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    For::Run(num_threads_, sizei / 8, f, sizek, mask0, mask1, matrix, rstate);
+    for_.Run(sizei / 8, f, sizek, mask0, mask1, matrix, rstate);
   }
 
   // Applies a single-qubit gate for qubit <= 1.
@@ -212,8 +213,7 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    For::Run(num_threads_, std::max(uint64_t{1}, sizei / 8), f, q0,
-             matrix, rstate);
+    for_.Run(std::max(uint64_t{1}, sizei / 8), f, q0, matrix, rstate);
   }
 
   // Applies two-qubit gate for qubit0 > 1 and qubit1 > 1.
@@ -365,8 +365,7 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    For::Run(num_threads_, sizei / 8, f, sizej, sizek, mask0, mask1, mask2,
-             matrix, rstate);
+    for_.Run(sizei / 8, f, sizej, sizek, mask0, mask1, mask2, matrix, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 <= 1 and qubit1 > 1.
@@ -557,8 +556,7 @@ class SimulatorSSE final {
       _mm_store_ps(rstate + p + 4, in);
     };
 
-    For::Run(num_threads_, sizei / 8, f, sizej, mask0, mask1, q0,
-             matrix, rstate);
+    for_.Run(sizei / 8, f, sizej, mask0, mask1, q0, matrix, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 = 0 and qubit1 = 1.
@@ -601,11 +599,11 @@ class SimulatorSSE final {
           + s2r * u[29] + s2i * u[28] + s3r * u[31] + s3i * u[30];
     };
 
-    For::Run(num_threads_, sizei / 8, f, matrix, rstate);
+    for_.Run(sizei / 8, f, matrix, rstate);
   }
 
+  For for_;
   unsigned num_qubits_;
-  unsigned num_threads_;
 };
 
 }  // namespace qsim

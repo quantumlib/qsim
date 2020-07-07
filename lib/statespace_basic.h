@@ -34,8 +34,9 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  StateSpaceBasic(unsigned num_qubits, unsigned num_threads)
-      : Base(num_qubits, num_threads, 2 * (uint64_t{1} << num_qubits)) {}
+  template <typename... Args>
+  explicit StateSpaceBasic(unsigned num_qubits, Args&&... args)
+      : Base(2 * (uint64_t{1} << num_qubits), num_qubits, args...) {}
 
   void InternalToNormalOrder(State& state) const {}
 
@@ -47,7 +48,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       state.get()[2 * i + 1] = 0;
     };
 
-    For::Run(Base::num_threads_, Base::raw_size_ / 2, f, state);
+    Base::for_.Run(Base::raw_size_ / 2, f, state);
   }
 
   // Uniform superposition.
@@ -60,7 +61,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       state.get()[2 * i + 1] = 0;
     };
 
-    For::Run(Base::num_threads_, Base::raw_size_ / 2, f, val, state);
+    Base::for_.Run(Base::raw_size_ / 2, f, val, state);
   }
 
   // |0> state.
@@ -102,8 +103,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       return std::complex<double>{re, im};
     };
 
-    return For::RunReduce(
-        Base::num_threads_, Base::raw_size_ / 2, f, Op(), state1, state2);
+    return Base::for_.RunReduce(Base::raw_size_ / 2, f, Op(), state1, state2);
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
@@ -117,8 +117,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       return s1[0] * s2[0] + s1[1] * s2[1];
     };
 
-    return For::RunReduce(
-        Base::num_threads_, Base::raw_size_ / 2, f, Op(), state1, state2);
+    return Base::for_.RunReduce(Base::raw_size_ / 2, f, Op(), state1, state2);
   }
 
   template <typename DistrRealType = double>
@@ -166,8 +165,8 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
     };
 
     using Op = std::plus<double>;
-    double norm = For::RunReduce(Base::num_threads_, Base::raw_size_ / 2, f1,
-                                 Op(), state, mr.mask, mr.bits);
+    double norm = Base::for_.RunReduce(Base::raw_size_ / 2, f1,
+                                       Op(), state, mr.mask, mr.bits);
 
     double renorm = 1.0 / std::sqrt(norm);
 
@@ -180,8 +179,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       s[1] = not_zero ? s[1] * renorm : 0;
     };
 
-    For::Run(Base::num_threads_, Base::raw_size_ / 2, f2,
-             state, mr.mask, mr.bits, renorm);
+    Base::for_.Run(Base::raw_size_ / 2, f2, state, mr.mask, mr.bits, renorm);
   }
 
   std::vector<double> PartialNorms(const State& state) const {
@@ -192,16 +190,15 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
     };
 
     using Op = std::plus<double>;
-    return For::RunReduceP(
-        Base::num_threads_, Base::raw_size_ / 2, f, Op(), state);
+    return Base::for_.RunReduceP(Base::raw_size_ / 2, f, Op(), state);
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
     double csum = 0;
 
-    uint64_t k0 = For::GetIndex0(Base::raw_size_ / 2, Base::num_threads_, m);
-    uint64_t k1 = For::GetIndex1(Base::raw_size_ / 2, Base::num_threads_, m);
+    uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 2, m);
+    uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 2, m);
 
     for (uint64_t k = k0; k < k1; ++k) {
       auto re = state.get()[2 * k];

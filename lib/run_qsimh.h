@@ -91,7 +91,7 @@ struct QSimHRunner final {
       return false;
     }
 
-    rc = HybridSimulator::Run(
+    rc = HybridSimulator(param.num_threads).Run(
         param, hd, parts, fgates0, fgates1, bitstrings, results);
 
     if (rc && param.verbosity > 0) {
@@ -112,7 +112,6 @@ struct QSimHRunner final {
     IO::messagef("breakup: %up+%ur+%us\n", param.num_prefix_gatexs,
                  param.num_root_gatexs, num_suffix_gates);
   }
-
 };
 
 }  // namespace qsim

@@ -48,9 +48,9 @@ class StateSpace {
     bool valid;
   };
 
-  StateSpace(unsigned num_qubits, unsigned num_threads, uint64_t raw_size)
-      : num_qubits_(num_qubits), num_threads_(num_threads),
-        raw_size_(raw_size) {}
+  template <typename... Args>
+  StateSpace(uint64_t raw_size, unsigned num_qubits, Args&&... args)
+      : for_(args...), raw_size_(raw_size), num_qubits_(num_qubits) {}
 
   State CreateState() const {
     auto vector_size = sizeof(fp_type) * raw_size_;
@@ -100,7 +100,7 @@ class StateSpace {
       dest.get()[i] = src.get()[i];
     };
 
-    For::Run(num_threads_, raw_size_, f, src, dest);
+    for_.Run(raw_size_, f, src, dest);
   }
 
   double Norm(const State& state) const {
@@ -172,9 +172,9 @@ class StateSpace {
     return result;
   }
 
-  unsigned num_qubits_;
-  unsigned num_threads_;
+  For for_;
   uint64_t raw_size_;
+  unsigned num_qubits_;
 };
 
 }  // namespace qsim
