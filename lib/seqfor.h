@@ -24,6 +24,8 @@ namespace qsim {
 struct SequentialFor {
   explicit SequentialFor(unsigned num_threads) {}
 
+  // SequentialFor does not have any state. So all its methods can be static.
+
   static uint64_t GetIndex0(uint64_t size, unsigned thread_id) {
     return 0;
   }
