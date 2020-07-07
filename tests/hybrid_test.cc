@@ -105,7 +105,9 @@ R"(2
 
   std::vector<std::complex<Simulator::fp_type>> results(4, 0);
 
-  EXPECT_TRUE(HybridSimulator::Run(
+  std::complex<Simulator::fp_type> zero(0, 0);
+
+  EXPECT_TRUE(HybridSimulator(1).Run(
       param, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
@@ -117,11 +119,11 @@ R"(2
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
-  std::fill(results.begin(), results.end(), 0);
+  std::fill(results.begin(), results.end(), zero);
   param.num_prefix_gatexs = 0;
   param.num_root_gatexs = 1;
 
-  EXPECT_TRUE(HybridSimulator::Run(
+  EXPECT_TRUE(HybridSimulator(1).Run(
       param, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
@@ -133,11 +135,11 @@ R"(2
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
-  std::fill(results.begin(), results.end(), 0);
+  std::fill(results.begin(), results.end(), zero);
   param.num_prefix_gatexs = 0;
   param.num_root_gatexs = 2;
 
-  EXPECT_TRUE(HybridSimulator::Run(
+  EXPECT_TRUE(HybridSimulator(1).Run(
       param, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
@@ -149,11 +151,11 @@ R"(2
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
-  std::fill(results.begin(), results.end(), 0);
+  std::fill(results.begin(), results.end(), zero);
   param.num_prefix_gatexs = 0;
   param.num_root_gatexs = 5;
 
-  EXPECT_TRUE(HybridSimulator::Run(
+  EXPECT_TRUE(HybridSimulator(1).Run(
       param, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
@@ -165,7 +167,7 @@ R"(2
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
 
-  std::fill(results.begin(), results.end(), 0);
+  std::fill(results.begin(), results.end(), zero);
   param.num_prefix_gatexs = 0;
   param.num_root_gatexs = 6;
 }
@@ -284,7 +286,7 @@ R"(4
 
   std::vector<std::complex<Simulator::fp_type>> results(8, 0);
 
-  EXPECT_TRUE(HybridSimulator::Run(
+  EXPECT_TRUE(HybridSimulator(1).Run(
       param, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.02852439, 1e-6);

@@ -108,8 +108,8 @@ int main(int argc, char* argv[]) {
       return p != 0 ? p * std::log(p) : 0;
     };
 
-    double entropy = -For::RunReduce(opt.num_threads, state_space.Size(), f,
-                                     Op(), state_space, state);
+    double entropy = -For(opt.num_threads).RunReduce(state_space.Size(), f,
+                                                     Op(), state_space, state);
     IO::messagef("entropy=%g\n", entropy);
   };
 

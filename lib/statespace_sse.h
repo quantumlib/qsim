@@ -63,9 +63,10 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  StateSpaceSSE(unsigned num_qubits, unsigned num_threads)
-      : Base(num_qubits, num_threads,
-             2 * std::max(uint64_t{4}, uint64_t{1} << num_qubits)) {}
+  template <typename... Args>
+  explicit StateSpaceSSE(unsigned num_qubits, Args&&... args)
+      : Base(2 * std::max(uint64_t{4}, uint64_t{1} << num_qubits),
+             num_qubits, args...) {}
 
   void InternalToNormalOrder(State& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
@@ -96,7 +97,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
         s[i] = 0;
       }
     } else {
-      For::Run(Base::num_threads_, Base::raw_size_ / 8, f, state);
+      Base::for_.Run(Base::raw_size_ / 8, f, state);
     }
   }
 
@@ -130,7 +131,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       s[6] = 0;
       s[7] = 0;
     } else {
-      For::Run(Base::num_threads_, Base::raw_size_ / 8, f, state);
+      Base::for_.Run(Base::raw_size_ / 8, f, state);
     }
   }
 
@@ -143,7 +144,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       _mm_store_ps(state.get() + 8 * i + 4, val0);
     };
 
-    For::Run(Base::num_threads_, Base::raw_size_ / 8, f, val0, state);
+    Base::for_.Run(Base::raw_size_ / 8, f, val0, state);
   }
 
   // Uniform superposition.
@@ -165,7 +166,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       _mm_store_ps(state.get() + 8 * i + 4, val0);
     };
 
-    For::Run(Base::num_threads_, Base::raw_size_ / 8, f, val0, valu, state);
+    Base::for_.Run(Base::raw_size_ / 8, f, val0, valu, state);
   }
 
   // |0> state.
@@ -212,8 +213,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       return std::complex<double>{re, im};
     };
 
-    return For::RunReduce(
-        Base::num_threads_, Base::raw_size_ / 8, f, Op(), state1, state2);
+    return Base::for_.RunReduce(Base::raw_size_ / 8, f, Op(), state1, state2);
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
@@ -231,8 +231,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       return detail::HorizontalSumSSE(ip_re);
     };
 
-    return For::RunReduce(
-        Base::num_threads_, Base::raw_size_ / 8, f, Op(), state1, state2);
+    return Base::for_.RunReduce(Base::raw_size_ / 8, f, Op(), state1, state2);
   }
 
   template <typename DistrRealType = double>
@@ -294,8 +293,8 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    double norm = For::RunReduce(Base::num_threads_, Base::raw_size_ / 8, f1,
-                                 Op(), state, mr.mask, mr.bits, zero);
+    double norm = Base::for_.RunReduce(Base::raw_size_ / 8, f1,
+                                       Op(), state, mr.mask, mr.bits, zero);
 
     __m128 renorm = _mm_set1_ps(1.0 / std::sqrt(norm));
 
@@ -313,8 +312,8 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       _mm_store_ps(state.get() + 8 * i + 4, im);
     };
 
-    For::Run(Base::num_threads_, Base::raw_size_ / 8, f2,
-             state, mr.mask, mr.bits, renorm, zero);
+    Base::for_.Run(
+        Base::raw_size_ / 8, f2, state, mr.mask, mr.bits, renorm, zero);
   }
 
   std::vector<double> PartialNorms(const State& state) const {
@@ -328,16 +327,15 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    return For::RunReduceP(
-        Base::num_threads_, Base::raw_size_ / 8, f, Op(), state);
+    return Base::for_.RunReduceP(Base::raw_size_ / 8, f, Op(), state);
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
     double csum = 0;
 
-    uint64_t k0 = For::GetIndex0(Base::raw_size_ / 8, Base::num_threads_, m);
-    uint64_t k1 = For::GetIndex1(Base::raw_size_ / 8, Base::num_threads_, m);
+    uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 8, m);
+    uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 8, m);
 
     for (uint64_t k = k0; k < k1; ++k) {
       for (uint64_t j = 0; j < 4; ++j) {
