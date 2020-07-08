@@ -34,8 +34,8 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  template <typename... Args>
-  explicit StateSpaceBasic(unsigned num_qubits, Args&&... args)
+  template <typename... ForArgs>
+  explicit StateSpaceBasic(unsigned num_qubits, ForArgs&&... args)
       : Base(2 * (uint64_t{1} << num_qubits), num_qubits, args...) {}
 
   void InternalToNormalOrder(State& state) const {}

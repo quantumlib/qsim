@@ -14,6 +14,8 @@ they fulfill the same expectations.
 | Circuit                 | [`Circuit`](lib/circuit.h)                        |
 | Container (util.h)      | A vector of strings, or `Op`'s output type.       |
 | Ctype                   | A complex type, e.g. `std::complex<float>`.       |
+| For                     | `for` loop abstractions, see below.               |
+| ForArgs                 | Arguments for constructing `For` objects, see below. |
 | FP (simulator_basic.h)  | Same as `fp_type`.                                |
 | fp_type                 | A floating-point type, i.e. `float` or `double`.  |
 | Function (parfor.h)     | Any function; args are specified with `Args`.     |
@@ -35,6 +37,51 @@ they fulfill the same expectations.
 | State                   | Unique pointer to `fp_type`.                      |
 | StateSpace              | [`StateSpace`](lib/statespace.h)                  |
 | Stream                  | A valid input for `std::getline()`.               |
+
+## `For` and `ForArgs`
+
+`For` type represents a `for` loop. It is a template parameter of the
+`StateSpace*` (lib/statespace*.h) and `Simulator*` (lib/simulator*.h) classes.
+`For` objects in these classes are utilized to iterate over quantum state
+arrays. `ForArgs` is a variadic template parameter pack of the constructors
+of `StateSpace*` and `Simulator*`. It is utilized to pass arguments to the
+constructors of `For` objects.
+
+The qsim library provides `ParallelFor` (lib/parfor.h) and `SequentialFor`
+(lib/seqfor.h). The user can also use custom `For` types. Examples of usage
+follow.
+
+```C++
+// ParallelFor(unsigned num_threads) constructor
+SimulatorAVX<ParallelFor> simulator(num_qubits, num_threads);
+```
+```C++
+// copy constructor
+ParallelFor parallel_for(num_threads);
+SimulatorAVX<ParallelFor> simulator(num_qubits, parallel_for);
+```
+```C++
+ParallelFor parallel_for(num_threads);
+// const reference to parallel_for in simulator
+SimulatorAVX<const ParallelFor&> simulator(num_qubits, parallel_for);
+```
+In the following, we assume a custom `MyFor` type that has
+`MyFor(unsigned num_threads, const Context& context)` and copy constructors.
+
+```C++
+// MyFor(unsigned num_threads, const Context& context) constructor
+SimulatorAVX<MyFor> simulator(num_qubits, num_threads, context);
+```
+```C++
+// copy constructor
+MyFor my_for(num_threads, context);
+SimulatorAVX<MyFor> simulator(num_qubits, my_for);
+```
+```C++
+// const reference to my_for in simulator
+MyFor my_for(num_threads, context);
+SimulatorAVX<const MyFor&> simulator(num_qubits, my_for);
+```
 
 ## Historical note
 

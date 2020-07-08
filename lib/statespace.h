@@ -48,8 +48,8 @@ class StateSpace {
     bool valid;
   };
 
-  template <typename... Args>
-  StateSpace(uint64_t raw_size, unsigned num_qubits, Args&&... args)
+  template <typename... ForArgs>
+  StateSpace(uint64_t raw_size, unsigned num_qubits, ForArgs&&... args)
       : for_(args...), raw_size_(raw_size), num_qubits_(num_qubits) {}
 
   State CreateState() const {
