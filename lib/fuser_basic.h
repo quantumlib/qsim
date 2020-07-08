@@ -220,7 +220,8 @@ struct BasicGateFuser final {
     std::size_t last = 0;
 
     for (const auto& gate : gates) {
-      if (gate.kind == gate::kMeasurement && times2.back() < gate.time) {
+      if (gate.kind == gate::kMeasurement
+          && (times2.size() == 0 || times2.back() < gate.time)) {
         times2.push_back(gate.time);
       }
 
