@@ -63,8 +63,8 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  template <typename... Args>
-  explicit StateSpaceAVX(unsigned num_qubits, Args&&... args)
+  template <typename... ForArgs>
+  explicit StateSpaceAVX(unsigned num_qubits, ForArgs&&... args)
       : Base(2 * std::max(uint64_t{8}, uint64_t{1} << num_qubits),
              num_qubits, args...) {}
 

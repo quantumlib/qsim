@@ -63,8 +63,8 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  template <typename... Args>
-  explicit StateSpaceSSE(unsigned num_qubits, Args&&... args)
+  template <typename... ForArgs>
+  explicit StateSpaceSSE(unsigned num_qubits, ForArgs&&... args)
       : Base(2 * std::max(uint64_t{4}, uint64_t{1} << num_qubits),
              num_qubits, args...) {}
 

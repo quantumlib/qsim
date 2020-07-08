@@ -32,8 +32,8 @@ class SimulatorAVX final {
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
 
-  template <typename... Args>
-  explicit SimulatorAVX(unsigned num_qubits, Args&&... args)
+  template <typename... ForArgs>
+  explicit SimulatorAVX(unsigned num_qubits, ForArgs&&... args)
       : for_(args...), num_qubits_(num_qubits) {}
 
   /**
