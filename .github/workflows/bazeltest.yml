@@ -18,7 +18,11 @@ jobs:
         # Hardware optimizers.
         hardware_opt: [avx,sse,basic]
         # Optimizers for parallelism.
-        parallel_opt: [openmp,basic]
+        parallel_opt: [openmp,nopenmp]
+        # Test sanitizers
+        sanitizer_opt: [msan,asan,nosan]
+        # Memory handlers
+        malloc_opt: [tcmalloc,malloc]
 
     steps:
       - uses: actions/checkout@v2
@@ -31,9 +35,13 @@ jobs:
       - name: Run C++ tests
         run: |
           bazel test --config=${{ matrix.hardware_opt }} \
+          --config=${{ matrix.sanitizer_opt }} \
+          --config=${{ matrix.malloc_opt }} \
           --config=${{ matrix.parallel_opt }} tests:all
       - name: Run sample simulation
         run: |
           bazel run --config=${{ matrix.hardware_opt }} \
+          --config=${{ matrix.sanitizer_opt }} \
+          --config=${{ matrix.malloc_opt }} \
           --config=${{ matrix.parallel_opt }} apps:qsim_base \
           -- -c circuits/circuit_q24
