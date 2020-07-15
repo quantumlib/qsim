@@ -2,7 +2,7 @@
 build --copt -std=c++11
 build --copt -D_GLIBCXX_USE_CXX11_ABI=0
 
-##### Sanitizers (can be added to any build) #####
+##### Sanitizers (choose one, or nosan for none) #####
 
 # Shared config for sanitizers
 build:sanitizer --strip=never
@@ -19,6 +19,9 @@ build:msan --config=sanitizer
 build:msan --copt -fsanitize=leak
 build:msan --linkopt -fsanitize=leak
 
+# No sanitizers
+build:nosan --
+
 ##### Instruction set options (choose one) #####
 
 # Build with AVX2 + FMA
@@ -33,9 +36,22 @@ build:sse --copt -msse4
 # Build without AVX or SSE
 build:basic --copt -O3
 
+##### Parallelization (choose one, or nopenmp for none) #####
+
 # Build with OpenMP
 build:openmp --copt -fopenmp
 build:openmp --linkopt -lgomp
+
+# No OpenMP
+build:nopenmp --
+
+##### Memory handler (choose one) #####
+
+# Build with tcmalloc
+build:tcmalloc --linkopt="-ltcmalloc"
+
+# Build using malloc (default)
+build:malloc --
 
 # Test flags
 test --test_output=errors
