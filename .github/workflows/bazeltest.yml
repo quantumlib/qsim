@@ -19,10 +19,6 @@ jobs:
         hardware_opt: [avx,sse,basic]
         # Optimizers for parallelism.
         parallel_opt: [openmp,nopenmp]
-        # Test sanitizers
-        sanitizer_opt: [msan,asan,nosan]
-        # Memory handlers
-        malloc_opt: [tcmalloc,malloc]
 
     steps:
       - uses: actions/checkout@v2
@@ -35,13 +31,47 @@ jobs:
       - name: Run C++ tests
         run: |
           bazel test --config=${{ matrix.hardware_opt }} \
-          --config=${{ matrix.sanitizer_opt }} \
-          --config=${{ matrix.malloc_opt }} \
           --config=${{ matrix.parallel_opt }} tests:all
       - name: Run sample simulation
         run: |
           bazel run --config=${{ matrix.hardware_opt }} \
-          --config=${{ matrix.sanitizer_opt }} \
-          --config=${{ matrix.malloc_opt }} \
           --config=${{ matrix.parallel_opt }} apps:qsim_base \
           -- -c circuits/circuit_q24
+
+  test-san:
+    name: Sanitizer tests
+    runs-on: ubuntu-16.04
+    strategy:
+      matrix:
+        # Test sanitizers
+        sanitizer_opt: [msan,asan]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Install Bazel on CI
+        run: |
+          wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
+          sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
+      - name: Run C++ tests
+        run: |
+          bazel test --config=avx --config=openmp \
+          --config=${{ matrix.sanitizer_opt }} tests:all
+  
+  test-mem:
+    name: Test with tcmalloc
+    runs-on: ubuntu-16.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Install Bazel on CI
+        run: |
+          wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
+          sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
+      - name: Run C++ tests
+        run: |
+          bazel test --config=avx --config=openmp \
+          --config=tcmalloc tests:all
