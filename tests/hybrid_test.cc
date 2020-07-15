@@ -84,8 +84,8 @@ R"(2
   EXPECT_EQ(hd.num_qubits1, 1);
   EXPECT_EQ(hd.num_gatexs, 7);
 
-  auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, 99);
-  auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, 99);
+  auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0);
+  auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1);
 
   EXPECT_EQ(fgates0.size(), 7);
   EXPECT_EQ(fgates1.size(), 7);
@@ -265,8 +265,8 @@ R"(4
   EXPECT_EQ(hd.num_qubits1, 2);
   EXPECT_EQ(hd.num_gatexs, 5);
 
-  auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, 99);
-  auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, 99);
+  auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0);
+  auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1);
 
   EXPECT_EQ(fgates0.size(), 10);
   EXPECT_EQ(fgates1.size(), 10);

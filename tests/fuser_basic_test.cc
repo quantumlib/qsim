@@ -66,7 +66,7 @@ TEST(FuserBasicTest, NoTimesToSplitAt) {
   EXPECT_EQ(circuit.gates.size(), 27);
 
   using Fuser = BasicGateFuser<IO, GateQSim<float>>;
-  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 99);
+  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
 
   EXPECT_EQ(fused_gates.size(), 5);
 
@@ -581,12 +581,12 @@ TEST(FuserBasicTest, OrphanedQubits1) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(2, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 3);
-  EXPECT_EQ(circuit.gates.size(), 9);
+  EXPECT_EQ(circuit.gates.size(), 7);
 
   using Fuser = BasicGateFuser<IO, GateQSim<float>>;
-  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
+  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
 
   EXPECT_EQ(fused_gates.size(), 2);
 
@@ -718,15 +718,15 @@ TEST(FuserBasicTest, UnfusibleSingleQubitGate) {
   std::stringstream ss(circuit_string2);
   Circuit<GateQSim<float>> circuit;
 
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(2, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 3);
-  EXPECT_EQ(circuit.gates.size(), 9);
+  EXPECT_EQ(circuit.gates.size(), 7);
 
   circuit.gates[1].unfusible = true;
   circuit.gates[2].unfusible = true;
 
   using Fuser = BasicGateFuser<IO, GateQSim<float>>;
-  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 2);
+  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
 
   EXPECT_EQ(fused_gates.size(), 3);
 
@@ -808,7 +808,7 @@ TEST(FuserBasicTest, MeasurementGate) {
   EXPECT_EQ(circuit.gates.size(), 17);
 
   using Fuser = BasicGateFuser<IO, GateQSim<float>>;
-  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates, 6);
+  auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
 
   EXPECT_EQ(fused_gates.size(), 11);
 

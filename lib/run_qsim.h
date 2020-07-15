@@ -31,7 +31,7 @@ template <typename IO, typename Fuser, typename Simulator,
           typename RGen = std::mt19937>
 struct QSimRunner final {
   struct Parameter {
-    uint64_t seed;  // Random number gaenerator seed to perform measurements.
+    uint64_t seed;  // Random number generator seed to apply measurement gates.
     unsigned num_threads;
     unsigned verbosity;
   };
@@ -39,24 +39,24 @@ struct QSimRunner final {
   /**
    * Runs the given circuit, only measuring at the end.
    * @param param Options for parallelism and logging.
-   * @param maxtime Maximum number of time steps to run.
    * @param circuit The circuit to be simulated.
-   * @param measure Function to apply to each measurement result.
+   * @param measure Function that performs measurements (in the sense of
+   *   computing expectation values, etc).
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit, typename MeasurementFunc>
-  static bool Run(const Parameter& param, unsigned maxtime,
-                  const Circuit& circuit, MeasurementFunc measure) {
-    std::vector<unsigned> times_to_measure_at{maxtime};
-    return Run(param, times_to_measure_at, circuit, measure);
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  MeasurementFunc measure) {
+    return Run(param, {circuit.gates.back().time}, circuit, measure);
   }
 
   /**
-   * Runs the given circuit, measuring all qubits at user-specified times.
+   * Runs the given circuit, measuring at user-specified times.
    * @param param Options for parallelism and logging.
-   * @param times_to_measure_at Time steps at which to measure the state.
+   * @param times_to_measure_at Time steps at which to perform measurements.
    * @param circuit The circuit to be simulated.
-   * @param measure Function to apply to each measurement result.
+   * @param measure Function that performs measurements (in the sense of
+   *   computing expectation values, etc).
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit, typename MeasurementFunc>
@@ -125,7 +125,6 @@ struct QSimRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller.
    * @param param Options for parallelism and logging.
-   * @param maxtime Maximum number of time steps to run.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
@@ -133,8 +132,8 @@ struct QSimRunner final {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
-  static bool Run(const Parameter& param, unsigned maxtime,
-                  const Circuit& circuit, typename Simulator::State& state) {
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  typename Simulator::State& state) {
     double t0 = 0.0;
     double t1 = 0.0;
 
@@ -149,8 +148,7 @@ struct QSimRunner final {
 
     Simulator simulator(circuit.num_qubits, param.num_threads);
 
-    auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
-                                        maxtime);
+    auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
     }

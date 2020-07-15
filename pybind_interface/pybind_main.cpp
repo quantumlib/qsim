@@ -15,7 +15,6 @@
 #include "pybind_main.h"
 
 #include <complex>
-#include <limits>
 #include <sstream>
 #include <cmath>
 #include <algorithm>
@@ -299,7 +298,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     IO::errorf(exp.what());
     return {};
   }
-  Runner::Run(param, std::numeric_limits<unsigned>::max(), circuit, measure);
+  Runner::Run(param, circuit, measure);
   return amplitudes;
 }
 
@@ -340,8 +339,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 
   state_space.SetStateZero(state);
 
-  if (!Runner::Run(param, std::numeric_limits<unsigned>::max(), circuit,
-                   state)) {
+  if (!Runner::Run(param, circuit, state)) {
     IO::errorf("qsim full state simulation of the circuit errored out.\n");
     return {};
   }
@@ -391,8 +389,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   // Define container for amplitudes
   std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
 
-  if (Runner::Run(param, std::numeric_limits<unsigned>::max(), circuit,
-                  parts, bitstrings, amplitudes)) {
+  if (Runner::Run(param, circuit, parts, bitstrings, amplitudes)) {
     return amplitudes;
   }
   IO::errorf("qsimh simulation of the circuit errored out.\n");

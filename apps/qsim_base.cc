@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  if (Runner::Run(param, opt.maxtime, circuit, state)) {
+  if (Runner::Run(param, circuit, state)) {
     PrintAmplitudes(circuit.num_qubits, state_space, state);
   }
 
