@@ -256,6 +256,22 @@ R"(2
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
 
+TEST(CircuitQsimParserTest, TimeOutOfOrder) {
+  constexpr char invalid_circuit[] =
+R"(2
+0 h 0
+0 h 1
+1 cz 0 1
+2 t 0
+2 t 1
+1 cz 0 1)";
+
+  std::stringstream ss(invalid_circuit);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+}
+
 TEST(CircuitQsimParserTest, InvalidQubitRange2) {
   constexpr char invalid_circuit[] =
 R"(2
