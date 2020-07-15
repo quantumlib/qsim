@@ -97,7 +97,7 @@ TEST(RunQSimTest, QSimRunner1) {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, 99, circuit, measure));
+  EXPECT_TRUE(Runner::Run(param, circuit, measure));
 
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
@@ -127,7 +127,7 @@ TEST(RunQSimTest, QSimRunner2) {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, 99, circuit, state));
+  EXPECT_TRUE(Runner::Run(param, circuit, state));
 
   // Calculate entropy.
 
@@ -165,7 +165,7 @@ TEST(RunQSimTest, CirqGates) {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, 99, circuit, state));
+  EXPECT_TRUE(Runner::Run(param, circuit, state));
 
   for (uint64_t i = 0; i < state_space.Size(); ++i) {
     auto ampl = state_space.GetAmpl(state, i);
