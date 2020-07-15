@@ -38,7 +38,6 @@ struct QSimHRunner final {
    * Evaluates the amplitudes for a given circuit and set of output states.
    * @param param Options for parallelism and logging. Also specifies the size
    *   of the 'prefix' and 'root' sections of the lattice.
-   * @param maxtime Maximum number of time steps to run.
    * @param circuit The circuit to be simulated.
    * @param parts Lattice sections to be simulated.
    * @param bitstrings List of output states to simulate, as bitstrings.
@@ -47,8 +46,8 @@ struct QSimHRunner final {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
-  static bool Run(const Parameter& param, unsigned maxtime,
-                  const Circuit& circuit, const std::vector<unsigned>& parts,
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  const std::vector<unsigned>& parts,
                   const std::vector<uint64_t>& bitstrings,
                   std::vector<std::complex<fp_type>>& results) {
     if (circuit.num_qubits != parts.size()) {
@@ -81,12 +80,12 @@ struct QSimHRunner final {
       PrintInfo(param, hd);
     }
 
-    auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0, maxtime);
+    auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0);
     if (fgates0.size() == 0 && hd.gates0.size() > 0) {
       return false;
     }
 
-    auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1, maxtime);
+    auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1);
     if (fgates1.size() == 0 && hd.gates1.size() > 0) {
       return false;
     }

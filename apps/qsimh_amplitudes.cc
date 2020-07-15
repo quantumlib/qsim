@@ -200,10 +200,7 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::complex<Simulator::fp_type>> results(bitstrings.size(), 0);
 
-  bool rc = Runner::Run(
-      param, opt.maxtime, circuit, parts, bitstrings, results);
-
-  if (rc) {
+  if (Runner::Run(param, circuit, parts, bitstrings, results)) {
     WriteAmplitudes(opt.output_file, bitstrings, results);
     IO::messagef("all done.\n");
   }

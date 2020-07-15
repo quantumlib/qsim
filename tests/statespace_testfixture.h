@@ -537,7 +537,7 @@ void TestSamplingCrossEntropyDifference() {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, depth, circuit, state));
+  EXPECT_TRUE(Runner::Run(param, circuit, state));
 
   auto bitstrings = state_space.Sample(state, num_samples, 1);
   EXPECT_EQ(bitstrings.size(), num_samples);
@@ -713,7 +713,7 @@ void TestMeasurementLarge() {
   param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, depth, circuit, state));
+  EXPECT_TRUE(Runner::Run(param, circuit, state));
 
   std::mt19937 rgen(1);
   auto result = state_space.Measure({0, 4}, rgen, state);
