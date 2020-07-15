@@ -56,6 +56,8 @@ class CircuitQsimParser final {
     gate_name.reserve(16);
     fp_type phi, theta;
 
+    unsigned prev_time = 0;
+
     while (std::getline(fs, line)) {
       ++k;
 
@@ -80,6 +82,14 @@ class CircuitQsimParser final {
         InvalidGateError(provider, k);
         return false;
       }
+
+      if (time < prev_time) {
+        IO::errorf("gate time is out of order in %s in line %u.\n",
+                   provider.c_str(), k);
+        return false;
+      }
+
+      prev_time = time;
 
       unsigned num_qubits = circuit.num_qubits;
       auto& gates = circuit.gates;
