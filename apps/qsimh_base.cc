@@ -165,10 +165,7 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
 
-  bool rc = Runner::Run(
-      param, opt.maxtime, circuit, parts, bitstrings, results);
-
-  if (rc) {
+  if (Runner::Run(param, circuit, parts, bitstrings, results)) {
     static constexpr char const* bits[8] = {
       "000", "001", "010", "011", "100", "101", "110", "111",
     };
@@ -178,7 +175,7 @@ int main(int argc, char* argv[]) {
     for (std::size_t i = 0; i < num_bitstrings; ++i) {
       const auto& a = results[i];
       qsim::IO::messagef("%s:%16.8g%16.8g%16.8g\n", bits[i] + s,
-                        std::real(a), std::imag(a), std::norm(a));
+                         std::real(a), std::imag(a), std::norm(a));
     }
   }
 

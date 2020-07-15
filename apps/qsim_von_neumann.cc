@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  Runner::Run(param, opt.maxtime, circuit, measure);
+  Runner::Run(param, circuit, measure);
 
   return 0;
 }
