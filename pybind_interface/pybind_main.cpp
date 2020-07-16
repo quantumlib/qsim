@@ -240,6 +240,15 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
         Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
                                       params.at("theta"), params.at("phi")));
       break;
+    case Cirq::kMeasurement: {
+      std::vector<unsigned> qubits_;
+      for (unsigned i = 0; i < qubits.size(); i++){
+        qubits_.push_back(qubits[i]);
+      }
+      circuit->gates.push_back(
+        gate::Measurement<Cirq::GateCirq<float>>::Create(time, std::move(qubits_)));
+      }
+      break;
     // Matrix gates are handled in the add_matrix methods below.
     default:
       throw std::invalid_argument("GateKind not supported.");
