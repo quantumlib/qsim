@@ -1,0 +1,40 @@
+upper_tabs:
+# Tabs left of dropdown menu
+- include: /_upper_tabs_left.yaml
+- include: /api_docs/_upper_tabs_api.yaml
+# Dropdown menu
+- name: Resources
+  path: /resources
+  is_default: true
+  menu:
+  - include: /resources/_menu_toc.yaml
+  lower_tabs:
+    # Subsite tabs
+    other:
+    - name: Guide & Tutorials
+      contents:
+      - title: "Usage"
+        path: /quark/qsim/usage
+      - title: "Installing qsimcirq"
+        path: /quark/qsim/install_qsimcirq
+      - title: "Cirq interface"
+        path: /quark/qsim/cirq_interface
+      - title: "Input circuit file format"
+        path: /quark/qsim/input_format
+      - title: "Template naming"
+        path: /quark/qsim/type_reference
+      - title: "Build with Bazel"
+        path: /quark/qsim/bazel
+      - title: "Testing qsim"
+        path: /quark/qsim/testing
+      - title: "Docker"
+        path: /quark/qsim/docker
+      - title: "Release process"
+        path: /quark/qsim/release-qsimcirq
+
+    - name: API
+      skip_translation: true
+      contents:
+      - include: /quark/qsim/api_docs/cc/_toc.yaml
+
+- include: /_upper_tabs_right.yaml
