@@ -100,6 +100,7 @@ PYBIND11_MODULE(qsim, m) {
     .value("kFSimGate", GateKind::kFSimGate)
     .value("kMatrixGate1", GateKind::kMatrixGate1)
     .value("kMatrixGate2", GateKind::kMatrixGate2)
+    .value("kMeasurement", GateKind::kMeasurement)
     .export_values();
 
   m.def("add_gate", &add_gate, "Adds a gate to the given circuit.");

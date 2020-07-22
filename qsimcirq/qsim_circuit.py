@@ -96,6 +96,9 @@ def _cirq_gate_kind(gate):
     raise NotImplementedError(
       f'Received matrix on {gate.num_qubits()} qubits; '
       + 'only 1- or 2-qubit gates are supported.')
+  if isinstance(gate, cirq.ops.MeasurementGate):
+    # needed to inherit SimulatesSamples in sims
+    return qsim.kMeasurement
   # Unrecognized gates will be decomposed.
   return None
 
