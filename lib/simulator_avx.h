@@ -75,7 +75,7 @@ class SimulatorAVX final {
   // Applies a single-qubit gate for qubit > 2.
   // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs full AVX vectorization.
+  // Performs AVX vectorization.
   void ApplyGate1H(unsigned q0, const fp_type* matrix, State& state) const {
     uint64_t sizei = uint64_t{1} << num_qubits_;
     uint64_t sizek = uint64_t{1} << (q0 + 1);
@@ -87,32 +87,33 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizek, uint64_t mask0, uint64_t mask1,
-                const fp_type* matrix, fp_type* rstate) {
-      uint64_t si = (32 * i & mask1) | (16 * i & mask0);
-
+                const float* matrix, fp_type* rstate) {
       __m256 r0, i0, r1, i1, ru, iu, rn, in;
 
-      uint64_t p = si;
-      r0 = _mm256_load_ps(rstate + p);
-      i0 = _mm256_load_ps(rstate + p + 8);
+      uint64_t si = (32 * i & mask1) | (16 * i & mask0);
+      auto p0 = rstate + si;
+      auto p1 = p0 + sizek;
+
+      r0 = _mm256_load_ps(p0);
+      i0 = _mm256_load_ps(p0 + 8);
+      r1 = _mm256_load_ps(p1);
+      i1 = _mm256_load_ps(p1 + 8);
+
       ru = _mm256_set1_ps(matrix[0]);
       iu = _mm256_set1_ps(matrix[1]);
       rn = _mm256_mul_ps(r0, ru);
       in = _mm256_mul_ps(r0, iu);
       rn = _mm256_fnmadd_ps(i0, iu, rn);
       in = _mm256_fmadd_ps(i0, ru, in);
-      p = si | sizek;
-      r1 = _mm256_load_ps(rstate + p);
-      i1 = _mm256_load_ps(rstate + p + 8);
       ru = _mm256_set1_ps(matrix[2]);
       iu = _mm256_set1_ps(matrix[3]);
       rn = _mm256_fmadd_ps(r1, ru, rn);
       in = _mm256_fmadd_ps(r1, iu, in);
       rn = _mm256_fnmadd_ps(i1, iu, rn);
       in = _mm256_fmadd_ps(i1, ru, in);
-      p = si;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+
+      _mm256_store_ps(p0, rn);
+      _mm256_store_ps(p0 + 8, in);
 
       ru = _mm256_set1_ps(matrix[4]);
       iu = _mm256_set1_ps(matrix[5]);
@@ -126,9 +127,9 @@ class SimulatorAVX final {
       in = _mm256_fmadd_ps(r1, iu, in);
       rn = _mm256_fnmadd_ps(i1, iu, rn);
       in = _mm256_fmadd_ps(i1, ru, in);
-      p = si | sizek;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+
+      _mm256_store_ps(p1, rn);
+      _mm256_store_ps(p1 + 8, in);
     };
 
     for_.Run(sizei / 16, f, sizek, mask0, mask1, matrix, rstate);
@@ -137,23 +138,39 @@ class SimulatorAVX final {
   // Applies a single-qubit gate for qubit <= 2.
   // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs partial AVX vectorization with permutations.
+  // Performs AVX vectorization with permutations.
   void ApplyGate1L(unsigned q0, const fp_type* matrix, State& state) const {
     __m256i ml;
+    __m256 u[4];
 
     switch (q0) {
     case 0:
       ml = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
+      u[0] = SetPs(matrix, 6, 0, 6, 0, 6, 0, 6, 0);
+      u[1] = SetPs(matrix, 7, 1, 7, 1, 7, 1, 7, 1);
+      u[2] = SetPs(matrix, 4, 2, 4, 2, 4, 2, 4, 2);
+      u[3] = SetPs(matrix, 5, 3, 5, 3, 5, 3, 5, 3);
       break;
     case 1:
       ml = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
+      u[0] = SetPs(matrix, 6, 6, 0, 0, 6, 6, 0, 0);
+      u[1] = SetPs(matrix, 7, 7, 1, 1, 7, 7, 1, 1);
+      u[2] = SetPs(matrix, 4, 4, 2, 2, 4, 4, 2, 2);
+      u[3] = SetPs(matrix, 5, 5, 3, 3, 5, 5, 3, 3);
       break;
     case 2:
       ml = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
+      u[0] = SetPs(matrix, 6, 6, 6, 6, 0, 0, 0, 0);
+      u[1] = SetPs(matrix, 7, 7, 7, 7, 1, 1, 1, 1);
+      u[2] = SetPs(matrix, 4, 4, 4, 4, 2, 2, 2, 2);
+      u[3] = SetPs(matrix, 5, 5, 5, 5, 3, 3, 3, 3);
       break;
     default:
       // Cannot reach here.
-      ml = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
+      ml = _mm256_set1_epi32(0);
+      for (std::size_t i = 0; i < 4; ++i) {
+        u[i] = _mm256_set1_ps(0);
+      }
       break;
     }
 
@@ -161,76 +178,37 @@ class SimulatorAVX final {
 
     fp_type* rstate = StateSpace::RawData(state);
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, unsigned q0,
-                const __m256i& ml, const fp_type* matrix, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, ru, iu, rn, in, rm, im;
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                __m256i ml, const __m256* u, fp_type* rstate) {
+      __m256 r0, i0, r1, i1, rn, in;
 
-      auto p = 16 * i;
+      auto p0 = rstate + 16 * i;
 
-      r0 = _mm256_load_ps(rstate + p);
-      i0 = _mm256_load_ps(rstate + p + 8);
-
+      r0 = _mm256_load_ps(p0);
+      i0 = _mm256_load_ps(p0 + 8);
       r1 = _mm256_permutevar8x32_ps(r0, ml);
       i1 = _mm256_permutevar8x32_ps(i0, ml);
 
-      ru = _mm256_set1_ps(matrix[0]);
-      iu = _mm256_set1_ps(matrix[1]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[2]);
-      iu = _mm256_set1_ps(matrix[3]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
+      rn = _mm256_mul_ps(r0, u[0]);
+      in = _mm256_mul_ps(r0, u[1]);
+      rn = _mm256_fnmadd_ps(i0, u[1], rn);
+      in = _mm256_fmadd_ps(i0, u[0], in);
+      rn = _mm256_fmadd_ps(r1, u[2], rn);
+      in = _mm256_fmadd_ps(r1, u[3], in);
+      rn = _mm256_fnmadd_ps(i1, u[3], rn);
+      in = _mm256_fmadd_ps(i1, u[2], in);
 
-      ru = _mm256_set1_ps(matrix[4]);
-      iu = _mm256_set1_ps(matrix[5]);
-      rm = _mm256_mul_ps(r0, ru);
-      im = _mm256_mul_ps(r0, iu);
-      rm = _mm256_fnmadd_ps(i0, iu, rm);
-      im = _mm256_fmadd_ps(i0, ru, im);
-      ru = _mm256_set1_ps(matrix[6]);
-      iu = _mm256_set1_ps(matrix[7]);
-      rm = _mm256_fmadd_ps(r1, ru, rm);
-      im = _mm256_fmadd_ps(r1, iu, im);
-      rm = _mm256_fnmadd_ps(i1, iu, rm);
-      im = _mm256_fmadd_ps(i1, ru, im);
-
-      rm = _mm256_permutevar8x32_ps(rm, ml);
-      im = _mm256_permutevar8x32_ps(im, ml);
-
-      switch (q0) {
-      case 0:
-        rn = _mm256_blend_ps(rn, rm, 170);  // 10101010
-        in = _mm256_blend_ps(in, im, 170);
-        break;
-      case 1:
-        rn = _mm256_blend_ps(rn, rm, 204);  // 11001100
-        in = _mm256_blend_ps(in, im, 204);
-        break;
-      case 2:
-        rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
-        in = _mm256_blend_ps(in, im, 240);
-        break;
-      default:
-        // Cannot reach here.
-        break;
-      }
-
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+      _mm256_store_ps(p0, rn);
+      _mm256_store_ps(p0 + 8, in);
     };
 
-    for_.Run(std::max(uint64_t{1}, sizei / 16), f, q0, ml, matrix, rstate);
+    for_.Run(std::max(uint64_t{1}, sizei / 16), f, ml, u, rstate);
   }
 
   // Applies two-qubit gate for qubit0 > 2 and qubit1 > 2.
   // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs full AVX vectorization.
+  // Performs AVX vectorization.
   void ApplyGate2HH(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     uint64_t sizei = uint64_t{1} << (num_qubits_ - 1);
@@ -247,49 +225,50 @@ class SimulatorAVX final {
                 uint64_t sizej, uint64_t sizek,
                 uint64_t mask0, uint64_t mask1, uint64_t mask2,
                 const fp_type* matrix, fp_type* rstate) {
-      uint64_t si = (64 * i & mask2) | (32 * i & mask1) | (16 * i & mask0);
-
       __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in;
 
-      uint64_t p = si;
-      r0 = _mm256_load_ps(rstate + p);
-      i0 = _mm256_load_ps(rstate + p + 8);
+      uint64_t si = (64 * i & mask2) | (32 * i & mask1) | (16 * i & mask0);
+      auto p0 = rstate + si;
+      auto p1 = p0 + sizek;
+      auto p2 = p0 + sizej;
+      auto p3 = p1 + sizej;
+
+      r0 = _mm256_load_ps(p0);
+      i0 = _mm256_load_ps(p0 + 8);
+      r1 = _mm256_load_ps(p1);
+      i1 = _mm256_load_ps(p1 + 8);
+      r2 = _mm256_load_ps(p2);
+      i2 = _mm256_load_ps(p2 + 8);
+      r3 = _mm256_load_ps(p3);
+      i3 = _mm256_load_ps(p3 + 8);
+
       ru = _mm256_set1_ps(matrix[0]);
       iu = _mm256_set1_ps(matrix[1]);
       rn = _mm256_mul_ps(r0, ru);
       in = _mm256_mul_ps(r0, iu);
       rn = _mm256_fnmadd_ps(i0, iu, rn);
       in = _mm256_fmadd_ps(i0, ru, in);
-      p = si | sizek;
-      r1 = _mm256_load_ps(rstate + p);
-      i1 = _mm256_load_ps(rstate + p + 8);
       ru = _mm256_set1_ps(matrix[2]);
       iu = _mm256_set1_ps(matrix[3]);
       rn = _mm256_fmadd_ps(r1, ru, rn);
       in = _mm256_fmadd_ps(r1, iu, in);
       rn = _mm256_fnmadd_ps(i1, iu, rn);
       in = _mm256_fmadd_ps(i1, ru, in);
-      p = si | sizej;
-      r2 = _mm256_load_ps(rstate + p);
-      i2 = _mm256_load_ps(rstate + p + 8);
       ru = _mm256_set1_ps(matrix[4]);
       iu = _mm256_set1_ps(matrix[5]);
       rn = _mm256_fmadd_ps(r2, ru, rn);
       in = _mm256_fmadd_ps(r2, iu, in);
       rn = _mm256_fnmadd_ps(i2, iu, rn);
       in = _mm256_fmadd_ps(i2, ru, in);
-      p |= sizek;
-      r3 = _mm256_load_ps(rstate + p);
-      i3 = _mm256_load_ps(rstate + p + 8);
       ru = _mm256_set1_ps(matrix[6]);
       iu = _mm256_set1_ps(matrix[7]);
       rn = _mm256_fmadd_ps(r3, ru, rn);
       in = _mm256_fmadd_ps(r3, iu, in);
       rn = _mm256_fnmadd_ps(i3, iu, rn);
       in = _mm256_fmadd_ps(i3, ru, in);
-      p = si;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+
+      _mm256_store_ps(p0, rn);
+      _mm256_store_ps(p0 + 8, in);
 
       ru = _mm256_set1_ps(matrix[8]);
       iu = _mm256_set1_ps(matrix[9]);
@@ -315,9 +294,9 @@ class SimulatorAVX final {
       in = _mm256_fmadd_ps(r3, iu, in);
       rn = _mm256_fnmadd_ps(i3, iu, rn);
       in = _mm256_fmadd_ps(i3, ru, in);
-      p = si | sizek;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+
+      _mm256_store_ps(p1, rn);
+      _mm256_store_ps(p1 + 8, in);
 
       ru = _mm256_set1_ps(matrix[16]);
       iu = _mm256_set1_ps(matrix[17]);
@@ -343,9 +322,9 @@ class SimulatorAVX final {
       in = _mm256_fmadd_ps(r3, iu, in);
       rn = _mm256_fnmadd_ps(i3, iu, rn);
       in = _mm256_fmadd_ps(i3, ru, in);
-      p = si | sizej;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+
+      _mm256_store_ps(p2, rn);
+      _mm256_store_ps(p2 + 8, in);
 
       ru = _mm256_set1_ps(matrix[24]);
       iu = _mm256_set1_ps(matrix[25]);
@@ -371,9 +350,9 @@ class SimulatorAVX final {
       in = _mm256_fmadd_ps(r3, iu, in);
       rn = _mm256_fnmadd_ps(i3, iu, rn);
       in = _mm256_fmadd_ps(i3, ru, in);
-      p |= sizek;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+
+      _mm256_store_ps(p3, rn);
+      _mm256_store_ps(p3 + 8, in);
     };
 
     for_.Run(sizei / 16, f, sizej, sizek, mask0, mask1, mask2, matrix, rstate);
@@ -382,24 +361,76 @@ class SimulatorAVX final {
   // Applies a two-qubit gate for qubit0 <= 2 and qubit1 > 2.
   // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs partial AVX vectorization with permutations.
+  // Performs AVX vectorization with permutations.
   void ApplyGate2HL(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     __m256i ml;
+    __m256 u[16];
 
     switch (q0) {
     case 0:
       ml = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
+      u[ 0] = SetPs(matrix, 10,  0, 10,  0, 10,  0, 10,  0);
+      u[ 1] = SetPs(matrix, 11,  1, 11,  1, 11,  1, 11,  1);
+      u[ 2] = SetPs(matrix,  8,  2,  8,  2,  8,  2,  8,  2);
+      u[ 3] = SetPs(matrix,  9,  3,  9,  3,  9,  3,  9,  3);
+      u[ 4] = SetPs(matrix, 14,  4, 14,  4, 14,  4, 14,  4);
+      u[ 5] = SetPs(matrix, 15,  5, 15,  5, 15,  5, 15,  5);
+      u[ 6] = SetPs(matrix, 12,  6, 12,  6, 12,  6, 12,  6);
+      u[ 7] = SetPs(matrix, 13,  7, 13,  7, 13,  7, 13,  7);
+      u[ 8] = SetPs(matrix, 26, 16, 26, 16, 26, 16, 26, 16);
+      u[ 9] = SetPs(matrix, 27, 17, 27, 17, 27, 17, 27, 17);
+      u[10] = SetPs(matrix, 24, 18, 24, 18, 24, 18, 24, 18);
+      u[11] = SetPs(matrix, 25, 19, 25, 19, 25, 19, 25, 19);
+      u[12] = SetPs(matrix, 30, 20, 30, 20, 30, 20, 30, 20);
+      u[13] = SetPs(matrix, 31, 21, 31, 21, 31, 21, 31, 21);
+      u[14] = SetPs(matrix, 28, 22, 28, 22, 28, 22, 28, 22);
+      u[15] = SetPs(matrix, 29, 23, 29, 23, 29, 23, 29, 23);
       break;
     case 1:
       ml = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
+      u[ 0] = SetPs(matrix, 10, 10,  0,  0, 10, 10,  0,  0);
+      u[ 1] = SetPs(matrix, 11, 11,  1,  1, 11, 11,  1,  1);
+      u[ 2] = SetPs(matrix,  8,  8,  2,  2,  8,  8,  2,  2);
+      u[ 3] = SetPs(matrix,  9,  9,  3,  3,  9,  9,  3,  3);
+      u[ 4] = SetPs(matrix, 14, 14,  4,  4, 14, 14,  4,  4);
+      u[ 5] = SetPs(matrix, 15, 15,  5,  5, 15, 15,  5,  5);
+      u[ 6] = SetPs(matrix, 12, 12,  6,  6, 12, 12,  6,  6);
+      u[ 7] = SetPs(matrix, 13, 13,  7,  7, 13, 13,  7,  7);
+      u[ 8] = SetPs(matrix, 26, 26, 16, 16, 26, 26, 16, 16);
+      u[ 9] = SetPs(matrix, 27, 27, 17, 17, 27, 27, 17, 17);
+      u[10] = SetPs(matrix, 24, 24, 18, 18, 24, 24, 18, 18);
+      u[11] = SetPs(matrix, 25, 25, 19, 19, 25, 25, 19, 19);
+      u[12] = SetPs(matrix, 30, 30, 20, 20, 30, 30, 20, 20);
+      u[13] = SetPs(matrix, 31, 31, 21, 21, 31, 31, 21, 21);
+      u[14] = SetPs(matrix, 28, 28, 22, 22, 28, 28, 22, 22);
+      u[15] = SetPs(matrix, 29, 29, 23, 23, 29, 29, 23, 23);
       break;
     case 2:
       ml = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
+      u[ 0] = SetPs(matrix, 10, 10, 10, 10,  0,  0,  0,  0);
+      u[ 1] = SetPs(matrix, 11, 11, 11, 11,  1,  1,  1,  1);
+      u[ 2] = SetPs(matrix,  8,  8,  8,  8,  2,  2,  2,  2);
+      u[ 3] = SetPs(matrix,  9,  9,  9,  9,  3,  3,  3,  3);
+      u[ 4] = SetPs(matrix, 14, 14, 14, 14,  4,  4,  4,  4);
+      u[ 5] = SetPs(matrix, 15, 15, 15, 15,  5,  5,  5,  5);
+      u[ 6] = SetPs(matrix, 12, 12, 12, 12,  6,  6,  6,  6);
+      u[ 7] = SetPs(matrix, 13, 13, 13, 13,  7,  7,  7,  7);
+      u[ 8] = SetPs(matrix, 26, 26, 26, 26, 16, 16, 16, 16);
+      u[ 9] = SetPs(matrix, 27, 27, 27, 27, 17, 17, 17, 17);
+      u[10] = SetPs(matrix, 24, 24, 24, 24, 18, 18, 18, 18);
+      u[11] = SetPs(matrix, 25, 25, 25, 25, 19, 19, 19, 19);
+      u[12] = SetPs(matrix, 30, 30, 30, 30, 20, 20, 20, 20);
+      u[13] = SetPs(matrix, 31, 31, 31, 31, 21, 21, 21, 21);
+      u[14] = SetPs(matrix, 28, 28, 28, 28, 22, 22, 22, 22);
+      u[15] = SetPs(matrix, 29, 29, 29, 29, 23, 23, 23, 23);
       break;
     default:
       // Cannot reach here.
-      ml = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
+      ml = _mm256_set1_epi32(0);
+      for (std::size_t i = 0; i < 16; ++i) {
+        u[i] = _mm256_set1_ps(0);
+      }
       break;
     }
 
@@ -412,213 +443,126 @@ class SimulatorAVX final {
     fp_type* rstate = StateSpace::RawData(state);
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                uint64_t sizej, uint64_t mask0, uint64_t mask1, unsigned q0,
-                const __m256i& ml, const fp_type* matrix, fp_type* rstate) {
-      uint64_t si = (32 * i & mask1) | (16 * i & mask0);
+                uint64_t sizej, uint64_t mask0, uint64_t mask1,
+                __m256i ml, const __m256* u, fp_type* rstate) {
+      __m256 r0, i0, r1, i1, r2, i2, r3, i3, rn, in;
 
-      __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in, rm, im;
+      auto p0 = rstate + ((32 * i & mask1) | (16 * i & mask0));
+      auto p2 = p0 + sizej;
 
-      uint64_t p = si;
-
-      r0 = _mm256_load_ps(rstate + p);
-      i0 = _mm256_load_ps(rstate + p + 8);
-
+      r0 = _mm256_load_ps(p0);
+      i0 = _mm256_load_ps(p0 + 8);
       r1 = _mm256_permutevar8x32_ps(r0, ml);
       i1 = _mm256_permutevar8x32_ps(i0, ml);
-
-      p = si | sizej;
-
-      r2 = _mm256_load_ps(rstate + p);
-      i2 = _mm256_load_ps(rstate + p + 8);
-
+      r2 = _mm256_load_ps(p2);
+      i2 = _mm256_load_ps(p2 + 8);
       r3 = _mm256_permutevar8x32_ps(r2, ml);
       i3 = _mm256_permutevar8x32_ps(i2, ml);
 
-      ru = _mm256_set1_ps(matrix[0]);
-      iu = _mm256_set1_ps(matrix[1]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[2]);
-      iu = _mm256_set1_ps(matrix[3]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[4]);
-      iu = _mm256_set1_ps(matrix[5]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[6]);
-      iu = _mm256_set1_ps(matrix[7]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
+      rn = _mm256_mul_ps(r0, u[0]);
+      in = _mm256_mul_ps(r0, u[1]);
+      rn = _mm256_fnmadd_ps(i0, u[1], rn);
+      in = _mm256_fmadd_ps(i0, u[0], in);
+      rn = _mm256_fmadd_ps(r1, u[2], rn);
+      in = _mm256_fmadd_ps(r1, u[3], in);
+      rn = _mm256_fnmadd_ps(i1, u[3], rn);
+      in = _mm256_fmadd_ps(i1, u[2], in);
+      rn = _mm256_fmadd_ps(r2, u[4], rn);
+      in = _mm256_fmadd_ps(r2, u[5], in);
+      rn = _mm256_fnmadd_ps(i2, u[5], rn);
+      in = _mm256_fmadd_ps(i2, u[4], in);
+      rn = _mm256_fmadd_ps(r3, u[6], rn);
+      in = _mm256_fmadd_ps(r3, u[7], in);
+      rn = _mm256_fnmadd_ps(i3, u[7], rn);
+      in = _mm256_fmadd_ps(i3, u[6], in);
 
-      ru = _mm256_set1_ps(matrix[8]);
-      iu = _mm256_set1_ps(matrix[9]);
-      rm = _mm256_mul_ps(r0, ru);
-      im = _mm256_mul_ps(r0, iu);
-      rm = _mm256_fnmadd_ps(i0, iu, rm);
-      im = _mm256_fmadd_ps(i0, ru, im);
-      ru = _mm256_set1_ps(matrix[10]);
-      iu = _mm256_set1_ps(matrix[11]);
-      rm = _mm256_fmadd_ps(r1, ru, rm);
-      im = _mm256_fmadd_ps(r1, iu, im);
-      rm = _mm256_fnmadd_ps(i1, iu, rm);
-      im = _mm256_fmadd_ps(i1, ru, im);
-      ru = _mm256_set1_ps(matrix[12]);
-      iu = _mm256_set1_ps(matrix[13]);
-      rm = _mm256_fmadd_ps(r2, ru, rm);
-      im = _mm256_fmadd_ps(r2, iu, im);
-      rm = _mm256_fnmadd_ps(i2, iu, rm);
-      im = _mm256_fmadd_ps(i2, ru, im);
-      ru = _mm256_set1_ps(matrix[14]);
-      iu = _mm256_set1_ps(matrix[15]);
-      rm = _mm256_fmadd_ps(r3, ru, rm);
-      im = _mm256_fmadd_ps(r3, iu, im);
-      rm = _mm256_fnmadd_ps(i3, iu, rm);
-      im = _mm256_fmadd_ps(i3, ru, im);
+      _mm256_store_ps(p0, rn);
+      _mm256_store_ps(p0 + 8, in);
 
-      rm = _mm256_permutevar8x32_ps(rm, ml);
-      im = _mm256_permutevar8x32_ps(im, ml);
+      rn = _mm256_mul_ps(r0, u[8]);
+      in = _mm256_mul_ps(r0, u[9]);
+      rn = _mm256_fnmadd_ps(i0, u[9], rn);
+      in = _mm256_fmadd_ps(i0, u[8], in);
+      rn = _mm256_fmadd_ps(r1, u[10], rn);
+      in = _mm256_fmadd_ps(r1, u[11], in);
+      rn = _mm256_fnmadd_ps(i1, u[11], rn);
+      in = _mm256_fmadd_ps(i1, u[10], in);
+      rn = _mm256_fmadd_ps(r2, u[12], rn);
+      in = _mm256_fmadd_ps(r2, u[13], in);
+      rn = _mm256_fnmadd_ps(i2, u[13], rn);
+      in = _mm256_fmadd_ps(i2, u[12], in);
+      rn = _mm256_fmadd_ps(r3, u[14], rn);
+      in = _mm256_fmadd_ps(r3, u[15], in);
+      rn = _mm256_fnmadd_ps(i3, u[15], rn);
+      in = _mm256_fmadd_ps(i3, u[14], in);
 
-      switch (q0) {
-      case 0:
-        rn = _mm256_blend_ps(rn, rm, 170);  // 10101010
-        in = _mm256_blend_ps(in, im, 170);
-        break;
-      case 1:
-        rn = _mm256_blend_ps(rn, rm, 204);  // 11001100
-        in = _mm256_blend_ps(in, im, 204);
-        break;
-      case 2:
-        rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
-        in = _mm256_blend_ps(in, im, 240);
-        break;
-      default:
-        // Cannot reach here.
-        break;
-      }
-
-      p = si;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
-
-      ru = _mm256_set1_ps(matrix[16]);
-      iu = _mm256_set1_ps(matrix[17]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[18]);
-      iu = _mm256_set1_ps(matrix[19]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[20]);
-      iu = _mm256_set1_ps(matrix[21]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[22]);
-      iu = _mm256_set1_ps(matrix[23]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
-
-      ru = _mm256_set1_ps(matrix[24]);
-      iu = _mm256_set1_ps(matrix[25]);
-      rm = _mm256_mul_ps(r0, ru);
-      im = _mm256_mul_ps(r0, iu);
-      rm = _mm256_fnmadd_ps(i0, iu, rm);
-      im = _mm256_fmadd_ps(i0, ru, im);
-      ru = _mm256_set1_ps(matrix[26]);
-      iu = _mm256_set1_ps(matrix[27]);
-      rm = _mm256_fmadd_ps(r1, ru, rm);
-      im = _mm256_fmadd_ps(r1, iu, im);
-      rm = _mm256_fnmadd_ps(i1, iu, rm);
-      im = _mm256_fmadd_ps(i1, ru, im);
-      ru = _mm256_set1_ps(matrix[28]);
-      iu = _mm256_set1_ps(matrix[29]);
-      rm = _mm256_fmadd_ps(r2, ru, rm);
-      im = _mm256_fmadd_ps(r2, iu, im);
-      rm = _mm256_fnmadd_ps(i2, iu, rm);
-      im = _mm256_fmadd_ps(i2, ru, im);
-      ru = _mm256_set1_ps(matrix[30]);
-      iu = _mm256_set1_ps(matrix[31]);
-      rm = _mm256_fmadd_ps(r3, ru, rm);
-      im = _mm256_fmadd_ps(r3, iu, im);
-      rm = _mm256_fnmadd_ps(i3, iu, rm);
-      im = _mm256_fmadd_ps(i3, ru, im);
-
-      rm = _mm256_permutevar8x32_ps(rm, ml);
-      im = _mm256_permutevar8x32_ps(im, ml);
-
-      switch (q0) {
-      case 0:
-        rn = _mm256_blend_ps(rn, rm, 170);  // 10101010
-        in = _mm256_blend_ps(in, im, 170);
-        break;
-      case 1:
-        rn = _mm256_blend_ps(rn, rm, 204);  // 11001100
-        in = _mm256_blend_ps(in, im, 204);
-        break;
-      case 2:
-        rn = _mm256_blend_ps(rn, rm, 240);  // 11110000
-        in = _mm256_blend_ps(in, im, 240);
-        break;
-      default:
-        // Cannot reach here.
-        break;
-      }
-
-      p = si | sizej;
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+      _mm256_store_ps(p2, rn);
+      _mm256_store_ps(p2 + 8, in);
     };
 
-    for_.Run(sizei / 16, f, sizej, mask0, mask1, q0, ml, matrix, rstate);
+    for_.Run(sizei / 16, f, sizej, mask0, mask1, ml, u, rstate);
   }
 
   // Applies a two-qubit gate for qubit0 <= 2 and qubit1 <= 2.
   // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs partial AVX vectorization with permutations.
+  // Performs AVX vectorization with permutations.
   void ApplyGate2LL(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
-    unsigned q = q0 + q1;
+    __m256i ml[3];
+    __m256 u[8];
 
-    __m256i ml1, ml2, ml3;
-
-    switch (q) {
+    switch (q0 + q1) {
     case 1:
-      ml1 = _mm256_set_epi32(7, 6, 4, 5, 3, 2, 0, 1);
-      ml2 = _mm256_set_epi32(7, 4, 5, 6, 3, 0, 1, 2);
-      ml3 = _mm256_set_epi32(4, 6, 5, 7, 0, 2, 1, 3);
+      ml[0] = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
+      ml[1] = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
+      ml[2] = _mm256_set_epi32(4, 5, 6, 7, 0, 1, 2, 3);
+
+      u[0] = SetPs(matrix, 30, 20, 10,  0, 30, 20, 10,  0);
+      u[1] = SetPs(matrix, 31, 21, 11,  1, 31, 21, 11,  1);
+      u[2] = SetPs(matrix, 28, 22,  8,  2, 28, 22,  8,  2);
+      u[3] = SetPs(matrix, 29, 23,  9,  3, 29, 23,  9,  3);
+      u[4] = SetPs(matrix, 26, 16, 14,  4, 26, 16, 14,  4);
+      u[5] = SetPs(matrix, 27, 17, 15,  5, 27, 17, 15,  5);
+      u[6] = SetPs(matrix, 24, 18, 12,  6, 24, 18, 12,  6);
+      u[7] = SetPs(matrix, 25, 19, 13,  7, 25, 19, 13,  7);
       break;
     case 2:
-      ml1 = _mm256_set_epi32(7, 6, 5, 4, 2, 3, 0, 1);
-      ml2 = _mm256_set_epi32(7, 2, 5, 0, 3, 6, 1, 4);
-      ml3 = _mm256_set_epi32(2, 6, 0, 4, 3, 7, 1, 5);
+      ml[0] = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
+      ml[1] = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
+      ml[2] = _mm256_set_epi32(2, 3, 0, 1, 6, 7, 4, 5);
+
+      u[0] = SetPs(matrix, 30, 20, 30, 20, 10,  0, 10,  0);
+      u[1] = SetPs(matrix, 31, 21, 31, 21, 11,  1, 11,  1);
+      u[2] = SetPs(matrix, 28, 22, 28, 22,  8,  2,  8,  2);
+      u[3] = SetPs(matrix, 29, 23, 29, 23,  9,  3,  9,  3);
+      u[4] = SetPs(matrix, 26, 16, 26, 16, 14,  4, 14,  4);
+      u[5] = SetPs(matrix, 27, 17, 27, 17, 15,  5, 15,  5);
+      u[6] = SetPs(matrix, 24, 18, 24, 18, 12,  6, 12,  6);
+      u[7] = SetPs(matrix, 25, 19, 25, 19, 13,  7, 13,  7);
       break;
     case 3:
-      ml1 = _mm256_set_epi32(7, 6, 5, 4, 1, 0, 3, 2);
-      ml2 = _mm256_set_epi32(7, 6, 1, 0, 3, 2, 5, 4);
-      ml3 = _mm256_set_epi32(1, 0, 5, 4, 3, 2, 7, 6);
+      ml[0] = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
+      ml[1] = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
+      ml[2] = _mm256_set_epi32(1, 0, 3, 2, 5, 4, 7, 6);
+
+      u[0] = SetPs(matrix, 30, 30, 20, 20, 10, 10,  0,  0);
+      u[1] = SetPs(matrix, 31, 31, 21, 21, 11, 11,  1,  1);
+      u[2] = SetPs(matrix, 28, 28, 22, 22,  8,  8,  2,  2);
+      u[3] = SetPs(matrix, 29, 29, 23, 23,  9,  9,  3,  3);
+      u[4] = SetPs(matrix, 26, 26, 16, 16, 14, 14,  4,  4);
+      u[5] = SetPs(matrix, 27, 27, 17, 17, 15, 15,  5,  5);
+      u[6] = SetPs(matrix, 24, 24, 18, 18, 12, 12,  6,  6);
+      u[7] = SetPs(matrix, 25, 25, 19, 19, 13, 13,  7,  7);
       break;
     default:
       // Cannot reach here.
-      ml1 = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
-      ml2 = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
-      ml3 = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
+      ml[0] = _mm256_set1_epi32(0);
+      ml[1] = _mm256_set1_epi32(0);
+      ml[2] = _mm256_set1_epi32(0);
+      for (std::size_t i = 0; i < 8; ++i) {
+        u[i] = _mm256_set1_ps(0);
+      }
       break;
     }
 
@@ -626,194 +570,50 @@ class SimulatorAVX final {
 
     fp_type* rstate = StateSpace::RawData(state);
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, unsigned q,
-                const __m256i& ml1, const __m256i& ml2, const __m256i& ml3,
-                const fp_type* matrix, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in, rm, im;
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const __m256i* ml, const __m256* u, fp_type* rstate) {
+      __m256 r0, i0, r1, i1, r2, i2, r3, i3, rn, in;
 
-      auto p = 16 * i;
+      auto p0 = rstate + 16 * i;
 
-      r0 = _mm256_load_ps(rstate + p);
-      i0 = _mm256_load_ps(rstate + p + 8);
+      r0 = _mm256_load_ps(p0);
+      i0 = _mm256_load_ps(p0 + 8);
+      r1 = _mm256_permutevar8x32_ps(r0, ml[0]);
+      i1 = _mm256_permutevar8x32_ps(i0, ml[0]);
+      r2 = _mm256_permutevar8x32_ps(r0, ml[1]);
+      i2 = _mm256_permutevar8x32_ps(i0, ml[1]);
+      r3 = _mm256_permutevar8x32_ps(r0, ml[2]);
+      i3 = _mm256_permutevar8x32_ps(i0, ml[2]);
 
-      r1 = _mm256_permutevar8x32_ps(r0, ml1);
-      i1 = _mm256_permutevar8x32_ps(i0, ml1);
+      rn = _mm256_mul_ps(r0, u[0]);
+      in = _mm256_mul_ps(r0, u[1]);
+      rn = _mm256_fnmadd_ps(i0, u[1], rn);
+      in = _mm256_fmadd_ps(i0, u[0], in);
+      rn = _mm256_fmadd_ps(r1, u[2], rn);
+      in = _mm256_fmadd_ps(r1, u[3], in);
+      rn = _mm256_fnmadd_ps(i1, u[3], rn);
+      in = _mm256_fmadd_ps(i1, u[2], in);
+      rn = _mm256_fmadd_ps(r2, u[4], rn);
+      in = _mm256_fmadd_ps(r2, u[5], in);
+      rn = _mm256_fnmadd_ps(i2, u[5], rn);
+      in = _mm256_fmadd_ps(i2, u[4], in);
+      rn = _mm256_fmadd_ps(r3, u[6], rn);
+      in = _mm256_fmadd_ps(r3, u[7], in);
+      rn = _mm256_fnmadd_ps(i3, u[7], rn);
+      in = _mm256_fmadd_ps(i3, u[6], in);
 
-      r2 = _mm256_permutevar8x32_ps(r0, ml2);
-      i2 = _mm256_permutevar8x32_ps(i0, ml2);
-
-      r3 = _mm256_permutevar8x32_ps(r0, ml3);
-      i3 = _mm256_permutevar8x32_ps(i0, ml3);
-
-      ru = _mm256_set1_ps(matrix[0]);
-      iu = _mm256_set1_ps(matrix[1]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[2]);
-      iu = _mm256_set1_ps(matrix[3]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[4]);
-      iu = _mm256_set1_ps(matrix[5]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[6]);
-      iu = _mm256_set1_ps(matrix[7]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
-
-      ru = _mm256_set1_ps(matrix[8]);
-      iu = _mm256_set1_ps(matrix[9]);
-      rm = _mm256_mul_ps(r0, ru);
-      im = _mm256_mul_ps(r0, iu);
-      rm = _mm256_fnmadd_ps(i0, iu, rm);
-      im = _mm256_fmadd_ps(i0, ru, im);
-      ru = _mm256_set1_ps(matrix[10]);
-      iu = _mm256_set1_ps(matrix[11]);
-      rm = _mm256_fmadd_ps(r1, ru, rm);
-      im = _mm256_fmadd_ps(r1, iu, im);
-      rm = _mm256_fnmadd_ps(i1, iu, rm);
-      im = _mm256_fmadd_ps(i1, ru, im);
-      ru = _mm256_set1_ps(matrix[12]);
-      iu = _mm256_set1_ps(matrix[13]);
-      rm = _mm256_fmadd_ps(r2, ru, rm);
-      im = _mm256_fmadd_ps(r2, iu, im);
-      rm = _mm256_fnmadd_ps(i2, iu, rm);
-      im = _mm256_fmadd_ps(i2, ru, im);
-      ru = _mm256_set1_ps(matrix[14]);
-      iu = _mm256_set1_ps(matrix[15]);
-      rm = _mm256_fmadd_ps(r3, ru, rm);
-      im = _mm256_fmadd_ps(r3, iu, im);
-      rm = _mm256_fnmadd_ps(i3, iu, rm);
-      im = _mm256_fmadd_ps(i3, ru, im);
-
-      rm = _mm256_permutevar8x32_ps(rm, ml1);
-      im = _mm256_permutevar8x32_ps(im, ml1);
-
-      switch (q) {
-      case 1:
-        rn = _mm256_blend_ps(rn, rm, 34);  // 00100010
-        in = _mm256_blend_ps(in, im, 34);
-        break;
-      case 2:
-        rn = _mm256_blend_ps(rn, rm, 10);  // 00001010
-        in = _mm256_blend_ps(in, im, 10);
-        break;
-      case 3:
-        rn = _mm256_blend_ps(rn, rm, 12);  // 00001100
-        in = _mm256_blend_ps(in, im, 12);
-        break;
-      default:
-        // Cannot reach here.
-        break;
-      }
-
-      ru = _mm256_set1_ps(matrix[16]);
-      iu = _mm256_set1_ps(matrix[17]);
-      rm = _mm256_mul_ps(r0, ru);
-      im = _mm256_mul_ps(r0, iu);
-      rm = _mm256_fnmadd_ps(i0, iu, rm);
-      im = _mm256_fmadd_ps(i0, ru, im);
-      ru = _mm256_set1_ps(matrix[18]);
-      iu = _mm256_set1_ps(matrix[19]);
-      rm = _mm256_fmadd_ps(r1, ru, rm);
-      im = _mm256_fmadd_ps(r1, iu, im);
-      rm = _mm256_fnmadd_ps(i1, iu, rm);
-      im = _mm256_fmadd_ps(i1, ru, im);
-      ru = _mm256_set1_ps(matrix[20]);
-      iu = _mm256_set1_ps(matrix[21]);
-      rm = _mm256_fmadd_ps(r2, ru, rm);
-      im = _mm256_fmadd_ps(r2, iu, im);
-      rm = _mm256_fnmadd_ps(i2, iu, rm);
-      im = _mm256_fmadd_ps(i2, ru, im);
-      ru = _mm256_set1_ps(matrix[22]);
-      iu = _mm256_set1_ps(matrix[23]);
-      rm = _mm256_fmadd_ps(r3, ru, rm);
-      im = _mm256_fmadd_ps(r3, iu, im);
-      rm = _mm256_fnmadd_ps(i3, iu, rm);
-      im = _mm256_fmadd_ps(i3, ru, im);
-
-      rm = _mm256_permutevar8x32_ps(rm, ml2);
-      im = _mm256_permutevar8x32_ps(im, ml2);
-
-      switch (q) {
-      case 1:
-        rn = _mm256_blend_ps(rn, rm, 68);  // 01000100
-        in = _mm256_blend_ps(in, im, 68);
-        break;
-      case 2:
-        rn = _mm256_blend_ps(rn, rm, 80);  // 01010000
-        in = _mm256_blend_ps(in, im, 80);
-        break;
-      case 3:
-        rn = _mm256_blend_ps(rn, rm, 48);  // 00110000
-        in = _mm256_blend_ps(in, im, 48);
-        break;
-      default:
-        // Cannot reach here.
-        break;
-      }
-
-      ru = _mm256_set1_ps(matrix[24]);
-      iu = _mm256_set1_ps(matrix[25]);
-      rm = _mm256_mul_ps(r0, ru);
-      im = _mm256_mul_ps(r0, iu);
-      rm = _mm256_fnmadd_ps(i0, iu, rm);
-      im = _mm256_fmadd_ps(i0, ru, im);
-      ru = _mm256_set1_ps(matrix[26]);
-      iu = _mm256_set1_ps(matrix[27]);
-      rm = _mm256_fmadd_ps(r1, ru, rm);
-      im = _mm256_fmadd_ps(r1, iu, im);
-      rm = _mm256_fnmadd_ps(i1, iu, rm);
-      im = _mm256_fmadd_ps(i1, ru, im);
-      ru = _mm256_set1_ps(matrix[28]);
-      iu = _mm256_set1_ps(matrix[29]);
-      rm = _mm256_fmadd_ps(r2, ru, rm);
-      im = _mm256_fmadd_ps(r2, iu, im);
-      rm = _mm256_fnmadd_ps(i2, iu, rm);
-      im = _mm256_fmadd_ps(i2, ru, im);
-      ru = _mm256_set1_ps(matrix[30]);
-      iu = _mm256_set1_ps(matrix[31]);
-      rm = _mm256_fmadd_ps(r3, ru, rm);
-      im = _mm256_fmadd_ps(r3, iu, im);
-      rm = _mm256_fnmadd_ps(i3, iu, rm);
-      im = _mm256_fmadd_ps(i3, ru, im);
-
-      rm = _mm256_permutevar8x32_ps(rm, ml3);
-      im = _mm256_permutevar8x32_ps(im, ml3);
-
-      switch (q) {
-      case 1:
-        rn = _mm256_blend_ps(rn, rm, 136);  // 10001000
-        in = _mm256_blend_ps(in, im, 136);
-        break;
-      case 2:
-        rn = _mm256_blend_ps(rn, rm, 160);  // 10100000
-        in = _mm256_blend_ps(in, im, 160);
-        break;
-      case 3:
-        rn = _mm256_blend_ps(rn, rm, 192);  // 11000000
-        in = _mm256_blend_ps(in, im, 192);
-        break;
-      default:
-        // Cannot reach here.
-        break;
-      }
-
-      _mm256_store_ps(rstate + p, rn);
-      _mm256_store_ps(rstate + p + 8, in);
+      _mm256_store_ps(p0, rn);
+      _mm256_store_ps(p0 + 8, in);
     };
 
-    for_.Run(
-        std::max(uint64_t{1}, sizei / 16), f, q, ml1, ml2, ml3, matrix, rstate);
+    for_.Run(std::max(uint64_t{1}, sizei / 16), f, ml, u, rstate);
+  }
+
+  __m256 SetPs(const fp_type* m,
+               unsigned i7, unsigned i6, unsigned i5, unsigned i4,
+               unsigned i3, unsigned i2, unsigned i1, unsigned i0) const {
+    return
+        _mm256_set_ps(m[i7], m[i6], m[i5], m[i4], m[i3], m[i2], m[i1], m[i0]);
   }
 
   For for_;
