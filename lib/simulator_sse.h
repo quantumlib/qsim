@@ -172,7 +172,8 @@ class SimulatorSSE final {
 
       auto p0 = rstate + 8 * i;
 
-      // 177 = 0b10110001, 78 = 0b01001110
+      // 177 = 0b10110001: shuffle four elements dcba -> cdab.
+      //  78 = 0b01001110: shuffle four elements dcba -> badc.
 
       r0 = _mm_load_ps(p0);
       i0 = _mm_load_ps(p0 + 4);
@@ -416,7 +417,8 @@ class SimulatorSSE final {
       auto p0 = rstate + ((16 * i & mask1) | (8 * i & mask0));
       auto p1 = p0 + sizej;
 
-      // 177 = 0b10110001, 78 = 0b01001110
+      // 177 = 0b10110001: shuffle four elements dcba -> cdab.
+      //  78 = 0b01001110: shuffle four elements dcba -> badc.
 
       r0 = _mm_load_ps(p0);
       i0 = _mm_load_ps(p0 + 4);
@@ -500,11 +502,11 @@ class SimulatorSSE final {
 
       r0 = _mm_load_ps(p0);
       i0 = _mm_load_ps(p0 + 4);
-      r1 = _mm_shuffle_ps(r0, r0, 57);   // 00111001
+      r1 = _mm_shuffle_ps(r0, r0, 57);   //  57 = 0b00111001: dcba -> adcb.
       i1 = _mm_shuffle_ps(i0, i0, 57);
-      r2 = _mm_shuffle_ps(r0, r0, 78);   // 01001110
+      r2 = _mm_shuffle_ps(r0, r0, 78);   //  78 = 0b01001110: dcba -> badc.
       i2 = _mm_shuffle_ps(i0, i0, 78);
-      r3 = _mm_shuffle_ps(r0, r0, 147);  // 10010011
+      r3 = _mm_shuffle_ps(r0, r0, 147);  // 147 = 0b10010011: dcba -> cbad.
       i3 = _mm_shuffle_ps(i0, i0, 147);
 
       rn = _mm_mul_ps(r0, u[0]);
