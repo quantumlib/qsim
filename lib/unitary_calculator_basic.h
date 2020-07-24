@@ -155,9 +155,9 @@ class UnitaryCalculatorBasic final {
   void ApplyGate2(unsigned q0, unsigned q1, const fp_type* matrix,
                   Unitary& state) const {
     // Assume q0 < q1.
-    const uint64_t sizei = uint64_t(1) << (num_qubits_);
-    const uint64_t sizej = uint64_t(1) << (q1);
-    const uint64_t sizek = uint64_t(1) << (q0);
+    const uint64_t sizei = uint64_t(1) << num_qubits_;
+    const uint64_t sizej = uint64_t(1) << q1;
+    const uint64_t sizek = uint64_t(1) << q0;
 
     auto data = state.get();
 
