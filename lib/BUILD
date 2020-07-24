@@ -297,6 +297,27 @@ cc_library(
     deps = [":statespace_sse"],
 )
 
+# All three state-vector simulators with multiplexer
+cc_library(
+    name = "simulator",
+    hdrs = ["simmux.h"],
+    deps = [
+        ":simulator_avx",
+        ":simulator_basic",
+        ":simulator_sse",
+    ],
+)
+
+# Hybrid simulator
+cc_library(
+    name = "hybrid",
+    hdrs = ["hybrid.h"],
+    deps = [
+        ":gate",
+        ":gate_appl",
+    ],
+)
+
 ### UnitarySpace libraries ###
 
 cc_library(
@@ -325,25 +346,4 @@ cc_library(
     name = "umux",
     hdrs = ["umux.h"],
     deps = [":unitary_calculator_basic"]
-)
-
-# All three state-vector simulators with multiplexer
-cc_library(
-    name = "simulator",
-    hdrs = ["simmux.h"],
-    deps = [
-        ":simulator_avx",
-        ":simulator_basic",
-        ":simulator_sse",
-    ],
-)
-
-# Hybrid simulator
-cc_library(
-    name = "hybrid",
-    hdrs = ["hybrid.h"],
-    deps = [
-        ":gate",
-        ":gate_appl",
-    ],
 )

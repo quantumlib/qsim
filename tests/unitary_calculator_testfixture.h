@@ -27,6 +27,7 @@ namespace {
 
 template <typename UnitarySpace, typename Unitary>
 void FillMatrix(UnitarySpace& us, Unitary& u, int n) {
+  // Intentionally create non-unitary matrix with ascending elements.
   for(int i =0; i < (1 << n); i++){
     for(int j =0;j < (1 << n); j++) {
       us.SetEntry(u, i, j, 2 * i * (1 << n) + 2 * j,
@@ -64,7 +65,7 @@ void TestApplyGate1() {
     -214,1076,-218,1096,-222,1116,-226,1136,-230,1156,-234,1176,-238,1196,-242,1216,
     -222,2748,-226,2800,-230,2852,-234,2904,-238,2956,-242,3008,-246,3060,-250,3112
   };
-  // clane-format on
+  // clang-format on
   uc.ApplyGate1(0, ref_gate, u);
 
   for(int i =0;i<8;i++){
@@ -90,7 +91,7 @@ void TestApplyGate1() {
     -174,2156,-178,2208,-182,2260,-186,2312,-190,2364,-194,2416,-198,2468,-202,2520,
     -206,2572,-210,2624,-214,2676,-218,2728,-222,2780,-226,2832,-230,2884,-234,2936
   };
-  // clane-format on
+  // clang-format on
   uc.ApplyGate1(1, ref_gate, u);
 
   for(int i =0;i<8;i++){
@@ -115,7 +116,7 @@ void TestApplyGate1() {
     -142,1804,-146,1856,-150,1908,-154,1960,-158,2012,-162,2064,-166,2116,-170,2168,
     -174,2220,-178,2272,-182,2324,-186,2376,-190,2428,-194,2480,-198,2532,-202,2584
   };
-  // clane-format on
+  // clang-format on
   uc.ApplyGate1(2, ref_gate, u);
 
   for(int i =0;i<8;i++){

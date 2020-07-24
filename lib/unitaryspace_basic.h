@@ -31,14 +31,15 @@ namespace unitary {
 // Unitary is a non-vectorized sequence of one real amplitude followed by
 // one imaginary amplitude.
 template <typename For, typename FP>
-struct UnitarySpaceBasic : public UnitarySpace<UnitarySpaceBasic<For, FP>, For, FP> {
+struct UnitarySpaceBasic
+    : public UnitarySpace<UnitarySpaceBasic<For, FP>, For, FP> {
   using Base = UnitarySpace<UnitarySpaceBasic<For, FP>, For, FP>;
   using Unitary = typename Base::Unitary;
   using fp_type = typename Base::fp_type;
 
   template <typename... ForArgs>
   explicit UnitarySpaceBasic(unsigned num_qubits, ForArgs&&... args)
-      : Base(2 * (uint64_t{1} << num_qubits) * (uint64_t{1} << num_qubits), num_qubits, args...) {}
+      : Base(2 * (uint64_t{1} << (2 * num_qubits)), num_qubits, args...) {}
 
   void SetAllZeros(Unitary& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, Unitary& state) {
@@ -50,7 +51,8 @@ struct UnitarySpaceBasic : public UnitarySpace<UnitarySpaceBasic<For, FP>, For, 
   }
 
   void SetIdentity(Unitary& state) {
-    auto f = [](unsigned n, unsigned m, uint64_t i, Unitary& state, uint64_t dim){
+    auto f = [](unsigned n, unsigned m, uint64_t i, Unitary& state,
+                uint64_t dim) {
       auto data = state.get();
       for (uint64_t j = 0; j < dim; j++) {
         data[2 * i * dim + 2 * j] = 0;
@@ -67,14 +69,15 @@ struct UnitarySpaceBasic : public UnitarySpace<UnitarySpaceBasic<For, FP>, For, 
                                  state.get()[2 * i * dim + 2 * j + 1]);
   }
 
-  void SetEntry(
-      const Unitary& state, uint64_t i, uint64_t j, const std::complex<fp_type>& ampl) {
+  void SetEntry(const Unitary& state, uint64_t i, uint64_t j,
+                const std::complex<fp_type>& ampl) {
     uint64_t dim = Base::Size();
     state.get()[2 * i * dim + 2 * j] = std::real(ampl);
     state.get()[2 * i * dim + 2 * j + 1] = std::imag(ampl);
   }
 
-  void SetEntry(const Unitary& state, uint64_t i, uint64_t j, fp_type re, fp_type im) {
+  void SetEntry(const Unitary& state, uint64_t i, uint64_t j, fp_type re,
+                fp_type im) {
     uint64_t dim = Base::Size();
     state.get()[2 * i * dim + 2 * j] = re;
     state.get()[2 * i * dim + 2 * j + 1] = im;

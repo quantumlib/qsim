@@ -26,27 +26,24 @@ namespace unitary {
 namespace {
 
 template <typename FP = float>
-inline const FP dot_one_r(const FP m_0i_r, const FP m_0i_i,
-                             const FP m_1i_r, const FP m_1i_i,
-                             const int i, const FP* gate) {
+inline const FP dot_one_r(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
+                          const FP m_1i_i, const int i, const FP* gate) {
   return m_0i_r * gate[i * 4 + 0] - m_0i_i * gate[i * 4 + 1] +
          m_1i_r * gate[i * 4 + 2] - m_1i_i * gate[i * 4 + 3];
 }
 
 template <typename FP = float>
-inline const FP dot_one_i(const FP m_0i_r, const FP m_0i_i,
-                             const FP m_1i_r, const FP m_1i_i,
-                             const int i, const FP* gate) {
+inline const FP dot_one_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
+                          const FP m_1i_i, const int i, const FP* gate) {
   return m_0i_r * gate[i * 4 + 1] + m_0i_i * gate[i * 4 + 0] +
          m_1i_r * gate[i * 4 + 3] + m_1i_i * gate[i * 4 + 2];
 }
 
 template <typename FP = float>
-inline const FP dot_two_r(const FP m_0i_r, const FP m_0i_i,
-                             const FP m_1i_r, const FP m_1i_i,
-                             const FP m_2i_r, const FP m_2i_i,
-                             const FP m_3i_r, const FP m_3i_i,
-                             const int i, const FP* gate) {
+inline const FP dot_two_r(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
+                          const FP m_1i_i, const FP m_2i_r, const FP m_2i_i,
+                          const FP m_3i_r, const FP m_3i_i, const int i,
+                          const FP* gate) {
   return m_0i_r * gate[i * 8 + 0] - m_0i_i * gate[i * 8 + 1] +
          m_1i_r * gate[i * 8 + 2] - m_1i_i * gate[i * 8 + 3] +
          m_2i_r * gate[i * 8 + 4] - m_2i_i * gate[i * 8 + 5] +
@@ -54,11 +51,10 @@ inline const FP dot_two_r(const FP m_0i_r, const FP m_0i_i,
 }
 
 template <typename FP = float>
-inline const FP dot_two_i(const FP m_0i_r, const FP m_0i_i,
-                          const FP m_1i_r, const FP m_1i_i,
-                          const FP m_2i_r, const FP m_2i_i,
-                          const FP m_3i_r, const FP m_3i_i,
-                          const int i, const FP* gate) {
+inline const FP dot_two_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
+                          const FP m_1i_i, const FP m_2i_r, const FP m_2i_i,
+                          const FP m_3i_r, const FP m_3i_i, const int i,
+                          const FP* gate) {
   return m_0i_r * gate[i * 8 + 1] + m_0i_i * gate[i * 8 + 0] +
          m_1i_r * gate[i * 8 + 3] + m_1i_i * gate[i * 8 + 2] +
          m_2i_r * gate[i * 8 + 5] + m_2i_i * gate[i * 8 + 4] +
@@ -87,8 +83,8 @@ class UnitaryCalculatorBasic final {
    * @param state The state of the system, to be updated by this method.
    */
   void ApplyGate1(unsigned q0, const fp_type* matrix, Unitary& state) const {
-    const uint64_t sizei = uint64_t(1) << (num_qubits_);
-    const uint64_t sizek = uint64_t(1) << (q0);
+    const uint64_t sizei = uint64_t(1) << num_qubits_;
+    const uint64_t sizek = uint64_t(1) << q0;
 
     auto data = state.get();
 
@@ -116,7 +112,7 @@ class UnitaryCalculatorBasic final {
             pp = si2 | sizek;
             m11_r = data[2 * p * sizei + 2 * pp];
             m11_i = data[2 * p * sizei + 2 * pp + 1];
-          
+
             // End of extraction. Begin computation.
             p = si;
             pp = si2;
@@ -129,7 +125,6 @@ class UnitaryCalculatorBasic final {
                 dot_one_r(m01_r, m01_i, m11_r, m11_i, 0, matrix);
             data[2 * p * sizei + 2 * pp + 1] =
                 dot_one_i(m01_r, m01_i, m11_r, m11_i, 0, matrix);
-
 
             p = si | sizek;
             pp = si2;
@@ -157,14 +152,9 @@ class UnitaryCalculatorBasic final {
    * @param matrix Matrix representation of the gate to be applied.
    * @param state The state of the system, to be updated by this method.
    */
-  void ApplyGate2(
-      unsigned q0, unsigned q1, const fp_type* matrix, Unitary& state) const {
+  void ApplyGate2(unsigned q0, unsigned q1, const fp_type* matrix,
+                  Unitary& state) const {
     // Assume q0 < q1.
-
-    /*uint64_t sizei = uint64_t{1} << (num_qubits_ - 1);
-    uint64_t sizej = uint64_t{1} << (q1 + 1);
-    uint64_t sizek = uint64_t{1} << (q0 + 1);*/
-
     const uint64_t sizei = uint64_t(1) << (num_qubits_);
     const uint64_t sizej = uint64_t(1) << (q1);
     const uint64_t sizek = uint64_t(1) << (q0);

@@ -63,7 +63,7 @@ inline void CalcMatrix4(unsigned q0, unsigned q1,
 
 /**
  * Applies the given gate to the simulator state. Measurement gates should not
- * be applied in this function.  Unitary calculations also supported.
+ * be applied in this function. Unitary calculations also supported.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying one- and two-qubit gates.
  * @param gate The gate to be applied.
