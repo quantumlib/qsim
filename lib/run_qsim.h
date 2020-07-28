@@ -30,6 +30,10 @@ namespace qsim {
 template <typename IO, typename Fuser, typename Simulator,
           typename RGen = std::mt19937>
 struct QSimRunner final {
+  using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
+  using MeasurementResult = typename StateSpace::MeasurementResult;
+
   struct Parameter {
     uint64_t seed;  // Random number generator seed to apply measurement gates.
     unsigned num_threads;
@@ -72,7 +76,6 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    using StateSpace = typename Simulator::StateSpace;
     StateSpace state_space(circuit.num_qubits, param.num_threads);
 
     auto state = state_space.CreateState();
@@ -137,10 +140,8 @@ struct QSimRunner final {
    */
   template <typename Circuit>
   static bool Run(
-      const Parameter& param, const Circuit& circuit,
-      typename Simulator::State& state,
-      std::vector<typename Simulator::StateSpace::MeasurementResult>&
-          measure_results) {
+      const Parameter& param, const Circuit& circuit, State& state,
+      std::vector<MeasurementResult>& measure_results) {
     double t0 = 0.0;
     double t1 = 0.0;
 
@@ -150,7 +151,6 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    using StateSpace = typename Simulator::StateSpace;
     StateSpace state_space(circuit.num_qubits, param.num_threads);
 
     Simulator simulator(circuit.num_qubits, param.num_threads);
@@ -159,6 +159,7 @@ struct QSimRunner final {
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
     }
+    measure_results.reserve(fused_gates.size());
 
     // Apply fused gates.
     for (std::size_t i = 0; i < fused_gates.size(); ++i) {
@@ -197,16 +198,13 @@ struct QSimRunner final {
    */
   template <typename Circuit>
   static bool Run(const Parameter& param, const Circuit& circuit,
-                  typename Simulator::State& state) {
-    using StateSpace = typename Simulator::StateSpace;
-    using MeasurementResult = typename StateSpace::MeasurementResult;
+                  State& state) {
     std::vector<MeasurementResult> discarded_results;
-
     return Run(param, circuit, state, discarded_results);
   }
 
  private:
-  template <typename StateSpace, typename FGate, typename State>
+  template <typename FGate>
   static bool ApplyGate(const StateSpace& state_space,
                         const Simulator& simulator, const FGate& fgate,
                         RGen& rgen, State& state) {
@@ -224,8 +222,7 @@ struct QSimRunner final {
   }
 
   // Overloaded version for storing results.
-  template <typename StateSpace, typename FGate, typename State,
-            typename MeasurementResult>
+  template <typename FGate>
   static bool ApplyGate(
       const StateSpace& state_space, const Simulator& simulator,
       const FGate& fgate, RGen& rgen, State& state,

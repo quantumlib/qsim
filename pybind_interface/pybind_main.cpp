@@ -352,7 +352,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
 }
 
 // TODO(95-martin-orion): add support for measurement gate conversion.
-std::vector<bool> qsim_sample(const py::dict &options) {
+std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
   std::vector<Bitstring> bitstrings;
   try {
@@ -397,7 +397,7 @@ std::vector<bool> qsim_sample(const py::dict &options) {
     return {};
   }
 
-  std::vector<bool> result_bits;
+  std::vector<unsigned> result_bits;
   for (const auto& result : results) {
     result_bits.insert(result_bits.end(), result.bitstring.begin(),
                        result.bitstring.end());
