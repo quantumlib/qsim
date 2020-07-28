@@ -43,7 +43,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options);
 
-std::vector<bool> qsim_simulate(const py::dict &options);
+std::vector<bool> qsim_sample(const py::dict &options);
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
 
