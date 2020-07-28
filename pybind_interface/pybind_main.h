@@ -43,6 +43,8 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options);
 
+std::vector<unsigned> qsim_sample(const py::dict &options);
+
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
 
 PYBIND11_MODULE(qsim, m) {
@@ -51,6 +53,7 @@ PYBIND11_MODULE(qsim, m) {
   m.def("qsim_simulate", &qsim_simulate, "Call the qsim simulator");
   m.def("qsim_simulate_fullstate", &qsim_simulate_fullstate,
         "Call the qsim simulator for full state vector simulation");
+  m.def("qsim_sample", &qsim_sample, "Call the qsim sampler");
   m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");
 
   using GateCirq = qsim::Cirq::GateCirq<float>;

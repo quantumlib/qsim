@@ -142,6 +142,65 @@ TEST(RunQSimTest, QSimRunner2) {
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
 
+constexpr char sample_circuit_string[] = 
+R"(2
+0 h 0
+0 x 1
+1 m 1
+2 cx 0 1
+3 m 0 1
+4 m 0
+5 cx 1 0
+6 m 0
+7 x 0
+7 h 1
+8 m 0 1
+)";
+
+TEST(RunQSimTest, QSimSampler) {
+  std::stringstream ss(sample_circuit_string);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  EXPECT_EQ(circuit.num_qubits, 2);
+  EXPECT_EQ(circuit.gates.size(), 11);
+
+  using Simulator = Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using Result = StateSpace::MeasurementResult;
+  using State = StateSpace::State;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
+
+  StateSpace state_space(circuit.num_qubits, 1);
+  State state = state_space.CreateState();
+
+  EXPECT_FALSE(state_space.IsNull(state));
+
+  state_space.SetStateZero(state);
+
+  std::vector<Result> results;
+
+  Runner::Parameter param;
+  param.seed = 1;
+  param.num_threads = 1;
+  param.verbosity = 0;
+
+  EXPECT_TRUE(Runner::Run(param, circuit, state, results));
+
+  // Results should contain (qubit @ time):
+  // (1 @ 1) - should be |01)
+  EXPECT_TRUE(results[0].bitstring[0]);
+  // (0 @ 3), (1 @ 3) - either |01) or |10)
+  EXPECT_EQ(results[1].bitstring[0], !results[1].bitstring[1]);
+  // (0 @ 4) - should match (0 @ 3)
+  EXPECT_EQ(results[1].bitstring[0], results[2].bitstring[0]);
+  // (0 @ 6) - either |11) or |10)
+  EXPECT_TRUE(results[3].bitstring[0]);
+  // (0 @ 8), (1 @ 8) - should be |00)
+  EXPECT_FALSE(results[4].bitstring[0]);
+  EXPECT_FALSE(results[4].bitstring[1]);
+}
+
 TEST(RunQSimTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>();
   const auto& expected_results = CirqCircuit1::expected_results;
