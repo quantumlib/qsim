@@ -30,6 +30,10 @@ namespace qsim {
 template <typename IO, typename Fuser, typename Simulator,
           typename RGen = std::mt19937>
 struct QSimRunner final {
+  using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
+  using MeasurementResult = typename StateSpace::MeasurementResult;
+
   struct Parameter {
     uint64_t seed;  // Random number generator seed to apply measurement gates.
     unsigned num_threads;
@@ -72,7 +76,6 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    using StateSpace = typename Simulator::StateSpace;
     StateSpace state_space(circuit.num_qubits, param.num_threads);
 
     auto state = state_space.CreateState();
@@ -123,17 +126,22 @@ struct QSimRunner final {
   }
 
   /**
-   * Runs the given circuit and make the final state available to the caller.
+   * Runs the given circuit and make the final state available to the caller,
+   * recording the result of any intermediate measurements in the circuit.
    * @param param Options for parallelism and logging.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
    *   final state of the system.
+   * @param measure_results As an input parameter, this should be empty.
+   *   After a successful run, this will contain all measurements results from
+   *   the run, ordered by time and qubit index.
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
-  static bool Run(const Parameter& param, const Circuit& circuit,
-                  typename Simulator::State& state) {
+  static bool Run(
+      const Parameter& param, const Circuit& circuit, State& state,
+      std::vector<MeasurementResult>& measure_results) {
     double t0 = 0.0;
     double t1 = 0.0;
 
@@ -143,7 +151,6 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    using StateSpace = typename Simulator::StateSpace;
     StateSpace state_space(circuit.num_qubits, param.num_threads);
 
     Simulator simulator(circuit.num_qubits, param.num_threads);
@@ -152,6 +159,7 @@ struct QSimRunner final {
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
     }
+    measure_results.reserve(fused_gates.size());
 
     // Apply fused gates.
     for (std::size_t i = 0; i < fused_gates.size(); ++i) {
@@ -159,7 +167,10 @@ struct QSimRunner final {
         t1 = GetTime();
       }
 
-      ApplyGate(state_space, simulator, fused_gates[i], rgen, state);
+      if(!ApplyGate(state_space, simulator, fused_gates[i], rgen, state,
+                    measure_results)) {
+        return false;
+      }
 
       if (param.verbosity > 1) {
         double t2 = GetTime();
@@ -175,14 +186,51 @@ struct QSimRunner final {
     return true;
   }
 
+  /**
+   * Runs the given circuit and make the final state available to the caller,
+   * discarding the result of any intermediate measurements in the circuit.
+   * @param param Options for parallelism and logging.
+   * @param circuit The circuit to be simulated.
+   * @param state As an input parameter, this should contain the initial state
+   *   of the system. After a successful run, it will be populated with the
+   *   final state of the system.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
+  template <typename Circuit>
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  State& state) {
+    std::vector<MeasurementResult> discarded_results;
+    return Run(param, circuit, state, discarded_results);
+  }
+
  private:
-  template <typename StateSpace, typename FGate, typename State>
+  template <typename FGate>
   static bool ApplyGate(const StateSpace& state_space,
                         const Simulator& simulator, const FGate& fgate,
                         RGen& rgen, State& state) {
     if (fgate.kind == gate::kMeasurement) {
       auto result = state_space.Measure(fgate.qubits, rgen, state);
       if (!result.valid) {
+        IO::errorf("measurement failed.\n");
+        return false;
+      }
+    } else {
+      ApplyFusedGate(simulator, fgate, state);
+    }
+
+    return true;
+  }
+
+  // Overloaded version for storing results.
+  template <typename FGate>
+  static bool ApplyGate(
+      const StateSpace& state_space, const Simulator& simulator,
+      const FGate& fgate, RGen& rgen, State& state,
+      std::vector<MeasurementResult>& measure_results) {
+    if (fgate.kind == gate::kMeasurement) {
+      measure_results.emplace_back(
+        state_space.Measure(fgate.qubits, rgen, state));
+      if (!measure_results.back().valid) {
         IO::errorf("measurement failed.\n");
         return false;
       }

@@ -1,0 +1,73 @@
+# Copyright 2020 Google LLC. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+book_path: /quark/qsim/_book.yaml
+project_path: /quark/qsim/_project.yaml
+description: >
+  Quantum circuit simulators qsim and qsimh.
+landing_page:
+  custom_css_path: /site-assets/css/style.css
+  rows:
+  - heading: Quantum circuit simulators qsim and qsimh.
+
+    items:
+    - classname: devsite-landing-row-50
+      description: >
+        <h3>qsim</h3>
+        <p>
+        qsim is a Schrödinger full state-vector simulator. It computes all the
+        <em>2<sup>n</sup></em> amplitudes of the state vector, where <em>n</em>
+        is the number of qubits. Essentially, the simulator performs
+        matrix-vector multiplications repeatedly. One matrix-vector
+        multiplication corresponds to applying one gate. The total runtime is
+        proportional to <em>g2<sup>n</sup></em>., where <em>g</em> is the number
+        of 2-qubit gates. To speed up the simulator, we use gate fusion,
+        single-precision arithmetic, AVX/FMA instructions for vectorization and
+        OpenMP for multi-threading.
+        </p>
+        <h3>qsimh</h3>
+        <p>
+        qsimh is a hybrid Schrödinger-Feynman simulator. The lattice is split
+        into two parts and the Schmidt decomposition is used to decompose
+        2-qubit gates on the cut. If the Schmidt rank of each gate is <em>m</em>
+        and the number of gates on the cut is <em>k</em> then there are
+        <em>m<sup>k</sup></em> paths. To simulate a circuit with fidelity one, one
+        needs to simulate all the <em>m<sup>k</sup></em> paths and sum the results. The
+        total runtime is proportional to <em>(2<sup>n<sub>1</sub></sup> + 2<sup>n<sub>2</sub></sup>)m<sup>k</sup></em>,
+        where <em>n<sub>1</sub></em> and <em>n<sub>2</sub></em> are the qubit
+        numbers in the first and second parts. Path simulations are independent
+        of each other and can be trivially parallelized to run on supercomputers
+        or in data centers. Note that one can run simulations with fidelity <em>F < 1</em>
+        just by summing over a fraction <em>F</em> of all the paths.
+        </p>
+
+  - classname: devsite-landing-row-cards
+    items:
+    - heading: "Quantum supremacy using a programmable superconducting processor"
+      image_path: /resources/images/google-research-card-16x9.png
+      path: https://ai.googleblog.com/2019/10/quantum-supremacy-using-programmable.html
+      buttons:
+      - label: "Read on the Google AI blog"
+        path: https://ai.googleblog.com/2019/10/quantum-supremacy-using-programmable.html
+    - heading: "Experimentally Scaling Up Variational Quantum Simulations of Fermions"
+      youtube_id: k-21vRCC0RM
+      buttons:
+      - label: Watch the video
+        path: https://www.youtube.com/watch?v=k-21vRCC0RM
+    - heading: "qsim on GitHub"
+      image_path: /resources/images/github-card-16x9.png
+      path: https://github.com/quantumlib/qsim
+      buttons:
+      - label: "View on GitHub"
+        path: https://github.com/quantumlib/qsim
