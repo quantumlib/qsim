@@ -32,6 +32,10 @@ cc_library(
         "statespace_basic.h",
         "statespace_sse.h",
         "statespace.h",
+        "umux.h",
+        "unitaryspace.h",
+        "unitaryspace_basic.h",
+        "unitary_calculator_basic.h",
         "util.h",
     ],
 )
@@ -62,6 +66,10 @@ cc_library(
         "statespace_avx.h",
         "statespace_basic.h",
         "statespace_sse.h",
+        "umux.h",
+        "unitaryspace.h",
+        "unitaryspace_basic.h",
+        "unitary_calculator_basic.h",
         "util.h",
     ],
 )
@@ -308,4 +316,34 @@ cc_library(
         ":gate",
         ":gate_appl",
     ],
+)
+
+### UnitarySpace libraries ###
+
+cc_library(
+    name = "unitaryspace",
+    hdrs = ["unitaryspace.h"],
+    deps = [":util"],
+)
+
+cc_library(
+    name = "unitaryspace_basic",
+    hdrs = ["unitaryspace_basic.h"],
+    deps = [":unitaryspace"],
+)
+
+### Unitary calculator libraries ###
+
+cc_library(
+    name = "unitary_calculator_basic",
+    hdrs = ["unitary_calculator_basic.h"],
+    deps = [":unitaryspace_basic"],
+)
+
+### Unitary mux header ###
+
+cc_library(
+    name = "umux",
+    hdrs = ["umux.h"],
+    deps = [":unitary_calculator_basic"]
 )
