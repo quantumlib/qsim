@@ -360,6 +360,60 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   return py::array_t<float>(fsv_size, fsv, capsule);
 }
 
+// TODO(95-martin-orion): add support for measurement gate conversion.
+std::vector<unsigned> qsim_sample(const py::dict &options) {
+  Circuit<Cirq::GateCirq<float>> circuit;
+  std::vector<Bitstring> bitstrings;
+  try {
+    circuit = getCircuit(options);
+    bitstrings = getBitstrings(options, circuit.num_qubits);
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  float *fsv;
+  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
+  const uint64_t buff_size = std::max(fsv_size, (uint64_t)16);
+  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
+    IO::errorf("Memory allocation failed.\n");
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using MeasurementResult = StateSpace::MeasurementResult;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
+                            Simulator>;
+
+  Runner::Parameter param;
+  try {
+    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.verbosity = parseOptions<unsigned>(options, "v\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  std::vector<MeasurementResult> results;
+  StateSpace state_space(circuit.num_qubits, param.num_threads);
+  State state = state_space.CreateState(fsv);
+  state_space.SetStateZero(state);
+
+  if (!Runner::Run(param, circuit, state, results)) {
+    IO::errorf("qsim sampling of the circuit errored out.\n");
+    return {};
+  }
+
+  std::vector<unsigned> result_bits;
+  for (const auto& result : results) {
+    result_bits.insert(result_bits.end(), result.bitstring.begin(),
+                       result.bitstring.end());
+  }
+  return result_bits;
+}
+
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,

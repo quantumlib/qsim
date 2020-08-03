@@ -265,3 +265,60 @@ cc_test(
         "//conditions:default": sse_copts,
     }),
 )
+
+cc_library(
+    name = "unitaryspace_testfixture",
+    hdrs = ["unitaryspace_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    testonly = 1,
+)
+
+cc_test(
+    name = "unitaryspace_basic_test",
+    srcs = ["unitaryspace_basic_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":unitaryspace_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:formux",
+        "//lib:unitaryspace_basic"
+    ],
+)
+
+cc_library(
+    name = "unitary_calculator_testfixture",
+    hdrs = ["unitary_calculator_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    testonly = 1,
+)
+
+cc_test(
+    name = "unitary_calculator_basic_test",
+    srcs = ["unitary_calculator_basic_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":unitary_calculator_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:formux",
+        "//lib:unitaryspace_basic",
+        "//lib:unitary_calculator_basic",
+    ],
+)
