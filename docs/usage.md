@@ -14,10 +14,12 @@ Sample circuits are provided in [circuits](/circuits).
 ./qsim_base.x -c circuit_file -d maxtime -t num_threads -v verbosity
 ```
 
-`circuit_file` - circuit file to run
-`maxtime` - maximum time
-`num_threads` - number of threads to use
-`verbosity` - verbosity level
+| Flag | Description | 
+|-------|------------|
+| `-c circuit_file` | circuit file to run| 
+|`-d maxtime` | maximum time |
+|`-t num_threads` | number of threads to use|
+|`-v verbosity` | verbosity level|
 
 qsim_base computes all the amplitudes and just prints the first eight of them
 (or a smaller number for 1- or 2-qubit circuits).
@@ -35,10 +37,13 @@ Note that this particular simulation requires 8 GB of RAM.
 ./qsim_von_neumann.x -c circuit_file -d maxtime -t num_threads -v verbosity
 ```
 
-`circuit_file` - circuit file to run
-`maxtime` - maximum time
-`num_threads` - number of threads to use
-`verbosity` - verbosity level
+
+| Flag | Description | 
+|-------|------------|
+| `-c circuit_file` | circuit file to run| 
+|`-d maxtime` | maximum time |
+|`-t num_threads` | number of threads to use|
+|`-v verbosity` | verbosity level|
 
 qsim_von_neumann computes all the amplitudes and calculates the von Neumann
 entropy. Note that this can be quite slow for large circuits and small thread
@@ -52,15 +57,21 @@ Example:
 ## qsim_amplitudes usage
 
 ```
-./qsim_amplitudes.x -c circuit_file -d times_to_save_results -i input_files -o output_files -t num_threads -v verbosity
+./qsim_amplitudes.x -c circuit_file \
+                    -d times_to_save_results \
+                    -i input_files \
+                    -o output_files \  
+                    -t num_threads -v verbosity
 ```
 
-`circuit_file` - circuit file to run
-`times_to_save_results` - comma-separated list of circuit times to save results at
-`input_files` - comma-separated list of bitstring input files
-`output_files` - comma-separated list of amplitude output files
-`num_threads` - number of threads to use
-`verbosity` - verbosity level
+| Flag | Description | 
+|-------|------------|
+| `-c circuit_file` | circuit file to run| 
+|`-d times_to_save_results`  | comma-separated list of circuit times to save results at|
+|`-i input_files` | comma-separated list of bitstring input files|
+|`-o output_files` | comma-separated list of amplitude output files|
+|`-t num_threads` | number of threads to use|
+|`-v verbosity` | verbosity level|
 
 qsim_amplitudes reads input files of bitstrings, computes the corresponding
 amplitudes at specified times and writes them to output files.
@@ -76,17 +87,26 @@ Example:
 ## qsimh_base usage
 
 ```
-./qsimh_base.x -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -t num_threads -v verbosity
+./qsimh_base.x -c circuit_file \
+               -d maxtime \
+               -k part1_qubits \
+               -w prefix \
+               -p num_prefix_gates \
+               -r num_root_gates \
+               -t num_threads -v verbosity
 ```
 
-`circuit_file` - circuit file to run
-`maxtime` - maximum time
-`part1_qubits` - comma-separated qubit indices for part 1
-`prefix` - prefix value
-`num_prefix_gates` - number of prefix gates
-`num_root_gates` - number of root gates
-`num_threads` - number of threads to use
-`verbosity` - verbosity level
+| Flag | Description | 
+|-------|------------|
+| `-c circuit_file` | circuit file to run| 
+|`-d maxtime` | maximum time |
+|`-l part1_qubits` |  comma-separated list of qubit indices for part 1 |
+|`-w prefix`| prefix value |
+|`-p num_prefix_gates` | number of prefix gates|
+|`-r num_root_gates` | number of root gates|
+|`-t num_threads` | number of threads to use|
+|`-v verbosity` | verbosity level|
+
 
 qsimh_base just computes and just prints the first eight amplitudes. The hybrid
 Schrödinger-Feynman method is used. The lattice is split into two parts.
@@ -108,19 +128,28 @@ Example:
 
 ## qsimh_amplitudes usage
 ```
-./qsimh_amplitudes.x -c circuit_file -d maxtime -k part1_qubits -w prefix -p num_prefix_gates -r num_root_gates -i input_file -o output_file -t num_threads -v verbosity
+./qsimh_amplitudes.x -c circuit_file \
+                     -d maxtime \
+                     -k part1_qubits \
+                     -w prefix \
+                     -p num_prefix_gates \
+                     -r num_root_gates \
+                     -i input_file -o output_file \
+                     -t num_threads -v verbosity
 ```
 
-`circuit_file` - circuit file to run
-`maxtime` - maximum time
-`part1_qubits` - comma-separated list of qubit indices for part 1
-`prefix` - prefix value
-`num_prefix_gates` - number of prefix gates
-`num_root_gates` - number of root gates
-`input_file` - bitstring input file
-`output_file` - amplitude output file
-`num_threads` - number of threads to use
-`verbosity` - verbosity level
+| Flag | Description | 
+|-------|------------|
+|`-c circuit_file` | circuit file to run| 
+|`-d maxtime` | maximum time |
+|`-k part1_qubits` |  comma-separated list of qubit indices for part 1 |
+|`-w prefix`| prefix value |
+|`-p num_prefix_gates` | number of prefix gates|
+|`-r num_root_gates` | number of root gates|
+|`-i input_file` | bitstring input file|
+|`-o output_file` | amplitude output file|
+|`-t num_threads` | number of threads to use|
+|`-v verbosity` | verbosity level|
 
 qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
 amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman
