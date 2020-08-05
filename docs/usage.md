@@ -100,7 +100,7 @@ Example:
 |-------|------------|
 | `-c circuit_file` | circuit file to run| 
 |`-d maxtime` | maximum time |
-|`-l part1_qubits` |  comma-separated list of qubit indices for part 1 |
+|`-k part1_qubits` |  comma-separated list of qubit indices for part 1 |
 |`-w prefix`| prefix value |
 |`-p num_prefix_gates` | number of prefix gates|
 |`-r num_root_gates` | number of root gates|
