@@ -16,7 +16,7 @@ Sample circuits are provided in [circuits](/circuits).
 
 | Flag | Description | 
 |-------|------------|
-| `-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run| 
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
 |`-v verbosity` | verbosity level|
@@ -40,7 +40,7 @@ Note that this particular simulation requires 8 GB of RAM.
 
 | Flag | Description | 
 |-------|------------|
-| `-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run| 
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
 |`-v verbosity` | verbosity level|
@@ -66,7 +66,7 @@ Example:
 
 | Flag | Description | 
 |-------|------------|
-| `-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run| 
 |`-d times_to_save_results`  | comma-separated list of circuit times to save results at|
 |`-i input_files` | comma-separated list of bitstring input files|
 |`-o output_files` | comma-separated list of amplitude output files|
@@ -98,7 +98,7 @@ Example:
 
 | Flag | Description | 
 |-------|------------|
-| `-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run| 
 |`-d maxtime` | maximum time |
 |`-k part1_qubits` |  comma-separated list of qubit indices for part 1 |
 |`-w prefix`| prefix value |
