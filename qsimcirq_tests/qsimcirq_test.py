@@ -149,6 +149,29 @@ class MainTest(unittest.TestCase):
     # are they the same?
     assert(qsim_result == cirq_result)
 
+  def test_intermediate_measure(self):
+    # Demonstrate that intermediate measurement is possible.
+    a, b = [
+      cirq.GridQubit(0, 0),
+      cirq.GridQubit(0, 1),
+    ]
+    circuit = cirq.Circuit(
+      cirq.X(a), cirq.CX(a, b), cirq.measure(a, b, key='m1'),
+      cirq.CZ(a, b), cirq.measure(a, b, key='m2'),
+      cirq.X(a), cirq.CX(a, b), cirq.measure(a, b, key='m3'),
+      # Trailing gates with no measurement do not affect results.
+      cirq.H(a), cirq.H(b),
+    )
+
+    simulator = cirq.Simulator()
+    cirq_result = simulator.run(circuit, repetitions=20)
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.run(circuit, repetitions=20)
+
+    assert(qsim_result == cirq_result)
+    
+
   def test_matrix1_gate(self):
     q = cirq.LineQubit(0)
     m = np.array([[1, 1j], [1j, 1]]) * np.sqrt(0.5)

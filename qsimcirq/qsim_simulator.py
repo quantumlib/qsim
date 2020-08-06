@@ -116,8 +116,10 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
 
-    if not program.are_all_measurements_terminal():
-      raise NotImplementedError("support for non-terminal measurement is not yet implemented")
+    if program.are_all_measurements_terminal():
+      print('Provided circuit has no intermediate measurements. ' +
+            'It may be faster to sample from the final state vector. ' +
+            'Continuing with one-by-one sampling.')
 
     # Compute indices of measured qubits
     ordered_qubits = ops.QubitOrder.DEFAULT.order_for(program.all_qubits())
@@ -163,21 +165,15 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     results = {}
     for key, bound in bounds.items():
       boundlen = bound[1]-bound[0]
-      results[key] = np.ndarray(shape=(repetitions, bound[1]-bound[0]), dtype=int)
+      results[key] = np.ndarray(shape=(repetitions, bound[1]-bound[0]),
+                                dtype=int)
 
     for i in range(repetitions):
-      qsim_state = qsim.qsim_simulate_fullstate(options)
-      amplitudes = QSimSimulatorState(qsim_state, qubit_map).state_vector
-
-      # Convert amplitudes to probabilities
-      probabilities = np.abs(amplitudes)**2
-      probabilities /= probabilities.sum()
-
-      # format the bitstring in terms of measurement gates
-      result = np.random.choice(bitstrings, p=probabilities)
+      measurements = qsim.qsim_sample(options)
+      print(f'measurements: {measurements}')
       for key, bound in bounds.items():
         for j in range(bound[1]-bound[0]):
-          results[key][i][j] = int(result[bound[0]+j])
+          results[key][i][j] = int(measurements[bound[0]+j])
 
     return results
 
