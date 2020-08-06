@@ -116,7 +116,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
 
-    if program.are_all_measurements_terminal():
+    if program.are_all_measurements_terminal() and repetitions > 1:
       print('Provided circuit has no intermediate measurements. ' +
             'It may be faster to sample from the final state vector. ' +
             'Continuing with one-by-one sampling.')

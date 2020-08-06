@@ -93,6 +93,21 @@ In the above example, the simulation is performed for the specified bitstrings
 of length 2. All the bitstring lengths should be equal to the number of qubits
 in `qsim_circuit`. Otherwise, BitstringsFromStream will raise an error.
 
+Finally, to retrieve sample measurements the `run` method can be used:
+```
+my_sim = qsimcirq.QSimSimulator()
+myres = my_sim.run(program = my_sim_circuit)
+```
+
+This method may be more efficient if the final state vector is very large, as
+it only returns a bitstring produced by sampling from the final state. It also
+allows intermediate measurements to be applied to the circuit.
+
+Note that requesting multiple repetitions with the `run` method will execute
+the circuit once for each repetition. If your circuit has only terminal
+measurements, it may be preferable to use `simulate` and sample from the final
+state vector.
+
 #### QSimhSimulator
 
 QSimhSimulator uses a hybrid Schrödinger-Feynman simulator. This limits it to
