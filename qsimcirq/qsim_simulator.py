@@ -158,7 +158,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
     results = {}
     for key, bound in bounds.items():
-      boundlen = bound[1]-bound[0]
       results[key] = np.ndarray(shape=(repetitions, bound[1]-bound[0]),
                                 dtype=int)
 
