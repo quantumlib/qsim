@@ -241,12 +241,10 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
                                       params.at("theta"), params.at("phi")));
       break;
     case Cirq::kMeasurement: {
-      std::vector<unsigned> qubits_;
-      for (unsigned i = 0; i < qubits.size(); i++){
-        qubits_.push_back(qubits[i]);
-      }
+      std::vector<unsigned> qubits_ = qubits;
       circuit->gates.push_back(
-        gate::Measurement<Cirq::GateCirq<float>>::Create(time, std::move(qubits_)));
+        gate::Measurement<Cirq::GateCirq<float>>::Create(time,
+                                                         std::move(qubits_)));
       }
       break;
     // Matrix gates are handled in the add_matrix methods below.
@@ -303,6 +301,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -338,6 +337,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -360,7 +360,6 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   return py::array_t<float>(fsv_size, fsv, capsule);
 }
 
-// TODO(95-martin-orion): add support for measurement gate conversion.
 std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
   try {
@@ -389,6 +388,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};

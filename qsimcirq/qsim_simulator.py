@@ -55,14 +55,16 @@ class QSimSimulatorTrialResult(sim.WaveFunctionTrialResult):
 
 class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
-  def __init__(self, qsim_options: dict = {}):
+  def __init__(self, qsim_options: dict = {},
+               seed: value.RANDOM_STATE_OR_SEED_LIKE = None):
     if any(k in qsim_options for k in ('c', 'i')):
       raise ValueError(
           'Keys "c" & "i" are reserved for internal use and cannot be used in QSimCircuit instantiation.'
       )
-    self.qsim_options = {'t': 1, 'v': 0}
+    # Limit seed size to 32-bit integer for C++ conversion.
+    seed = value.parse_random_state(seed).randint(2 ** 31 - 1)
+    self.qsim_options = {'t': 1, 'v': 0, 's': seed}
     self.qsim_options.update(qsim_options)
-    return
 
   def _run(
         self,
@@ -84,17 +86,16 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     param_resolver = param_resolver or study.ParamResolver({})
     solved_circuit = protocols.resolve_parameters(circuit, param_resolver)
 
-    return self._sample_bitstrings(solved_circuit, repetitions)
+    return self._sample_measure_results(solved_circuit, repetitions)
 
-  def _sample_bitstrings(
+  def _sample_measure_results(
     self,
     program: circuits.Circuit,
     repetitions: int = 1,
   ) -> Dict[str, np.ndarray]:
-    """Samples bitstrings from the circuit
+    """Samples from measurement gates in the circuit.
 
-    All MeasurementGates must be terminal.
-    Note that this does not collapse the wave function.
+    Note that this will execute the circuit 'repetitions' times.
 
     Args:
         program: The circuit to sample from.
@@ -108,8 +109,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         by the qubits being measured.)
 
     Raises:
-        NotImplementedError: If there are non-terminal measurements in the
-            circuit.
         ValueError: If there are multiple MeasurementGates with the same key,
             or if repetitions is negative.
     """
@@ -151,11 +150,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       current_index += len(op.qubits)
 
     indices = [qubit_map[qubit] for qubit in measured_qubits]
-
-    # Want to check all bitstrings
-    n_qubits = len(program.all_qubits())
-    bitstrings = [i for i in range(2**n_qubits)]
-    bitstrings = [format(bs, 'b').zfill(n_qubits) for bs in bitstrings]
 
     # Set qsim options
     options = {}
