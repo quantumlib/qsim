@@ -96,6 +96,82 @@ class MainTest(unittest.TestCase):
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
 
+  def test_cirq_qsim_run(self):
+    # Pick qubits.
+    a, b, c, d = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+        cirq.GridQubit(1, 1),
+        cirq.GridQubit(1, 0)
+    ]
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(
+        cirq.X(a)**0.5,  # Square root of X.
+        cirq.Y(b)**0.5,  # Square root of Y.
+        cirq.Z(c),  # Z.
+        cirq.CZ(a, d),  # ControlZ.
+        # measure qubits
+        cirq.measure(a, key='ma'),
+        cirq.measure(b, key='mb'),
+        cirq.measure(c, key='mc'),
+        cirq.measure(d, key='md'),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    assert isinstance(qsimSim, cirq.SimulatesSamples)
+
+    result = qsimSim.run(cirq_circuit, repetitions=5)
+    for key, value in result.measurements.items():
+      assert(value.shape == (5, 1))
+
+  def test_qsim_run_vs_cirq_run(self):
+    # Simple circuit, want to check mapping of qubit(s) to their measurements
+    a, b, c, d = [
+      cirq.GridQubit(0, 0),
+      cirq.GridQubit(0, 1),
+      cirq.GridQubit(1, 0),
+      cirq.GridQubit(1, 1),
+    ]
+    circuit = cirq.Circuit(
+        cirq.X(b),
+        cirq.CX(b, d),
+        cirq.measure(a, b, c, key='mabc'),
+        cirq.measure(d, key='md'),
+    )
+
+    # run in cirq
+    simulator = cirq.Simulator()
+    cirq_result = simulator.run(circuit, repetitions=20)
+
+    # run in qsim
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.run(circuit, repetitions=20)
+
+    # are they the same?
+    assert(qsim_result == cirq_result)
+
+  def test_intermediate_measure(self):
+    # Demonstrate that intermediate measurement is possible.
+    a, b = [
+      cirq.GridQubit(0, 0),
+      cirq.GridQubit(0, 1),
+    ]
+    circuit = cirq.Circuit(
+      cirq.X(a), cirq.CX(a, b), cirq.measure(a, b, key='m1'),
+      cirq.CZ(a, b), cirq.measure(a, b, key='m2'),
+      cirq.X(a), cirq.CX(a, b), cirq.measure(a, b, key='m3'),
+      # Trailing gates with no measurement do not affect results.
+      cirq.H(a), cirq.H(b),
+    )
+
+    simulator = cirq.Simulator()
+    cirq_result = simulator.run(circuit, repetitions=20)
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.run(circuit, repetitions=20)
+
+    assert(qsim_result == cirq_result)
+    
+
   def test_matrix1_gate(self):
     q = cirq.LineQubit(0)
     m = np.array([[1, 1j], [1j, 1]]) * np.sqrt(0.5)

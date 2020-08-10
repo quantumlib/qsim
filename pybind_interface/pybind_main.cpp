@@ -240,6 +240,13 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
         Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
                                       params.at("theta"), params.at("phi")));
       break;
+    case Cirq::kMeasurement: {
+      std::vector<unsigned> qubits_ = qubits;
+      circuit->gates.push_back(
+        gate::Measurement<Cirq::GateCirq<float>>::Create(time,
+                                                         std::move(qubits_)));
+      }
+      break;
     // Matrix gates are handled in the add_matrix methods below.
     default:
       throw std::invalid_argument("GateKind not supported.");
@@ -294,6 +301,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -329,6 +337,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -351,13 +360,10 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   return py::array_t<float>(fsv_size, fsv, capsule);
 }
 
-// TODO(95-martin-orion): add support for measurement gate conversion.
 std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
-  std::vector<Bitstring> bitstrings;
   try {
     circuit = getCircuit(options);
-    bitstrings = getBitstrings(options, circuit.num_qubits);
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -382,6 +388,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};

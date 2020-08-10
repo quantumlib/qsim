@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Tuple
 
 from cirq import (
   circuits,
+  linalg,
   ops,
   protocols,
   sim,
@@ -23,6 +24,7 @@ from cirq import (
   value,
   SimulatesAmplitudes,
   SimulatesFinalState,
+  SimulatesSamples,
 )
 
 import numpy as np
@@ -41,7 +43,7 @@ class QSimSimulatorState(sim.WaveFunctionSimulatorState):
 
 
 class QSimSimulatorTrialResult(sim.WaveFunctionTrialResult):
-    
+
     def __init__(self,
                  params: study.ParamResolver,
                  measurements: Dict[str, np.ndarray],
@@ -51,16 +53,123 @@ class QSimSimulatorTrialResult(sim.WaveFunctionTrialResult):
                        final_simulator_state=final_simulator_state)
 
 
-class QSimSimulator(SimulatesAmplitudes, SimulatesFinalState):
+class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
-  def __init__(self, qsim_options: dict = {}):
+  def __init__(self, qsim_options: dict = {},
+               seed: value.RANDOM_STATE_OR_SEED_LIKE = None):
     if any(k in qsim_options for k in ('c', 'i')):
       raise ValueError(
           'Keys "c" & "i" are reserved for internal use and cannot be used in QSimCircuit instantiation.'
       )
-    self.qsim_options = {'t': 1, 'v': 0}
+    # Limit seed size to 32-bit integer for C++ conversion.
+    seed = value.parse_random_state(seed).randint(2 ** 31 - 1)
+    self.qsim_options = {'t': 1, 'v': 0, 's': seed}
     self.qsim_options.update(qsim_options)
-    return
+
+  def _run(
+        self,
+        circuit: circuits.Circuit,
+        param_resolver: study.ParamResolver,
+        repetitions: int
+  ) -> Dict[str, np.ndarray]:
+    """Run a simulation, mimicking quantum hardware.
+
+    Args:
+        program: The circuit to simulate.
+        param_resolver: Parameters to run with the program.
+        repetitions: Number of times to repeat the run.
+
+    Returns:
+        A dictionary from measurement gate key to measurement
+        results.
+    """
+    param_resolver = param_resolver or study.ParamResolver({})
+    solved_circuit = protocols.resolve_parameters(circuit, param_resolver)
+
+    return self._sample_measure_results(solved_circuit, repetitions)
+
+  def _sample_measure_results(
+    self,
+    program: circuits.Circuit,
+    repetitions: int = 1,
+  ) -> Dict[str, np.ndarray]:
+    """Samples from measurement gates in the circuit.
+
+    Note that this will execute the circuit 'repetitions' times.
+
+    Args:
+        program: The circuit to sample from.
+        repetitions: The number of samples to take.
+
+    Returns:
+        A dictionary from measurement gate key to measurement
+        results. Measurement results are stored in a 2-dimensional
+        numpy array, the first dimension corresponding to the repetition
+        and the second to the actual boolean measurement results (ordered
+        by the qubits being measured.)
+
+    Raises:
+        ValueError: If there are multiple MeasurementGates with the same key,
+            or if repetitions is negative.
+    """
+    if not isinstance(program, qsimc.QSimCircuit):
+      program = qsimc.QSimCircuit(program, device=program.device)
+
+    if program.are_all_measurements_terminal() and repetitions > 1:
+      print('Provided circuit has no intermediate measurements. ' +
+            'It may be faster to sample from the final state vector. ' +
+            'Continuing with one-by-one sampling.')
+
+    # Compute indices of measured qubits
+    ordered_qubits = ops.QubitOrder.DEFAULT.order_for(program.all_qubits())
+    ordered_qubits = list(reversed(ordered_qubits))
+
+    qubit_map = {
+      qubit: index for index, qubit in enumerate(ordered_qubits)
+    }
+
+    # Computes
+    # - the list of qubits to be measured
+    # - the start (inclusive) and end (exclusive) indices of each measurement
+    # - a mapping from measurement key to measurement gate
+    measurement_ops = [
+      op for _, op, _ in program.findall_operations_with_gate_type(ops.MeasurementGate)
+    ]
+    measured_qubits = []  # type: List[ops.Qid]
+    bounds = {}  # type: Dict[str, Tuple]
+    meas_ops = {}  # type: Dict[str, cirq.MeasurementGate]
+    current_index = 0
+    for op in measurement_ops:
+      gate = op.gate
+      key = protocols.measurement_key(gate)
+      meas_ops[key] = gate
+      if key in bounds:
+        raise ValueError("Duplicate MeasurementGate with key {}".format(key))
+      bounds[key] = (current_index, current_index + len(op.qubits))
+      measured_qubits.extend(op.qubits)
+      current_index += len(op.qubits)
+
+    indices = [qubit_map[qubit] for qubit in measured_qubits]
+
+    # Set qsim options
+    options = {}
+    options.update(self.qsim_options)
+    options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
+
+    results = {}
+    for key, bound in bounds.items():
+      results[key] = np.ndarray(shape=(repetitions, bound[1]-bound[0]),
+                                dtype=int)
+
+    for i in range(repetitions):
+      measurements = qsim.qsim_sample(options)
+      print(f'measurements: {measurements}')
+      for key, bound in bounds.items():
+        for j in range(bound[1]-bound[0]):
+          results[key][i][j] = int(measurements[bound[0]+j])
+
+    return results
+
 
   def compute_amplitudes_sweep(
       self,
