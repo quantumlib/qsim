@@ -29,13 +29,25 @@ Vector arithmetic optimizers (pick one at most):
 
 # Use SSE instructions for vector arithmetic.
 --config=sse
+
+# Do not use vector arithmetic optimization (default).
+--config=basic
 ```
 
 Parallelism optimizers (pick one at most):
 ```
 # Use OpenMP to run operations in parallel when possible.
---config=avx
+--config=openmp
+
+# Do not use OpenMP for parallelism (default).
+--config=nopenmp
 ```
 
-We also provide `--config=basic`. This flag does not affect the build or test,
-but can be useful in scripts (e.g. where `--config=" "` is not valid).
+Memory allocation (pick one at most):
+```
+# Use tcmalloc for memory allocation.
+--config=tcmalloc
+
+# Use malloc for memory allocation (default).
+--config=malloc
+```
