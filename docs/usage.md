@@ -1,4 +1,4 @@
-# Usage
+# Usage of sample applications
 
 qsim and qsimh are designed to be extensible to a variety of different
 applications. The base versions of each are `qsim_base` and `qsimh_base`;
@@ -129,8 +129,10 @@ Example (running on one machine):
                -t 8 -w 0 -p 0 -r 5 -v 1
 ```
 
-Note that -k defines how the lattice will be split up. In the examples above,
-the lattice has the structure below (cuts are denoted by the `|` symbol):
+### Choosing flag values for qsimh
+
+**-k** defines how the lattice will be split up. In the examples above, the
+lattice has the structure below (cuts are denoted by the `|` symbol):
 
 ```
  0    1    2 |  3    4    5
@@ -143,6 +145,24 @@ the lattice has the structure below (cuts are denoted by the `|` symbol):
 
 24   25   26 | 27   28   29
 ```
+
+Deciding which cuts are optimal for a given circuit is computationally hard.
+However, splitting the grid into roughly equal parts with the fewest cuts
+possible (as is done for the lattice above) produces a circuit that performs
+reasonably well in most cases.
+
+**-p** and **-r** specify the number of "prefix" and "root" gates respectively,
+and determine how much of the circuit must be repeated for each execution.
+Values for these flags should be chosen with this in mind:
+
+- Operations up to and including the "prefix" gates will only be run once, but
+  only one path over the prefix gates will be run. (See the
+  `Distributed execution` section below for details on this.)
+- Operations after the "prefix" gates and leading up to the "root" gates will
+  run once for each value of the root gates.
+- Operations after the "root" gates will run `X` times for each value of the
+  root gates, where `X` is the number of values of the "suffix" gates.
+
 
 ## qsimh_amplitudes usage
 ```
@@ -176,20 +196,20 @@ method is used, see above.
 Bitstring files should contain bitstings (one bitstring per line) in text
 format.
 
-Example:
+Example (do not execute - see below):
 ```
-./qsimh_amplitudes.x -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 0 -r 4 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1_w0 -v 1
+./qsimh_amplitudes.x -c ../circuits/circuit_q40 -d 47 -k 0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,23,24 -t 8 -w 0 -p 0 -r 13 -i ../circuits/bitstrings_q40_s1 -o ampl_q40_s1 -v 1
 ```
-Note that this could take a very long time to run, since parallelism on a
-single machine is limited by the -t flag and the available cores on the device.
-For large circuits like this, distributed execution is recommended.
+
+This command could take weeks to run, since parallelism on a single machine is
+limited by the -t flag and the available cores on the device. For large
+circuits like this, distributed execution is recommended.
 
 ### Distributed execution
 
 By setting -p to be greater than zero, the workload of qsimh_amplitudes can be
-distributed across multiple machines. Each machine will use the same arguments
-to `./qsimh_amplitudes.x`, with the exception of the -w flag, which specifies
-the path that machine will evaluate.
+distributed across multiple machines. Each machine should use the same
+arguments to `./qsimh_amplitudes.x`, with the exception of the -w flag, which specifies the path that machine will evaluate.
 
 Example:
 ```

@@ -71,9 +71,14 @@ QSimhSimulator, depending on the output required:
 #### QSimSimulator
 
 QSimSimulator uses a Schrödinger full state-vector simulator, suitable for
-acquiring the complete state of a reasonably-sized circuit (~35 qubits):
+acquiring the complete state of a reasonably-sized circuit (~35 qubits).
+Options for the simulator, including number of threads and verbosity, can be
+set with the `qsim_options` field using the `qsim_base` flag format defined in
+the [usage docs](/docs/usage.md).
+
 ```
-my_sim = qsimcirq.QSimSimulator()
+qsim_options = {'t': 8, 'v': 0}
+my_sim = qsimcirq.QSimSimulator(qsim_options)
 myres = my_sim.simulate(program = my_circuit)
 ```
 
@@ -122,6 +127,8 @@ myres = my_sim.compute_amplitudes(program = my_circuit,
                                   bitstrings=['00', '01', '10', '11'])
 ```
 
+As with QSimSimulator, the options follow the flag format for `qsimh_base`
+outlined in the [usage docs](/docs/usage.md).
 
 ## Additional features
 
