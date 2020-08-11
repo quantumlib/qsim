@@ -15,7 +15,7 @@
 #ifndef STATESPACE_SSE_H_
 #define STATESPACE_SSE_H_
 
-#include <xmmintrin.h>
+#include <smmintrin.h>
 
 #include <algorithm>
 #include <cmath>
