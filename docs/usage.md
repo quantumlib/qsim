@@ -151,8 +151,7 @@ However, splitting the grid into roughly equal parts with the fewest cuts
 possible (as is done for the lattice above) produces a circuit that performs
 reasonably well in most cases.
 
-**-p** and **-r** specify the number of "prefix" and "root" gates respectively,
-and determine how much of the circuit must be repeated for each execution.
+**-p** and **-r** specify the number of "prefix" and "root" gates, respectively.
 Values for these flags should be chosen with this in mind:
 
 - Operations up to and including the "prefix" gates will only be run once, but
