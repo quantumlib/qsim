@@ -329,7 +329,10 @@ cc_library(
 cc_library(
     name = "unitaryspace_basic",
     hdrs = ["unitaryspace_basic.h"],
-    deps = [":unitaryspace"],
+    deps = [
+        ":unitaryspace",
+        ":util",
+    ],
 )
 
 ### Unitary calculator libraries ###
