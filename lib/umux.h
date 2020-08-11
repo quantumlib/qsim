@@ -22,6 +22,5 @@ namespace unitary{
   using UnitaryCalculator = UnitaryCalculatorBasic<For>;
 }  // namespace unitary
 }  // namepsace qsim
-#endif
 
 #endif  // UMUX_H_
