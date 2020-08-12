@@ -151,16 +151,14 @@ However, splitting the grid into roughly equal parts with the fewest cuts
 possible (as is done for the lattice above) produces a circuit that performs
 reasonably well in most cases.
 
-**-p** and **-r** specify the number of "prefix" and "root" gates, respectively.
-Values for these flags should be chosen with this in mind:
+The runtime of an execution is heavily influenced by **-p**, as there is no
+summation over the "prefix" gates. The unique "prefix" path is specified by
+**-w**; see the `Distributed execution` section below for details on this.
 
-- Operations up to and including the "prefix" gates will only be run once, but
-  only one path over the prefix gates will be run. (See the
-  `Distributed execution` section below for details on this.)
-- Operations after the "prefix" gates and leading up to the "root" gates will
-  run once for each value of the root gates.
-- Operations after the "root" gates will run `X` times for each value of the
-  root gates, where `X` is the number of values of the "suffix" gates.
+**-r** implicitly specifies the number of the "suffix" gates: the total number
+of gates on the cut minus the values specified by **-p** and **-r**. For
+performance, the "suffix" gates should typically be the gates on the cut with
+maximum "time".
 
 
 ## qsimh_amplitudes usage
