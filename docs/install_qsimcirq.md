@@ -21,7 +21,7 @@ Other prerequisites (including pybind11 and pytest) are included in the
 [`requirements.txt`](/requirements.txt) file, and will be automatically
 installed along with qsimcirq.
 
-To install the qsim-Cirq interface on Linux, simply run`pip3 install qsimcirq`.
+To install the qsim-Cirq interface on Linux, simply run `pip3 install qsimcirq`.
 For examples of how to use this package, see the tests in
 [qsim/qsimcirq_tests/](/qsimcirq_tests/).
 
