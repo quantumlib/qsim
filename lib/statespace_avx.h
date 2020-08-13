@@ -228,6 +228,23 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     state.get()[p + 8] = im;
   }
 
+  void Multiply(fp_type a, State& state) const {
+    __m256 r = _mm256_set1_ps(a);
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state, __m256 r) {
+      __m256 re = _mm256_load_ps(state.get() + 16 * i);
+      __m256 im = _mm256_load_ps(state.get() + 16 * i + 8);
+
+      re = _mm256_mul_ps(re, r);
+      im = _mm256_mul_ps(im, r);
+
+      _mm256_store_ps(state.get() + 16 * i, re);
+      _mm256_store_ps(state.get() + 16 * i + 8, im);
+    };
+
+    Base::for_.Run(Base::raw_size_ / 16, f, state, r);
+  }
+
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
     using Op = std::plus<std::complex<double>>;

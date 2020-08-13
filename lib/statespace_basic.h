@@ -88,6 +88,15 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
     state.get()[p + 1] = im;
   }
 
+  void Multiply(fp_type a, State& state) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state, fp_type a) {
+      state.get()[2 * i + 0] *= a;
+      state.get()[2 * i + 1] *= a;
+    };
+
+    Base::for_.Run(Base::raw_size_ / 2, f, state, a);
+  }
+
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
     using Op = std::plus<std::complex<double>>;
