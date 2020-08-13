@@ -171,6 +171,16 @@ class MainTest(unittest.TestCase):
 
     assert(qsim_result == cirq_result)
     
+  def test_sampling_nondeterminism(self):
+    # Ensure that reusing a QSimSimulator doesn't reuse the original seed.
+    q = cirq.GridQubit(0, 0)
+    circuit = cirq.Circuit(cirq.H(q), cirq.measure(q, key='m'))
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.run(circuit, repetitions=100)
+
+    result_counts = qsim_result.histogram(key='m')
+    assert(result_counts[0] > 1)
+    assert(result_counts[1] > 1)
 
   def test_matrix1_gate(self):
     q = cirq.LineQubit(0)

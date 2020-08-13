@@ -61,10 +61,13 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       raise ValueError(
           'Keys "c" & "i" are reserved for internal use and cannot be used in QSimCircuit instantiation.'
       )
-    # Limit seed size to 32-bit integer for C++ conversion.
-    seed = value.parse_random_state(seed).randint(2 ** 31 - 1)
-    self.qsim_options = {'t': 1, 'v': 0, 's': seed}
+    self._prng = value.parse_random_state(seed)
+    self.qsim_options = {'t': 1, 'v': 0}
     self.qsim_options.update(qsim_options)
+
+  def get_seed(self):
+    # Limit seed size to 32-bit integer for C++ conversion.
+    return self._prng.randint(2 ** 31 - 1)
 
   def _run(
         self,
@@ -162,6 +165,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
                                 dtype=int)
 
     for i in range(repetitions):
+      options['s'] = self.get_seed()
       measurements = qsim.qsim_sample(options)
       print(f'measurements: {measurements}')
       for key, bound in bounds.items():
@@ -215,6 +219,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       solved_circuit = protocols.resolve_parameters(program, prs)
 
       options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+      options['s'] = self.get_seed()
 
       amplitudes = qsim.qsim_simulate(options)
       trials_results.append(amplitudes)
@@ -261,6 +266,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       solved_circuit = protocols.resolve_parameters(program, prs)
 
       options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+      options['s'] = self.get_seed()
       ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         solved_circuit.all_qubits())
       # qsim numbers qubits in reverse order from cirq
