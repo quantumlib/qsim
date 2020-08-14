@@ -167,7 +167,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     for i in range(repetitions):
       options['s'] = self.get_seed()
       measurements = qsim.qsim_sample(options)
-      print(f'measurements: {measurements}')
       for key, bound in bounds.items():
         for j in range(bound[1]-bound[0]):
           results[key][i][j] = int(measurements[bound[0]+j])
