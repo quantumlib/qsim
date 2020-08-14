@@ -431,6 +431,11 @@ void TestNormAndInnerProductSmall() {
 
   auto real_inner_product = state_space.RealInnerProduct(state1, state2);
   EXPECT_NEAR(real_inner_product, std::real(inner_product0), 1e-6);
+
+  state_space.Multiply(std::sqrt(1.3), state1);
+  EXPECT_NEAR(state_space.Norm(state1), 1.3, 1e-6);
+  state_space.Multiply(std::sqrt(0.8), state2);
+  EXPECT_NEAR(state_space.Norm(state2), 0.8, 1e-6);
 }
 
 template <typename Simulator>
@@ -474,6 +479,9 @@ void TestNormAndInnerProduct() {
 
   std::vector<unsigned> times{depth, depth + 1};
   EXPECT_TRUE(Runner::Run(param, times, circuit, measure));
+
+  state_space.Multiply(std::sqrt(1.2), state0);
+  EXPECT_NEAR(state_space.Norm(state0), 1.2, 1e-5);
 }
 
 template <typename StateSpace>
