@@ -74,7 +74,6 @@ void TestApplyGate1() {
         std::complex<float>(
           expected_mat_0[2 * i * 8 + 2 * j],
           expected_mat_0[2 * i * 8 + 2 * j + 1]));
-      
     }
   }
 
@@ -99,7 +98,7 @@ void TestApplyGate1() {
       EXPECT_EQ(us.GetEntry(u, i, j),
         std::complex<float>(
           expected_mat_1[2 * i * 8 + 2 * j],
-          expected_mat_1[2 * i * 8 + 2 * j + 1])); 
+          expected_mat_1[2 * i * 8 + 2 * j + 1]));
     }
   }
 
@@ -168,7 +167,7 @@ void TestApplyGate2() {
       EXPECT_EQ(us.GetEntry(u, i, j),
         std::complex<float>(
           expected_mat_01[2 * i * 8 + 2 * j],
-          expected_mat_01[2 * i * 8 + 2 * j + 1]));      
+          expected_mat_01[2 * i * 8 + 2 * j + 1]));
     }
   }
 
@@ -193,7 +192,7 @@ void TestApplyGate2() {
       EXPECT_EQ(us.GetEntry(u, i, j),
         std::complex<float>(
           expected_mat_12[2 * i * 8 + 2 * j],
-          expected_mat_12[2 * i * 8 + 2 * j + 1]));      
+          expected_mat_12[2 * i * 8 + 2 * j + 1]));
     }
   }
 
@@ -218,7 +217,7 @@ void TestApplyGate2() {
       EXPECT_EQ(us.GetEntry(u, i, j),
         std::complex<float>(
           expected_mat_02[2 * i * 8 + 2 * j],
-          expected_mat_02[2 * i * 8 + 2 * j + 1]));      
+          expected_mat_02[2 * i * 8 + 2 * j + 1]));
     }
   }
 }

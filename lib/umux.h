@@ -17,7 +17,7 @@
 
 #include "unitary_calculator_basic.h"
 namespace qsim {
-namespace unitary{
+namespace unitary {
   template <typename For>
   using UnitaryCalculator = UnitaryCalculatorBasic<For>;
 }  // namespace unitary
