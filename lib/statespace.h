@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "util.h"
@@ -92,6 +93,10 @@ class StateSpace {
 
   static bool IsNull(const State& state) {
     return state.get() == nullptr;
+  }
+
+  static void Swap(State& state1, State& state2) {
+    std::swap(state1, state2);
   }
 
   void CopyState(const State& src, State& dest) const {

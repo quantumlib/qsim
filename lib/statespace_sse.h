@@ -193,6 +193,23 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     state.get()[p + 4] = im;
   }
 
+  void Multiply(fp_type a, State& state) const {
+    __m128 r = _mm_set1_ps(a);
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, State& state, __m128 r) {
+      __m128 re = _mm_load_ps(state.get() + 8 * i);
+      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+
+      re = _mm_mul_ps(re, r);
+      im = _mm_mul_ps(im, r);
+
+      _mm_store_ps(state.get() + 8 * i, re);
+      _mm_store_ps(state.get() + 8 * i + 4, im);
+    };
+
+    Base::for_.Run(Base::raw_size_ / 8, f, state, r);
+  }
+
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
     using Op = std::plus<std::complex<double>>;
