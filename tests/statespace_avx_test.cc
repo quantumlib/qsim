@@ -22,6 +22,10 @@
 
 namespace qsim {
 
+TEST(StateSpaceAVXTest, Add) {
+  TestAdd<StateSpaceAVX<For>>();
+}
+
 TEST(StateSpaceAVXTest, NormSmall) {
   TestNormSmall<StateSpaceAVX<For>>();
 }

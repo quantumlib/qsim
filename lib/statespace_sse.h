@@ -193,6 +193,23 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     state.get()[p + 4] = im;
   }
 
+  // Does the equivalent of dest += source elementwise.
+  void AddState(const State& source, const State& dest) {
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
+                const State& state2) {
+      __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
+      __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
+      __m128 re2 = _mm_load_ps(state2.get() + 8 * i);
+      __m128 im2 = _mm_load_ps(state2.get() + 8 * i + 4);
+
+      _mm_store_ps(state2.get() + 8 * i, _mm_add_ps(re1, re2));
+      _mm_store_ps(state2.get() + 8 * i + 4, _mm_add_ps(im1, im2));
+    };
+
+    Base::for_.Run(Base::raw_size_ / 8, f, source, dest);
+  }
+
   void Multiply(fp_type a, State& state) const {
     __m128 r = _mm_set1_ps(a);
 

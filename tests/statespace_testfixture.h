@@ -354,6 +354,36 @@ R"(20
 )";
 
 template <typename StateSpace>
+void TestAdd() {
+  using State = typename StateSpace::State;
+
+  constexpr unsigned num_qubits = 2;
+  StateSpace state_space(num_qubits, 1);
+  State state1 = state_space.CreateState();
+  state_space.SetAmpl(state1, 0, 1, 2);
+  state_space.SetAmpl(state1, 1, 3, 4);
+  state_space.SetAmpl(state1, 2, 5, 6);
+  state_space.SetAmpl(state1, 3, 7, 8);
+
+  State state2 = state_space.CreateState();
+  state_space.SetAmpl(state2, 0, 1, 2);
+  state_space.SetAmpl(state2, 1, 3, 4);
+  state_space.SetAmpl(state2, 2, 5, 6);
+  state_space.SetAmpl(state2, 3, 7, 8);
+
+  state_space.AddState(state1, state2);
+  EXPECT_EQ(state_space.GetAmpl(state2, 0), std::complex<float>(2, 4));
+  EXPECT_EQ(state_space.GetAmpl(state2, 1), std::complex<float>(6, 8));
+  EXPECT_EQ(state_space.GetAmpl(state2, 2), std::complex<float>(10, 12));
+  EXPECT_EQ(state_space.GetAmpl(state2, 3), std::complex<float>(14, 16));
+
+  EXPECT_EQ(state_space.GetAmpl(state1, 0), std::complex<float>(1, 2));
+  EXPECT_EQ(state_space.GetAmpl(state1, 1), std::complex<float>(3, 4));
+  EXPECT_EQ(state_space.GetAmpl(state1, 2), std::complex<float>(5, 6));
+  EXPECT_EQ(state_space.GetAmpl(state1, 3), std::complex<float>(7, 8));
+}
+
+template <typename StateSpace>
 void TestNormSmall() {
   using State = typename StateSpace::State;
 

@@ -75,6 +75,15 @@ inline void Matrix2Multiply(const Array1& u, Array2& matrix) {
   }
 }
 
+// Dagger a 2x2 matrix.
+template <typename Array2>
+inline void Matrix2Dagger(Array2& matrix) {
+  for (unsigned i = 1; i < 8; i += 2) {
+    matrix[i] *= -1;
+  }
+  std::swap(matrix[2], matrix[4]); std::swap(matrix[3], matrix[5]);
+}
+
 // Routines for 4x4 complex matrices.
 // Matrices are arrays of floating-point numbers.
 // There are no checks for validaty of arguments.
@@ -196,6 +205,20 @@ inline void Matrix4Permute(Array2& matrix) {
   std::swap(matrix[12], matrix[18]); std::swap(matrix[13], matrix[19]);
   std::swap(matrix[14], matrix[22]); std::swap(matrix[15], matrix[23]);
   std::swap(matrix[26], matrix[28]); std::swap(matrix[27], matrix[29]);
+}
+
+// Dagger a 4x4 matrix.
+template <typename Array2>
+inline void Matrix4Dagger(Array2& matrix) {
+  for (unsigned i = 1; i < 32; i += 2) {
+    matrix[i] *= -1;
+  }
+  std::swap(matrix[2], matrix[8]); std::swap(matrix[3], matrix[9]);
+  std::swap(matrix[4], matrix[16]); std::swap(matrix[5], matrix[17]);
+  std::swap(matrix[6], matrix[24]); std::swap(matrix[7], matrix[25]);
+  std::swap(matrix[12], matrix[18]); std::swap(matrix[13], matrix[19]);
+  std::swap(matrix[14], matrix[26]); std::swap(matrix[15], matrix[27]);
+  std::swap(matrix[22], matrix[28]); std::swap(matrix[23], matrix[29]);
 }
 
 }  // namespace qsim
