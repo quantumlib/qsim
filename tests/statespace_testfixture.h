@@ -372,15 +372,15 @@ void TestAdd() {
   state_space.SetAmpl(state2, 3, 7, 8);
 
   state_space.AddState(state1, state2);
-  EXPECT_EQ(state_space.GetAmpl(state1, 0), std::complex<float>(2, 4));
-  EXPECT_EQ(state_space.GetAmpl(state1, 1), std::complex<float>(6, 8));
-  EXPECT_EQ(state_space.GetAmpl(state1, 2), std::complex<float>(10, 12));
-  EXPECT_EQ(state_space.GetAmpl(state1, 3), std::complex<float>(14, 16));
+  EXPECT_EQ(state_space.GetAmpl(state2, 0), std::complex<float>(2, 4));
+  EXPECT_EQ(state_space.GetAmpl(state2, 1), std::complex<float>(6, 8));
+  EXPECT_EQ(state_space.GetAmpl(state2, 2), std::complex<float>(10, 12));
+  EXPECT_EQ(state_space.GetAmpl(state2, 3), std::complex<float>(14, 16));
 
-  EXPECT_EQ(state_space.GetAmpl(state2, 0), std::complex<float>(1, 2));
-  EXPECT_EQ(state_space.GetAmpl(state2, 1), std::complex<float>(3, 4));
-  EXPECT_EQ(state_space.GetAmpl(state2, 2), std::complex<float>(5, 6));
-  EXPECT_EQ(state_space.GetAmpl(state2, 3), std::complex<float>(7, 8));
+  EXPECT_EQ(state_space.GetAmpl(state1, 0), std::complex<float>(1, 2));
+  EXPECT_EQ(state_space.GetAmpl(state1, 1), std::complex<float>(3, 4));
+  EXPECT_EQ(state_space.GetAmpl(state1, 2), std::complex<float>(5, 6));
+  EXPECT_EQ(state_space.GetAmpl(state1, 3), std::complex<float>(7, 8));
 }
 
 template <typename StateSpace>
