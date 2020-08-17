@@ -36,6 +36,19 @@ TEST(MatrixTest, Matrix2Multiply) {
   EXPECT_FLOAT_EQ(m[7], 84);
 }
 
+TEST(MatrixTest, Matrix2Dagger) {
+  std::array<float, 8> u{0, 1, 2, 3, 4, 5, 6, 7};
+  Matrix2Dagger(u);
+  EXPECT_FLOAT_EQ(u[0], 0);
+  EXPECT_FLOAT_EQ(u[1], -1);
+  EXPECT_FLOAT_EQ(u[2], 4);
+  EXPECT_FLOAT_EQ(u[3], -5);
+  EXPECT_FLOAT_EQ(u[4], 2);
+  EXPECT_FLOAT_EQ(u[5], -3);
+  EXPECT_FLOAT_EQ(u[6], 6);
+  EXPECT_FLOAT_EQ(u[7], -7);
+}
+
 TEST(MatrixTest, Matrix4Multiply20) {
   std::array<float, 8> u{1, 2, 3, 4, 5, 6, 7, 8};
   std::array<float, 32> m{32, 31, 30, 29, 28, 27, 26, 25,
@@ -167,6 +180,70 @@ TEST(MatrixTest, Matrix4Multiply) {
   EXPECT_FLOAT_EQ(m[31], 2920);
 }
 
+TEST(MatrixTest, Matrix4Permute) {
+  // Conjugation by swap gate:
+  //  | 0  1  2  3  |      | 0  2  1  3  |
+  //  | 4  5  6  7  |      | 8  10 9  11 |
+  //  | 8  9  10 11 | ---> | 4  6  5  7  |
+  //  | 12 13 14 15 |      | 12 14 13 15 |
+  // clang-format off
+  std::array<float, 32> matrix{
+    0,  0.5, 1, 1.5, 2, 2.5, 3, 3.5,
+    4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5,
+    8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5,
+    12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5};
+  const std::array<float, 32> matrix_swapped{
+    0,  0.5, 2, 2.5, 1, 1.5, 3, 3.5,
+    8, 8.5, 10, 10.5, 9, 9.5, 11, 11.5,
+    4, 4.5, 6, 6.5, 5, 5.5, 7, 7.5,
+    12, 12.5, 14, 14.5, 13, 13.5, 15, 15.5};
+  // clang-format on
+  Matrix4Permute(matrix);
+  for (int i = 0; i < 32; i++) {
+    EXPECT_EQ(matrix[i], matrix_swapped[i]);
+  }
+}
+
+TEST(MatrixTest, Matrix4Dagger) {
+  std::array<float, 32> u{1, 2, 3, 4, 5, 6, 7, 8,
+                          9, 10, 11, 12, 13, 14, 15, 16,
+                          17, 18, 19, 20, 21, 22, 23, 24,
+                          25, 26, 27, 28, 29, 30, 31, 32};
+  Matrix4Dagger(u);
+  EXPECT_FLOAT_EQ(u[0], 1);
+  EXPECT_FLOAT_EQ(u[1], -2);
+  EXPECT_FLOAT_EQ(u[2], 9);
+  EXPECT_FLOAT_EQ(u[3], -10);
+  EXPECT_FLOAT_EQ(u[4], 17);
+  EXPECT_FLOAT_EQ(u[5], -18);
+  EXPECT_FLOAT_EQ(u[6], 25);
+  EXPECT_FLOAT_EQ(u[7], -26);
+  EXPECT_FLOAT_EQ(u[8], 3);
+  EXPECT_FLOAT_EQ(u[9], -4);
+  EXPECT_FLOAT_EQ(u[10], 11);
+  EXPECT_FLOAT_EQ(u[11], -12);
+  EXPECT_FLOAT_EQ(u[12], 19);
+  EXPECT_FLOAT_EQ(u[13], -20);
+  EXPECT_FLOAT_EQ(u[14], 27);
+  EXPECT_FLOAT_EQ(u[15], -28);
+  EXPECT_FLOAT_EQ(u[16], 5);
+  EXPECT_FLOAT_EQ(u[17], -6);
+  EXPECT_FLOAT_EQ(u[18], 13);
+  EXPECT_FLOAT_EQ(u[19], -14);
+  EXPECT_FLOAT_EQ(u[20], 21);
+  EXPECT_FLOAT_EQ(u[21], -22);
+  EXPECT_FLOAT_EQ(u[22], 29);
+  EXPECT_FLOAT_EQ(u[23], -30);
+  EXPECT_FLOAT_EQ(u[24], 7);
+  EXPECT_FLOAT_EQ(u[25], -8);
+  EXPECT_FLOAT_EQ(u[26], 15);
+  EXPECT_FLOAT_EQ(u[27], -16);
+  EXPECT_FLOAT_EQ(u[28], 23);
+  EXPECT_FLOAT_EQ(u[29], -24);
+  EXPECT_FLOAT_EQ(u[30], 31);
+  EXPECT_FLOAT_EQ(u[31], -32);
+}
+  
 }  // namespace qsim
 
 int main(int argc, char** argv) {
