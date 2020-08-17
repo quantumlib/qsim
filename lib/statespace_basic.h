@@ -89,7 +89,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   }
 
   // Does the equivalent of a += b elementwise.
-  void AddState(const state& a, const state& b) {
+  void AddState(const State& a, const State& b) {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
                 const State& state2) -> std::complex<double> {
@@ -97,7 +97,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       state1.get()[2 * i + 1] += state2.get()[2 * i + 1];
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, state, r);
+    Base::for_.Run(Base::raw_size_ / 2, f, a, b);
   }
 
   void Multiply(fp_type a, State& state) const {

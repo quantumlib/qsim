@@ -229,7 +229,7 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
   }
 
   // Does the equivalent of a += b elementwise.
-  void AddState(const state& a, const state& b) {
+  void AddState(const State& a, const State& b) {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
                 const State& state2) -> std::complex<double> {
@@ -242,7 +242,7 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       _mm256_store_ps(state1.get() + 16 * i + 8, _mm256_add_ps(im1, im2));
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, state, r);
+    Base::for_.Run(Base::raw_size_ / 16, f, a, b);
   }
 
   void Multiply(fp_type a, State& state) const {
