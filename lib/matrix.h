@@ -76,9 +76,9 @@ inline void Matrix2Multiply(const Array1& u, Array2& matrix) {
 }
 
 // Dagger a 2x2 matrix.
-template <typename Array>
-inline void Matrix2Dagger(Array& matrix) {
-  for(int i = 1;i < 8;i+=2) {
+template <typename Array2>
+inline void Matrix2Dagger(Array2& matrix) {
+  for(unsigned i = 1; i < 8; i += 2) {
     matrix[i] *= -1;
   }
   std::swap(matrix[2], matrix[4]); std::swap(matrix[3], matrix[5]);
@@ -210,7 +210,7 @@ inline void Matrix4Permute(Array2& matrix) {
 // Dagger a 4x4 matrix.
 template <typename Array2>
 inline void Matrix4Dagger(Array2& matrix) {
-  for(int i = 1;i < 32;i+=2) {
+  for(unsigned i = 1; i < 32; i += 2) {
     matrix[i] *= -1;
   }
   std::swap(matrix[2], matrix[8]); std::swap(matrix[3], matrix[9]);
