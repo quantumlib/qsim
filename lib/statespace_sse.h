@@ -197,7 +197,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
   void AddState(const State& a, const State& b) {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> std::complex<double> {
+                const State& state2) {
       __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
       __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
       __m128 re2 = _mm_load_ps(state2.get() + 8 * i);

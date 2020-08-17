@@ -232,7 +232,7 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
   void AddState(const State& a, const State& b) {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> std::complex<double> {
+                const State& state2) {
       __m256 re1 = _mm256_load_ps(state1.get() + 16 * i);
       __m256 im1 = _mm256_load_ps(state1.get() + 16 * i + 8);
       __m256 re2 = _mm256_load_ps(state2.get() + 16 * i);
