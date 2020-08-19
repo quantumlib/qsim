@@ -36,6 +36,15 @@ TEST(MatrixTest, Matrix2Multiply) {
   EXPECT_FLOAT_EQ(m[7], 84);
 }
 
+TEST(MatrixTest, Matrix2ScalarMultiply) {
+  std::array<float, 8> u{1, 2, 3, 4, 5, 6, 7, 8};
+
+  Matrix2ScalarMultiply(3, u);
+  for (unsigned i = 0; i < 8; i++) {
+    EXPECT_FLOAT_EQ(u[i], (i + 1) * 3);
+  }
+}
+
 TEST(MatrixTest, Matrix2Dagger) {
   std::array<float, 8> u{0, 1, 2, 3, 4, 5, 6, 7};
   Matrix2Dagger(u);
@@ -201,6 +210,18 @@ TEST(MatrixTest, Matrix4Permute) {
   Matrix4Permute(matrix);
   for (int i = 0; i < 32; i++) {
     EXPECT_EQ(matrix[i], matrix_swapped[i]);
+  }
+}
+
+TEST(MatrixTest, Matrix4ScalarMultiply) {
+  std::array<float, 32> u{1, 2, 3, 4, 5, 6, 7, 8,
+                          9, 10, 11, 12, 13, 14, 15, 16,
+                          17, 18, 19, 20, 21, 22, 23, 24,
+                          25, 26, 27, 28, 29, 30, 31, 32};
+
+  Matrix4ScalarMultiply(3, u);
+  for (unsigned i = 0; i < 32; i++) {
+    EXPECT_FLOAT_EQ(u[i], (i + 1) * 3);
   }
 }
 

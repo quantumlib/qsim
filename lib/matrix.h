@@ -75,6 +75,14 @@ inline void Matrix2Multiply(const Array1& u, Array2& matrix) {
   }
 }
 
+// Scalar multiply 2x2 matrix.
+template <typename FP, typename Array2>
+inline void Matrix2ScalarMultiply(FP c, Array2& matrix) {
+  for (unsigned i = 0; i < 8; i++) {
+    matrix[i] *= c;
+  }
+}
+
 // Dagger a 2x2 matrix.
 template <typename Array2>
 inline void Matrix2Dagger(Array2& matrix) {
@@ -193,6 +201,14 @@ inline void Matrix4Multiply(const Array1& u, Array2& matrix) {
       matrix[8 * i + 2 * j + 0] = tr;
       matrix[8 * i + 2 * j + 1] = ti;
     }
+  }
+}
+
+// Scalar multiply 4x4 matrix.
+template <typename FP, typename Array2>
+inline void Matrix4ScalarMultiply(FP c, Array2& matrix) {
+  for (unsigned i = 0; i < 32; i++) {
+    matrix[i] *= c;
   }
 }
 
