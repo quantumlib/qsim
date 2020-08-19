@@ -89,7 +89,7 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   }
 
   // Does the equivalent of dest += source elementwise.
-  void AddState(const State& source, const State& dest) {
+  void AddState(const State& source, const State& dest) const {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
                 const State& state2) {
