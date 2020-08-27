@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-book_path: /quark/qsim/_book.yaml
-project_path: /quark/qsim/_project.yaml
+book_path: /qsim/_book.yaml
+project_path: /qsim/_project.yaml
 description: >
   Quantum circuit simulators qsim and qsimh.
 landing_page:
@@ -55,7 +55,7 @@ landing_page:
   - classname: devsite-landing-row-cards
     items:
     - heading: "Quantum supremacy using a programmable superconducting processor"
-      image_path: /resources/images/google-research-card-16x9.png
+      image_path: /site-assets/images/cards/google-research-card-16x9.png
       path: https://ai.googleblog.com/2019/10/quantum-supremacy-using-programmable.html
       buttons:
       - label: "Read on the Google AI blog"
@@ -66,7 +66,7 @@ landing_page:
       - label: Watch the video
         path: https://www.youtube.com/watch?v=k-21vRCC0RM
     - heading: "qsim on GitHub"
-      image_path: /resources/images/github-card-16x9.png
+      image_path: /site-assets/images/cards/github-card-16x9.png
       path: https://github.com/quantumlib/qsim
       buttons:
       - label: "View on GitHub"
