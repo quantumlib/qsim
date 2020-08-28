@@ -29,6 +29,10 @@ upper_tabs:
       - title: "Release process"
         path: /qsim/release-qsimcirq
 
+      - heading: "Tutorials"
+      - title: "Get started with qsimcirq"
+        path: /qsim/tutorials/qsimcirq
+
     - name: "API"
       skip_translation: true
       contents:
