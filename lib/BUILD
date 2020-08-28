@@ -37,6 +37,7 @@ cc_library(
         "unitaryspace_basic.h",
         "unitary_calculator_basic.h",
         "util.h",
+        "vectorspace.h",
     ],
 )
 
@@ -71,6 +72,7 @@ cc_library(
         "unitaryspace_basic.h",
         "unitary_calculator_basic.h",
         "util.h",
+        "vectorspace.h",
     ],
 )
 
@@ -102,6 +104,7 @@ cc_library(
         "statespace_basic.h",
         "statespace_sse.h",
         "util.h",
+        "vectorspace.h",
     ],
 )
 
@@ -242,12 +245,22 @@ cc_library(
     ],
 )
 
+### Vectorspace library ###
+
+cc_library(
+    name = "vectorspace",
+    hdrs = ["vectorspace.h"],
+)
+
 ### Statespace libraries ###
 
 cc_library(
     name = "statespace",
     hdrs = ["statespace.h"],
-    deps = [":util"],
+    deps = [
+        ":util",
+        ":vectorspace",
+    ],
 )
 
 cc_library(

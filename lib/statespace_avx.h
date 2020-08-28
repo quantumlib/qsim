@@ -58,36 +58,30 @@ inline double HorizontalSumAVX(__m256 s) {
 // imaginary components. Eight single-precison floating numbers can be loaded
 // into an AVX register.
 template <typename For>
-struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
+class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
+ private:
   using Base = StateSpace<StateSpaceAVX<For>, For, float>;
+
+ public:
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
   template <typename... ForArgs>
   explicit StateSpaceAVX(unsigned num_qubits, ForArgs&&... args)
-      : Base(2 * std::max(uint64_t{8}, uint64_t{1} << num_qubits),
+      : Base(MinimumRawSize(2 * (uint64_t{1} << num_qubits)),
              num_qubits, args...) {}
 
-  void InternalToNormalOrder(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      auto s = state.get() + 16 * i;
+  static uint64_t MinimumRawSize(uint64_t raw_size) {
+    return std::max(uint64_t{16}, raw_size);
+  }
 
-      fp_type re[7];
-      fp_type im[7];
-
-      for (uint64_t i = 0; i < 7; ++i) {
-        re[i] = s[i + 1];
-        im[i] = s[i + 8];
-      }
-
-      for (uint64_t i = 0; i < 7; ++i) {
-        s[2 * i + 1] = im[i];
-        s[2 * i + 2] = re[i];
-      }
-    };
+  bool InternalToNormalOrder(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
 
     if (Base::num_qubits_ == 1) {
-      auto s = state.get();
+      fp_type* s = state.get();
 
       s[2] = s[1];
       s[1] = s[8];
@@ -97,7 +91,7 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         s[i] = 0;
       }
     } else if (Base::num_qubits_ == 2) {
-      auto s = state.get();
+      fp_type* s = state.get();
 
       s[6] = s[3];
       s[4] = s[2];
@@ -111,30 +105,36 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         s[i] = 0;
       }
     } else {
-      Base::for_.Run(Base::raw_size_ / 16, f, state);
+      auto f = [](unsigned n, unsigned m, uint64_t i, fp_type* p) {
+        fp_type* s = p + 16 * i;
+
+        fp_type re[7];
+        fp_type im[7];
+
+        for (uint64_t i = 0; i < 7; ++i) {
+          re[i] = s[i + 1];
+          im[i] = s[i + 8];
+        }
+
+        for (uint64_t i = 0; i < 7; ++i) {
+          s[2 * i + 1] = im[i];
+          s[2 * i + 2] = re[i];
+        }
+      };
+
+      Base::for_.Run(Base::raw_size_ / 16, f, state.get());
     }
+
+    return true;
   }
 
-  void NormalToInternalOrder(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      auto s = state.get() + 16 * i;
-
-      fp_type re[7];
-      fp_type im[7];
-
-      for (uint64_t i = 0; i < 7; ++i) {
-        im[i] = s[2 * i + 1];
-        re[i] = s[2 * i + 2];
-      }
-
-      for (uint64_t i = 0; i < 7; ++i) {
-        s[i + 1] = re[i];
-        s[i + 8] = im[i];
-      }
-    };
+  bool NormalToInternalOrder(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
 
     if (Base::num_qubits_ == 1) {
-      auto s = state.get();
+      fp_type* s = state.get();
 
       s[8] = s[1];
       s[1] = s[2];
@@ -145,7 +145,7 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         s[i + 8] = 0;
       }
     } else if (Base::num_qubits_ == 2) {
-      auto s = state.get();
+      fp_type* s = state.get();
 
       s[8] = s[1];
       s[9] = s[3];
@@ -160,24 +160,52 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         s[i + 8] = 0;
       }
     } else {
-      Base::for_.Run(Base::raw_size_ / 16, f, state);
+      auto f = [](unsigned n, unsigned m, uint64_t i, fp_type* p) {
+        fp_type* s = p + 16 * i;
+
+        fp_type re[7];
+        fp_type im[7];
+
+        for (uint64_t i = 0; i < 7; ++i) {
+          im[i] = s[2 * i + 1];
+          re[i] = s[2 * i + 2];
+        }
+
+        for (uint64_t i = 0; i < 7; ++i) {
+          s[i + 1] = re[i];
+          s[i + 8] = im[i];
+        }
+      };
+
+      Base::for_.Run(Base::raw_size_ / 16, f, state.get());
     }
+
+    return true;
   }
 
-  void SetAllZeros(State& state) const {
+  bool SetAllZeros(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m256 val0 = _mm256_setzero_ps();
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const __m256& val0, State& state) {
-      _mm256_store_ps(state.get() + 16 * i + 0, val0);
-      _mm256_store_ps(state.get() + 16 * i + 8, val0);
+    auto f = [](unsigned n, unsigned m, uint64_t i, __m256& val, fp_type* p) {
+      _mm256_store_ps(p + 16 * i, val);
+      _mm256_store_ps(p + 16 * i + 8, val);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, val0, state);
+    Base::for_.Run(Base::raw_size_ / 16, f, val0, state.get());
+
+    return true;
   }
 
   // Uniform superposition.
-  void SetStateUniform(State& state) const {
+  bool SetStateUniform(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m256 val0 = _mm256_setzero_ps();
     __m256 valu;
 
@@ -196,82 +224,104 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                const __m256& val0, const __m256& valu, State& state) {
-      _mm256_store_ps(state.get() + 16 * i + 0, valu);
-      _mm256_store_ps(state.get() + 16 * i + 8, val0);
+                __m256& val0, __m256 valu, fp_type* p) {
+      _mm256_store_ps(p + 16 * i, valu);
+      _mm256_store_ps(p + 16 * i + 8, val0);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, val0, valu, state);
+    Base::for_.Run(Base::raw_size_ / 16, f, val0, valu, state.get());
+
+    return true;
   }
 
   // |0> state.
-  void SetStateZero(State& state) const {
+  bool SetStateZero(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     SetAllZeros(state);
     state.get()[0] = 1;
+
+    return true;
   }
 
   static std::complex<fp_type> GetAmpl(const State& state, uint64_t i) {
-    uint64_t p = (16 * (i / 8)) + (i % 8);
-    return std::complex<fp_type>(state.get()[p], state.get()[p + 8]);
+    uint64_t k = (16 * (i / 8)) + (i % 8);
+    return std::complex<fp_type>(state.get()[k], state.get()[k + 8]);
   }
 
   static void SetAmpl(
-      const State& state, uint64_t i, const std::complex<fp_type>& ampl) {
-    uint64_t p = (16 * (i / 8)) + (i % 8);
-    state.get()[p + 0] = std::real(ampl);
-    state.get()[p + 8] = std::imag(ampl);
+      State& state, uint64_t i, const std::complex<fp_type>& ampl) {
+    uint64_t k = (16 * (i / 8)) + (i % 8);
+    state.get()[k] = std::real(ampl);
+    state.get()[k + 8] = std::imag(ampl);
   }
 
-  static void SetAmpl(const State& state, uint64_t i, fp_type re, fp_type im) {
-    uint64_t p = (16 * (i / 8)) + (i % 8);
-    state.get()[p + 0] = re;
-    state.get()[p + 8] = im;
+  static void SetAmpl(State& state, uint64_t i, fp_type re, fp_type im) {
+    uint64_t k = (16 * (i / 8)) + (i % 8);
+    state.get()[k] = re;
+    state.get()[k + 8] = im;
   }
 
-  // Does the equivalent of dest += source elementwise.
-  void AddState(const State& source, const State& dest) const {
+  // Does the equivalent of dest += src elementwise.
+  bool AddState(const State& src, State& dest) const {
+    if (src.size() != Base::raw_size_ || dest.size() != Base::raw_size_) {
+      return false;
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) {
-      __m256 re1 = _mm256_load_ps(state1.get() + 16 * i);
-      __m256 im1 = _mm256_load_ps(state1.get() + 16 * i + 8);
-      __m256 re2 = _mm256_load_ps(state2.get() + 16 * i);
-      __m256 im2 = _mm256_load_ps(state2.get() + 16 * i + 8);
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, fp_type* p2) {
+      __m256 re1 = _mm256_load_ps(p1 + 16 * i);
+      __m256 im1 = _mm256_load_ps(p1 + 16 * i + 8);
+      __m256 re2 = _mm256_load_ps(p2 + 16 * i);
+      __m256 im2 = _mm256_load_ps(p2 + 16 * i + 8);
 
-      _mm256_store_ps(state2.get() + 16 * i, _mm256_add_ps(re1, re2));
-      _mm256_store_ps(state2.get() + 16 * i + 8, _mm256_add_ps(im1, im2));
+      _mm256_store_ps(p2 + 16 * i, _mm256_add_ps(re1, re2));
+      _mm256_store_ps(p2 + 16 * i + 8, _mm256_add_ps(im1, im2));
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, source, dest);
+    Base::for_.Run(Base::raw_size_ / 16, f, src.get(), dest.get());
+
+    return true;
   }
 
-  void Multiply(fp_type a, State& state) const {
+  // Does the equivalent of state *= a elementwise.
+  bool Multiply(fp_type a, State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m256 r = _mm256_set1_ps(a);
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state, __m256 r) {
-      __m256 re = _mm256_load_ps(state.get() + 16 * i);
-      __m256 im = _mm256_load_ps(state.get() + 16 * i + 8);
+    auto f = [](unsigned n, unsigned m, uint64_t i, __m256 r, fp_type* p) {
+      __m256 re = _mm256_load_ps(p + 16 * i);
+      __m256 im = _mm256_load_ps(p + 16 * i + 8);
 
       re = _mm256_mul_ps(re, r);
       im = _mm256_mul_ps(im, r);
 
-      _mm256_store_ps(state.get() + 16 * i, re);
-      _mm256_store_ps(state.get() + 16 * i + 8, im);
+      _mm256_store_ps(p + 16 * i, re);
+      _mm256_store_ps(p + 16 * i + 8, im);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, state, r);
+    Base::for_.Run(Base::raw_size_ / 16, f, r, state.get());
+
+    return true;
   }
 
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
-    using Op = std::plus<std::complex<double>>;
+    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+      return std::nan("");
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> std::complex<double> {
-      __m256 re1 = _mm256_load_ps(state1.get() + 16 * i);
-      __m256 im1 = _mm256_load_ps(state1.get() + 16 * i + 8);
-      __m256 re2 = _mm256_load_ps(state2.get() + 16 * i);
-      __m256 im2 = _mm256_load_ps(state2.get() + 16 * i + 8);
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> std::complex<double> {
+      __m256 re1 = _mm256_load_ps(p1 + 16 * i);
+      __m256 im1 = _mm256_load_ps(p1 + 16 * i + 8);
+      __m256 re2 = _mm256_load_ps(p2 + 16 * i);
+      __m256 im2 = _mm256_load_ps(p2 + 16 * i + 8);
 
       __m256 ip_re = _mm256_fmadd_ps(im1, im2, _mm256_mul_ps(re1, re2));
       __m256 ip_im = _mm256_fnmadd_ps(im1, re2, _mm256_mul_ps(re1, im2));
@@ -282,25 +332,31 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       return std::complex<double>{re, im};
     };
 
-    return Base::for_.RunReduce(Base::raw_size_ / 16, f, Op(), state1, state2);
+    using Op = std::plus<std::complex<double>>;
+    return Base::for_.RunReduce(Base::raw_size_ / 16, f,
+                                Op(), state1.get(), state2.get());
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
-    using Op = std::plus<double>;
+    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+      return std::nan("");
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> double {
-      __m256 re1 = _mm256_load_ps(state1.get() + 16 * i);
-      __m256 im1 = _mm256_load_ps(state1.get() + 16 * i + 8);
-      __m256 re2 = _mm256_load_ps(state2.get() + 16 * i);
-      __m256 im2 = _mm256_load_ps(state2.get() + 16 * i + 8);
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> double {
+      __m256 re1 = _mm256_load_ps(p1 + 16 * i);
+      __m256 im1 = _mm256_load_ps(p1 + 16 * i + 8);
+      __m256 re2 = _mm256_load_ps(p2 + 16 * i);
+      __m256 im2 = _mm256_load_ps(p2 + 16 * i + 8);
 
       __m256 ip_re = _mm256_fmadd_ps(im1, im2, _mm256_mul_ps(re1, re2));
 
       return detail::HorizontalSumAVX(ip_re);
     };
 
-    return Base::for_.RunReduce(Base::raw_size_ / 16, f, Op(), state1, state2);
+    using Op = std::plus<double>;
+    return Base::for_.RunReduce(Base::raw_size_ / 16, f,
+                                Op(), state1.get(), state2.get());
   }
 
   template <typename DistrRealType = double>
@@ -308,15 +364,15 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
-    if (num_samples > 0) {
+    if (state.size() == Base::raw_size_ && num_samples > 0) {
       double norm = 0;
       uint64_t size = Base::raw_size_ / 16;
-      const float* v = state.get();
+      const fp_type* p = state.get();
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 8; ++j) {
-          auto re = v[16 * k + j];
-          auto im = v[16 * k + 8 + j];
+          auto re = p[16 * k + j];
+          auto im = p[16 * k + 8 + j];
           norm += re * re + im * im;
         }
       }
@@ -329,8 +385,8 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 8; ++j) {
-          auto re = v[16 * k + j];
-          auto im = v[16 * k + 8 + j];
+          auto re = p[16 * k + j];
+          auto im = p[16 * k + 8 + j];
           csum += re * re + im * im;
           while (rs[m] < csum && m < num_samples) {
             bitstrings.emplace_back(8 * k + j);
@@ -345,13 +401,17 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  void CollapseState(const MeasurementResult& mr, State& state) const {
+  bool CollapseState(const MeasurementResult& mr, State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     auto f1 = [](unsigned n, unsigned m, uint64_t i,
-                 const State& state, uint64_t mask, uint64_t bits) -> double {
+                 uint64_t mask, uint64_t bits, const fp_type* p) -> double {
       __m256i ml = detail::GetZeroMaskAVX(8 * i, mask, bits);
 
-      __m256 re = _mm256_maskload_ps(state.get() + 16 * i, ml);
-      __m256 im = _mm256_maskload_ps(state.get() + 16 * i + 8, ml);
+      __m256 re = _mm256_maskload_ps(p + 16 * i, ml);
+      __m256 im = _mm256_maskload_ps(p + 16 * i + 8, ml);
       __m256 s1 = _mm256_fmadd_ps(im, im, _mm256_mul_ps(re, re));
 
       return detail::HorizontalSumAVX(s1);
@@ -359,52 +419,65 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
 
     using Op = std::plus<double>;
     double norm = Base::for_.RunReduce(Base::raw_size_ / 16, f1,
-                                       Op(), state, mr.mask, mr.bits);
+                                       Op(), mr.mask, mr.bits, state.get());
 
     __m256 renorm = _mm256_set1_ps(1.0 / std::sqrt(norm));
 
     auto f2 = [](unsigned n, unsigned m, uint64_t i,
-                 State& state, uint64_t mask, uint64_t bits, __m256 renorm) {
+                 uint64_t mask, uint64_t bits, __m256 renorm, fp_type* p) {
       __m256i ml = detail::GetZeroMaskAVX(8 * i, mask, bits);
 
-      __m256 re = _mm256_maskload_ps(state.get() + 16 * i, ml);
-      __m256 im = _mm256_maskload_ps(state.get() + 16 * i + 8, ml);
+      __m256 re = _mm256_maskload_ps(p + 16 * i, ml);
+      __m256 im = _mm256_maskload_ps(p + 16 * i + 8, ml);
 
       re = _mm256_mul_ps(re, renorm);
       im = _mm256_mul_ps(im, renorm);
 
-      _mm256_store_ps(state.get() + 16 * i, re);
-      _mm256_store_ps(state.get() + 16 * i + 8, im);
+      _mm256_store_ps(p + 16 * i, re);
+      _mm256_store_ps(p + 16 * i + 8, im);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f2, state, mr.mask, mr.bits, renorm);
+    Base::for_.Run(
+        Base::raw_size_ / 16, f2, mr.mask, mr.bits, renorm, state.get());
+
+    return true;
   }
 
   std::vector<double> PartialNorms(const State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return {};
+    }
+
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      __m256 re = _mm256_load_ps(state.get() + 16 * i);
-      __m256 im = _mm256_load_ps(state.get() + 16 * i + 8);
+                const fp_type* p) -> double {
+      __m256 re = _mm256_load_ps(p + 16 * i);
+      __m256 im = _mm256_load_ps(p + 16 * i + 8);
       __m256 s1 = _mm256_fmadd_ps(im, im, _mm256_mul_ps(re, re));
 
       return detail::HorizontalSumAVX(s1);
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduceP(Base::raw_size_ / 16, f, Op(), state);
+    return Base::for_.RunReduceP(Base::raw_size_ / 16, f, Op(), state.get());
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return -1;
+    }
+
     double csum = 0;
 
     uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 16, m);
     uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 16, m);
 
+    const fp_type* p = state.get();
+
     for (uint64_t k = k0; k < k1; ++k) {
       for (uint64_t j = 0; j < 8; ++j) {
-        auto re = state.get()[16 * k + j];
-        auto im = state.get()[16 * k + 8 + j];
+        auto re = p[16 * k + j];
+        auto im = p[16 * k + j + 8];
         csum += re * re + im * im;
         if (r < csum) {
           return (8 * k + j) & mask;
@@ -412,7 +485,7 @@ struct StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       }
     }
 
-    return 0;
+    return -1;
   }
 };
 

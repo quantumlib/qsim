@@ -319,14 +319,6 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     return {};
   }
 
-  float *fsv;
-  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
-  const uint64_t buff_size = std::max(fsv_size, (uint64_t)16);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
-
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
@@ -344,8 +336,16 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   }
 
   StateSpace state_space(circuit.num_qubits, param.num_threads);
-  State state = state_space.CreateState(fsv);
 
+  float *fsv;
+  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
+  const uint64_t buff_size = state_space.MinimumRawSize(fsv_size);
+  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
+    IO::errorf("Memory allocation failed.\n");
+    return {};
+  }
+
+  State state = state_space.CreateState(fsv, buff_size);
   state_space.SetStateZero(state);
 
   if (!Runner::Run(param, circuit, state)) {
@@ -369,14 +369,6 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
     return {};
   }
 
-  float *fsv;
-  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
-  const uint64_t buff_size = std::max(fsv_size, (uint64_t)16);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
-
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
@@ -396,7 +388,16 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
 
   std::vector<MeasurementResult> results;
   StateSpace state_space(circuit.num_qubits, param.num_threads);
-  State state = state_space.CreateState(fsv);
+
+  float *fsv;
+  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
+  const uint64_t buff_size = state_space.MinimumRawSize(fsv_size);
+  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
+    IO::errorf("Memory allocation failed.\n");
+    return {};
+  }
+
+  State state = state_space.CreateState(fsv, buff_size);
   state_space.SetStateZero(state);
 
   if (!Runner::Run(param, circuit, state, results)) {
