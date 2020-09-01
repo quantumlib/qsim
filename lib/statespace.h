@@ -70,7 +70,7 @@ class StateSpace : public VectorSpace<For, FP> {
   double Norm(const State& state) const {
     auto partial_norms = static_cast<const Impl&>(*this).PartialNorms(state);
 
-    double norm = partial_norms.size() > 0 ? partial_norms[0] : std::nan("");
+    double norm = !partial_norms.empty() ? partial_norms[0] : std::nan("");
     for (std::size_t i = 1; i < partial_norms.size(); ++i) {
       norm += partial_norms[i];
     }

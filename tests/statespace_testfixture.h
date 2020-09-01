@@ -793,6 +793,61 @@ void TestMeasurementLarge() {
   }
 }
 
+template <typename StateSpace>
+void TestInvalidStateSize() {
+  using fp_type = typename StateSpace::fp_type;
+  using State = typename StateSpace::State;
+
+  std::mt19937 rgen(1);
+
+  unsigned num_qubits = 5;
+
+  StateSpace state_space(num_qubits, 1);
+  uint64_t raw_size =
+      state_space.MinimumRawSize(2 * (uint64_t{1} << num_qubits)) - 1;
+  std::vector<fp_type> vec(raw_size, 0);
+  State state = state_space.CreateState(vec.data(), vec.size());
+
+  EXPECT_FALSE(state_space.SetAllZeros(state));
+  EXPECT_FALSE(state_space.SetStateUniform(state));
+  EXPECT_FALSE(state_space.SetStateZero(state));
+  EXPECT_FALSE(state_space.Multiply(1.0, state));
+  EXPECT_FALSE(!std::isnan(state_space.Norm(state)));
+  EXPECT_FALSE(!state_space.PartialNorms(state).empty());
+  EXPECT_FALSE(!state_space.Sample(state, 10, 1).empty());
+  EXPECT_FALSE(state_space.Measure({0, 1}, rgen, state).valid);
+  EXPECT_FALSE(state_space.VirtualMeasure({0, 1}, rgen, state).valid);
+  EXPECT_FALSE(state_space.CollapseState({1, 1, {0}, true}, state));
+  EXPECT_EQ(state_space.FindMeasuredBits(0, 0.5, 1, state), uint64_t(-1));
+
+  unsigned num_qubits1 = 3;
+  unsigned num_qubits2 = 6;
+
+  StateSpace state_space1(num_qubits1, 1);
+  StateSpace state_space2(num_qubits2, 1);
+
+  State state1 = state_space1.CreateState();
+  State state2 = state_space2.CreateState();
+
+  EXPECT_FALSE(state_space1.SetAllZeros(state2));
+  EXPECT_FALSE(state_space1.SetStateUniform(state2));
+  EXPECT_FALSE(state_space1.SetStateZero(state2));
+  EXPECT_FALSE(state_space1.Multiply(1.0, state2));
+  EXPECT_FALSE(!std::isnan(state_space1.Norm(state2)));
+  EXPECT_FALSE(!state_space1.PartialNorms(state2).empty());
+  EXPECT_FALSE(!state_space1.Sample(state2, 10, 1).empty());
+  EXPECT_FALSE(state_space1.Measure({0, 1}, rgen, state2).valid);
+  EXPECT_FALSE(state_space1.VirtualMeasure({0, 1}, rgen, state2).valid);
+  EXPECT_FALSE(state_space1.CollapseState({1, 1, {0}, true}, state2));
+  EXPECT_EQ(state_space1.FindMeasuredBits(0, 0.5, 1, state2), uint64_t(-1));
+
+  EXPECT_FALSE(state_space1.CopyState(state1, state2));
+  EXPECT_FALSE(state_space1.AddState(state1, state2));
+  EXPECT_FALSE(
+      !std::isnan(std::real(state_space1.InnerProduct(state1, state2))));
+  EXPECT_FALSE(!std::isnan(state_space1.RealInnerProduct(state1, state2)));
+}
+
 }  // namespace qsim
 
 #endif  // STATESPACE_TESTFIXTURE_H_

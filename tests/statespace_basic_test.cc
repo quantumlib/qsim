@@ -58,6 +58,10 @@ TEST(StateSpaceBasicTest, MeasurementLarge) {
   TestMeasurementLarge<SimulatorBasic<For, float>>();
 }
 
+TEST(StateSpaceBasicTest, InvalidStateSize) {
+  TestInvalidStateSize<StateSpaceBasic<For, float>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

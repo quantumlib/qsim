@@ -58,6 +58,10 @@ TEST(StateSpaceAVXTest, MeasurementLarge) {
   TestMeasurementLarge<SimulatorAVX<For>>();
 }
 
+TEST(StateSpaceAVXTest, InvalidStateSize) {
+  TestInvalidStateSize<StateSpaceAVX<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
