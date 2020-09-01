@@ -15,32 +15,26 @@
 #ifndef STATESPACE_H_
 #define STATESPACE_H_
 
-#ifdef _WIN32
-  #include <malloc.h>
-#endif
-
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <memory>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 #include "util.h"
+#include "vectorspace.h"
 
 namespace qsim {
 
-namespace detail {
-
-inline void do_not_free(void*) noexcept {}
-
-}  // namespace detail
-
 // Routines for state-vector manipulations.
 template <typename Impl, typename For, typename FP>
-class StateSpace {
+class StateSpace : public VectorSpace<For, FP> {
+ private:
+  using Base = VectorSpace<For, FP>;
+
  public:
-  using fp_type = FP;
-  using State = std::unique_ptr<fp_type, decltype(&free)>;
+  using fp_type = typename Base::fp_type;
+  using State = typename Base::Vector;
 
   struct MeasurementResult {
     uint64_t mask;
@@ -51,67 +45,32 @@ class StateSpace {
 
   template <typename... ForArgs>
   StateSpace(uint64_t raw_size, unsigned num_qubits, ForArgs&&... args)
-      : for_(args...), raw_size_(raw_size), num_qubits_(num_qubits) {}
+      : Base(raw_size, args...), num_qubits_(num_qubits) {}
 
   State CreateState() const {
-    auto vector_size = sizeof(fp_type) * raw_size_;
-    #ifdef _WIN32
-      return State((fp_type*) _aligned_malloc(vector_size, 64), &_aligned_free);
-    #else
-      void* p = nullptr;
-      if (posix_memalign(&p, 64, vector_size) == 0) {
-        return State((fp_type*) p, &free);
-      } else {
-        return State(nullptr, &free);
-      }
-    #endif
+    return Base::CreateVector();
   }
 
-  static State CreateState(fp_type* p) {
-    return State(p, &detail::do_not_free);
+  static State CreateState(fp_type* p, uint64_t size) {
+    return Base::CreateVector(p, size);
   }
 
   static State NullState() {
-    return State(nullptr, &free);
+    return Base::NullVector();
+  }
+
+  bool CopyState(const State& src, State& dest) const {
+    return Base::CopyVector(src, dest);
   }
 
   uint64_t Size() const {
     return uint64_t{1} << num_qubits_;
   }
 
-  uint64_t RawSize() const {
-    return raw_size_;
-  }
-
-  static fp_type* RawData(State& state) {
-    return state.get();
-  }
-
-  static const fp_type* RawData(const State& state) {
-    return state.get();
-  }
-
-  static bool IsNull(const State& state) {
-    return state.get() == nullptr;
-  }
-
-  static void Swap(State& state1, State& state2) {
-    std::swap(state1, state2);
-  }
-
-  void CopyState(const State& src, State& dest) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& src, State& dest) {
-      dest.get()[i] = src.get()[i];
-    };
-
-    for_.Run(raw_size_, f, src, dest);
-  }
-
   double Norm(const State& state) const {
     auto partial_norms = static_cast<const Impl&>(*this).PartialNorms(state);
 
-    double norm = partial_norms[0];
+    double norm = !partial_norms.empty() ? partial_norms[0] : std::nan("");
     for (std::size_t i = 1; i < partial_norms.size(); ++i) {
       norm += partial_norms[i];
     }
@@ -139,6 +98,11 @@ class StateSpace {
 
     result.valid = true;
     result.mask = 0;
+
+    if (state.size() != Base::raw_size_) {
+      result.valid = false;
+      return result;
+    }
 
     for (auto q : qubits) {
       if (q >= num_qubits_) {
@@ -177,8 +141,7 @@ class StateSpace {
     return result;
   }
 
-  For for_;
-  uint64_t raw_size_;
+ protected:
   unsigned num_qubits_;
 };
 

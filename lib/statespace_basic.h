@@ -29,45 +29,75 @@ namespace qsim {
 // State is a non-vectorized sequence of one real amplitude followed by
 // one imaginary amplitude.
 template <typename For, typename FP>
-struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
+class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
+ private:
   using Base = StateSpace<StateSpaceBasic<For, FP>, For, FP>;
+
+ public:
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
   template <typename... ForArgs>
   explicit StateSpaceBasic(unsigned num_qubits, ForArgs&&... args)
-      : Base(2 * (uint64_t{1} << num_qubits), num_qubits, args...) {}
+      : Base(MinimumRawSize(2 * (uint64_t{1} << num_qubits)),
+             num_qubits, args...) {}
 
-  void InternalToNormalOrder(State& state) const {}
+  static uint64_t MinimumRawSize(uint64_t raw_size) {
+    return raw_size;
+  }
 
-  void NormalToInternalOrder(State& state) const {}
+  bool InternalToNormalOrder(State& state) const {
+    return true;
+  }
 
-  void SetAllZeros(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      state.get()[2 * i + 0] = 0;
-      state.get()[2 * i + 1] = 0;
+  bool NormalToInternalOrder(State& state) const {
+    return true;
+  }
+
+  bool SetAllZeros(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, fp_type* p) {
+      p[2 * i] = 0;
+      p[2 * i + 1] = 0;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, state);
+    Base::for_.Run(Base::raw_size_ / 2, f, state.get());
+
+    return true;
   }
 
   // Uniform superposition.
-  void SetStateUniform(State& state) const {
+  bool SetStateUniform(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     fp_type val = fp_type{1} / std::sqrt(Base::Size());
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                fp_type val, State& state) {
-      state.get()[2 * i + 0] = val;
-      state.get()[2 * i + 1] = 0;
+                fp_type val, fp_type* p) {
+      p[2 * i] = val;
+      p[2 * i + 1] = 0;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, val, state);
+    Base::for_.Run(Base::raw_size_ / 2, f, val, state.get());
+
+    return true;
   }
 
   // |0> state.
-  void SetStateZero(State& state) const {
+  bool SetStateZero(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     SetAllZeros(state);
     state.get()[0] = 1;
+
+    return true;
   }
 
   static std::complex<fp_type> GetAmpl(const State& state, uint64_t i) {
@@ -76,47 +106,61 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   }
 
   static void SetAmpl(
-      const State& state, uint64_t i, const std::complex<fp_type>& ampl) {
+      State& state, uint64_t i, const std::complex<fp_type>& ampl) {
     uint64_t p = 2 * i;
-    state.get()[p + 0] = std::real(ampl);
+    state.get()[p] = std::real(ampl);
     state.get()[p + 1] = std::imag(ampl);
   }
 
-  static void SetAmpl(const State& state, uint64_t i, fp_type re, fp_type im) {
+  static void SetAmpl(State& state, uint64_t i, fp_type re, fp_type im) {
     uint64_t p = 2 * i;
-    state.get()[p + 0] = re;
+    state.get()[p] = re;
     state.get()[p + 1] = im;
   }
 
-  // Does the equivalent of dest += source elementwise.
-  void AddState(const State& source, const State& dest) const {
+  // Does the equivalent of dest += src elementwise.
+  bool AddState(const State& src, State& dest) const {
+    if (src.size() != Base::raw_size_ || dest.size() != Base::raw_size_) {
+      return false;
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) {
-      state2.get()[2 * i + 0] += state1.get()[2 * i + 0];
-      state2.get()[2 * i + 1] += state1.get()[2 * i + 1];
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, fp_type* p2) {
+      p2[2 * i] += p1[2 * i];
+      p2[2 * i + 1] += p1[2 * i + 1];
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, source, dest);
+    Base::for_.Run(Base::raw_size_ / 2, f, src.get(), dest.get());
+
+    return true;
   }
 
-  void Multiply(fp_type a, State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state, fp_type a) {
-      state.get()[2 * i + 0] *= a;
-      state.get()[2 * i + 1] *= a;
+  // Does the equivalent of state *= a elementwise.
+  bool Multiply(fp_type a, State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, fp_type a, fp_type* p) {
+      p[2 * i] *= a;
+      p[2 * i + 1] *= a;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, state, a);
+    Base::for_.Run(Base::raw_size_ / 2, f, a, state.get());
+
+    return true;
   }
 
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
-    using Op = std::plus<std::complex<double>>;
+    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+      return std::nan("");
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> std::complex<double> {
-      auto s1 = state1.get() + 2 * i;
-      auto s2 = state2.get() + 2 * i;
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> std::complex<double> {
+      auto s1 = p1 + 2 * i;
+      auto s2 = p2 + 2 * i;
 
       double re = s1[0] * s2[0] + s1[1] * s2[1];
       double im = s1[0] * s2[1] - s1[1] * s2[0];
@@ -124,21 +168,27 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       return std::complex<double>{re, im};
     };
 
-    return Base::for_.RunReduce(Base::raw_size_ / 2, f, Op(), state1, state2);
+    using Op = std::plus<std::complex<double>>;
+    return Base::for_.RunReduce(
+        Base::raw_size_ / 2, f, Op(), state1.get(), state2.get());
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
-    using Op = std::plus<double>;
+    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+      return std::nan("");
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> double {
-      auto s1 = state1.get() + 2 * i;
-      auto s2 = state2.get() + 2 * i;
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> double {
+      auto s1 = p1 + 2 * i;
+      auto s2 = p2 + 2 * i;
 
       return s1[0] * s2[0] + s1[1] * s2[1];
     };
 
-    return Base::for_.RunReduce(Base::raw_size_ / 2, f, Op(), state1, state2);
+    using Op = std::plus<double>;
+    return Base::for_.RunReduce(
+        Base::raw_size_ / 2, f, Op(), state1.get(), state2.get());
   }
 
   template <typename DistrRealType = double>
@@ -146,13 +196,15 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
-    if (num_samples > 0) {
+    if (state.size() == Base::raw_size_ && num_samples > 0) {
       double norm = 0;
       uint64_t size = Base::raw_size_ / 2;
 
+      const fp_type* p = state.get();
+
       for (uint64_t k = 0; k < size; ++k) {
-        auto re = state.get()[2 * k];
-        auto im = state.get()[2 * k + 1];
+        auto re = p[2 * k];
+        auto im = p[2 * k + 1];
         norm += re * re + im * im;
       }
 
@@ -163,8 +215,8 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       bitstrings.reserve(num_samples);
 
       for (uint64_t k = 0; k < size; ++k) {
-        auto re = state.get()[2 * k];
-        auto im = state.get()[2 * k + 1];
+        auto re = p[2 * k];
+        auto im = p[2 * k + 1];
         csum += re * re + im * im;
         while (rs[m] < csum && m < num_samples) {
           bitstrings.emplace_back(k);
@@ -178,59 +230,76 @@ struct StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  void CollapseState(const MeasurementResult& mr, State& state) const {
-    auto f1 = [](unsigned n, unsigned m, uint64_t i, const State& state,
-                 uint64_t mask, uint64_t bits) -> double {
-      auto s = state.get() + 2 * i;
+  bool CollapseState(const MeasurementResult& mr, State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
+    auto f1 = [](unsigned n, unsigned m, uint64_t i,
+                 uint64_t mask, uint64_t bits, const fp_type* p) -> double {
+      auto s = p + 2 * i;
       return (i & mask) == bits ? s[0] * s[0] + s[1] * s[1] : 0;
     };
 
     using Op = std::plus<double>;
-    double norm = Base::for_.RunReduce(Base::raw_size_ / 2, f1,
-                                       Op(), state, mr.mask, mr.bits);
+    double norm = Base::for_.RunReduce(Base::raw_size_ / 2, f1, Op(),
+                                       mr.mask, mr.bits, state.get());
 
     double renorm = 1.0 / std::sqrt(norm);
 
-    auto f2 = [](unsigned n, unsigned m, uint64_t i,  State& state,
-                 uint64_t mask, uint64_t bits, fp_type renorm) {
-      auto s = state.get() + 2 * i;
+    auto f2 = [](unsigned n, unsigned m, uint64_t i,
+                 uint64_t mask, uint64_t bits, fp_type renorm, fp_type* p) {
+      auto s = p + 2 * i;
       bool not_zero = (i & mask) == bits;
 
       s[0] = not_zero ? s[0] * renorm : 0;
       s[1] = not_zero ? s[1] * renorm : 0;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f2, state, mr.mask, mr.bits, renorm);
+    Base::for_.Run(
+        Base::raw_size_ / 2, f2, mr.mask, mr.bits, renorm, state.get());
+
+    return true;
   }
 
   std::vector<double> PartialNorms(const State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return {};
+    }
+
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      auto s = state.get() + 2 * i;
+                const fp_type* p) -> double {
+      auto s = p + 2 * i;
       return s[0] * s[0] + s[1] * s[1];
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduceP(Base::raw_size_ / 2, f, Op(), state);
+    return Base::for_.RunReduceP(Base::raw_size_ / 2, f, Op(), state.get());
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return -1;
+    }
+
     double csum = 0;
 
     uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 2, m);
     uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 2, m);
 
+    const fp_type* p = state.get();
+
     for (uint64_t k = k0; k < k1; ++k) {
-      auto re = state.get()[2 * k];
-      auto im = state.get()[2 * k + 1];
+      auto re = p[2 * k];
+      auto im = p[2 * k + 1];
       csum += re * re + im * im;
       if (r < csum) {
         return k & mask;
       }
     }
 
-    return 0;
+    return -1;
   }
 };
 
