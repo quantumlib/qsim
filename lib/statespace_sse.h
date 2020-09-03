@@ -58,33 +58,27 @@ inline double HorizontalSumSSE(__m128 s) {
 // imaginary components. Four single-precison floating numbers can be loaded
 // into an SSE register.
 template <typename For>
-struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
+class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
+ private:
   using Base = StateSpace<StateSpaceSSE<For>, For, float>;
+
+ public:
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
   template <typename... ForArgs>
   explicit StateSpaceSSE(unsigned num_qubits, ForArgs&&... args)
-      : Base(2 * std::max(uint64_t{4}, uint64_t{1} << num_qubits),
+      : Base(MinimumRawSize(2 * (uint64_t{1} << num_qubits)),
              num_qubits, args...) {}
 
-  void InternalToNormalOrder(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      auto s = state.get() + 8 * i;
+  static uint64_t MinimumRawSize(uint64_t raw_size) {
+    return std::max(uint64_t{8}, raw_size);
+  }
 
-      fp_type re[3];
-      fp_type im[3];
-
-      for (uint64_t i = 0; i < 3; ++i) {
-        re[i] = s[i + 1];
-        im[i] = s[i + 4];
-      }
-
-      for (uint64_t i = 0; i < 3; ++i) {
-        s[2 * i + 1] = im[i];
-        s[2 * i + 2] = re[i];
-      }
-    };
+  bool InternalToNormalOrder(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
 
     if (Base::num_qubits_ == 1) {
       auto s = state.get();
@@ -97,27 +91,33 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
         s[i] = 0;
       }
     } else {
-      Base::for_.Run(Base::raw_size_ / 8, f, state);
+      auto f = [](unsigned n, unsigned m, uint64_t i, fp_type* p) {
+        auto s = p + 8 * i;
+
+        fp_type re[3];
+        fp_type im[3];
+
+        for (uint64_t i = 0; i < 3; ++i) {
+          re[i] = s[i + 1];
+          im[i] = s[i + 4];
+        }
+
+        for (uint64_t i = 0; i < 3; ++i) {
+          s[2 * i + 1] = im[i];
+          s[2 * i + 2] = re[i];
+        }
+      };
+
+      Base::for_.Run(Base::raw_size_ / 8, f, state.get());
     }
+
+    return true;
   }
 
-  void NormalToInternalOrder(State& state) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state) {
-      auto s = state.get() + 8 * i;
-
-      fp_type re[3];
-      fp_type im[3];
-
-      for (uint64_t i = 0; i < 3; ++i) {
-        im[i] = s[2 * i + 1];
-        re[i] = s[2 * i + 2];
-      }
-
-      for (uint64_t i = 0; i < 3; ++i) {
-        s[i + 1] = re[i];
-        s[i + 4] = im[i];
-      }
-    };
+  bool NormalToInternalOrder(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
 
     if (Base::num_qubits_ == 1) {
       auto s = state.get();
@@ -131,24 +131,52 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       s[6] = 0;
       s[7] = 0;
     } else {
-      Base::for_.Run(Base::raw_size_ / 8, f, state);
+      auto f = [](unsigned n, unsigned m, uint64_t i, fp_type* p) {
+        auto s = p + 8 * i;
+
+        fp_type re[3];
+        fp_type im[3];
+
+        for (uint64_t i = 0; i < 3; ++i) {
+          im[i] = s[2 * i + 1];
+          re[i] = s[2 * i + 2];
+        }
+
+        for (uint64_t i = 0; i < 3; ++i) {
+          s[i + 1] = re[i];
+          s[i + 4] = im[i];
+        }
+      };
+
+      Base::for_.Run(Base::raw_size_ / 8, f, state.get());
     }
+
+    return true;
   }
 
-  void SetAllZeros(State& state) const {
+  bool SetAllZeros(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m128 val0 = _mm_setzero_ps();
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const __m128& val0, State& state) {
-      _mm_store_ps(state.get() + 8 * i + 0, val0);
-      _mm_store_ps(state.get() + 8 * i + 4, val0);
+    auto f = [](unsigned n, unsigned m, uint64_t i, __m128 val0, fp_type* p) {
+      _mm_store_ps(p + 8 * i, val0);
+      _mm_store_ps(p + 8 * i + 4, val0);
     };
 
-    Base::for_.Run(Base::raw_size_ / 8, f, val0, state);
+    Base::for_.Run(Base::raw_size_ / 8, f, val0, state.get());
+
+    return true;
   }
 
   // Uniform superposition.
-  void SetStateUniform(State& state) const {
+  bool SetStateUniform(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m128 val0 = _mm_setzero_ps();
     __m128 valu;
 
@@ -161,18 +189,26 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                const __m128& val0, const __m128& valu, State& state) {
-      _mm_store_ps(state.get() + 8 * i + 0, valu);
-      _mm_store_ps(state.get() + 8 * i + 4, val0);
+                __m128 val0, __m128 valu, fp_type* p) {
+      _mm_store_ps(p + 8 * i, valu);
+      _mm_store_ps(p + 8 * i + 4, val0);
     };
 
-    Base::for_.Run(Base::raw_size_ / 8, f, val0, valu, state);
+    Base::for_.Run(Base::raw_size_ / 8, f, val0, valu, state.get());
+
+    return true;
   }
 
   // |0> state.
-  void SetStateZero(State& state) const {
+  bool SetStateZero(State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     SetAllZeros(state);
     state.get()[0] = 1;
+
+    return true;
   }
 
   static std::complex<fp_type> GetAmpl(const State& state, uint64_t i) {
@@ -181,62 +217,76 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
   }
 
   static void SetAmpl(
-      const State& state, uint64_t i, const std::complex<fp_type>& ampl) {
+      State& state, uint64_t i, const std::complex<fp_type>& ampl) {
     uint64_t p = (8 * (i / 4)) + (i % 4);
-    state.get()[p + 0] = std::real(ampl);
+    state.get()[p] = std::real(ampl);
     state.get()[p + 4] = std::imag(ampl);
   }
 
-  static void SetAmpl(const State& state, uint64_t i, fp_type re, fp_type im) {
+  static void SetAmpl(State& state, uint64_t i, fp_type re, fp_type im) {
     uint64_t p = (8 * (i / 4)) + (i % 4);
-    state.get()[p + 0] = re;
+    state.get()[p] = re;
     state.get()[p + 4] = im;
   }
 
-  // Does the equivalent of dest += source elementwise.
-  void AddState(const State& source, const State& dest) const {
+  // Does the equivalent of dest += src elementwise.
+  bool AddState(const State& src, State& dest) const {
+    if (src.size() != Base::raw_size_ || dest.size() != Base::raw_size_) {
+      return false;
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) {
-      __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
-      __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
-      __m128 re2 = _mm_load_ps(state2.get() + 8 * i);
-      __m128 im2 = _mm_load_ps(state2.get() + 8 * i + 4);
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, fp_type* p2) {
+      __m128 re1 = _mm_load_ps(p1 + 8 * i);
+      __m128 im1 = _mm_load_ps(p1 + 8 * i + 4);
+      __m128 re2 = _mm_load_ps(p2 + 8 * i);
+      __m128 im2 = _mm_load_ps(p2 + 8 * i + 4);
 
-      _mm_store_ps(state2.get() + 8 * i, _mm_add_ps(re1, re2));
-      _mm_store_ps(state2.get() + 8 * i + 4, _mm_add_ps(im1, im2));
+      _mm_store_ps(p2 + 8 * i, _mm_add_ps(re1, re2));
+      _mm_store_ps(p2 + 8 * i + 4, _mm_add_ps(im1, im2));
     };
 
-    Base::for_.Run(Base::raw_size_ / 8, f, source, dest);
+    Base::for_.Run(Base::raw_size_ / 8, f, src.get(), dest.get());
+
+    return true;
   }
 
-  void Multiply(fp_type a, State& state) const {
+  // Does the equivalent of state *= a elementwise.
+  bool Multiply(fp_type a, State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m128 r = _mm_set1_ps(a);
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, State& state, __m128 r) {
-      __m128 re = _mm_load_ps(state.get() + 8 * i);
-      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+    auto f = [](unsigned n, unsigned m, uint64_t i, __m128 r, fp_type* p) {
+      __m128 re = _mm_load_ps(p + 8 * i);
+      __m128 im = _mm_load_ps(p + 8 * i + 4);
 
       re = _mm_mul_ps(re, r);
       im = _mm_mul_ps(im, r);
 
-      _mm_store_ps(state.get() + 8 * i, re);
-      _mm_store_ps(state.get() + 8 * i + 4, im);
+      _mm_store_ps(p + 8 * i, re);
+      _mm_store_ps(p + 8 * i + 4, im);
     };
 
-    Base::for_.Run(Base::raw_size_ / 8, f, state, r);
+    Base::for_.Run(Base::raw_size_ / 8, f, r, state.get());
+
+    return true;
   }
 
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
-    using Op = std::plus<std::complex<double>>;
+    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+      return std::nan("");
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> std::complex<double> {
-      __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
-      __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
-      __m128 re2 = _mm_load_ps(state2.get() + 8 * i);
-      __m128 im2 = _mm_load_ps(state2.get() + 8 * i + 4);
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> std::complex<double> {
+      __m128 re1 = _mm_load_ps(p1 + 8 * i);
+      __m128 im1 = _mm_load_ps(p1 + 8 * i + 4);
+      __m128 re2 = _mm_load_ps(p2 + 8 * i);
+      __m128 im2 = _mm_load_ps(p2 + 8 * i + 4);
 
       __m128 ip_re = _mm_add_ps(_mm_mul_ps(re1, re2), _mm_mul_ps(im1, im2));
       __m128 ip_im = _mm_sub_ps(_mm_mul_ps(re1, im2), _mm_mul_ps(im1, re2));
@@ -247,25 +297,31 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       return std::complex<double>{re, im};
     };
 
-    return Base::for_.RunReduce(Base::raw_size_ / 8, f, Op(), state1, state2);
+    using Op = std::plus<std::complex<double>>;
+    return Base::for_.RunReduce(
+        Base::raw_size_ / 8, f, Op(), state1.get(), state2.get());
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
-    using Op = std::plus<double>;
+    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+      return std::nan("");
+    }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const State& state1,
-                const State& state2) -> double {
-      __m128 re1 = _mm_load_ps(state1.get() + 8 * i);
-      __m128 im1 = _mm_load_ps(state1.get() + 8 * i + 4);
-      __m128 re2 = _mm_load_ps(state2.get() + 8 * i);
-      __m128 im2 = _mm_load_ps(state2.get() + 8 * i + 4);
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> double {
+      __m128 re1 = _mm_load_ps(p1 + 8 * i);
+      __m128 im1 = _mm_load_ps(p1 + 8 * i + 4);
+      __m128 re2 = _mm_load_ps(p2 + 8 * i);
+      __m128 im2 = _mm_load_ps(p2 + 8 * i + 4);
 
       __m128 ip_re = _mm_add_ps(_mm_mul_ps(re1, re2), _mm_mul_ps(im1, im2));
 
       return detail::HorizontalSumSSE(ip_re);
     };
 
-    return Base::for_.RunReduce(Base::raw_size_ / 8, f, Op(), state1, state2);
+    using Op = std::plus<double>;
+    return Base::for_.RunReduce(
+        Base::raw_size_ / 8, f, Op(), state1.get(), state2.get());
   }
 
   template <typename DistrRealType = double>
@@ -273,15 +329,15 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
-    if (num_samples > 0) {
+    if (state.size() == Base::raw_size_ && num_samples > 0) {
       double norm = 0;
       uint64_t size = Base::raw_size_ / 8;
-      const float* v = state.get();
+      const fp_type* p = state.get();
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 4; ++j) {
-          auto re = v[8 * k + j];
-          auto im = v[8 * k + 4 + j];
+          auto re = p[8 * k + j];
+          auto im = p[8 * k + 4 + j];
           norm += re * re + im * im;
         }
       }
@@ -294,8 +350,8 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 4; ++j) {
-          auto re = v[8 * k + j];
-          auto im = v[8 * k + 4 + j];
+          auto re = p[8 * k + j];
+          auto im = p[8 * k + 4 + j];
           csum += re * re + im * im;
           while (rs[m] < csum && m < num_samples) {
             bitstrings.emplace_back(4 * k + j);
@@ -310,15 +366,19 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  void CollapseState(const MeasurementResult& mr, State& state) const {
+  bool CollapseState(const MeasurementResult& mr, State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return false;
+    }
+
     __m128 zero = _mm_set1_ps(0);
 
-    auto f1 = [](unsigned n, unsigned m, uint64_t i, const State& state,
-                 uint64_t mask, uint64_t bits, __m128 zero) -> double {
+    auto f1 = [](unsigned n, unsigned m, uint64_t i, uint64_t mask,
+                 uint64_t bits, __m128 zero, const fp_type* p) -> double {
       __m128 ml = _mm_castsi128_ps(detail::GetZeroMaskSSE(4 * i, mask, bits));
 
-      __m128 re = _mm_load_ps(state.get() + 8 * i);
-      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+      __m128 re = _mm_load_ps(p + 8 * i);
+      __m128 im = _mm_load_ps(p + 8 * i + 4);
       __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
 
       s1 = _mm_blendv_ps(zero, s1, ml);
@@ -327,54 +387,66 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    double norm = Base::for_.RunReduce(Base::raw_size_ / 8, f1,
-                                       Op(), state, mr.mask, mr.bits, zero);
+    double norm = Base::for_.RunReduce(Base::raw_size_ / 8, f1, Op(),
+                                       mr.mask, mr.bits, zero, state.get());
 
     __m128 renorm = _mm_set1_ps(1.0 / std::sqrt(norm));
 
-    auto f2 = [](unsigned n, unsigned m, uint64_t i,  State& state,
-                 uint64_t mask, uint64_t bits, __m128 renorm, __m128 zero) {
+    auto f2 = [](unsigned n, unsigned m, uint64_t i, uint64_t mask,
+                 uint64_t bits, __m128 renorm, __m128 zero, fp_type* p) {
       __m128 ml = _mm_castsi128_ps(detail::GetZeroMaskSSE(4 * i, mask, bits));
 
-      __m128 re = _mm_load_ps(state.get() + 8 * i);
-      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+      __m128 re = _mm_load_ps(p + 8 * i);
+      __m128 im = _mm_load_ps(p + 8 * i + 4);
 
       re = _mm_blendv_ps(zero, _mm_mul_ps(re, renorm), ml);
       im = _mm_blendv_ps(zero, _mm_mul_ps(im, renorm), ml);
 
-      _mm_store_ps(state.get() + 8 * i, re);
-      _mm_store_ps(state.get() + 8 * i + 4, im);
+      _mm_store_ps(p + 8 * i, re);
+      _mm_store_ps(p + 8 * i + 4, im);
     };
 
     Base::for_.Run(
-        Base::raw_size_ / 8, f2, state, mr.mask, mr.bits, renorm, zero);
+        Base::raw_size_ / 8, f2, mr.mask, mr.bits, renorm, zero, state.get());
+
+    return true;
   }
 
   std::vector<double> PartialNorms(const State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return {};
+    }
+
     auto f = [](unsigned n, unsigned m, uint64_t i,
-                const State& state) -> double {
-      __m128 re = _mm_load_ps(state.get() + 8 * i);
-      __m128 im = _mm_load_ps(state.get() + 8 * i + 4);
+                const fp_type* p) -> double {
+      __m128 re = _mm_load_ps(p + 8 * i);
+      __m128 im = _mm_load_ps(p + 8 * i + 4);
       __m128 s1 = _mm_add_ps(_mm_mul_ps(re, re), _mm_mul_ps(im, im));
 
       return detail::HorizontalSumSSE(s1);
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduceP(Base::raw_size_ / 8, f, Op(), state);
+    return Base::for_.RunReduceP(Base::raw_size_ / 8, f, Op(), state.get());
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
+    if (state.size() != Base::raw_size_) {
+      return -1;
+    }
+
     double csum = 0;
 
     uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 8, m);
     uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 8, m);
 
+    const fp_type* p = state.get();
+
     for (uint64_t k = k0; k < k1; ++k) {
       for (uint64_t j = 0; j < 4; ++j) {
-        auto re = state.get()[8 * k + j];
-        auto im = state.get()[8 * k + 4 + j];
+        auto re = p[8 * k + j];
+        auto im = p[8 * k + 4 + j];
         csum += re * re + im * im;
         if (r < csum) {
           return (4 * k + j) & mask;
@@ -382,7 +454,7 @@ struct StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       }
     }
 
-    return 0;
+    return -1;
   }
 };
 

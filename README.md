@@ -94,14 +94,6 @@ invoking Noisy Intermediate Scale Quantum (NISQ) circuits.
 To run qsim on Google Cirq circuits, or just to call the simulator from Python,
 see [docs](docs/cirq_interface.md).
 
-## Authors
-
-Sergei Isakov (Google): qsim and qsimh simulators
-
-Vamsi Krishna Devabathini (Google): Cirq interface
-
-Orion Martin (Google): automated testing
-
 ## Disclaimer
 
 This is not an officially supported Google product.

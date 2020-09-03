@@ -371,7 +371,7 @@ void TestAdd() {
   state_space.SetAmpl(state2, 2, 5, 6);
   state_space.SetAmpl(state2, 3, 7, 8);
 
-  state_space.AddState(state1, state2);
+  EXPECT_TRUE(state_space.AddState(state1, state2));
   EXPECT_EQ(state_space.GetAmpl(state2, 0), std::complex<float>(2, 4));
   EXPECT_EQ(state_space.GetAmpl(state2, 1), std::complex<float>(6, 8));
   EXPECT_EQ(state_space.GetAmpl(state2, 2), std::complex<float>(10, 12));
@@ -430,8 +430,8 @@ void TestNormAndInnerProductSmall() {
   EXPECT_EQ(state_space.Size(), size);
   EXPECT_EQ(state_space.Size(), size);
 
-  state_space.SetAllZeros(state1);
-  state_space.SetAllZeros(state2);
+  EXPECT_TRUE(state_space.SetAllZeros(state1));
+  EXPECT_TRUE(state_space.SetAllZeros(state2));
 
   std::array<fp_type, size> values1 = {0.25, 0.3, 0.35, 0.1};
   std::array<fp_type, size> values2 = {0.4, 0.15, 0.2, 0.25};
@@ -456,15 +456,17 @@ void TestNormAndInnerProductSmall() {
   EXPECT_NEAR(state_space.Norm(state2), 1, 1e-6);
 
   auto inner_product = state_space.InnerProduct(state1, state2);
+  EXPECT_FALSE(std::isnan(std::real(inner_product)));
   EXPECT_NEAR(std::real(inner_product), std::real(inner_product0), 1e-6);
   EXPECT_NEAR(std::imag(inner_product), std::imag(inner_product0), 1e-6);
 
   auto real_inner_product = state_space.RealInnerProduct(state1, state2);
+  EXPECT_FALSE(std::isnan(real_inner_product));
   EXPECT_NEAR(real_inner_product, std::real(inner_product0), 1e-6);
 
-  state_space.Multiply(std::sqrt(1.3), state1);
+  EXPECT_TRUE(state_space.Multiply(std::sqrt(1.3), state1));
   EXPECT_NEAR(state_space.Norm(state1), 1.3, 1e-6);
-  state_space.Multiply(std::sqrt(0.8), state2);
+  EXPECT_TRUE(state_space.Multiply(std::sqrt(0.8), state2));
   EXPECT_NEAR(state_space.Norm(state2), 0.8, 1e-6);
 }
 
@@ -490,14 +492,15 @@ void TestNormAndInnerProduct() {
                            const StateSpace& state_space, const State& state) {
     if (k == 0) {
       EXPECT_NEAR(state_space.Norm(state), 1, 1e-5);
-
-      state_space.CopyState(state, state0);
+      EXPECT_TRUE(state_space.CopyState(state, state0));
     } else if (k == 1) {
       auto inner_product = state_space.InnerProduct(state0, state);
+      EXPECT_FALSE(std::isnan(std::real(inner_product)));
       EXPECT_NEAR(std::real(inner_product), 0.5 + 0.5 / std::sqrt(2), 1e-5);
       EXPECT_NEAR(std::imag(inner_product), 0.5 / std::sqrt(2), 1e-5);
 
       auto real_inner_product = state_space.RealInnerProduct(state0, state);
+      EXPECT_FALSE(std::isnan(real_inner_product));
       EXPECT_NEAR(real_inner_product, 0.5 + 0.5 / std::sqrt(2), 1e-5);
     }
   };
@@ -510,7 +513,7 @@ void TestNormAndInnerProduct() {
   std::vector<unsigned> times{depth, depth + 1};
   EXPECT_TRUE(Runner::Run(param, times, circuit, measure));
 
-  state_space.Multiply(std::sqrt(1.2), state0);
+  EXPECT_TRUE(state_space.Multiply(std::sqrt(1.2), state0));
   EXPECT_NEAR(state_space.Norm(state0), 1.2, 1e-5);
 }
 
@@ -568,7 +571,7 @@ void TestSamplingCrossEntropyDifference() {
 
   EXPECT_FALSE(state_space.IsNull(state));
 
-  state_space.SetStateZero(state);
+  EXPECT_TRUE(state_space.SetStateZero(state));
 
   typename Runner::Parameter param;
   param.seed = 1;
@@ -600,23 +603,24 @@ void TestOrdering() {
   for (unsigned num_qubits : {1, 2, 5}) {
     uint64_t size = uint64_t{1} << num_qubits;
 
-    std::vector<fp_type> vec(2 * std::max(uint64_t{8}, size), 0);
-
     StateSpace state_space(num_qubits, 1);
-    State state = state_space.CreateState(vec.data());
+    uint64_t raw_size =
+        state_space.MinimumRawSize(2 * (uint64_t{1} << num_qubits));
+    std::vector<fp_type> vec(raw_size, 0);
+    State state = state_space.CreateState(vec.data(), vec.size());
 
     for (uint64_t i = 0; i < size; ++i) {
       state_space.SetAmpl(state, i, std::complex<fp_type>(i, size + i));
     }
 
-    state_space.InternalToNormalOrder(state);
+    EXPECT_TRUE(state_space.InternalToNormalOrder(state));
 
     for (uint64_t i = 0; i < size; ++i) {
       EXPECT_NEAR(vec[2 * i], fp_type(i), 1e-8);
       EXPECT_NEAR(vec[2 * i + 1], fp_type(size + i), 1e-8);
     }
 
-    state_space.NormalToInternalOrder(state);
+    EXPECT_TRUE(state_space.NormalToInternalOrder(state));
 
     for (uint64_t i = 0; i < size; ++i) {
       auto a = state_space.GetAmpl(state, i);
@@ -641,7 +645,7 @@ void MeasureSmall(unsigned num_measurements, unsigned num_threads,
   EXPECT_FALSE(state_space.IsNull(state));
   EXPECT_EQ(state_space.Size(), size);
 
-  state_space.SetStateZero(state);
+  EXPECT_TRUE(state_space.SetStateZero(state));
 
   std::vector<std::complex<float>> ampls;
   ampls.reserve(size);
@@ -744,7 +748,7 @@ void TestMeasurementLarge() {
 
   EXPECT_FALSE(state_space.IsNull(state));
 
-  state_space.SetStateZero(state);
+  EXPECT_TRUE(state_space.SetStateZero(state));
 
   typename Runner::Parameter param;
   param.seed = 1;
@@ -787,6 +791,61 @@ void TestMeasurementLarge() {
     EXPECT_EQ(std::real(ampl), 0);
     EXPECT_EQ(std::imag(ampl), 0);
   }
+}
+
+template <typename StateSpace>
+void TestInvalidStateSize() {
+  using fp_type = typename StateSpace::fp_type;
+  using State = typename StateSpace::State;
+
+  std::mt19937 rgen(1);
+
+  unsigned num_qubits = 5;
+
+  StateSpace state_space(num_qubits, 1);
+  uint64_t raw_size =
+      state_space.MinimumRawSize(2 * (uint64_t{1} << num_qubits)) - 1;
+  std::vector<fp_type> vec(raw_size, 0);
+  State state = state_space.CreateState(vec.data(), vec.size());
+
+  EXPECT_FALSE(state_space.SetAllZeros(state));
+  EXPECT_FALSE(state_space.SetStateUniform(state));
+  EXPECT_FALSE(state_space.SetStateZero(state));
+  EXPECT_FALSE(state_space.Multiply(1.0, state));
+  EXPECT_FALSE(!std::isnan(state_space.Norm(state)));
+  EXPECT_FALSE(!state_space.PartialNorms(state).empty());
+  EXPECT_FALSE(!state_space.Sample(state, 10, 1).empty());
+  EXPECT_FALSE(state_space.Measure({0, 1}, rgen, state).valid);
+  EXPECT_FALSE(state_space.VirtualMeasure({0, 1}, rgen, state).valid);
+  EXPECT_FALSE(state_space.CollapseState({1, 1, {0}, true}, state));
+  EXPECT_EQ(state_space.FindMeasuredBits(0, 0.5, 1, state), uint64_t(-1));
+
+  unsigned num_qubits1 = 3;
+  unsigned num_qubits2 = 6;
+
+  StateSpace state_space1(num_qubits1, 1);
+  StateSpace state_space2(num_qubits2, 1);
+
+  State state1 = state_space1.CreateState();
+  State state2 = state_space2.CreateState();
+
+  EXPECT_FALSE(state_space1.SetAllZeros(state2));
+  EXPECT_FALSE(state_space1.SetStateUniform(state2));
+  EXPECT_FALSE(state_space1.SetStateZero(state2));
+  EXPECT_FALSE(state_space1.Multiply(1.0, state2));
+  EXPECT_FALSE(!std::isnan(state_space1.Norm(state2)));
+  EXPECT_FALSE(!state_space1.PartialNorms(state2).empty());
+  EXPECT_FALSE(!state_space1.Sample(state2, 10, 1).empty());
+  EXPECT_FALSE(state_space1.Measure({0, 1}, rgen, state2).valid);
+  EXPECT_FALSE(state_space1.VirtualMeasure({0, 1}, rgen, state2).valid);
+  EXPECT_FALSE(state_space1.CollapseState({1, 1, {0}, true}, state2));
+  EXPECT_EQ(state_space1.FindMeasuredBits(0, 0.5, 1, state2), uint64_t(-1));
+
+  EXPECT_FALSE(state_space1.CopyState(state1, state2));
+  EXPECT_FALSE(state_space1.AddState(state1, state2));
+  EXPECT_FALSE(
+      !std::isnan(std::real(state_space1.InnerProduct(state1, state2))));
+  EXPECT_FALSE(!std::isnan(state_space1.RealInnerProduct(state1, state2)));
 }
 
 }  // namespace qsim

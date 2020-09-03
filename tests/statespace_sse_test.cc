@@ -58,6 +58,10 @@ TEST(StateSpaceSSETest, MeasurementLarge) {
   TestMeasurementLarge<SimulatorSSE<For>>();
 }
 
+TEST(StateSpaceSSETest, InvalidStateSize) {
+  TestInvalidStateSize<StateSpaceSSE<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
