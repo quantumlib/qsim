@@ -27,7 +27,9 @@ enum GateAnyKind {
   kGateAny = -1,
 };
 
-// Gate is a generic gate to make it easier to use qsim with external gate sets.
+/**
+ * A generic gate to make it easier to use qsim with external gate sets.
+ */
 template <typename FP, typename GK = GateAnyKind>
 struct Gate {
   using fp_type = FP;
