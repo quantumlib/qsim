@@ -66,7 +66,7 @@ void TestApplyGate1() {
     -222,2748,-226,2800,-230,2852,-234,2904,-238,2956,-242,3008,-246,3060,-250,3112
   };
   // clang-format on
-  uc.ApplyGate1(0, ref_gate, u);
+  uc.ApplyGate({0}, ref_gate, u);
 
   for(int i =0;i<8;i++){
     for(int j = 0;j<8;j++) {
@@ -91,7 +91,7 @@ void TestApplyGate1() {
     -206,2572,-210,2624,-214,2676,-218,2728,-222,2780,-226,2832,-230,2884,-234,2936
   };
   // clang-format on
-  uc.ApplyGate1(1, ref_gate, u);
+  uc.ApplyGate({1}, ref_gate, u);
 
   for(int i =0;i<8;i++){
     for(int j = 0;j<8;j++) {
@@ -116,7 +116,7 @@ void TestApplyGate1() {
     -174,2220,-178,2272,-182,2324,-186,2376,-190,2428,-194,2480,-198,2532,-202,2584
   };
   // clang-format on
-  uc.ApplyGate1(2, ref_gate, u);
+  uc.ApplyGate({2}, ref_gate, u);
 
   for(int i =0;i<8;i++){
     for(int j = 0;j<8;j++) {
@@ -160,7 +160,7 @@ void TestApplyGate2() {
     -468,20496,-476,20952,-484,21408,-492,21864,-500,22320,-508,22776,-516,23232,-524,23688
   };
   // clang-format on
-  uc.ApplyGate2(0, 1, ref_gate, u);
+  uc.ApplyGate({0, 1}, ref_gate, u);
 
   for(int i =0;i<8;i++){
     for(int j = 0;j<8;j++) {
@@ -185,7 +185,7 @@ void TestApplyGate2() {
     -372,15344,-380,15800,-388,16256,-396,16712,-404,17168,-412,17624,-420,18080,-428,18536,
   };
   // clang-format on
-  uc.ApplyGate2(1, 2, ref_gate, u);
+  uc.ApplyGate({1, 2}, ref_gate, u);
 
   for(int i =0;i<8;i++){
     for(int j = 0;j<8;j++) {
@@ -210,7 +210,7 @@ void TestApplyGate2() {
     -404,17104,-412,17560,-420,18016,-428,18472,-436,18928,-444,19384,-452,19840,-460,20296,
   };
   // clang-format on
-  uc.ApplyGate2(0, 2, ref_gate, u);
+  uc.ApplyGate({0, 2}, ref_gate, u);
 
   for(int i =0;i<8;i++){
     for(int j = 0;j<8;j++) {
