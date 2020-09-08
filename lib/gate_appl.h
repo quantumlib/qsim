@@ -112,7 +112,8 @@ inline bool ApplyGate(
 }
 
 /**
- * Applies the given gate to the simulator state.
+ * Applies the given gate to the simulator state, discarding measurement
+ *   results.
  * @param state_space StateSpace object required to perform measurements.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
@@ -190,7 +191,8 @@ inline bool ApplyFusedGate(
 }
 
 /**
- * Applies the given fused gate to the simulator state.
+ * Applies the given fused gate to the simulator state, discarding measurement
+ *   results.
  * @param state_space StateSpace object required to perform measurements.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
