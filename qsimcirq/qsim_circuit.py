@@ -127,11 +127,8 @@ class QSimCircuit(cirq.Circuit):
 
   def _resolve_parameters_(self, param_resolver: cirq.study.ParamResolver):
 
-    qsim_circuit = super()._resolve_parameters_(param_resolver)
-
-    qsim_circuit.device = self.device
-
-    return qsim_circuit
+    return QSimCircuit(
+      super()._resolve_parameters_(param_resolver), device=self.device)
 
   def translate_cirq_to_qsim(
       self,

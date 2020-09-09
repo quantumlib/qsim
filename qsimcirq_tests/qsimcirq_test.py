@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import sympy
 import unittest
 import cirq
 import qsimcirq
@@ -282,6 +283,22 @@ class MainTest(unittest.TestCase):
     result = qsimhSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11])
     assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
+
+
+  def test_cirq_qsim_params(self):
+    qubit = cirq.GridQubit(0,0)
+
+    circuit = cirq.Circuit(cirq.X(qubit)**sympy.Symbol("beta"))
+    params = cirq.ParamResolver({'beta': 0.5})
+
+    simulator = cirq.Simulator()
+    cirq_result = simulator.simulate(circuit, param_resolver = params)
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.simulate(circuit, param_resolver = params)
+
+    assert cirq.linalg.allclose_up_to_global_phase(
+        qsim_result.state_vector(), cirq_result.state_vector())
 
 
 if __name__ == '__main__':
