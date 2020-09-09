@@ -3,6 +3,7 @@
 cirq==0.8.2
 numpy~=1.16
 typing_extensions
+absl-py
 
 # Build and test requirements
 

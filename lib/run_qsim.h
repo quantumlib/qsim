@@ -101,7 +101,11 @@ struct QSimRunner final {
         t1 = GetTime();
       }
 
-      ApplyGate(state_space, simulator, fused_gates[i], rgen, state);
+      if (!ApplyFusedGate(state_space, simulator, fused_gates[i], rgen,
+                          state)) {
+        IO::errorf("measurement failed.\n");
+        return false;
+      }
 
       if (param.verbosity > 1) {
         double t2 = GetTime();
@@ -167,8 +171,9 @@ struct QSimRunner final {
         t1 = GetTime();
       }
 
-      if(!ApplyGate(state_space, simulator, fused_gates[i], rgen, state,
-                    measure_results)) {
+      if (!ApplyFusedGate(state_space, simulator, fused_gates[i], rgen, state,
+                          measure_results)) {
+        IO::errorf("measurement failed.\n");
         return false;
       }
 
@@ -201,44 +206,6 @@ struct QSimRunner final {
                   State& state) {
     std::vector<MeasurementResult> discarded_results;
     return Run(param, circuit, state, discarded_results);
-  }
-
- private:
-  template <typename FGate>
-  static bool ApplyGate(const StateSpace& state_space,
-                        const Simulator& simulator, const FGate& fgate,
-                        RGen& rgen, State& state) {
-    if (fgate.kind == gate::kMeasurement) {
-      auto result = state_space.Measure(fgate.qubits, rgen, state);
-      if (!result.valid) {
-        IO::errorf("measurement failed.\n");
-        return false;
-      }
-    } else {
-      ApplyFusedGate(simulator, fgate, state);
-    }
-
-    return true;
-  }
-
-  // Overloaded version for storing results.
-  template <typename FGate>
-  static bool ApplyGate(
-      const StateSpace& state_space, const Simulator& simulator,
-      const FGate& fgate, RGen& rgen, State& state,
-      std::vector<MeasurementResult>& measure_results) {
-    if (fgate.kind == gate::kMeasurement) {
-      measure_results.emplace_back(
-        state_space.Measure(fgate.qubits, rgen, state));
-      if (!measure_results.back().valid) {
-        IO::errorf("measurement failed.\n");
-        return false;
-      }
-    } else {
-      ApplyFusedGate(simulator, fgate, state);
-    }
-
-    return true;
   }
 };
 
