@@ -126,7 +126,6 @@ class QSimCircuit(cirq.Circuit):
     return super().__eq__(other)
 
   def _resolve_parameters_(self, param_resolver: cirq.study.ParamResolver):
-
     return QSimCircuit(
       super()._resolve_parameters_(param_resolver), device=self.device)
 
