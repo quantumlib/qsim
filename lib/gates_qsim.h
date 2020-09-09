@@ -189,6 +189,7 @@ struct GateY2 {
 
 /**
  * A gate that rotates around the X axis of the Bloch sphere.
+ * This is a generalization of the X gate.
  */
 template <typename fp_type>
 struct GateRX {
@@ -208,6 +209,7 @@ struct GateRX {
 
 /**
  * A gate that rotates around the Y axis of the Bloch sphere.
+ * This is a generalization of the Y gate.
  */
 template <typename fp_type>
 struct GateRY {
@@ -227,6 +229,7 @@ struct GateRY {
 
 /**
  * A gate that rotates around the Z axis of the Bloch sphere.
+ * This is a generalization of the Z gate.
  */
 template <typename fp_type>
 struct GateRZ {
@@ -438,7 +441,9 @@ struct GateIS {
 };
 
 /**
- * The fermionic simulation (FSim) gate.
+ * The fermionic simulation (FSim) gate family. Contains all two-qubit
+ * interactions that preserve excitations, up to single-qubit rotations and
+ * global phase.
  */
 template <typename fp_type>
 struct GateFS {

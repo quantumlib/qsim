@@ -126,6 +126,7 @@ struct I2 {
 
 /**
  * A gate that rotates around the X axis of the Bloch sphere.
+ * This is a generalization of the X gate.
  */
 template <typename fp_type>
 struct XPowGate {
@@ -150,6 +151,7 @@ struct XPowGate {
 
 /**
  * A gate that rotates around the Y axis of the Bloch sphere.
+ * This is a generalization of the Y gate.
  */
 template <typename fp_type>
 struct YPowGate {
@@ -174,6 +176,7 @@ struct YPowGate {
 
 /**
  * A gate that rotates around the Z axis of the Bloch sphere.
+ * This is a generalization of the Z gate.
  */
 template <typename fp_type>
 struct ZPowGate {
@@ -198,6 +201,7 @@ struct ZPowGate {
 
 /**
  * A gate that rotates around the X+Z axis of the Bloch sphere.
+ * This is a generalization of the Hadamard gate.
  */
 template <typename fp_type>
 struct HPowGate {
@@ -226,6 +230,7 @@ struct HPowGate {
 
 /**
  * A gate that applies a phase to the |11⟩ state of two qubits.
+ * This is a generalization of the CZ gate.
  */
 template <typename fp_type>
 struct CZPowGate {
@@ -265,6 +270,7 @@ struct CZPowGate {
 
 /**
  * A gate that applies a controlled power of an X gate.
+ * This is a generalization of the CX (or CNOT) gate.
  */
 template <typename fp_type>
 struct CXPowGate {
@@ -311,6 +317,7 @@ struct CXPowGate {
 
 /**
  * The `(exponent = phi/pi, global_shift = -0.5)` instance of XPowGate.
+ * This is equivalent to an X gate with a global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -330,6 +337,7 @@ struct rx {
 
 /**
  * The `(exponent = phi/pi, global_shift = -0.5)` instance of YPowGate.
+ * This is equivalent to a Y gate with a global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -349,6 +357,7 @@ struct ry {
 
 /**
  * The `(exponent = phi/pi, global_shift = -0.5)` instance of ZPowGate.
+ * This is equivalent to a Z gate with a global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -368,6 +377,7 @@ struct rz {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of HPowGate.
+ * This is the canonical Hadamard (or H) gate.
  */
 template <typename fp_type>
 struct H {
@@ -385,6 +395,7 @@ struct H {
 
 /**
  * The `(exponent = 0.5, global_shift = 0)` instance of ZPowGate.
+ * This is the canonical S gate.
  */
 template <typename fp_type>
 struct S {
@@ -400,6 +411,7 @@ struct S {
 
 /**
  * The `(exponent = 0.25, global_shift = 0)` instance of ZPowGate.
+ * This is the canonical T gate.
  */
 template <typename fp_type>
 struct T {
@@ -417,6 +429,7 @@ struct T {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of CZPowGate.
+ * This is the canonical CZ gate.
  */
 template <typename fp_type>
 struct CZ {
@@ -445,6 +458,7 @@ using CNotPowGate = CXPowGate<fp_type>;
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of CXPowGate.
+ * This is the canonical CX (or CNOT) gate.
  */
 template <typename fp_type>
 struct CX {
@@ -476,6 +490,7 @@ using CNOT = CX<fp_type>;
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of XPowGate.
+ * This is the canonical Pauli X gate.
  */
 template <typename fp_type>
 struct X : public XPowGate<fp_type> {
@@ -491,6 +506,7 @@ struct X : public XPowGate<fp_type> {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of YPowGate.
+ * This is the canonical Pauli Y gate.
  */
 template <typename fp_type>
 struct Y : public YPowGate<fp_type> {
@@ -506,6 +522,7 @@ struct Y : public YPowGate<fp_type> {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of ZPowGate.
+ * This is the canonical Pauli Z gate.
  */
 template <typename fp_type>
 struct Z : public ZPowGate<fp_type> {
@@ -523,6 +540,7 @@ struct Z : public ZPowGate<fp_type> {
 
 /**
  * An XPowGate conjugated by ZPowGate%s.
+ * Equivalent to the circuit `───Z^-p───X^t───Z^p───`.
  */
 template <typename fp_type>
 struct PhasedXPowGate {
@@ -558,6 +576,7 @@ struct PhasedXPowGate {
 
 /**
  * A PhasedXPowGate followed by a ZPowGate.
+ * Equivalent to the circuit `───Z^(-a)──X^x──Z^a───Z^z───`.
  */
 template <typename fp_type>
 struct PhasedXZGate {
@@ -733,6 +752,7 @@ struct ZZPowGate {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of XXPowGate.
+ * This is the X-parity gate.
  */
 template <typename fp_type>
 struct XX {
@@ -757,6 +777,7 @@ struct XX {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of YYPowGate.
+ * This is the Y-parity gate.
  */
 template <typename fp_type>
 struct YY {
@@ -781,6 +802,7 @@ struct YY {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of ZZPowGate.
+ * This is the Z-parity gate.
  */
 template <typename fp_type>
 struct ZZ {
@@ -857,6 +879,7 @@ struct SwapPowGate {
 
 /**
  * Rotates the |01⟩ vs |10⟩ subspace of two qubits around its Bloch X-axis.
+ * This is a generalization of the ISWAP gate.
  */
 template <typename fp_type>
 struct ISwapPowGate {
@@ -903,6 +926,7 @@ struct ISwapPowGate {
 
 /**
  * The `(exponent = 2*phi/pi, global_shift = 0)` instance of ISwapPowGate.
+ * This is equivalent to an ISWAP gate with a global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -941,6 +965,7 @@ struct riswap {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of SwapPowGate.
+ * This is the canonical SWAP gate.
  */
 template <typename fp_type>
 struct SWAP {
@@ -970,6 +995,7 @@ struct SWAP {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of ISwapPowGate.
+ * This is the canonical ISWAP gate.
  */
 template <typename fp_type>
 struct ISWAP {
@@ -1002,6 +1028,7 @@ struct ISWAP {
 
 /**
  * An ISwapPowGate conjugated by ZPowGate%s.
+ * Equivalent to the composition `(Z^-p ⊗ Z^p) ISWAP^t (Z^p ⊗ Z^-p)`. 
  */
 template <typename fp_type>
 struct PhasedISwapPowGate {
@@ -1047,7 +1074,9 @@ struct PhasedISwapPowGate {
 
 /**
  * The `(phase_exponent = 0.25, exponent = 2*phi/pi)` instance of
- * PhasedISwapPowGate. This is a function in Cirq.
+ * PhasedISwapPowGate.
+ * This is the "Givens rotation" from numerical linear algebra.
+ * This is a function in Cirq.
  */
 template <typename fp_type>
 struct givens {
@@ -1087,7 +1116,8 @@ struct givens {
 // Gates from cirq/ops/fsim_gate.py:
 
 /**
- * The fermionic simulation gate family.
+ * The fermionic simulation gate family. Contains all two-qubit interactions
+ * that preserve excitations, up to single-qubit rotations and global phase.
  */
 template <typename fp_type>
 struct FSimGate {
@@ -1161,7 +1191,7 @@ struct FSimGate {
 // Gates from cirq/ops/matrix_gates.py:
 
 /**
- * A unitary one-qubit gate defined entirely by its matrix.
+ * A one-qubit gate defined entirely by its matrix.
  */
 template <typename fp_type>
 struct MatrixGate1 {
@@ -1180,7 +1210,7 @@ struct MatrixGate1 {
 };
 
 /**
- * A unitary two-qubit gate defined entirely by its matrix.
+ * A two-qubit gate defined entirely by its matrix.
  */
 template <typename fp_type>
 struct MatrixGate2 {
