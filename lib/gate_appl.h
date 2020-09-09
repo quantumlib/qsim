@@ -18,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include "gate.h"
 #include "matrix.h"
 
 namespace qsim {
@@ -62,50 +63,152 @@ inline void CalcMatrix4(unsigned q0, unsigned q1,
 }
 
 /**
- * Applies the given gate to the simulator state. Measurement gates should not
- * be applied in this function. Unitary calculations also supported.
+ * Applies the given gate to the simulator state. Ignores measurement gates.
  * @param simulator Simulator object. Provides specific implementations for
- *   applying one- and two-qubit gates.
+ *   applying gates.
  * @param gate The gate to be applied.
  * @param state The state of the system, to be updated by this method.
  */
-template <typename Gate, typename Simulator, typename State>
-inline void ApplyGate(
-    const Simulator& simulator, const Gate& gate, State& state) {
-  typename Simulator::fp_type matrix[32];
-
-  if (gate.num_qubits == 1 && gate.matrix.size() == 8) {
-    std::copy(gate.matrix.begin(), gate.matrix.begin() + 8, matrix);
-    simulator.ApplyGate1(gate.qubits[0], matrix, state);
-  } else if (gate.num_qubits == 2 && gate.matrix.size() == 32) {
-    std::copy(gate.matrix.begin(), gate.matrix.begin() + 32, matrix);
-
-    // Here we should have gate.qubits[0] < gate.qubits[1].
-    simulator.ApplyGate2(gate.qubits[0], gate.qubits[1], matrix, state);
+template <typename Simulator, typename Gate>
+inline void ApplyGate(const Simulator& simulator, const Gate& gate,
+                      typename Simulator::State& state) {
+  if (gate.kind != gate::kMeasurement) {
+    simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
   }
 }
 
 /**
- * Applies the given fused gate to the simulator state. Measurement gates
- * should not be applied in this function. Unitary calculations also supported.
+ * Applies the given gate to the simulator state.
+ * @param state_space StateSpace object required to perform measurements.
  * @param simulator Simulator object. Provides specific implementations for
- *   applying one- and two-qubit gates.
+ *   applying gates.
+ * @param gate The gate to be applied.
+ * @param rgen Random number generator to perform measurements.
+ * @param state The state of the system, to be updated by this method.
+ * @param mresults As an input parameter, this can be empty or this can
+ *   contain the results of the previous measurements. If gate is a measurement
+ *   gate then after a successful run, the measurement result will be added to
+ *   this.
+ * @return True if the measurement performed successfully; false otherwise.
+ */
+template <typename Simulator, typename Gate, typename Rgen>
+inline bool ApplyGate(
+    const typename Simulator::StateSpace& state_space,
+    const Simulator& simulator, const Gate& gate, Rgen& rgen,
+    typename Simulator::State& state,
+    std::vector<typename Simulator::StateSpace::MeasurementResult>& mresults) {
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (measure_result.valid) {
+      mresults.push_back(std::move(measure_result));
+    } else {
+      return false;
+    }
+  } else {
+    ApplyGate(simulator, gate, state);
+  }
+
+  return true;
+}
+
+/**
+ * Applies the given gate to the simulator state, discarding measurement
+ *   results.
+ * @param state_space StateSpace object required to perform measurements.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying gates.
+ * @param gate The gate to be applied.
+ * @param rgen Random number generator to perform measurements.
+ * @param state The state of the system, to be updated by this method.
+ * @return True if the measurement performed successfully; false otherwise.
+ */
+template <typename Simulator, typename Gate, typename Rgen>
+inline bool ApplyGate(const typename Simulator::StateSpace& state_space,
+                      const Simulator& simulator, const Gate& gate, Rgen& rgen,
+                      typename Simulator::State& state) {
+  using MeasurementResult = typename Simulator::StateSpace::MeasurementResult;
+  std::vector<MeasurementResult> discarded_results;
+  return
+      ApplyGate(state_space, simulator, gate, rgen, state, discarded_results);
+}
+
+/**
+ * Applies the given fused gate to the simulator state. Ignores measurement
+ *   gates.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying gates.
  * @param gate The gate to be applied.
  * @param state The state of the system, to be updated by this method.
  */
-template <typename Gate, typename Simulator, typename State>
-inline void ApplyFusedGate(
-    const Simulator& simulator, const Gate& gate, State& state) {
-  typename Simulator::fp_type matrix[32];
+template <typename Simulator, typename Gate>
+inline void ApplyFusedGate(const Simulator& simulator, const Gate& gate,
+                           typename Simulator::State& state) {
+  if (gate.kind != gate::kMeasurement) {
+    typename Simulator::fp_type matrix[32];
 
-  if (gate.num_qubits == 1 && gate.pmaster->matrix.size() == 8) {
-    CalcMatrix2(gate.gates, matrix);
-    simulator.ApplyGate1(gate.qubits[0], matrix, state);
-  } else if (gate.num_qubits == 2 && gate.pmaster->matrix.size() == 32) {
-    // Here we should have gate.qubits[0] < gate.qubits[1].
-    CalcMatrix4(gate.qubits[0], gate.qubits[1], gate.gates, matrix);
-    simulator.ApplyGate2(gate.qubits[0], gate.qubits[1], matrix, state);
+    if (gate.num_qubits == 1) {
+      CalcMatrix2(gate.gates, matrix);
+    } else if (gate.num_qubits == 2) {
+      CalcMatrix4(gate.qubits[0], gate.qubits[1], gate.gates, matrix);
+    }
+
+    simulator.ApplyGate(gate.qubits, matrix, state);
   }
+}
+
+/**
+ * Applies the given fused gate to the simulator state.
+ * @param state_space StateSpace object required to perform measurements.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying gates.
+ * @param gate The gate to be applied.
+ * @param rgen Random number generator to perform measurements.
+ * @param state The state of the system, to be updated by this method.
+ * @param mresults As an input parameter, this can be empty or this can
+ *   contain the results of the previous measurements. If gate is a measurement
+ *   gate then after a successful run, the measurement result will be added to
+ *   this.
+ * @return True if the measurement performed successfully; false otherwise.
+ */
+template <typename Simulator, typename Gate, typename Rgen>
+inline bool ApplyFusedGate(
+    const typename Simulator::StateSpace& state_space,
+    const Simulator& simulator, const Gate& gate, Rgen& rgen,
+    typename Simulator::State& state,
+    std::vector<typename Simulator::StateSpace::MeasurementResult>& mresults) {
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (measure_result.valid) {
+      mresults.push_back(std::move(measure_result));
+    } else {
+      return false;
+    }
+  } else {
+    ApplyFusedGate(simulator, gate, state);
+  }
+
+  return true;
+}
+
+/**
+ * Applies the given fused gate to the simulator state, discarding measurement
+ *   results.
+ * @param state_space StateSpace object required to perform measurements.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying gates.
+ * @param gate The gate to be applied.
+ * @param rgen Random number generator to perform measurements.
+ * @param state The state of the system, to be updated by this method.
+ * @return True if the measurement performed successfully; false otherwise.
+ */
+template <typename Simulator, typename Gate, typename Rgen>
+inline bool ApplyFusedGate(const typename Simulator::StateSpace& state_space,
+                           const Simulator& simulator, const Gate& gate,
+                           Rgen& rgen, typename Simulator::State& state) {
+  using MeasurementResult = typename Simulator::StateSpace::MeasurementResult;
+  std::vector<MeasurementResult> discarded_results;
+  return ApplyFusedGate(
+      state_space, simulator, gate, rgen, state, discarded_results);
 }
 
 }  // namespace qsim

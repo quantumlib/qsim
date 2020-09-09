@@ -16,6 +16,7 @@
 #define UNITARY_CALCULATOR_BASIC_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "unitaryspace_basic.h"
 
@@ -76,7 +77,24 @@ class UnitaryCalculatorBasic final {
       : for_(args...), num_qubits_(num_qubits) {}
 
   /**
-   * Applies a single-qubit gate using sparse matrix-vector multiplication.
+   * Applies a gate using non-vectorized instructions.
+   * @param qs Indices of the qubits affected by this gate.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
+  void ApplyGate(const std::vector<unsigned>& qs,
+                 const fp_type* matrix, Unitary& state) const {
+    if (qs.size() == 1) {
+       ApplyGate1(qs[0], matrix, state);
+    } else if (qs.size() == 2) {
+      // Assume qs[0] < qs[1].
+      ApplyGate2(qs[0], qs[1], matrix, state);
+    }
+  }
+
+ private:
+  /**
+   * Applies a single-qubit gate using non-vectorized instructions.
    * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
    * @param q0 Index of the qubit affected by this gate.
    * @param matrix Matrix representation of the gate to be applied.
@@ -148,7 +166,7 @@ class UnitaryCalculatorBasic final {
   }
 
   /**
-   * Apply a two-qubit gate using sparse matrix-vector multiplication.
+   * Apply a two-qubit gate using non-vectorized instructions.
    * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
    * Note that qubit order is inverted in this operation.
    * @param q0 Index of the second qubit affected by this gate.
@@ -364,7 +382,6 @@ class UnitaryCalculatorBasic final {
              num_qubits_, sizei, sizej, sizek, matrix, data);
   }
 
- private:
   For for_;
   unsigned num_qubits_;
 };

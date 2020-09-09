@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <vector>
 
 #include "statespace_sse.h"
 
@@ -38,37 +39,29 @@ class SimulatorSSE final {
       : for_(args...), num_qubits_(num_qubits) {}
 
   /**
-   * Applies a single-qubit gate using SSE instructions.
-   * @param q0 Index of the qubit affected by this gate.
+   * Applies a gate using AVX instructions.
+   * @param qs Indices of the qubits affected by this gate.
    * @param matrix Matrix representation of the gate to be applied.
    * @param state The state of the system, to be updated by this method.
    */
-  void ApplyGate1(unsigned q0, const fp_type* matrix, State& state) const {
-    if (q0 > 1) {
-      ApplyGate1H(q0, matrix, state);
-    } else {
-      ApplyGate1L(q0, matrix, state);
-    }
-  }
+  void ApplyGate(const std::vector<unsigned>& qs,
+                 const fp_type* matrix, State& state) const {
+    if (qs.size() == 1) {
+      if (qs[0] > 1) {
+        ApplyGate1H(qs[0], matrix, state);
+      } else {
+        ApplyGate1L(qs[0], matrix, state);
+      }
+    } else if (qs.size() == 2) {
+      // Assume qs[0] < qs[1].
 
-  /**
-   * Applies a two-qubit gate using SSE instructions.
-   * Note that qubit order is inverted in this operation.
-   * @param q0 Index of the second qubit affected by this gate.
-   * @param q1 Index of the first qubit affected by this gate.
-   * @param matrix Matrix representation of the gate to be applied.
-   * @param state The state of the system, to be updated by this method.
-   */
-  void ApplyGate2(
-      unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
-    // Assume q0 < q1.
-
-    if (q0 > 1) {
-      ApplyGate2HH(q0, q1, matrix, state);
-    } else if (q1 > 1) {
-      ApplyGate2HL(q0, q1, matrix, state);
-    } else {
-      ApplyGate2LL(q0, q1, matrix, state);
+      if (qs[0] > 1) {
+        ApplyGate2HH(qs[0], qs[1], matrix, state);
+      } else if (qs[1] > 1) {
+        ApplyGate2HL(qs[0], qs[1], matrix, state);
+      } else {
+        ApplyGate2LL(qs[0], qs[1], matrix, state);
+      }
     }
   }
 
