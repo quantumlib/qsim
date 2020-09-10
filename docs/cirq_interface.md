@@ -104,9 +104,9 @@ it only returns a bitstring produced by sampling from the final state. It also
 allows intermediate measurements to be applied to the circuit.
 
 Note that requesting multiple repetitions with the `run` method will execute
-the circuit once for each repetition. If your circuit has only terminal
-measurements, it may be preferable to use `simulate` and sample from the final
-state vector.
+the circuit once for each repetition unless all measurements are terminal. This
+ensures that nondeterminism from intermediate measurements is properly
+reflected in the results.
 
 #### QSimhSimulator
 

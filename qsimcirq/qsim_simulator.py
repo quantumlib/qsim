@@ -118,14 +118,8 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
 
-    if program.are_all_measurements_terminal() and repetitions > 1:
-      print('Provided circuit has no intermediate measurements. ' +
-            'It may be faster to sample from the final state vector. ' +
-            'Continuing with one-by-one sampling.')
-
     # Compute indices of measured qubits
     ordered_qubits = ops.QubitOrder.DEFAULT.order_for(program.all_qubits())
-    ordered_qubits = list(reversed(ordered_qubits))
 
     qubit_map = {
       qubit: index for index, qubit in enumerate(ordered_qubits)
@@ -140,36 +134,59 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     ]
     measured_qubits = []  # type: List[ops.Qid]
     bounds = {}  # type: Dict[str, Tuple]
-    meas_ops = {}  # type: Dict[str, cirq.MeasurementGate]
+    meas_ops = {}  # type: Dict[str, cirq.GateOperation]
     current_index = 0
     for op in measurement_ops:
       gate = op.gate
       key = protocols.measurement_key(gate)
-      meas_ops[key] = gate
+      meas_ops[key] = op
       if key in bounds:
         raise ValueError("Duplicate MeasurementGate with key {}".format(key))
       bounds[key] = (current_index, current_index + len(op.qubits))
       measured_qubits.extend(op.qubits)
       current_index += len(op.qubits)
 
-    indices = [qubit_map[qubit] for qubit in measured_qubits]
-
     # Set qsim options
     options = {}
     options.update(self.qsim_options)
-    options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
 
     results = {}
     for key, bound in bounds.items():
       results[key] = np.ndarray(shape=(repetitions, bound[1]-bound[0]),
                                 dtype=int)
 
-    for i in range(repetitions):
+
+    if program.are_all_measurements_terminal() and repetitions > 1:
+      print('Provided circuit has no intermediate measurements. ' +
+            'Sampling repeatedly from final state vector.')
+      # Measurements must be replaced with identity gates to sample properly.
+      # Simply removing them may omit qubits from the circuit.
+      for i in range(len(program.moments)):
+        program.moments[i] = ops.Moment(
+          op if not isinstance(op.gate, ops.MeasurementGate)
+          else [ops.IdentityGate(1).on(q) for q in op.qubits]
+          for op in program.moments[i]
+        )
+      options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
       options['s'] = self.get_seed()
-      measurements = qsim.qsim_sample(options)
-      for key, bound in bounds.items():
-        for j in range(bound[1]-bound[0]):
-          results[key][i][j] = int(measurements[bound[0]+j])
+      final_state = qsim.qsim_simulate_fullstate(options)
+      full_results = sim.sample_state_vector(
+        final_state, range(len(ordered_qubits)), repetitions=repetitions,
+        seed=self._prng)
+
+      for i in range(repetitions):
+        for key, op in meas_ops.items():
+          meas_indices = [qubit_map[qubit] for qubit in op.qubits]
+          for j, q in enumerate(meas_indices):
+            results[key][i][j] = full_results[i][q]
+    else:
+      options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
+      for i in range(repetitions):
+        options['s'] = self.get_seed()
+        measurements = qsim.qsim_sample(options)
+        for key, bound in bounds.items():
+          for j in range(bound[1]-bound[0]):
+            results[key][i][j] = int(measurements[bound[0]+j])
 
     return results
 
