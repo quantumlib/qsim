@@ -317,7 +317,7 @@ struct CXPowGate {
 
 /**
  * The `(exponent = phi/pi, global_shift = -0.5)` instance of XPowGate.
- * This is equivalent to an X gate with a global phase.
+ * This is a generalization of the X gate with a fixed global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -337,7 +337,7 @@ struct rx {
 
 /**
  * The `(exponent = phi/pi, global_shift = -0.5)` instance of YPowGate.
- * This is equivalent to a Y gate with a global phase.
+ * This is a generalization of the Y gate with a fixed global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -357,7 +357,7 @@ struct ry {
 
 /**
  * The `(exponent = phi/pi, global_shift = -0.5)` instance of ZPowGate.
- * This is equivalent to a Z gate with a global phase.
+ * This is a generalization of the Z gate with a fixed global phase.
  * This is a function in Cirq.
  */
 template <typename fp_type>
@@ -614,7 +614,7 @@ struct PhasedXZGate {
 // Gates from cirq/ops/parity_gates.py:
 
 /**
- * The X-parity gate, possibly raised to an exponent.
+ * The tensor product of two X gates, possibly raised to an exponent.
  */
 template <typename fp_type>
 struct XXPowGate {
@@ -661,7 +661,7 @@ struct XXPowGate {
 };
 
 /**
- * The Y-parity gate, possibly raised to an exponent.
+ * The tensor product of two Y gates, possibly raised to an exponent.
  */
 template <typename fp_type>
 struct YYPowGate {
@@ -708,7 +708,7 @@ struct YYPowGate {
 };
 
 /**
- * The Z-parity gate, possibly raised to an exponent.
+ * The tensor product of two Z gates, possibly raised to an exponent.
  */
 template <typename fp_type>
 struct ZZPowGate {
@@ -752,7 +752,7 @@ struct ZZPowGate {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of XXPowGate.
- * This is the X-parity gate.
+ * This is the tensor product of two X gates.
  */
 template <typename fp_type>
 struct XX {
@@ -777,7 +777,7 @@ struct XX {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of YYPowGate.
- * This is the Y-parity gate.
+ * This is the tensor product of two Y gates.
  */
 template <typename fp_type>
 struct YY {
@@ -802,7 +802,7 @@ struct YY {
 
 /**
  * The `(exponent = 1, global_shift = 0)` instance of ZZPowGate.
- * This is the Z-parity gate.
+ * This is the tensor product of two Z gates.
  */
 template <typename fp_type>
 struct ZZ {
@@ -926,7 +926,7 @@ struct ISwapPowGate {
 
 /**
  * The `(exponent = 2*phi/pi, global_shift = 0)` instance of ISwapPowGate.
- * This is equivalent to an ISWAP gate with a global phase.
+ * This is a generalization of the ISWAP gate with a fixed global phase of zero.
  * This is a function in Cirq.
  */
 template <typename fp_type>

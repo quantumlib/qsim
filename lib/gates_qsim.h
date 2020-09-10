@@ -271,7 +271,6 @@ struct GateRXY {
 
 /**
  * A pi / 2 rotation around the X + Y axis.
- * Analogous to the Hadamard gate, which rotates around the X + Z axis.
  */
 template <typename fp_type>
 struct GateHZ2 {
