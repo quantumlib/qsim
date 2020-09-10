@@ -59,6 +59,9 @@ constexpr double is2_double = 0.7071067811865475;
 
 // One-qubit gates:
 
+/**
+ * The one-qubit identity gate.
+ */
 template <typename fp_type>
 struct GateId1 {
   static constexpr GateKind kind = kGateId1;
@@ -71,6 +74,9 @@ struct GateId1 {
   }
 };
 
+/**
+ * The Hadamard gate.
+ */
 template <typename fp_type>
 struct GateHd {
   static constexpr GateKind kind = kGateHd;
@@ -85,6 +91,9 @@ struct GateHd {
   }
 };
 
+/**
+ * The T gate, equivalent to `Z ^ 0.25`.
+ */
 template <typename fp_type>
 struct GateT {
   static constexpr GateKind kind = kGateT;
@@ -99,6 +108,9 @@ struct GateT {
   }
 };
 
+/**
+ * The Pauli X (or "NOT") gate.
+ */
 template <typename fp_type>
 struct GateX {
   static constexpr GateKind kind = kGateX;
@@ -111,6 +123,9 @@ struct GateX {
   }
 };
 
+/**
+ * The Pauli Y gate.
+ */
 template <typename fp_type>
 struct GateY {
   static constexpr GateKind kind = kGateY;
@@ -123,6 +138,9 @@ struct GateY {
   }
 };
 
+/**
+ * The Pauli Z gate.
+ */
 template <typename fp_type>
 struct GateZ {
   static constexpr GateKind kind = kGateZ;
@@ -135,6 +153,9 @@ struct GateZ {
   }
 };
 
+/**
+ * The "square root of X" gate.
+ */
 template <typename fp_type>
 struct GateX2 {
   static constexpr GateKind kind = kGateX2;
@@ -149,6 +170,9 @@ struct GateX2 {
   }
 };
 
+/**
+ * The "square root of Y" gate.
+ */
 template <typename fp_type>
 struct GateY2 {
   static constexpr GateKind kind = kGateY2;
@@ -163,6 +187,10 @@ struct GateY2 {
   }
 };
 
+/**
+ * A gate that rotates around the X axis of the Bloch sphere.
+ * This is a generalization of the X gate.
+ */
 template <typename fp_type>
 struct GateRX {
   static constexpr GateKind kind = kGateRX;
@@ -179,6 +207,10 @@ struct GateRX {
   }
 };
 
+/**
+ * A gate that rotates around the Y axis of the Bloch sphere.
+ * This is a generalization of the Y gate.
+ */
 template <typename fp_type>
 struct GateRY {
   static constexpr GateKind kind = kGateRY;
@@ -195,6 +227,10 @@ struct GateRY {
   }
 };
 
+/**
+ * A gate that rotates around the Z axis of the Bloch sphere.
+ * This is a generalization of the Z gate.
+ */
 template <typename fp_type>
 struct GateRZ {
   static constexpr GateKind kind = kGateRZ;
@@ -211,6 +247,9 @@ struct GateRZ {
   }
 };
 
+/**
+ * A gate that rotates around an arbitrary axis in the XY-plane.
+ */
 template <typename fp_type>
 struct GateRXY {
   static constexpr GateKind kind = kGateRXY;
@@ -230,6 +269,9 @@ struct GateRXY {
   }
 };
 
+/**
+ * A pi / 2 rotation around the X + Y axis.
+ */
 template <typename fp_type>
 struct GateHZ2 {
   static constexpr GateKind kind = kGateHZ2;
@@ -246,6 +288,9 @@ struct GateHZ2 {
   }
 };
 
+/**
+ * The S gate, equivalent to "square root of Z".
+ */
 template <typename fp_type>
 struct GateS {
   static constexpr GateKind kind = kGateS;
@@ -260,6 +305,9 @@ struct GateS {
 
 // Two-qubit gates:
 
+/**
+ * The two-qubit identity gate.
+ */
 template <typename fp_type>
 struct GateId2 {
   static constexpr GateKind kind = kGateId2;
@@ -281,6 +329,9 @@ struct GateId2 {
   }
 };
 
+/**
+ * The controlled-Z (CZ) gate.
+ */
 template <typename fp_type>
 struct GateCZ {
   static constexpr GateKind kind = kGateCZ;
@@ -303,6 +354,9 @@ struct GateCZ {
   }
 };
 
+/**
+ * The controlled-X (CX or CNOT) gate.
+ */
 template <typename fp_type>
 struct GateCNot {
   static constexpr GateKind kind = kGateCNot;
@@ -326,6 +380,9 @@ struct GateCNot {
   }
 };
 
+/**
+ * The SWAP gate. Exchanges two qubits.
+ */
 template <typename fp_type>
 struct GateSwap {
   static constexpr GateKind kind = kGateSwap;
@@ -352,6 +409,9 @@ struct GateSwap {
   }
 };
 
+/**
+ * The ISWAP gate.
+ */
 template <typename fp_type>
 struct GateIS {
   static constexpr GateKind kind = kGateIS;
@@ -379,6 +439,11 @@ struct GateIS {
   }
 };
 
+/**
+ * The fermionic simulation (FSim) gate family. Contains all two-qubit
+ * interactions that preserve excitations, up to single-qubit rotations and
+ * global phase.
+ */
 template <typename fp_type>
 struct GateFS {
   static constexpr GateKind kind = kGateFS;
@@ -448,6 +513,9 @@ struct GateFS {
   }
 };
 
+/**
+ * The controlled phase gate. A generalized version of GateCZ.
+ */
 template <typename fp_type>
 struct GateCP {
   static constexpr GateKind kind = kGateCP;
