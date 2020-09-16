@@ -33,11 +33,12 @@ upper_tabs:
       - title: "Get started with qsimcirq"
         path: /qsim/tutorials/qsimcirq
 
-    - name: "API"
+    - name: "Reference"
       skip_translation: true
       contents:
-      - title: "All Symbols"
-        path: /qsim/api_docs/cc/
-      - include: /qsim/api_docs/cc/_doxygen.yaml
+      # Enable "All Symbols" after python API docs are up.
+      # - title: "All Symbols"
+      #  path: /qsim/api_docs/cc/
+      - include: /reference/cc/qsim/_doxygen.yaml
 
 - include: /_book/upper_tabs_right.yaml
