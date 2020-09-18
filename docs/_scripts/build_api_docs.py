@@ -47,7 +47,15 @@ def main(unused_argv):
         code_url_prefix=FLAGS.code_url_prefix,
         search_hints=FLAGS.search_hints,
         site_path=FLAGS.site_path,
-        callbacks=[public_api.local_definitions_filter])
+        callbacks=[public_api.local_definitions_filter],
+        private_map={
+            "qsimcirq": [
+                "qsim_circuit",
+                "qsimc",
+                "qsim_simulator",
+                "qsimh_simulator",
+            ]
+        })
 
     doc_generator.build(output_dir=FLAGS.output_dir)
 
