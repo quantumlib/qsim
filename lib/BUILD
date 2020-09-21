@@ -175,7 +175,10 @@ cc_library(
 
 cc_library(
     name = "gate_appl",
-    hdrs = ["gate_appl.h"],
+    hdrs = [
+        "gate.h",
+        "gate_appl.h",
+    ],
     deps = [":matrix"],
 )
 
