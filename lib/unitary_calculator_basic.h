@@ -64,7 +64,9 @@ inline const FP dot_two_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
 
 }  // namespace
 
-// Quantim circuit unitary calculator without vectorization.
+/**
+ * Quantum circuit unitary calculator without vectorization.
+ */
 template <typename For, typename FP = float>
 class UnitaryCalculatorBasic final {
  public:

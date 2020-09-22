@@ -27,9 +27,11 @@ namespace qsim {
 
 namespace unitary {
 
-// Routines for unitary manipulations.
-// Unitary is a non-vectorized sequence of one real amplitude followed by
-// one imaginary amplitude.
+/**
+ * Object containing context and routines for unitary manipulations.
+ * Unitary is a non-vectorized sequence of one real amplitude followed by
+ * one imaginary amplitude.
+ */
 template <typename For, typename FP>
 struct UnitarySpaceBasic
     : public UnitarySpace<UnitarySpaceBasic<For, FP>, For, FP> {
