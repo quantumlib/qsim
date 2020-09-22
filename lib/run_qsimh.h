@@ -23,8 +23,9 @@
 
 namespace qsim {
 
-// Helper struct to run qsimh.
-
+/**
+ * Helper struct for running qsimh.
+ */
 template <typename IO, typename HybridSimulator>
 struct QSimHRunner final {
   using Gate = typename HybridSimulator::Gate;

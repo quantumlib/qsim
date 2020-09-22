@@ -23,6 +23,9 @@
 
 namespace qsim {
 
+/**
+ * Helper struct for executing for-loops in parallel across multiple threads.
+ */
 template <uint64_t MIN_SIZE>
 struct ParallelForT {
   explicit ParallelForT(unsigned num_threads) : num_threads(num_threads) {}
