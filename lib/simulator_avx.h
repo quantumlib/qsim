@@ -25,7 +25,9 @@
 
 namespace qsim {
 
-// Quantum circuit simulator with AVX vectorization.
+/**
+ * Quantum circuit simulator with AVX vectorization.
+ */
 template <typename For>
 class SimulatorAVX final {
  public:

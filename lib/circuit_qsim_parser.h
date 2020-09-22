@@ -25,6 +25,11 @@
 
 namespace qsim {
 
+/**
+ * Parser for the (deprecated) qsim <a href="https://github.com/quantumlib/qsim/blob/master/docs/input_format.md">file input format</a>.
+ * New code should prefer <a href="https://github.com/quantumlib/Cirq">Cirq</a>
+ * for designing circuits to simulate with qsim.
+ */
 template <typename IO>
 class CircuitQsimParser final {
  public:

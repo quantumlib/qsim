@@ -53,10 +53,12 @@ inline double HorizontalSumAVX(__m256 s) {
 
 }  // namespace detail
 
-// Routines for state-vector manipulations.
-// State is a vectorized sequence of eight real components followed by eight
-// imaginary components. Eight single-precison floating numbers can be loaded
-// into an AVX register.
+/**
+ * Object containing context and routines for AVX state-vector manipulations.
+ * State is a vectorized sequence of eight real components followed by eight
+ * imaginary components. Eight single-precison floating numbers can be loaded
+ * into an AVX register.
+ */
 template <typename For>
 class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
  private:

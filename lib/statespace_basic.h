@@ -25,9 +25,11 @@
 
 namespace qsim {
 
-// Routines for state-vector manipulations.
-// State is a non-vectorized sequence of one real amplitude followed by
-// one imaginary amplitude.
+/**
+ * Object containing context and routines for unoptimized state-vector
+ * manipulations. State is a non-vectorized sequence of one real amplitude
+ * followed by one imaginary amplitude.
+ */
 template <typename For, typename FP>
 class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
  private:
