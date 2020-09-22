@@ -19,9 +19,15 @@
 
 namespace qsim {
 
+/**
+ * A collection of gates. This object is consumed by `QSim[h]Runner.Run()`.
+ */
 template <typename Gate>
 struct Circuit {
   unsigned num_qubits;
+  /**
+   * The set of gates to be run. Gate times should be ordered.
+   */
   std::vector<Gate> gates;
 };
 
