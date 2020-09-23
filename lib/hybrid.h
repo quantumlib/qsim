@@ -109,7 +109,8 @@ struct HybridSimulator final {
    */
   struct Parameter {
     /**
-     * Fixed bitstring indicating values to assign to indices of prefix gates.
+     * Fixed bitstring indicating values to assign to Schmidt decomposition
+     * indices of prefix gates.
      */
     uint64_t prefix;
     /**
