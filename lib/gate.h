@@ -88,6 +88,10 @@ namespace gate {
 constexpr int kDecomp = 100001;       // gate from Schmidt decomposition
 constexpr int kMeasurement = 100002;  // measurement gate
 
+/**
+ * A gate that simulates measurement of one or more qubits, collapsing the
+ * state vector and storing the measured results.
+ */
 template <typename Gate>
 struct Measurement {
   using GateKind = typename Gate::GateKind;

@@ -26,7 +26,10 @@
 
 namespace qsim {
 
-// Routines for state-vector manipulations.
+/**
+ * Abstract class containing context and routines for general state-vector
+ * manipulations. "AVX", "Basic", and "SSE" implementations are provided.
+ */
 template <typename Impl, typename For, typename FP>
 class StateSpace : public VectorSpace<For, FP> {
  private:
@@ -36,10 +39,31 @@ class StateSpace : public VectorSpace<For, FP> {
   using fp_type = typename Base::fp_type;
   using State = typename Base::Vector;
 
+  /**
+   * The observed state from a Measurement gate.
+   */
   struct MeasurementResult {
+    /**
+     * A bitmask of all qubits measured in this result. In this format, if the
+     * qubit at index `i` is measured, the `i`th bit of `mask` is a one.
+     */
     uint64_t mask;
+    /**
+     * A bitwise representation of the measured states. In this format, the
+     * qubit at index `i` is represented by the `i`th bit of `bits`.
+     * If `valid` is true, `mask` has already been applied to this field
+     * (i.e. `bits == bits & mask`).
+     */
     uint64_t bits;
+    /**
+     * Observed states of the measured qubits. This vector only includes qubits
+     * specified by the associated Measurement gate.
+     */
     std::vector<unsigned> bitstring;
+    /**
+     * Validation bit. If this is false, the measurement failed and all other
+     * fields of the result are invalid.
+     */
     bool valid;
   };
 

@@ -22,7 +22,9 @@
 
 namespace qsim {
 
-// Quantim circuit simulator without vectorization.
+/**
+ * Quantum circuit simulator without vectorization.
+ */
 template <typename For, typename FP = float>
 class SimulatorBasic final {
  public:

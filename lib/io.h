@@ -20,6 +20,9 @@
 
 namespace qsim {
 
+/**
+ * Controller for output logs.
+ */
 struct IO {
   static void errorf(const char* format, ...) {
     va_list args;

@@ -23,6 +23,9 @@
 
 namespace qsim {
 
+/**
+ * Controller for output logs with methods for writing to file.
+ */
 struct IOFile : public IO {
   static std::ifstream StreamFromFile(const std::string& file) {
     std::ifstream fs;

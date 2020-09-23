@@ -35,7 +35,10 @@ inline void do_not_free(void*) noexcept {}
 
 namespace unitary {
 
-// Routines for unitary matrix manipulations.
+/**
+ * Abstract class containing routines for general unitary matrix manipulations.
+ * A "Basic" implementation is provided (no AVX or SSE).
+ */
 template <typename Impl, typename For, typename FP>
 class UnitarySpace {
  public:

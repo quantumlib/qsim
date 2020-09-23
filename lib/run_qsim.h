@@ -25,8 +25,9 @@
 
 namespace qsim {
 
-// Helper struct to run qsim.
-
+/**
+ * Helper struct for running qsim.
+ */
 template <typename IO, typename Fuser, typename Simulator,
           typename RGen = std::mt19937>
 struct QSimRunner final {
@@ -34,8 +35,14 @@ struct QSimRunner final {
   using State = typename StateSpace::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
+  /**
+   * User-specified parameters for simulation.
+   */
   struct Parameter {
-    uint64_t seed;  // Random number generator seed to apply measurement gates.
+    /**
+     * Random number generator seed to apply measurement gates.
+     */
+    uint64_t seed;
     unsigned num_threads;
     unsigned verbosity;
   };

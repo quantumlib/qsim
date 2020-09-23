@@ -19,13 +19,32 @@
 
 namespace qsim {
 
+/**
+ * A collection of "fused" gates which can be multiplied together before being
+ * applied to the state vector.
+ */
 template <typename Gate>
 struct GateFused {
-  typename Gate::GateKind kind;  // Kind of the (first) master gate.
+  /**
+   * Kind of the first ("master") gate.
+   */
+  typename Gate::GateKind kind;
+  /**
+   * The time index of the first ("master") gate.
+   */
   unsigned time;
   unsigned num_qubits;
+  /**
+   * A list of qubits these gates act upon.
+   */
   std::vector<unsigned> qubits;
+  /**
+   * Pointer to the first ("master") gate.
+   */
   const Gate* pmaster;
+  /**
+   * Ordered list of component gates.
+   */
   std::vector<const Gate*> gates;
 };
 

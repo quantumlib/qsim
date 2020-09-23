@@ -26,7 +26,9 @@
 
 namespace qsim {
 
-// Quantum circuit simulator with SSE vectorization.
+/**
+ * Quantum circuit simulator with SSE vectorization.
+ */
 template <typename For>
 class SimulatorSSE final {
  public:

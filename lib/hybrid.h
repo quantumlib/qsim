@@ -25,7 +25,9 @@
 
 namespace qsim {
 
-// Hybrid Feynmann-Schrodiner simulator.
+/**
+ * Hybrid Feynman-Schrodinger simulator.
+ */
 template <typename IO, typename GateT,
           template <typename, typename> class FuserT,
           typename Simulator, typename For>
@@ -68,19 +70,58 @@ struct HybridSimulator final {
   using Fuser = FuserT<IO, GateHybrid>;
   using GateFused = typename Fuser::GateFused;
 
+  /**
+   * Contextual data for hybrid simulation.
+   */
   struct HybridData {
+    /**
+     * List of gates on the "0" side of the cut.
+     */
     std::vector<GateHybrid> gates0;
+    /**
+     * List of gates on the "1" side of the cut.
+     */
     std::vector<GateHybrid> gates1;
+    /**
+     * List of gates on the cut.
+     */
     std::vector<GateX> gatexs;
+    /**
+     * Global qubit index to local qubit index map.
+     */
     std::vector<unsigned> qubit_map;
+    /**
+     * Number of qubits on the "0" side of the cut.
+     */
     unsigned num_qubits0;
+    /**
+     * Number of qubits on the "1" side of the cut.
+     */
     unsigned num_qubits1;
-    unsigned num_gatexs;  // Number of gates of the cut.
+    /**
+     * Number of gates on the cut.
+     */
+    unsigned num_gatexs;
   };
 
+  /**
+   * User-specified parameters for hybrid simulation.
+   */
   struct Parameter {
+    /**
+     * Fixed bitstring indicating values to assign to Schmidt decomposition
+     * indices of prefix gates.
+     */
     uint64_t prefix;
+    /**
+     * Number of gates on the cut that are part of the prefix. Indices of these
+     * gates are assigned the value indicated by `prefix`.
+     */
     unsigned num_prefix_gatexs;
+    /**
+     * Number of gates on the cut that are part of the root. All gates that are
+     * not part of the prefix or root are part of the suffix.
+     */
     unsigned num_root_gatexs;
     unsigned num_threads;
     unsigned verbosity = 0;

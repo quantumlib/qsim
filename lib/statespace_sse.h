@@ -53,10 +53,12 @@ inline double HorizontalSumSSE(__m128 s) {
 
 }  // namespace detail
 
-// Routines for state-vector manipulations.
-// State is a vectorized sequence of four real components followed by four
-// imaginary components. Four single-precison floating numbers can be loaded
-// into an SSE register.
+/**
+ * Object containing context and routines for SSE state-vector manipulations.
+ * State is a vectorized sequence of four real components followed by four
+ * imaginary components. Four single-precison floating numbers can be loaded
+ * into an SSE register.
+ */
 template <typename For>
 class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
  private:

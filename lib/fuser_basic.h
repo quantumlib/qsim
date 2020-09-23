@@ -24,6 +24,9 @@
 
 namespace qsim {
 
+/**
+ * Stateless object with methods for aggregating `Gate`s into `GateFused`.
+ */
 template <typename IO, typename Gate>
 struct BasicGateFuser final {
   using GateFused = qsim::GateFused<Gate>;

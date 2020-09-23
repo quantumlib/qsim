@@ -21,6 +21,9 @@
 
 namespace qsim {
 
+/**
+ * Helper struct for executing for loops in series.
+ */
 struct SequentialFor {
   explicit SequentialFor(unsigned num_threads) {}
 
