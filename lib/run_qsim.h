@@ -36,7 +36,7 @@ struct QSimRunner final {
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
   /**
-   * Contextual data for simulation.
+   * User-specified parameters for simulation.
    */
   struct Parameter {
     /**

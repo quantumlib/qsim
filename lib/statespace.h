@@ -45,12 +45,12 @@ class StateSpace : public VectorSpace<For, FP> {
   struct MeasurementResult {
     /**
      * A bitmask of all qubits measured in this result. In this format, if the
-     * qubit at index N is measured, the Nth bit of `mask` is a one.
+     * qubit at index `i` is measured, the `i`th bit of `mask` is a one.
      */
     uint64_t mask;
     /**
      * A bitwise representation of the measured states. In this format, the
-     * qubit at index N is represented by the Nth bit of `bits`.
+     * qubit at index `i` is represented by the `i`th bit of `bits`.
      * If `valid` is true, `mask` has already been applied to this field
      * (i.e. `bits == bits & mask`).
      */
