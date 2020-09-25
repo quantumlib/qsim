@@ -210,19 +210,23 @@ class MainTest(unittest.TestCase):
         result.state_vector(), cirq_result.state_vector())
 
   def test_decomposable_gate(self):
-    qubits = cirq.LineQubit.range(3)
+    qubits = cirq.LineQubit.range(4)
 
     # The Toffoli gate (CCX) decomposes into multiple qsim-supported gates.
     cirq_circuit = cirq.Circuit(
         cirq.H(qubits[0]),
         cirq.H(qubits[1]),
-        cirq.CCX(*qubits),
+        cirq.Moment(
+          cirq.CCX(*qubits[:3]),
+          cirq.H(qubits[3]),
+        ),
         cirq.H(qubits[2]),
+        cirq.H(qubits[3]),
     )
 
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
-    assert result.state_vector().shape == (8,)
+    assert result.state_vector().shape == (16,)
     cirqSim = cirq.Simulator()
     cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
     # Decomposition may result in gates which add a global phase.
