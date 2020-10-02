@@ -2,7 +2,8 @@
 
 The qsimcirq release is maintained by Google contributors through a dedicated
 Kokoro build (a Google-internal variant of Jenkins). If you are a Google
-contributor and need to cut a release, check with @95-martin-orion.
+contributor and need to cut a release, please see `RELEASE.md` in the
+Google-internal fork of qsim.
 
 <!-- TODO(95-martin-orion): redirect to internal docs when available -->
 
