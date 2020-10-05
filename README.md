@@ -108,3 +108,21 @@ More detailed information about the qsim-Cirq API can be found in the
 ## Disclaimer
 
 This is not an officially supported Google product.
+
+# How to cite qsim
+
+Qsim is uploaded to Zenodo automatically. Click on this badge [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4023103.svg)](https://doi.org/10.5281/zenodo.4023103) to see all the citation formats for all versions.
+
+An equivalent BibTex format reference is below for all the versions:
+
+```
+@software{quantum_ai_team_and_collaborators_2020_4023103,
+  author       = {Quantum AI team and collaborators},
+  title        = {qsim},
+  month        = Sep,
+  year         = 2020,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.4023103},
+  url          = {https://doi.org/10.5281/zenodo.4023103}
+}
+```

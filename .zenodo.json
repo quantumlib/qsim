@@ -1,0 +1,13 @@
+{
+    "description": "Schrödinger and Schrödinger-Feynman simulators for quantum circuits.",
+    "license": "Apache-2.0",
+    "title": "qsim",
+    "upload_type": "software",
+    "creators": [
+        {
+            "affiliation": "Google Inc",
+            "name": "Quantum AI team and collaborators"
+        }
+    ],
+    "access_right": "open"
+}
