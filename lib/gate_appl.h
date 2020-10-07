@@ -27,28 +27,26 @@ namespace detail {
 
 template <typename fp_type, typename Gate>
 inline Matrix<fp_type> CalculateFusedMatrix(const Gate& gate) {
-  unsigned n = unsigned{1} << gate.qubits.size();
-
   Matrix<fp_type> matrix;
-  MatrixIdentity(n, matrix);
+  MatrixIdentity(unsigned{1} << gate.qubits.size(), matrix);
 
   for (auto pgate : gate.gates) {
     if (gate.qubits.size() == pgate->qubits.size()) {
-      MatrixMultiply(n, pgate->matrix, matrix);
+      MatrixMultiply(gate.qubits.size(), pgate->matrix, matrix);
     } else {
-      unsigned qmask = 0;
+      unsigned mask = 0;
 
       for (auto q : pgate->qubits) {
         for (std::size_t i = 0; i < gate.qubits.size(); ++i) {
           if (q == gate.qubits[i]) {
-            qmask |= unsigned{1} << i;
+            mask |= unsigned{1} << i;
             break;
           }
         }
       }
 
-      unsigned pn = unsigned{1} << pgate->qubits.size();
-      MatrixMultiply(qmask, pn, pgate->matrix, gate.qubits.size(), n, matrix);
+      MatrixMultiply(mask, pgate->qubits.size(), pgate->matrix,
+                     gate.qubits.size(), matrix);
     }
   }
 

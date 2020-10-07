@@ -61,14 +61,15 @@ inline void MatrixIdentity(unsigned n, Matrix<fp_type>& m) {
 
 /**
  * Multiplies two gate matrices of equal size: m2 = m1 m2.
- * @n Number of matrix rows (columns).
+ * @q Number of gate qubits. The number of matrix rows (columns) is 2^q.
  * @m1 Matrix m1.
  * @m2 Input matrix m2. Output product of matrices m2 = m1 m2.
  */
 template <typename fp_type1, typename fp_type2>
 inline void MatrixMultiply(
-    unsigned n, const Matrix<fp_type1>& m1, Matrix<fp_type2>& m2) {
+    unsigned q, const Matrix<fp_type1>& m1, Matrix<fp_type2>& m2) {
   Matrix<fp_type2> mt = m2;
+  unsigned n = unsigned{1} << q;
 
   for (unsigned i = 0; i < n; ++i) {
     for (unsigned j = 0; j < n; ++j) {
@@ -95,20 +96,21 @@ inline void MatrixMultiply(
  * Multiplies two gate matrices: m2 = m1 m2. The size of m1 should not exceed
  *   the size of m2.
  * @mask1 Qubit mask that specifies the subset of qubits m1 acts on.
- * @n1 Number of rows (columns) of matrix m1.
+ * @q1 Number of gate qubits. The number of matrix rows (columns) is 2^q1.
  * @m1 Matrix m1.
- * @q2 Number of qubits of matrix m2.
- * @n2 Number of rows (columns) of matrix m2. n2 = 2^q2.
+ * @q2 Number of gate qubits. The number of matrix rows (columns) is 2^q2.
  * @m2 Input matrix m2. Output product of matrices m2 = m1 m2.
  */
 template <typename fp_type1, typename fp_type2>
 inline void MatrixMultiply(unsigned mask1,
-                           unsigned n1, const Matrix<fp_type1>& m1,
-                           unsigned q2, unsigned n2, Matrix<fp_type2>& m2) {
-  if (n1 == n2) {
-    MatrixMultiply(n1, m1, m2);
+                           unsigned q1, const Matrix<fp_type1>& m1,
+                           unsigned q2, Matrix<fp_type2>& m2) {
+  if (q1 == q2) {
+    MatrixMultiply(q1, m1, m2);
   } else {
     Matrix<fp_type2> mt = m2;
+    unsigned n1 = unsigned{1} << q1;
+    unsigned n2 = unsigned{1} << q2;
 
     for (unsigned i = 0; i < n2; ++i) {
       unsigned si = bits::CompressBits(i, q2, mask1);
@@ -215,21 +217,22 @@ inline std::vector<unsigned> NormalToGateOrderPermutation(
 }
 
 /**
- * Shuffles the matrix elements to get the matrix that acts on qubits that are
- *   in "normal" order (in increasing orger).
+ * Shuffles the gate matrix elements to get the matrix that acts on qubits
+ *   that are in "normal" order (in increasing orger).
  * @perm Permutation to rearrange qubits from "normal" order to "gate" order.
- * @n Number of matrix rows (columns).
+ * @q Number of gate qubits. The number of matrix rows (columns) is 2^q.
  * @m Input matrix. Output shuffled matrix.
  */
 template <typename fp_type>
 inline void MatrixShuffle(const std::vector<unsigned>& perm,
-                          unsigned n, Matrix<fp_type>& m) {
+                          unsigned q, Matrix<fp_type>& m) {
   Matrix<fp_type> mt = m;
+  unsigned n = unsigned{1} << q;
 
   for (unsigned i = 0; i < n; ++i) {
-    unsigned pi = bits::PermuteBits(i, n, perm);
+    unsigned pi = bits::PermuteBits(i, q, perm);
     for (unsigned j = 0; j < n; ++j) {
-      unsigned pj = bits::PermuteBits(j, n, perm);
+      unsigned pj = bits::PermuteBits(j, q, perm);
 
       m[2 * (n * i + j)] = mt[2 * (n * pi + pj)];
       m[2 * (n * i + j) + 1] = mt[2 * (n * pi + pj) + 1];

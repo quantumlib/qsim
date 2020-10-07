@@ -24,7 +24,7 @@ TEST(MatrixTest, MatrixMultiply1) {
   Matrix<float> u1 = {1, 2, 3, 4, 5, 6, 7, 8};
   Matrix<float> m1 = {8, 7, 6, 5, 4, 3, 2, 1};
 
-  MatrixMultiply(2, u1, m1);
+  MatrixMultiply(1, u1, m1);
 
   EXPECT_FLOAT_EQ(m1[0], -6);
   EXPECT_FLOAT_EQ(m1[1], 48);
@@ -44,7 +44,7 @@ TEST(MatrixTest, MatrixMultiply1) {
                       16, 15, 14, 13, 12, 11, 10,  9,
                        8,  7,  6,  5,  4,  3,  2,  1};
 
-  MatrixMultiply(4, u2, m2);
+  MatrixMultiply(2, u2, m2);
 
   EXPECT_FLOAT_EQ(m2[0], -60);
   EXPECT_FLOAT_EQ(m2[1], 544);
@@ -88,7 +88,7 @@ TEST(MatrixTest, MatrixMultiply2) {
                        8,  7,  6,  5,  4,  3,  2,  1};
 
   auto m = m0;
-  MatrixMultiply(1, 2, u, 2, 4, m);
+  MatrixMultiply(1, 1, u, 2, m);
 
   EXPECT_FLOAT_EQ(m[0], -50);
   EXPECT_FLOAT_EQ(m[1], 260);
@@ -124,7 +124,7 @@ TEST(MatrixTest, MatrixMultiply2) {
   EXPECT_FLOAT_EQ(m[31], 128);
 
   m = m0;
-  MatrixMultiply(2, 2, u, 2, 4, m);
+  MatrixMultiply(2, 1, u, 2, m);
 
   EXPECT_FLOAT_EQ(m[0], -42);
   EXPECT_FLOAT_EQ(m[1], 204);
@@ -249,13 +249,13 @@ TEST(MatrixTest, MatrixShuffle) {
 
   auto v2 = m2;
   auto perm2 = NormalToGateOrderPermutation({7, 3});
-  MatrixShuffle(perm2, 4, v2);
+  MatrixShuffle(perm2, 2, v2);
 
   // v2 should be the same as sw * m2 * sw.
 
   auto s2 = sw;
-  MatrixMultiply(4, m2, s2);
-  MatrixMultiply(4, sw, s2);
+  MatrixMultiply(2, m2, s2);
+  MatrixMultiply(2, sw, s2);
 
   for (int i = 0; i < 32; i++) {
     EXPECT_EQ(v2[i], s2[i]);
@@ -268,7 +268,7 @@ TEST(MatrixTest, MatrixShuffle) {
 
   auto v3 = m3;
   auto perm3 = NormalToGateOrderPermutation({7, 1, 3});
-  MatrixShuffle(perm3, 8, v3);
+  MatrixShuffle(perm3, 3, v3);
 
   // {1, 3, 7} -> {7, 1, 3}.
   // v3 should be the same as sw(0, 2) * sw(1, 2) * m3 * sw(1, 2) * sw(0, 2).
@@ -276,11 +276,11 @@ TEST(MatrixTest, MatrixShuffle) {
 
   Matrix<float> s3;
   MatrixIdentity(8, s3);
-  MatrixMultiply(5, 4, sw, 3, 8, s3);
-  MatrixMultiply(6, 4, sw, 3, 8, s3);
-  MatrixMultiply(8, m3, s3);
-  MatrixMultiply(6, 4, sw, 3, 8, s3);
-  MatrixMultiply(5, 4, sw, 3, 8, s3);
+  MatrixMultiply(5, 2, sw, 3, s3);
+  MatrixMultiply(6, 2, sw, 3, s3);
+  MatrixMultiply(3, m3, s3);
+  MatrixMultiply(6, 2, sw, 3, s3);
+  MatrixMultiply(5, 2, sw, 3, s3);
 
   for (int i = 0; i < 128; i++) {
     EXPECT_EQ(v3[i], s3[i]);

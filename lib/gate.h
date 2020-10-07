@@ -62,7 +62,7 @@ inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
   if (q0 > q1) {
     gate.inverse = true;
     std::swap(gate.qubits[0], gate.qubits[1]);
-    MatrixShuffle({1, 0}, 4, gate.matrix);
+    MatrixShuffle({1, 0}, 2, gate.matrix);
   }
   return gate;
 }
