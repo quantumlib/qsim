@@ -48,9 +48,9 @@ inline uint64_t CompressBits(uint64_t bits, unsigned n, uint64_t mask) {
 namespace qsim {
 namespace bits {
 
-template <typename I>
-inline I ExpandBits(I bits, unsigned n, I mask) {
-  I ebits = 0;
+template <typename Integer>
+inline Integer ExpandBits(Integer bits, unsigned n, Integer mask) {
+  Integer ebits = 0;
   unsigned k = 0;
 
   for (unsigned i = 0; i < n; ++i) {
@@ -63,9 +63,9 @@ inline I ExpandBits(I bits, unsigned n, I mask) {
   return ebits;
 }
 
-template <typename I>
-inline I CompressBits(I bits, unsigned n, I mask) {
-  I sbits = 0;
+template <typename Integer>
+inline Integer CompressBits(Integer bits, unsigned n, Integer mask) {
+  Integer sbits = 0;
   unsigned k = 0;
 
   for (unsigned i = 0; i < n; ++i) {
@@ -86,9 +86,10 @@ inline I CompressBits(I bits, unsigned n, I mask) {
 namespace qsim {
 namespace bits {
 
-template <typename I>
-inline I PermuteBits(I bits, unsigned n, const std::vector<unsigned>& perm) {
-  I pbits = 0;
+template <typename Integer>
+inline Integer PermuteBits(
+    Integer bits, unsigned n, const std::vector<unsigned>& perm) {
+  Integer pbits = 0;
 
   for (unsigned i = 0; i < n; ++i) {
     pbits |= ((bits >> i) & 1) << perm[i];

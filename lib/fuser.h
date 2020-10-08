@@ -17,6 +17,8 @@
 
 #include <vector>
 
+#include "matrix.h"
+
 namespace qsim {
 
 /**
@@ -47,6 +49,39 @@ struct GateFused {
    */
   std::vector<const Gate*> gates;
 };
+
+/**
+ * Multiplies component gate matrices of a fused gate.
+ * @param gate Fused gate.
+ * @return Matrix product of component matrices.
+ */
+template <typename fp_type, typename FusedGate>
+inline Matrix<fp_type> CalculateFusedMatrix(const FusedGate& gate) {
+  Matrix<fp_type> matrix;
+  MatrixIdentity(unsigned{1} << gate.qubits.size(), matrix);
+
+  for (auto pgate : gate.gates) {
+    if (gate.qubits.size() == pgate->qubits.size()) {
+      MatrixMultiply(gate.qubits.size(), pgate->matrix, matrix);
+    } else {
+      unsigned mask = 0;
+
+      for (auto q : pgate->qubits) {
+        for (std::size_t i = 0; i < gate.qubits.size(); ++i) {
+          if (q == gate.qubits[i]) {
+            mask |= unsigned{1} << i;
+            break;
+          }
+        }
+      }
+
+      MatrixMultiply(mask, pgate->qubits.size(), pgate->matrix,
+                     gate.qubits.size(), matrix);
+    }
+  }
+
+  return matrix;
+}
 
 }  // namespace qsim
 

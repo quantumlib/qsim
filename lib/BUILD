@@ -186,6 +186,7 @@ cc_library(
     name = "gate_appl",
     hdrs = ["gate_appl.h"],
     deps = [
+        ":fuser",
         ":gate",
         ":matrix",
     ],
@@ -225,6 +226,7 @@ cc_library(
 cc_library(
     name = "fuser",
     hdrs = ["fuser.h"],
+    deps = [":matrix"],
 )
 
 cc_library(

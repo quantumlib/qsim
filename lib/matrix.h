@@ -170,11 +170,12 @@ inline void MatrixDagger(unsigned n, Matrix<fp_type>& m) {
 }
 
 /**
- * Returns a permutation to rearrange qubits from "normal" order to "gate"
+ * Gets a permutation to rearrange qubits from "normal" order to "gate"
  *   order. Qubits are ordered in increasing order for "normal" order.
  *   Qubits are ordered arbitrarily for "gate" order. Returns an empty vector
  *   if the qubits are in "normal" order.
  * @qubits Qubit indices in "gate" order.
+ * @return Permutation as a vector.
  */
 inline std::vector<unsigned> NormalToGateOrderPermutation(
     const std::vector<unsigned>& qubits) {

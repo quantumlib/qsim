@@ -18,42 +18,11 @@
 #include <utility>
 #include <vector>
 
+#include "fuser.h"
 #include "gate.h"
 #include "matrix.h"
 
 namespace qsim {
-
-namespace detail {
-
-template <typename fp_type, typename Gate>
-inline Matrix<fp_type> CalculateFusedMatrix(const Gate& gate) {
-  Matrix<fp_type> matrix;
-  MatrixIdentity(unsigned{1} << gate.qubits.size(), matrix);
-
-  for (auto pgate : gate.gates) {
-    if (gate.qubits.size() == pgate->qubits.size()) {
-      MatrixMultiply(gate.qubits.size(), pgate->matrix, matrix);
-    } else {
-      unsigned mask = 0;
-
-      for (auto q : pgate->qubits) {
-        for (std::size_t i = 0; i < gate.qubits.size(); ++i) {
-          if (q == gate.qubits[i]) {
-            mask |= unsigned{1} << i;
-            break;
-          }
-        }
-      }
-
-      MatrixMultiply(mask, pgate->qubits.size(), pgate->matrix,
-                     gate.qubits.size(), matrix);
-    }
-  }
-
-  return matrix;
-}
-
-}  // namespace detail
 
 /**
  * Applies the given gate to the simulator state. Ignores measurement gates.
@@ -157,7 +126,7 @@ inline void ApplyFusedGate(const Simulator& simulator, const Gate& gate,
                            typename Simulator::State& state) {
   if (gate.kind != gate::kMeasurement) {
     using fp_type = typename Simulator::fp_type;
-    auto matrix = detail::CalculateFusedMatrix<fp_type>(gate);
+    auto matrix = CalculateFusedMatrix<fp_type>(gate);
     simulator.ApplyGate(gate.qubits, matrix.data(), state);
   }
 }
@@ -176,7 +145,7 @@ inline void ApplyFusedGateDagger(const Simulator& simulator, const Gate& gate,
                                  typename Simulator::State& state) {
   if (gate.kind != gate::kMeasurement) {
     using fp_type = typename Simulator::fp_type;
-    auto matrix = detail::CalculateFusedMatrix<fp_type>(gate);
+    auto matrix = CalculateFusedMatrix<fp_type>(gate);
     MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
     simulator.ApplyGate(gate.qubits, matrix.data(), state);
   }
