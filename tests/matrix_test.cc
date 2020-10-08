@@ -20,52 +20,75 @@
 
 namespace qsim {
 
-TEST(MatrixTest, Matrix2Multiply) {
-  std::array<float, 8> u{1, 2, 3, 4, 5, 6, 7, 8};
-  std::array<float, 8> m{8, 7, 6, 5, 4, 3, 2, 1};
+TEST(MatrixTest, MatrixMultiply1) {
+  Matrix<float> u1 = {1, 2, 3, 4, 5, 6, 7, 8};
+  Matrix<float> m1 = {8, 7, 6, 5, 4, 3, 2, 1};
 
-  Matrix2Multiply(u, m);
+  MatrixMultiply(1, u1, m1);
 
-  EXPECT_FLOAT_EQ(m[0], -6);
-  EXPECT_FLOAT_EQ(m[1], 48);
-  EXPECT_FLOAT_EQ(m[2], -2);
-  EXPECT_FLOAT_EQ(m[3], 28);
-  EXPECT_FLOAT_EQ(m[4], 2);
-  EXPECT_FLOAT_EQ(m[5], 136);
-  EXPECT_FLOAT_EQ(m[6], 6);
-  EXPECT_FLOAT_EQ(m[7], 84);
+  EXPECT_FLOAT_EQ(m1[0], -6);
+  EXPECT_FLOAT_EQ(m1[1], 48);
+  EXPECT_FLOAT_EQ(m1[2], -2);
+  EXPECT_FLOAT_EQ(m1[3], 28);
+  EXPECT_FLOAT_EQ(m1[4], 2);
+  EXPECT_FLOAT_EQ(m1[5], 136);
+  EXPECT_FLOAT_EQ(m1[6], 6);
+  EXPECT_FLOAT_EQ(m1[7], 84);
+
+  Matrix<float> u2 = { 1,  2,  3,  4,  5,  6,  7,  8,
+                       9, 10, 11, 12, 13, 14, 15, 16,
+                      17, 18, 19, 20, 21, 22, 23, 24,
+                      25, 26, 27, 28, 29, 30, 31, 32};
+  Matrix<float> m2 = {32, 31, 30, 29, 28, 27, 26, 25,
+                      24, 23, 22, 21, 20, 19, 18, 17,
+                      16, 15, 14, 13, 12, 11, 10,  9,
+                       8,  7,  6,  5,  4,  3,  2,  1};
+
+  MatrixMultiply(2, u2, m2);
+
+  EXPECT_FLOAT_EQ(m2[0], -60);
+  EXPECT_FLOAT_EQ(m2[1], 544);
+  EXPECT_FLOAT_EQ(m2[2], -52);
+  EXPECT_FLOAT_EQ(m2[3], 472);
+  EXPECT_FLOAT_EQ(m2[4], -44);
+  EXPECT_FLOAT_EQ(m2[5], 400);
+  EXPECT_FLOAT_EQ(m2[6], -36);
+  EXPECT_FLOAT_EQ(m2[7], 328);
+  EXPECT_FLOAT_EQ(m2[8], -28);
+  EXPECT_FLOAT_EQ(m2[9], 1792);
+  EXPECT_FLOAT_EQ(m2[10], -20);
+  EXPECT_FLOAT_EQ(m2[11], 1592);
+  EXPECT_FLOAT_EQ(m2[12], -12);
+  EXPECT_FLOAT_EQ(m2[13], 1392);
+  EXPECT_FLOAT_EQ(m2[14], -4);
+  EXPECT_FLOAT_EQ(m2[15], 1192);
+  EXPECT_FLOAT_EQ(m2[16], 4);
+  EXPECT_FLOAT_EQ(m2[17], 3040);
+  EXPECT_FLOAT_EQ(m2[18], 12);
+  EXPECT_FLOAT_EQ(m2[19], 2712);
+  EXPECT_FLOAT_EQ(m2[20], 20);
+  EXPECT_FLOAT_EQ(m2[21], 2384);
+  EXPECT_FLOAT_EQ(m2[22], 28);
+  EXPECT_FLOAT_EQ(m2[23], 2056);
+  EXPECT_FLOAT_EQ(m2[24], 36);
+  EXPECT_FLOAT_EQ(m2[25], 4288);
+  EXPECT_FLOAT_EQ(m2[26], 44);
+  EXPECT_FLOAT_EQ(m2[27], 3832);
+  EXPECT_FLOAT_EQ(m2[28], 52);
+  EXPECT_FLOAT_EQ(m2[29], 3376);
+  EXPECT_FLOAT_EQ(m2[30], 60);
+  EXPECT_FLOAT_EQ(m2[31], 2920);
 }
 
-TEST(MatrixTest, Matrix2ScalarMultiply) {
-  std::array<float, 8> u{1, 2, 3, 4, 5, 6, 7, 8};
+TEST(MatrixTest, MatrixMultiply2) {
+  Matrix<float> u = {1, 2, 3, 4, 5, 6, 7, 8};
+  Matrix<float> m0 = {32, 31, 30, 29, 28, 27, 26, 25,
+                      24, 23, 22, 21, 20, 19, 18, 17,
+                      16, 15, 14, 13, 12, 11, 10,  9,
+                       8,  7,  6,  5,  4,  3,  2,  1};
 
-  Matrix2ScalarMultiply(3, u);
-  for (unsigned i = 0; i < 8; i++) {
-    EXPECT_FLOAT_EQ(u[i], (i + 1) * 3);
-  }
-}
-
-TEST(MatrixTest, Matrix2Dagger) {
-  std::array<float, 8> u{0, 1, 2, 3, 4, 5, 6, 7};
-  Matrix2Dagger(u);
-  EXPECT_FLOAT_EQ(u[0], 0);
-  EXPECT_FLOAT_EQ(u[1], -1);
-  EXPECT_FLOAT_EQ(u[2], 4);
-  EXPECT_FLOAT_EQ(u[3], -5);
-  EXPECT_FLOAT_EQ(u[4], 2);
-  EXPECT_FLOAT_EQ(u[5], -3);
-  EXPECT_FLOAT_EQ(u[6], 6);
-  EXPECT_FLOAT_EQ(u[7], -7);
-}
-
-TEST(MatrixTest, Matrix4Multiply20) {
-  std::array<float, 8> u{1, 2, 3, 4, 5, 6, 7, 8};
-  std::array<float, 32> m{32, 31, 30, 29, 28, 27, 26, 25,
-                          24, 23, 22, 21, 20, 19, 18, 17,
-                          16, 15, 14, 13, 12, 11, 10, 9,
-                          8, 7, 6, 5, 4, 3, 2, 1};
-
-  Matrix4Multiply20(u, m);
+  auto m = m0;
+  MatrixMultiply(1, 1, u, 2, m);
 
   EXPECT_FLOAT_EQ(m[0], -50);
   EXPECT_FLOAT_EQ(m[1], 260);
@@ -99,16 +122,9 @@ TEST(MatrixTest, Matrix4Multiply20) {
   EXPECT_FLOAT_EQ(m[29], 180);
   EXPECT_FLOAT_EQ(m[30], 2);
   EXPECT_FLOAT_EQ(m[31], 128);
-}
 
-TEST(MatrixTest, Matrix4Multiply21) {
-  std::array<float, 8> u{1, 2, 3, 4, 5, 6, 7, 8};
-  std::array<float, 32> m{32, 31, 30, 29, 28, 27, 26, 25,
-                          24, 23, 22, 21, 20, 19, 18, 17,
-                          16, 15, 14, 13, 12, 11, 10, 9,
-                          8, 7, 6, 5, 4, 3, 2, 1};
-
-  Matrix4Multiply21(u, m);
+  m = m0;
+  MatrixMultiply(2, 1, u, 2, m);
 
   EXPECT_FLOAT_EQ(m[0], -42);
   EXPECT_FLOAT_EQ(m[1], 204);
@@ -144,127 +160,133 @@ TEST(MatrixTest, Matrix4Multiply21) {
   EXPECT_FLOAT_EQ(m[31], 216);
 }
 
-TEST(MatrixTest, Matrix4Multiply) {
-  std::array<float, 32> u{1, 2, 3, 4, 5, 6, 7, 8,
-                          9, 10, 11, 12, 13, 14, 15, 16,
-                          17, 18, 19, 20, 21, 22, 23, 24,
-                          25, 26, 27, 28, 29, 30, 31, 32};
-  std::array<float, 32> m{32, 31, 30, 29, 28, 27, 26, 25,
-                          24, 23, 22, 21, 20, 19, 18, 17,
-                          16, 15, 14, 13, 12, 11, 10, 9,
-                          8, 7, 6, 5, 4, 3, 2, 1};
-  Matrix4Multiply(u, m);
+TEST(MatrixTest, MatrixScalarMultiply) {
+  Matrix<float>  m1 = {1, 2, 3, 4, 5, 6, 7, 8};
 
-  EXPECT_FLOAT_EQ(m[0], -60);
-  EXPECT_FLOAT_EQ(m[1], 544);
-  EXPECT_FLOAT_EQ(m[2], -52);
-  EXPECT_FLOAT_EQ(m[3], 472);
-  EXPECT_FLOAT_EQ(m[4], -44);
-  EXPECT_FLOAT_EQ(m[5], 400);
-  EXPECT_FLOAT_EQ(m[6], -36);
-  EXPECT_FLOAT_EQ(m[7], 328);
-  EXPECT_FLOAT_EQ(m[8], -28);
-  EXPECT_FLOAT_EQ(m[9], 1792);
-  EXPECT_FLOAT_EQ(m[10], -20);
-  EXPECT_FLOAT_EQ(m[11], 1592);
-  EXPECT_FLOAT_EQ(m[12], -12);
-  EXPECT_FLOAT_EQ(m[13], 1392);
-  EXPECT_FLOAT_EQ(m[14], -4);
-  EXPECT_FLOAT_EQ(m[15], 1192);
-  EXPECT_FLOAT_EQ(m[16], 4);
-  EXPECT_FLOAT_EQ(m[17], 3040);
-  EXPECT_FLOAT_EQ(m[18], 12);
-  EXPECT_FLOAT_EQ(m[19], 2712);
-  EXPECT_FLOAT_EQ(m[20], 20);
-  EXPECT_FLOAT_EQ(m[21], 2384);
-  EXPECT_FLOAT_EQ(m[22], 28);
-  EXPECT_FLOAT_EQ(m[23], 2056);
-  EXPECT_FLOAT_EQ(m[24], 36);
-  EXPECT_FLOAT_EQ(m[25], 4288);
-  EXPECT_FLOAT_EQ(m[26], 44);
-  EXPECT_FLOAT_EQ(m[27], 3832);
-  EXPECT_FLOAT_EQ(m[28], 52);
-  EXPECT_FLOAT_EQ(m[29], 3376);
-  EXPECT_FLOAT_EQ(m[30], 60);
-  EXPECT_FLOAT_EQ(m[31], 2920);
+  MatrixScalarMultiply(3, m1);
+
+  for (unsigned i = 0; i < 8; ++i) {
+    EXPECT_FLOAT_EQ(m1[i], (i + 1) * 3);
+  }
+
+  Matrix<float> m2 = { 1,  2,  3,  4,  5,  6,  7,  8,
+                       9, 10, 11, 12, 13, 14, 15, 16,
+                      17, 18, 19, 20, 21, 22, 23, 24,
+                      25, 26, 27, 28, 29, 30, 31, 32};
+
+  MatrixScalarMultiply(3, m2);
+
+  for (unsigned i = 0; i < 32; ++i) {
+    EXPECT_FLOAT_EQ(m2[i], (i + 1) * 3);
+  }
 }
 
-TEST(MatrixTest, Matrix4Permute) {
-  // Conjugation by swap gate:
-  //  | 0  1  2  3  |      | 0  2  1  3  |
-  //  | 4  5  6  7  |      | 8  10 9  11 |
-  //  | 8  9  10 11 | ---> | 4  6  5  7  |
-  //  | 12 13 14 15 |      | 12 14 13 15 |
-  // clang-format off
-  std::array<float, 32> matrix{
-    0,  0.5, 1, 1.5, 2, 2.5, 3, 3.5,
-    4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5,
-    8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5,
-    12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5};
-  const std::array<float, 32> matrix_swapped{
-    0,  0.5, 2, 2.5, 1, 1.5, 3, 3.5,
-    8, 8.5, 10, 10.5, 9, 9.5, 11, 11.5,
-    4, 4.5, 6, 6.5, 5, 5.5, 7, 7.5,
-    12, 12.5, 14, 14.5, 13, 13.5, 15, 15.5};
-  // clang-format on
-  Matrix4Permute(matrix);
+TEST(MatrixTest, MatrixDagger) {
+  Matrix<float> m1 = {0, 1, 2, 3, 4, 5, 6, 7};
+
+  MatrixDagger(2, m1);
+
+  EXPECT_FLOAT_EQ(m1[0], 0);
+  EXPECT_FLOAT_EQ(m1[1], -1);
+  EXPECT_FLOAT_EQ(m1[2], 4);
+  EXPECT_FLOAT_EQ(m1[3], -5);
+  EXPECT_FLOAT_EQ(m1[4], 2);
+  EXPECT_FLOAT_EQ(m1[5], -3);
+  EXPECT_FLOAT_EQ(m1[6], 6);
+  EXPECT_FLOAT_EQ(m1[7], -7);
+
+  Matrix<float> m2 = { 1,  2,  3,  4,  5,  6,  7,  8,
+                       9, 10, 11, 12, 13, 14, 15, 16,
+                      17, 18, 19, 20, 21, 22, 23, 24,
+                      25, 26, 27, 28, 29, 30, 31, 32};
+
+  MatrixDagger(4, m2);
+
+  EXPECT_FLOAT_EQ(m2[0], 1);
+  EXPECT_FLOAT_EQ(m2[1], -2);
+  EXPECT_FLOAT_EQ(m2[2], 9);
+  EXPECT_FLOAT_EQ(m2[3], -10);
+  EXPECT_FLOAT_EQ(m2[4], 17);
+  EXPECT_FLOAT_EQ(m2[5], -18);
+  EXPECT_FLOAT_EQ(m2[6], 25);
+  EXPECT_FLOAT_EQ(m2[7], -26);
+  EXPECT_FLOAT_EQ(m2[8], 3);
+  EXPECT_FLOAT_EQ(m2[9], -4);
+  EXPECT_FLOAT_EQ(m2[10], 11);
+  EXPECT_FLOAT_EQ(m2[11], -12);
+  EXPECT_FLOAT_EQ(m2[12], 19);
+  EXPECT_FLOAT_EQ(m2[13], -20);
+  EXPECT_FLOAT_EQ(m2[14], 27);
+  EXPECT_FLOAT_EQ(m2[15], -28);
+  EXPECT_FLOAT_EQ(m2[16], 5);
+  EXPECT_FLOAT_EQ(m2[17], -6);
+  EXPECT_FLOAT_EQ(m2[18], 13);
+  EXPECT_FLOAT_EQ(m2[19], -14);
+  EXPECT_FLOAT_EQ(m2[20], 21);
+  EXPECT_FLOAT_EQ(m2[21], -22);
+  EXPECT_FLOAT_EQ(m2[22], 29);
+  EXPECT_FLOAT_EQ(m2[23], -30);
+  EXPECT_FLOAT_EQ(m2[24], 7);
+  EXPECT_FLOAT_EQ(m2[25], -8);
+  EXPECT_FLOAT_EQ(m2[26], 15);
+  EXPECT_FLOAT_EQ(m2[27], -16);
+  EXPECT_FLOAT_EQ(m2[28], 23);
+  EXPECT_FLOAT_EQ(m2[29], -24);
+  EXPECT_FLOAT_EQ(m2[30], 31);
+  EXPECT_FLOAT_EQ(m2[31], -32);
+}
+
+TEST(MatrixTest, MatrixShuffle) {
+  Matrix<float> sw = {1, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 1, 0, 0, 0,
+                      0, 0, 1, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 1, 0};
+
+  Matrix<float> m2 = { 1,  2,  3,  4,  5,  6,  7,  8,
+                       9, 10, 11, 12, 13, 14, 15, 16,
+                      17, 18, 19, 20, 21, 22, 23, 24,
+                      25, 26, 27, 28, 29, 30, 31, 32};
+
+  auto v2 = m2;
+  auto perm2 = NormalToGateOrderPermutation({7, 3});
+  MatrixShuffle(perm2, 2, v2);
+
+  // v2 should be the same as sw * m2 * sw.
+
+  auto s2 = sw;
+  MatrixMultiply(2, m2, s2);
+  MatrixMultiply(2, sw, s2);
+
   for (int i = 0; i < 32; i++) {
-    EXPECT_EQ(matrix[i], matrix_swapped[i]);
+    EXPECT_EQ(v2[i], s2[i]);
+  }
+
+  Matrix<float> m3(2 * 8 * 8);
+  for (std::size_t i = 0; i < m3.size(); ++i) {
+    m3[i] = i + 1;
+  }
+
+  auto v3 = m3;
+  auto perm3 = NormalToGateOrderPermutation({7, 1, 3});
+  MatrixShuffle(perm3, 3, v3);
+
+  // {1, 3, 7} -> {7, 1, 3}.
+  // v3 should be the same as sw(0, 2) * sw(1, 2) * m3 * sw(1, 2) * sw(0, 2).
+  // sw(q1, s2) is a swap matrix acting on qubits q1 and q2.
+
+  Matrix<float> s3;
+  MatrixIdentity(8, s3);
+  MatrixMultiply(5, 2, sw, 3, s3);
+  MatrixMultiply(6, 2, sw, 3, s3);
+  MatrixMultiply(3, m3, s3);
+  MatrixMultiply(6, 2, sw, 3, s3);
+  MatrixMultiply(5, 2, sw, 3, s3);
+
+  for (int i = 0; i < 128; i++) {
+    EXPECT_EQ(v3[i], s3[i]);
   }
 }
 
-TEST(MatrixTest, Matrix4ScalarMultiply) {
-  std::array<float, 32> u{1, 2, 3, 4, 5, 6, 7, 8,
-                          9, 10, 11, 12, 13, 14, 15, 16,
-                          17, 18, 19, 20, 21, 22, 23, 24,
-                          25, 26, 27, 28, 29, 30, 31, 32};
-
-  Matrix4ScalarMultiply(3, u);
-  for (unsigned i = 0; i < 32; i++) {
-    EXPECT_FLOAT_EQ(u[i], (i + 1) * 3);
-  }
-}
-
-TEST(MatrixTest, Matrix4Dagger) {
-  std::array<float, 32> u{1, 2, 3, 4, 5, 6, 7, 8,
-                          9, 10, 11, 12, 13, 14, 15, 16,
-                          17, 18, 19, 20, 21, 22, 23, 24,
-                          25, 26, 27, 28, 29, 30, 31, 32};
-  Matrix4Dagger(u);
-  EXPECT_FLOAT_EQ(u[0], 1);
-  EXPECT_FLOAT_EQ(u[1], -2);
-  EXPECT_FLOAT_EQ(u[2], 9);
-  EXPECT_FLOAT_EQ(u[3], -10);
-  EXPECT_FLOAT_EQ(u[4], 17);
-  EXPECT_FLOAT_EQ(u[5], -18);
-  EXPECT_FLOAT_EQ(u[6], 25);
-  EXPECT_FLOAT_EQ(u[7], -26);
-  EXPECT_FLOAT_EQ(u[8], 3);
-  EXPECT_FLOAT_EQ(u[9], -4);
-  EXPECT_FLOAT_EQ(u[10], 11);
-  EXPECT_FLOAT_EQ(u[11], -12);
-  EXPECT_FLOAT_EQ(u[12], 19);
-  EXPECT_FLOAT_EQ(u[13], -20);
-  EXPECT_FLOAT_EQ(u[14], 27);
-  EXPECT_FLOAT_EQ(u[15], -28);
-  EXPECT_FLOAT_EQ(u[16], 5);
-  EXPECT_FLOAT_EQ(u[17], -6);
-  EXPECT_FLOAT_EQ(u[18], 13);
-  EXPECT_FLOAT_EQ(u[19], -14);
-  EXPECT_FLOAT_EQ(u[20], 21);
-  EXPECT_FLOAT_EQ(u[21], -22);
-  EXPECT_FLOAT_EQ(u[22], 29);
-  EXPECT_FLOAT_EQ(u[23], -30);
-  EXPECT_FLOAT_EQ(u[24], 7);
-  EXPECT_FLOAT_EQ(u[25], -8);
-  EXPECT_FLOAT_EQ(u[26], 15);
-  EXPECT_FLOAT_EQ(u[27], -16);
-  EXPECT_FLOAT_EQ(u[28], 23);
-  EXPECT_FLOAT_EQ(u[29], -24);
-  EXPECT_FLOAT_EQ(u[30], 31);
-  EXPECT_FLOAT_EQ(u[31], -32);
-}
-  
 }  // namespace qsim
 
 int main(int argc, char** argv) {

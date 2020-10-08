@@ -3,7 +3,7 @@
 qsim and qsimh are designed to be extensible to a variety of different
 applications. The base versions of each are `qsim_base` and `qsimh_base`;
 sample extensions are provided in [apps](/apps). To compile the codes, just run
-`make`. Binaries of the form `qsim(h)_*.x` will be added to the `apps`
+`make qsim`. Binaries of the form `qsim(h)_*.x` will be added to the `apps`
 directory.
 
 Sample circuits are provided in [circuits](/circuits).
@@ -19,7 +19,7 @@ Sample circuits are provided in [circuits](/circuits).
 |`-c circuit_file` | circuit file to run| 
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level|
+|`-v verbosity` | verbosity level (0,1,>1)|
 
 qsim_base computes all the amplitudes and just prints the first eight of them
 (or a smaller number for 1- or 2-qubit circuits).
@@ -41,7 +41,7 @@ Example:
 |`-c circuit_file` | circuit file to run| 
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level|
+|`-v verbosity` | verbosity level (0,1,>1)|
 
 qsim_von_neumann computes all the amplitudes and calculates the von Neumann
 entropy. Note that this can be quite slow for large circuits and small thread
@@ -69,7 +69,7 @@ Example:
 |`-i input_files` | comma-separated list of bitstring input files|
 |`-o output_files` | comma-separated list of amplitude output files|
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level|
+|`-v verbosity` | verbosity level (0,1,>1)|
 
 qsim_amplitudes reads input files of bitstrings, computes the corresponding
 amplitudes at specified times and writes them to output files.
@@ -103,7 +103,7 @@ Example:
 |`-p num_prefix_gates` | number of prefix gates|
 |`-r num_root_gates` | number of root gates|
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level|
+|`-v verbosity` | verbosity level (0,>0)|
 
 
 qsimh_base just computes and just prints the first eight amplitudes. The hybrid
@@ -184,7 +184,7 @@ maximum "time".
 |`-i input_file` | bitstring input file|
 |`-o output_file` | amplitude output file|
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level|
+|`-v verbosity` | verbosity level (0,>0)|
 
 qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
 amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman

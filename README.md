@@ -62,21 +62,29 @@ arXiv:1807.10749 (2018).
 ## C++ Usage
 
 The code is basically designed as a library. The user can modify sample
-aplications in [apps](apps) to meet their own needs. The usage of sample
-applications is described in [docs](docs/usage.md).
+aplications in [apps](https://github.com/quantumlib/qsim/tree/master/apps)
+to meet their own needs. The usage of sample applications is described in the
+[docs](https://github.com/quantumlib/qsim/blob/master/docs/usage.md).
 
 ### Input format
 
-Circuit input format is described in [docs](docs/input_format.md).
+The circuit input format is described in the
+[docs](https://github.com/quantumlib/qsim/blob/master/docs/input_format.md).
+
+NOTE: This format is deprecated, and no longer actively maintained.
 
 ### Sample Circuits
 
 A number of sample circuits are provided in
-circuits.
+[circuits](https://github.com/quantumlib/qsim/tree/master/circuits).
 
 ### Unit tests
 
-Unit tests are located in [tests](tests). The Google test framework is used.
+Unit tests for C++ libraries use the Google test framework, and are
+located in [tests](https://github.com/quantumlib/qsim/tree/master/tests).
+Python tests use pytest, and are located in
+[qsimcirq_tests](https://github.com/quantumlib/qsim/tree/master/qsimcirq_tests).
+
 To build and run all tests, navigate to the test directory and run:
 ```
 make run-all
@@ -91,9 +99,30 @@ To clean up generated test files, run `make clean` from the test directory.
 [Cirq](https://github.com/quantumlib/cirq) is a framework for modeling and
 invoking Noisy Intermediate Scale Quantum (NISQ) circuits.
 
-To run qsim on Google Cirq circuits, or just to call the simulator from Python,
-see [docs](docs/cirq_interface.md).
+To get started simulating Google Cirq circuits with qsim, see the
+[tutorial](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb).
+
+More detailed information about the qsim-Cirq API can be found in the
+[docs](https://github.com/quantumlib/qsim/blob/master/docs/cirq_interface.md).
 
 ## Disclaimer
 
 This is not an officially supported Google product.
+
+# How to cite qsim
+
+Qsim is uploaded to Zenodo automatically. Click on this badge [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4023103.svg)](https://doi.org/10.5281/zenodo.4023103) to see all the citation formats for all versions.
+
+An equivalent BibTex format reference is below for all the versions:
+
+```
+@software{quantum_ai_team_and_collaborators_2020_4023103,
+  author       = {Quantum AI team and collaborators},
+  title        = {qsim},
+  month        = Sep,
+  year         = 2020,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.4023103},
+  url          = {https://doi.org/10.5281/zenodo.4023103}
+}
+```

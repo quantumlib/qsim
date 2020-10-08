@@ -6,6 +6,7 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "qsim_lib",
     hdrs = [
+        "bits.h",
         "bitstring.h",
         "circuit_qsim_parser.h",
         "circuit.h",
@@ -45,6 +46,7 @@ cc_library(
 cc_library(
     name = "run_qsim_lib",
     hdrs = [
+        "bits.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "formux.h",
@@ -80,6 +82,7 @@ cc_library(
 cc_library(
     name = "run_qsimh_lib",
     hdrs = [
+        "bits.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "formux.h",
@@ -119,8 +122,14 @@ cc_library(
 )
 
 cc_library(
+    name = "bits",
+    hdrs = ["bits.h"],
+)
+
+cc_library(
     name = "matrix",
     hdrs = ["matrix.h"],
+    deps = [":bits"],
 )
 
 cc_library(
@@ -177,6 +186,7 @@ cc_library(
     name = "gate_appl",
     hdrs = ["gate_appl.h"],
     deps = [
+        ":fuser",
         ":gate",
         ":matrix",
     ],
@@ -216,6 +226,7 @@ cc_library(
 cc_library(
     name = "fuser",
     hdrs = ["fuser.h"],
+    deps = [":matrix"],
 )
 
 cc_library(
