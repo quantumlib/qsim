@@ -22,8 +22,8 @@ or try the runnable
 This repository includes two top-level libraries for simulation:
 
 -   **qsim** is a Schrödinger state-vector simulator designed to run on a
-    single machine. It produces the full state vector as output, allowing
-    users to sample repeatedly from a single execution.
+    single machine. It produces the full state vector as output, for instance,
+    allowing users to sample repeatedly from a single execution.
 -   **qsimh** is a hybrid Schrödinger-Feynman simulator built for parallel
     execution on a cluster of machines. It produces amplitudes for user-
     specified output bitstrings.
