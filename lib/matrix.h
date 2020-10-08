@@ -15,226 +15,230 @@
 #ifndef MATRIX_H_
 #define MATRIX_H_
 
+#include <algorithm>
+#include <utility>
 #include <vector>
+
+#include "bits.h"
 
 namespace qsim {
 
-// Routines for 2x2 complex matrices.
-// Matrices are arrays of floating-point numbers.
-// There are no checks for validaty of arguments.
-// We do not care about performance here.
+/**
+ * Gate matrix type. Matrices are stored as vectors. The matrix elements are
+ * accessed as real(m[i][j]) <- vector[2 * (n * i + j)] and
+ * imag(m[i][j]) <- vector[2 * (n * i + j) + 1], where n is the number of rows
+ * or columns (n = 2^q, where q is the number of gate qubits).
+ */
+template <typename fp_type>
+using Matrix = std::vector<fp_type>;
 
-template <typename Array2>
-inline void Matrix2SetZero(Array2& matrix) {
-  for (unsigned i = 0; i < 8; ++i) {
-    matrix[i] = 0;
+/**
+ * Sets all matrix elements to zero.
+ * @m Matrix to be cleared.
+ */
+template <typename fp_type>
+inline void MatrixClear(Matrix<fp_type>& m) {
+  for (unsigned i = 0; i < m.size(); ++i) {
+    m[i] = 0;
   }
 }
 
-template <typename Array2>
-inline void Matrix2SetId(Array2& matrix) {
-  Matrix2SetZero(matrix);
+/**
+ * Sets an identity matrix.
+ * @n Number of matrix rows (columns).
+ * @m Output identity matrix.
+ */
+template <typename fp_type>
+inline void MatrixIdentity(unsigned n, Matrix<fp_type>& m) {
+  m.resize(2 * n * n);
 
-  matrix[0] = 1;
-  matrix[6] = 1;
-}
+  MatrixClear(m);
 
-template <typename Array1, typename Array2>
-inline void Matrix2Set(const Array1& u, Array2& matrix) {
-  for (unsigned i = 0; i < 8; ++i) {
-    matrix[i] = u[i];
+  for (unsigned i = 0; i < n; ++i) {
+    m[2 * (n * i + i)] = 1;
   }
 }
 
-// Multiply two 2x2 matrices.
-template <typename Array1, typename Array2>
-inline void Matrix2Multiply(const Array1& u, Array2& matrix) {
-  typename Array1::value_type matrix0[8];
-  for (unsigned i = 0; i < 8; ++i) {
-    matrix0[i] = matrix[i];
-  }
+/**
+ * Multiplies two gate matrices of equal size: m2 = m1 m2.
+ * @q Number of gate qubits. The number of matrix rows (columns) is 2^q.
+ * @m1 Matrix m1.
+ * @m2 Input matrix m2. Output product of matrices m2 = m1 m2.
+ */
+template <typename fp_type1, typename fp_type2>
+inline void MatrixMultiply(
+    unsigned q, const Matrix<fp_type1>& m1, Matrix<fp_type2>& m2) {
+  Matrix<fp_type2> mt = m2;
+  unsigned n = unsigned{1} << q;
 
-  for (unsigned i = 0; i < 2; ++i) {
-    for (unsigned j = 0; j < 2; ++j) {
-      typename Array1::value_type tr = 0;
-      typename Array1::value_type ti = 0;
+  for (unsigned i = 0; i < n; ++i) {
+    for (unsigned j = 0; j < n; ++j) {
+      fp_type2 re = 0;
+      fp_type2 im = 0;
 
-      for (unsigned k = 0; k < 2; ++k) {
-        auto mr0 = matrix0[4 * k + 2 * j + 0];
-        auto mi0 = matrix0[4 * k + 2 * j + 1];
+      for (unsigned k = 0; k < n; ++k) {
+        fp_type2 r1 = m1[2 * (n * i + k)];
+        fp_type2 i1 = m1[2 * (n * i + k) + 1];
+        fp_type2 r2 = mt[2 * (n * k + j)];
+        fp_type2 i2 = mt[2 * (n * k + j) + 1];
 
-        auto uik = &u[4 * i + 2 * k];
-
-        tr += uik[0] * mr0 - uik[1] * mi0;
-        ti += uik[0] * mi0 + uik[1] * mr0;
+        re += r1 * r2 - i1 * i2;
+        im += r1 * i2 + i1 * r2;
       }
 
-      matrix[4 * i + 2 * j + 0] = tr;
-      matrix[4 * i + 2 * j + 1] = ti;
+      m2[2 * (n * i + j)] = re;
+      m2[2 * (n * i + j) + 1] = im;
     }
   }
 }
 
-// Scalar multiply 2x2 matrix.
-template <typename FP, typename Array2>
-inline void Matrix2ScalarMultiply(FP c, Array2& matrix) {
-  for (unsigned i = 0; i < 8; i++) {
-    matrix[i] *= c;
-  }
-}
+/**
+ * Multiplies two gate matrices: m2 = m1 m2. The size of m1 should not exceed
+ *   the size of m2.
+ * @mask1 Qubit mask that specifies the subset of qubits m1 acts on.
+ * @q1 Number of gate qubits. The number of matrix rows (columns) is 2^q1.
+ * @m1 Matrix m1.
+ * @q2 Number of gate qubits. The number of matrix rows (columns) is 2^q2.
+ * @m2 Input matrix m2. Output product of matrices m2 = m1 m2.
+ */
+template <typename fp_type1, typename fp_type2>
+inline void MatrixMultiply(unsigned mask1,
+                           unsigned q1, const Matrix<fp_type1>& m1,
+                           unsigned q2, Matrix<fp_type2>& m2) {
+  if (q1 == q2) {
+    MatrixMultiply(q1, m1, m2);
+  } else {
+    Matrix<fp_type2> mt = m2;
+    unsigned n1 = unsigned{1} << q1;
+    unsigned n2 = unsigned{1} << q2;
 
-// Dagger a 2x2 matrix.
-template <typename Array2>
-inline void Matrix2Dagger(Array2& matrix) {
-  for (unsigned i = 1; i < 8; i += 2) {
-    matrix[i] *= -1;
-  }
-  std::swap(matrix[2], matrix[4]); std::swap(matrix[3], matrix[5]);
-}
+    for (unsigned i = 0; i < n2; ++i) {
+      unsigned si = bits::CompressBits(i, q2, mask1);
 
-// Routines for 4x4 complex matrices.
-// Matrices are arrays of floating-point numbers.
-// There are no checks for validaty of arguments.
-// We do not care about performance here.
+      for (unsigned j = 0; j < n2; ++j) {
+        fp_type2 re = 0;
+        fp_type2 im = 0;
 
-template <typename Array2>
-inline void Matrix4SetZero(Array2& matrix) {
-  for (unsigned i = 0; i < 32; ++i) {
-    matrix[i] = 0;
-  }
-}
+        for (unsigned k = 0; k < n1; ++k) {
+          unsigned ek = bits::ExpandBits(k, q2, mask1) + (i & ~mask1);
 
-template <typename Array2>
-inline void Matrix4SetId(Array2& matrix) {
-  Matrix4SetZero(matrix);
+          fp_type2 r1 = m1[2 * (n1 * si + k)];
+          fp_type2 i1 = m1[2 * (n1 * si + k) + 1];
+          fp_type2 r2 = mt[2 * (n2 * ek + j)];
+          fp_type2 i2 = mt[2 * (n2 * ek + j) + 1];
 
-  matrix[ 0] = 1;
-  matrix[10] = 1;
-  matrix[20] = 1;
-  matrix[30] = 1;
-}
+          re += r1 * r2 - i1 * i2;
+          im += r1 * i2 + i1 * r2;
+        }
 
-template <typename Array1, typename Array2>
-inline void Matrix4Set(const Array1& u, Array2& matrix) {
-  for (unsigned i = 0; i < 32; ++i) {
-    matrix[i] = u[i];
-  }
-}
-
-// Multiply 4x4 matrix by one qubit matrix corresponding to qubit 0.
-template <typename Array1, typename Array2>
-inline void Matrix4Multiply20(const Array1& u, Array2& matrix) {
-  auto u00 = &u[0];
-  auto u01 = &u[2];
-  auto u10 = &u[4];
-  auto u11 = &u[6];
-
-  for (unsigned i = 0; i < 4; ++i) {
-    for (unsigned j = 0; j < 2; ++j) {
-      auto mr0 = matrix[16 * j + 0 + 2 * i];
-      auto mi0 = matrix[16 * j + 1 + 2 * i];
-      auto mr1 = matrix[16 * j + 8 + 2 * i];
-      auto mi1 = matrix[16 * j + 9 + 2 * i];
-
-      matrix[16 * j + 0 + 2 * i] =
-          u00[0] * mr0 - u00[1] * mi0 + u01[0] * mr1 - u01[1] * mi1;
-      matrix[16 * j + 1 + 2 * i] =
-          u00[0] * mi0 + u00[1] * mr0 + u01[0] * mi1 + u01[1] * mr1;
-      matrix[16 * j + 8 + 2 * i] =
-          u10[0] * mr0 - u10[1] * mi0 + u11[0] * mr1 - u11[1] * mi1;
-      matrix[16 * j + 9 + 2 * i] =
-          u10[0] * mi0 + u10[1] * mr0 + u11[0] * mi1 + u11[1] * mr1;
-    }
-  }
-}
-
-// Multiply 4x4 matrix by one qubit matrix corresponding to qubit 1.
-template <typename Array1, typename Array2>
-inline void Matrix4Multiply21(const Array1& u, Array2& matrix) {
-  auto u00 = &u[0];
-  auto u01 = &u[2];
-  auto u10 = &u[4];
-  auto u11 = &u[6];
-
-  for (unsigned i = 0; i < 4; ++i) {
-    for (unsigned j = 0; j < 2; ++j) {
-      auto mr0 = matrix[8 * j +  0 + 2 * i];
-      auto mi0 = matrix[8 * j +  1 + 2 * i];
-      auto mr1 = matrix[8 * j + 16 + 2 * i];
-      auto mi1 = matrix[8 * j + 17 + 2 * i];
-
-      matrix[8 * j +  0 + 2 * i] =
-          u00[0] * mr0 - u00[1] * mi0 + u01[0] * mr1 - u01[1] * mi1;
-      matrix[8 * j +  1 + 2 * i] =
-          u00[0] * mi0 + u00[1] * mr0 + u01[0] * mi1 + u01[1] * mr1;
-      matrix[8 * j + 16 + 2 * i] =
-          u10[0] * mr0 - u10[1] * mi0 + u11[0] * mr1 - u11[1] * mi1;
-      matrix[8 * j + 17 + 2 * i] =
-          u10[0] * mi0 + u10[1] * mr0 + u11[0] * mi1 + u11[1] * mr1;
-    }
-  }
-}
-
-// Multiply two 4x4 matrices.
-template <typename Array1, typename Array2>
-inline void Matrix4Multiply(const Array1& u, Array2& matrix) {
-  typename Array1::value_type matrix0[32];
-  for (unsigned i = 0; i < 32; ++i) {
-    matrix0[i] = matrix[i];
-  }
-
-  for (unsigned i = 0; i < 4; ++i) {
-    for (unsigned j = 0; j < 4; ++j) {
-      typename Array1::value_type tr = 0;
-      typename Array1::value_type ti = 0;
-
-      for (unsigned k = 0; k < 4; ++k) {
-        auto mr0 = matrix0[8 * k + 2 * j + 0];
-        auto mi0 = matrix0[8 * k + 2 * j + 1];
-
-        auto uik = &u[8 * i + 2 * k];
-
-        tr += uik[0] * mr0 - uik[1] * mi0;
-        ti += uik[0] * mi0 + uik[1] * mr0;
+        m2[2 * (n2 * i + j)] = re;
+        m2[2 * (n2 * i + j) + 1] = im;
       }
-
-      matrix[8 * i + 2 * j + 0] = tr;
-      matrix[8 * i + 2 * j + 1] = ti;
     }
   }
 }
 
-// Scalar multiply 4x4 matrix.
-template <typename FP, typename Array2>
-inline void Matrix4ScalarMultiply(FP c, Array2& matrix) {
-  for (unsigned i = 0; i < 32; i++) {
-    matrix[i] *= c;
+/**
+ * Multiply a matrix by a scalar value.
+ * @c Scalar value.
+ * @m Input matrix to be multiplied. Output matrix.
+ */
+template <typename fp_type1, typename fp_type2>
+inline void MatrixScalarMultiply(fp_type1 c, Matrix<fp_type2>& m) {
+  for (unsigned i = 0; i < m.size(); ++i) {
+    m[i] *= c;
   }
 }
 
-// Permute 4x4 matrix to swap qubits.
-template <typename Array2>
-inline void Matrix4Permute(Array2& matrix) {
-  std::swap(matrix[ 2], matrix[ 4]); std::swap(matrix[ 3], matrix[ 5]);
-  std::swap(matrix[ 8], matrix[16]); std::swap(matrix[ 9], matrix[17]);
-  std::swap(matrix[10], matrix[20]); std::swap(matrix[11], matrix[21]);
-  std::swap(matrix[12], matrix[18]); std::swap(matrix[13], matrix[19]);
-  std::swap(matrix[14], matrix[22]); std::swap(matrix[15], matrix[23]);
-  std::swap(matrix[26], matrix[28]); std::swap(matrix[27], matrix[29]);
+/**
+ * Daggers a matrix.
+ * @n Number of matrix rows (columns).
+ * @m Input matrix. Output matrix.
+ */
+template <typename fp_type>
+inline void MatrixDagger(unsigned n, Matrix<fp_type>& m) {
+  for (unsigned i = 0; i < n; ++i) {
+    m[2 * (n * i + i) + 1] = -m[2 * (n * i + i) + 1];
+
+    for (unsigned j = i + 1; j < n; ++j) {
+      std::swap(m[2 * (n * i + j)], m[2 * (n * j + i)]);
+      fp_type t = m[2 * (n * i + j) + 1];
+      m[2 * (n * i + j) + 1] = -m[2 * (n * j + i) + 1];
+      m[2 * (n * j + i) + 1] = -t;
+    }
+  }
 }
 
-// Dagger a 4x4 matrix.
-template <typename Array2>
-inline void Matrix4Dagger(Array2& matrix) {
-  for (unsigned i = 1; i < 32; i += 2) {
-    matrix[i] *= -1;
+/**
+ * Gets a permutation to rearrange qubits from "normal" order to "gate"
+ *   order. Qubits are ordered in increasing order for "normal" order.
+ *   Qubits are ordered arbitrarily for "gate" order. Returns an empty vector
+ *   if the qubits are in "normal" order.
+ * @qubits Qubit indices in "gate" order.
+ * @return Permutation as a vector.
+ */
+inline std::vector<unsigned> NormalToGateOrderPermutation(
+    const std::vector<unsigned>& qubits) {
+  std::vector<unsigned> perm;
+
+  bool normal_order = true;
+
+  for (std::size_t i = 1; i < qubits.size(); ++i) {
+    if (qubits[i] < qubits[i - 1]) {
+      normal_order = false;
+      break;
+    }
   }
-  std::swap(matrix[2], matrix[8]); std::swap(matrix[3], matrix[9]);
-  std::swap(matrix[4], matrix[16]); std::swap(matrix[5], matrix[17]);
-  std::swap(matrix[6], matrix[24]); std::swap(matrix[7], matrix[25]);
-  std::swap(matrix[12], matrix[18]); std::swap(matrix[13], matrix[19]);
-  std::swap(matrix[14], matrix[26]); std::swap(matrix[15], matrix[27]);
-  std::swap(matrix[22], matrix[28]); std::swap(matrix[23], matrix[29]);
+
+  if (!normal_order) {
+    struct QI {
+      unsigned q;
+      unsigned index;
+    };
+
+    std::vector<QI> qis;
+    qis.reserve(qubits.size());
+
+    for (std::size_t i = 0; i < qubits.size(); ++i) {
+      qis.push_back({qubits[i], unsigned(i)});
+    }
+
+    std::sort(qis.begin(), qis.end(), [](const QI& l, const QI& r) {
+                                        return l.q < r.q;
+                                      });
+
+    perm.reserve(qubits.size());
+
+    for (std::size_t i = 0; i < qubits.size(); ++i) {
+      perm.push_back(qis[i].index);
+    }
+  }
+
+  return perm;
+}
+
+/**
+ * Shuffles the gate matrix elements to get the matrix that acts on qubits
+ *   that are in "normal" order (in increasing orger).
+ * @perm Permutation to rearrange qubits from "normal" order to "gate" order.
+ * @q Number of gate qubits. The number of matrix rows (columns) is 2^q.
+ * @m Input matrix. Output shuffled matrix.
+ */
+template <typename fp_type>
+inline void MatrixShuffle(const std::vector<unsigned>& perm,
+                          unsigned q, Matrix<fp_type>& m) {
+  Matrix<fp_type> mt = m;
+  unsigned n = unsigned{1} << q;
+
+  for (unsigned i = 0; i < n; ++i) {
+    unsigned pi = bits::PermuteBits(i, q, perm);
+    for (unsigned j = 0; j < n; ++j) {
+      unsigned pj = bits::PermuteBits(j, q, perm);
+
+      m[2 * (n * i + j)] = mt[2 * (n * pi + pj)];
+      m[2 * (n * i + j) + 1] = mt[2 * (n * pi + pj) + 1];
+    }
+  }
 }
 
 }  // namespace qsim

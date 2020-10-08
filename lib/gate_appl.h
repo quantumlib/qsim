@@ -18,49 +18,11 @@
 #include <utility>
 #include <vector>
 
+#include "fuser.h"
 #include "gate.h"
 #include "matrix.h"
 
 namespace qsim {
-
-/**
- * Calculates the 2x2 matrix for a single-qubit fused gate.
- * @param gates Component gates that make up the fused gate.
- * @param matrix Output matrix representing the entire fused gate.
- */
-template <typename Gate, typename Array2>
-inline void CalcMatrix2(const std::vector<Gate*>& gates, Array2& matrix) {
-  Matrix2SetId(matrix);
-
-  for (auto pgate : gates) {
-    Matrix2Multiply(pgate->matrix, matrix);
-  }
-}
-
-/**
- * Calculates the 4x4 matrix for a two-qubit fused gate.
- * @param q0 Index of the first qubit affected by the fused gate.
- * @param q1 Index of the second qubit affected by the fused gate.
- * @param gates Component gates that make up the fused gate.
- * @param matrix Output matrix representing the entire fused gate.
- */
-template <typename Gate, typename Array2>
-inline void CalcMatrix4(unsigned q0, unsigned q1,
-                        const std::vector<Gate*>& gates, Array2& matrix) {
-  Matrix4SetId(matrix);
-
-  for (auto pgate : gates) {
-    if (pgate->num_qubits == 1) {
-      if (pgate->qubits[0] == q0) {
-        Matrix4Multiply20(pgate->matrix, matrix);
-      } else if (pgate->qubits[0] == q1) {
-        Matrix4Multiply21(pgate->matrix, matrix);
-      }
-    } else {
-      Matrix4Multiply(pgate->matrix, matrix);
-    }
-  }
-}
 
 /**
  * Applies the given gate to the simulator state. Ignores measurement gates.
@@ -74,6 +36,25 @@ inline void ApplyGate(const Simulator& simulator, const Gate& gate,
                       typename Simulator::State& state) {
   if (gate.kind != gate::kMeasurement) {
     simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
+  }
+}
+
+/**
+ * Applies the given gate dagger to the simulator state. If the gate matrix is
+ *   unitary then this is equivalent to applying the inverse gate. Ignores
+ *   measurement gates.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying gates.
+ * @param gate The gate to be applied.
+ * @param state The state of the system, to be updated by this method.
+ */
+template <typename Simulator, typename Gate>
+inline void ApplyGateDagger(const Simulator& simulator, const Gate& gate,
+                            typename Simulator::State& state) {
+  if (gate.kind != gate::kMeasurement) {
+    auto matrix = gate.matrix;
+    MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
+    simulator.ApplyGate(gate.qubits, matrix.data(), state);
   }
 }
 
@@ -144,15 +125,29 @@ template <typename Simulator, typename Gate>
 inline void ApplyFusedGate(const Simulator& simulator, const Gate& gate,
                            typename Simulator::State& state) {
   if (gate.kind != gate::kMeasurement) {
-    typename Simulator::fp_type matrix[32];
+    using fp_type = typename Simulator::fp_type;
+    auto matrix = CalculateFusedMatrix<fp_type>(gate);
+    simulator.ApplyGate(gate.qubits, matrix.data(), state);
+  }
+}
 
-    if (gate.num_qubits == 1) {
-      CalcMatrix2(gate.gates, matrix);
-    } else if (gate.num_qubits == 2) {
-      CalcMatrix4(gate.qubits[0], gate.qubits[1], gate.gates, matrix);
-    }
-
-    simulator.ApplyGate(gate.qubits, matrix, state);
+/**
+ * Applies the given fused gate dagger to the simulator state. If the gate
+ *   matrix is unitary then this is equivalent to applying the inverse gate.
+ *   Ignores measurement gates.
+ * @param simulator Simulator object. Provides specific implementations for
+ *   applying gates.
+ * @param gate The gate to be applied.
+ * @param state The state of the system, to be updated by this method.
+ */
+template <typename Simulator, typename Gate>
+inline void ApplyFusedGateDagger(const Simulator& simulator, const Gate& gate,
+                                 typename Simulator::State& state) {
+  if (gate.kind != gate::kMeasurement) {
+    using fp_type = typename Simulator::fp_type;
+    auto matrix = CalculateFusedMatrix<fp_type>(gate);
+    MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
+    simulator.ApplyGate(gate.qubits, matrix.data(), state);
   }
 }
 

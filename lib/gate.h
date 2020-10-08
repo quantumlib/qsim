@@ -40,14 +40,14 @@ struct Gate {
   unsigned num_qubits;
   std::vector<unsigned> qubits;
   std::vector<fp_type> params;
-  std::vector<fp_type> matrix;
+  Matrix<fp_type> matrix;
   bool unfusible;      // If true, the gate is fused as a master.
   bool inverse;        // If true, the qubit order is inversed (q0 > q1).
 };
 
 template <typename Gate, typename GateDef>
 inline Gate CreateGate(unsigned time, unsigned q0,
-                       std::vector<typename Gate::fp_type>&& matrix,
+                       Matrix<typename Gate::fp_type>&& matrix,
                        std::vector<typename Gate::fp_type>&& params = {}) {
   return Gate{GateDef::kind, time, GateDef::num_qubits, {q0},
               std::move(params), std::move(matrix), false, false};
@@ -55,21 +55,21 @@ inline Gate CreateGate(unsigned time, unsigned q0,
 
 template <typename Gate, typename GateDef>
 inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
-                       std::vector<typename Gate::fp_type>&& matrix,
+                       Matrix<typename Gate::fp_type>&& matrix,
                        std::vector<typename Gate::fp_type>&& params = {}) {
   Gate gate = {GateDef::kind, time, GateDef::num_qubits, {q0, q1},
                std::move(params), std::move(matrix), false, false};
   if (q0 > q1) {
     gate.inverse = true;
     std::swap(gate.qubits[0], gate.qubits[1]);
-    Matrix4Permute(gate.matrix);
+    MatrixShuffle({1, 0}, 2, gate.matrix);
   }
   return gate;
 }
 
 template <typename Gate, typename GateDef>
 inline Gate CreateGate(unsigned time, std::vector<unsigned>&& qubits,
-                       std::vector<typename Gate::fp_type>&& matrix = {},
+                       Matrix<typename Gate::fp_type>&& matrix = {},
                        std::vector<typename Gate::fp_type>&& params = {}) {
   return Gate{GateDef::kind, time, static_cast<unsigned>(qubits.size()),
               std::move(qubits), std::move(params), std::move(matrix),

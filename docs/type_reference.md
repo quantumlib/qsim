@@ -9,7 +9,6 @@ they fulfill the same expectations.
 | Name                    |  Example Type                                     |
 | ------------------------|---------------------------------------------------|
 | Args (parfor.h)         | Arguments to a `Function` object.                 |
-| Array1 / Array2         | A numeric C++ array representing a matrix.        |
 | Bitstring               | Alias for `uint64_t`.                             |
 | Circuit                 | [`Circuit`](lib/circuit.h)                        |
 | Container (util.h)      | A vector of strings, or `Op`'s output type.       |
@@ -27,7 +26,7 @@ they fulfill the same expectations.
 | HybridSimulator         | [`HybridSimulator`](lib/hybrid.h)                 |
 | IO                      | [`IO`](lib/io.h)                                  |
 | IOFile                  | [`IOFile`](lib/io_file.h)                         |
-| Matrix                  | Same as `Array(1|2)`.                             |
+| Matrix                  | A numeric C++ vector representing a matrix.       |
 | MeasurementFunc         | [`measure` (in `PrintAmplitudes`)](apps/qsim_base.cc) |
 | Op (util.h)             | [`to_int` (in `Options`)](apps/qsim_amplitudes.cc)    |
 | ParallelFor             | [`ParallelFor`](lib/parfor.h)                     |
