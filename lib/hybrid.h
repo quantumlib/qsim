@@ -323,38 +323,37 @@ struct HybridSimulator final {
       indices.push_back(index);
     }
 
-    StateSpace sspace0(hd.num_qubits0, param.num_threads);
-    StateSpace sspace1(hd.num_qubits1, param.num_threads);
+    StateSpace sspace(param.num_threads);
 
     State* rstate0;
     State* rstate1;
 
-    State state0p = sspace0.NullState();
-    State state1p = sspace1.NullState();
-    State state0r = sspace0.NullState();
-    State state1r = sspace1.NullState();
-    State state0s = sspace0.NullState();
-    State state1s = sspace1.NullState();
+    State state0p = sspace.Null();
+    State state1p = sspace.Null();
+    State state0r = sspace.Null();
+    State state1r = sspace.Null();
+    State state0s = sspace.Null();
+    State state1s = sspace.Null();
 
     // Create states.
 
-    if (!CreateStates(
-        sspace0, sspace1, true, state0p, state1p, rstate0, rstate1)) {
+    if (!CreateStates(hd.num_qubits0, hd.num_qubits1,
+                      sspace, true, state0p, state1p, rstate0, rstate1)) {
       return false;
     }
 
-    if (!CreateStates(
-        sspace0, sspace1, rmax > 1, state0r, state1r, rstate0, rstate1)) {
+    if (!CreateStates(hd.num_qubits0, hd.num_qubits1,
+                      sspace, rmax > 1, state0r, state1r, rstate0, rstate1)) {
       return false;
     }
 
-    if (!CreateStates(
-        sspace0, sspace1, smax > 1, state0s, state1s, rstate0, rstate1)) {
+    if (!CreateStates(hd.num_qubits0, hd.num_qubits1,
+                      sspace, smax > 1, state0s, state1s, rstate0, rstate1)) {
       return false;
     }
 
-    sspace0.SetStateZero(state0p);
-    sspace1.SetStateZero(state1p);
+    sspace.SetStateZero(state0p);
+    sspace.SetStateZero(state1p);
 
     Simulator sim0(hd.num_qubits0, param.num_threads);
     Simulator sim1(hd.num_qubits1, param.num_threads);
@@ -378,8 +377,8 @@ struct HybridSimulator final {
     // Branch over root gates on the cut. r encodes the root path.
     for (uint64_t r = 0; r < rmax; ++r) {
       if (rmax > 1) {
-        sspace0.CopyState(state0p, state0r);
-        sspace1.CopyState(state1p, state1r);
+        sspace.Copy(state0p, state0r);
+        sspace.Copy(state1p, state1r);
       }
 
       if (SetSchmidtMatrices(num_p_gates, num_pr_gates,
@@ -394,8 +393,8 @@ struct HybridSimulator final {
       // Branch over suffix gates on the cut. s encodes the suffix path.
       for (uint64_t s = 0; s < smax; ++s) {
         if (smax > 1) {
-          sspace0.CopyState(rmax > 1 ? state0r : state0p, state0s);
-          sspace1.CopyState(rmax > 1 ? state1r : state1p, state1s);
+          sspace.Copy(rmax > 1 ? state0r : state0p, state0s);
+          sspace.Copy(rmax > 1 ? state1r : state1p, state1s);
         }
 
         if (SetSchmidtMatrices(num_pr_gates, hd.num_gatexs,
@@ -408,18 +407,18 @@ struct HybridSimulator final {
         }
 
         auto f = [](unsigned n, unsigned m, uint64_t i,
-                    const StateSpace& sspace0, const StateSpace& sspace1,
+                    const StateSpace& sspace,
                     const State& state0, const State& state1,
                     const std::vector<Index>& indices,
                     std::vector<std::complex<fp_type>>& results) {
-          auto a0 = sspace0.GetAmpl(state0, indices[i].i0);
-          auto a1 = sspace1.GetAmpl(state1, indices[i].i1);
+          auto a0 = sspace.GetAmpl(state0, indices[i].i0);
+          auto a1 = sspace.GetAmpl(state1, indices[i].i1);
           results[i] += a0 * a1;
         };
 
         // Collect results.
-        for_.Run(results.size(), f, sspace0, sspace1, *rstate0, *rstate1,
-                 indices, results);
+        for_.Run(
+            results.size(), f, sspace, *rstate0, *rstate1, indices, results);
       }
     }
 
@@ -566,15 +565,15 @@ struct HybridSimulator final {
     }
   }
 
-  static bool CreateStates(
-      const StateSpace& sspace0, const StateSpace& sspace1,
-      bool create, State& state0, State& state1,
-      State* (&rstate0), State* (&rstate1)) {
+  static bool CreateStates(unsigned num_qubits0,unsigned num_qubits1,
+                           const StateSpace& sspace,
+                           bool create, State& state0, State& state1,
+                           State* (&rstate0), State* (&rstate1)) {
     if (create) {
-      state0 = sspace0.CreateState();
-      state1 = sspace1.CreateState();
+      state0 = sspace.Create(num_qubits0);
+      state1 = sspace.Create(num_qubits1);
 
-      if (sspace0.IsNull(state0) || sspace1.IsNull(state1)) {
+      if (sspace.IsNull(state0) || sspace.IsNull(state1)) {
         IO::errorf("not enough memory: is the number of qubits too large?\n");
         return false;
       }

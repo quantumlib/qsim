@@ -83,9 +83,9 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space(circuit.num_qubits, param.num_threads);
+    StateSpace state_space(param.num_threads);
 
-    auto state = state_space.CreateState();
+    auto state = state_space.Create(circuit.num_qubits);
     if (state_space.IsNull(state)) {
       IO::errorf("not enough memory: is the number of qubits too large?\n");
       return false;
@@ -162,7 +162,7 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space(circuit.num_qubits, param.num_threads);
+    StateSpace state_space(param.num_threads);
 
     Simulator simulator(circuit.num_qubits, param.num_threads);
 
