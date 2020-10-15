@@ -23,7 +23,6 @@
 #include <cstdlib>
 #include <memory>
 #include <utility>
-#include <vector>
 
 namespace qsim {
 
@@ -105,15 +104,6 @@ class VectorSpace {
 
   static bool IsNull(const Vector& vec) {
     return vec.get() == nullptr;
-  }
-
-  static bool Swap(Vector& vec1, Vector& vec2) {
-    if (vec1.num_qubits() != vec2.num_qubits()) {
-      return false;
-    } else {
-      std::swap(vec1, vec2);
-      return true;
-    }
   }
 
   bool Copy(const Vector& src, Vector& dest) const {

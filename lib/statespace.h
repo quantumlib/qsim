@@ -18,7 +18,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <type_traits>
 #include <vector>
 
 #include "util.h"
@@ -32,7 +31,7 @@ namespace qsim {
  */
 template <typename Impl, typename For, typename FP>
 class StateSpace : public VectorSpace<Impl, For, FP> {
- private:  // Impl::RawSizeT
+ private:
   using Base = VectorSpace<Impl, For, FP>;
 
  public:
