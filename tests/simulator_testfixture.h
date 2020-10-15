@@ -33,10 +33,10 @@ void TestApplyGate1() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
   Simulator simulator(num_qubits, num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -73,10 +73,10 @@ void TestApplyGate2() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
   Simulator simulator(num_qubits, num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -127,10 +127,10 @@ void TestApplyGate3() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
   Simulator simulator(num_qubits, num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -185,10 +185,10 @@ void TestApplyGate5() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
   Simulator simulator(num_qubits, num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);

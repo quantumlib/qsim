@@ -69,20 +69,14 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
   using fp_type = typename Base::fp_type;
 
   template <typename... ForArgs>
-  explicit StateSpaceAVX(unsigned num_qubits, ForArgs&&... args)
-      : Base(MinimumRawSize(2 * (uint64_t{1} << num_qubits)),
-             num_qubits, args...) {}
+  explicit StateSpaceAVX(ForArgs&&... args) : Base(args...) {}
 
-  static uint64_t MinimumRawSize(uint64_t raw_size) {
-    return std::max(uint64_t{16}, raw_size);
-  }
+  static uint64_t MinSize(unsigned num_qubits) {
+    return std::max(uint64_t{16}, 2 * (uint64_t{1} << num_qubits));
+  };
 
-  bool InternalToNormalOrder(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
-    if (Base::num_qubits_ == 1) {
+  void InternalToNormalOrder(State& state) const {
+    if (state.num_qubits() == 1) {
       fp_type* s = state.get();
 
       s[2] = s[1];
@@ -92,7 +86,7 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       for (uint64_t i = 4; i < 16; ++i) {
         s[i] = 0;
       }
-    } else if (Base::num_qubits_ == 2) {
+    } else if (state.num_qubits() == 2) {
       fp_type* s = state.get();
 
       s[6] = s[3];
@@ -124,18 +118,12 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         }
       };
 
-      Base::for_.Run(Base::raw_size_ / 16, f, state.get());
+      Base::for_.Run(MinSize(state.num_qubits()) / 16, f, state.get());
     }
-
-    return true;
   }
 
-  bool NormalToInternalOrder(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
-    if (Base::num_qubits_ == 1) {
+  void NormalToInternalOrder(State& state) const {
+    if (state.num_qubits() == 1) {
       fp_type* s = state.get();
 
       s[8] = s[1];
@@ -146,7 +134,7 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         s[i] = 0;
         s[i + 8] = 0;
       }
-    } else if (Base::num_qubits_ == 2) {
+    } else if (state.num_qubits() == 2) {
       fp_type* s = state.get();
 
       s[8] = s[1];
@@ -179,17 +167,11 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
         }
       };
 
-      Base::for_.Run(Base::raw_size_ / 16, f, state.get());
+      Base::for_.Run(MinSize(state.num_qubits()) / 16, f, state.get());
     }
-
-    return true;
   }
 
-  bool SetAllZeros(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void SetAllZeros(State& state) const {
     __m256 val0 = _mm256_setzero_ps();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, __m256& val, fp_type* p) {
@@ -197,23 +179,17 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       _mm256_store_ps(p + 16 * i + 8, val);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, val0, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 16, f, val0, state.get());
   }
 
   // Uniform superposition.
-  bool SetStateUniform(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void SetStateUniform(State& state) const {
     __m256 val0 = _mm256_setzero_ps();
     __m256 valu;
 
-    fp_type v = double{1} / std::sqrt(Base::Size());
+    fp_type v = double{1} / std::sqrt(uint64_t{1} << state.num_qubits());
 
-    switch (Base::num_qubits_) {
+    switch (state.num_qubits()) {
     case 1:
       valu = _mm256_set_ps(0, 0, 0, 0, 0, 0, v, v);
       break;
@@ -231,21 +207,14 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       _mm256_store_ps(p + 16 * i + 8, val0);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, val0, valu, state.get());
-
-    return true;
+    Base::for_.Run(
+        MinSize(state.num_qubits()) / 16, f, val0, valu, state.get());
   }
 
   // |0> state.
-  bool SetStateZero(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void SetStateZero(State& state) const {
     SetAllZeros(state);
     state.get()[0] = 1;
-
-    return true;
   }
 
   static std::complex<fp_type> GetAmpl(const State& state, uint64_t i) {
@@ -267,8 +236,8 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
   }
 
   // Does the equivalent of dest += src elementwise.
-  bool AddState(const State& src, State& dest) const {
-    if (src.size() != Base::raw_size_ || dest.size() != Base::raw_size_) {
+  bool Add(const State& src, State& dest) const {
+    if (src.num_qubits() != dest.num_qubits()) {
       return false;
     }
 
@@ -283,17 +252,13 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       _mm256_store_ps(p2 + 16 * i + 8, _mm256_add_ps(im1, im2));
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, src.get(), dest.get());
+    Base::for_.Run(MinSize(src.num_qubits()) / 16, f, src.get(), dest.get());
 
     return true;
   }
 
   // Does the equivalent of state *= a elementwise.
-  bool Multiply(fp_type a, State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void Multiply(fp_type a, State& state) const {
     __m256 r = _mm256_set1_ps(a);
 
     auto f = [](unsigned n, unsigned m, uint64_t i, __m256 r, fp_type* p) {
@@ -307,14 +272,12 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       _mm256_store_ps(p + 16 * i + 8, im);
     };
 
-    Base::for_.Run(Base::raw_size_ / 16, f, r, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 16, f, r, state.get());
   }
 
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
-    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+    if (state1.num_qubits() != state2.num_qubits()) {
       return std::nan("");
     }
 
@@ -335,12 +298,12 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     };
 
     using Op = std::plus<std::complex<double>>;
-    return Base::for_.RunReduce(Base::raw_size_ / 16, f,
+    return Base::for_.RunReduce(MinSize(state1.num_qubits()) / 16, f,
                                 Op(), state1.get(), state2.get());
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
-    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+    if (state1.num_qubits() != state2.num_qubits()) {
       return std::nan("");
     }
 
@@ -357,7 +320,7 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduce(Base::raw_size_ / 16, f,
+    return Base::for_.RunReduce(MinSize(state1.num_qubits()) / 16, f,
                                 Op(), state1.get(), state2.get());
   }
 
@@ -366,9 +329,9 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
-    if (state.size() == Base::raw_size_ && num_samples > 0) {
+    if (num_samples > 0) {
       double norm = 0;
-      uint64_t size = Base::raw_size_ / 16;
+      uint64_t size = MinSize(state.num_qubits()) / 16;
       const fp_type* p = state.get();
 
       for (uint64_t k = 0; k < size; ++k) {
@@ -403,11 +366,7 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  bool CollapseState(const MeasurementResult& mr, State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void Collapse(const MeasurementResult& mr, State& state) const {
     auto f1 = [](unsigned n, unsigned m, uint64_t i,
                  uint64_t mask, uint64_t bits, const fp_type* p) -> double {
       __m256i ml = detail::GetZeroMaskAVX(8 * i, mask, bits);
@@ -420,7 +379,7 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    double norm = Base::for_.RunReduce(Base::raw_size_ / 16, f1,
+    double norm = Base::for_.RunReduce(MinSize(state.num_qubits()) / 16, f1,
                                        Op(), mr.mask, mr.bits, state.get());
 
     __m256 renorm = _mm256_set1_ps(1.0 / std::sqrt(norm));
@@ -439,17 +398,11 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       _mm256_store_ps(p + 16 * i + 8, im);
     };
 
-    Base::for_.Run(
-        Base::raw_size_ / 16, f2, mr.mask, mr.bits, renorm, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 16, f2,
+                   mr.mask, mr.bits, renorm, state.get());
   }
 
   std::vector<double> PartialNorms(const State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return {};
-    }
-
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 const fp_type* p) -> double {
       __m256 re = _mm256_load_ps(p + 16 * i);
@@ -460,19 +413,16 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduceP(Base::raw_size_ / 16, f, Op(), state.get());
+    return Base::for_.RunReduceP(
+        MinSize(state.num_qubits()) / 16, f, Op(), state.get());
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return -1;
-    }
-
     double csum = 0;
 
-    uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 16, m);
-    uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 16, m);
+    uint64_t k0 = Base::for_.GetIndex0(MinSize(state.num_qubits()) / 16, m);
+    uint64_t k1 = Base::for_.GetIndex1(MinSize(state.num_qubits()) / 16, m);
 
     const fp_type* p = state.get();
 
