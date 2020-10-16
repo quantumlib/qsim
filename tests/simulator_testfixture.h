@@ -34,7 +34,7 @@ void TestApplyGate1() {
   using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space(num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  Simulator simulator(num_threads);
 
   auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
@@ -74,7 +74,7 @@ void TestApplyGate2() {
   using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space(num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  Simulator simulator(num_threads);
 
   auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
@@ -128,7 +128,7 @@ void TestApplyGate3() {
   using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space(num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  Simulator simulator(num_threads);
 
   auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
@@ -186,7 +186,7 @@ void TestApplyGate5() {
   using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space(num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  Simulator simulator(num_threads);
 
   auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
