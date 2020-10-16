@@ -78,7 +78,7 @@ template <typename fp_type>
 using Matrix2q = std::array<std::array<std::complex<fp_type>, 4>, 4>;
 
 constexpr double h_double = 0.5;
-constexpr double pi_double = M_PI;
+constexpr double pi_double = 3.14159265358979323846264338327950288;
 constexpr double is2_double = 0.7071067811865475;
 
 // Gates from cirq/ops/identity.py:
@@ -1207,6 +1207,17 @@ struct MatrixGate1 {
         time, q0, {real(m[0][0]), imag(m[0][0]), real(m[0][1]), imag(m[0][1]),
                    real(m[1][0]), imag(m[1][0]), real(m[1][1]), imag(m[1][1])});
   }
+
+  static GateCirq<fp_type> Create(unsigned time, unsigned q0,
+                                  Matrix<fp_type>&& m) {
+    return CreateGate<GateCirq<fp_type>, MatrixGate1>(time, q0, std::move(m));
+  }
+
+  static GateCirq<fp_type> Create(unsigned time, unsigned q0,
+                                  const Matrix<fp_type>& m) {
+    auto m2 = m;
+    return CreateGate<GateCirq<fp_type>, MatrixGate1>(time, q0, std::move(m2));
+  }
 };
 
 /**
@@ -1222,16 +1233,33 @@ struct MatrixGate2 {
                                   const Matrix2q<fp_type>& m) {
     using std::real;
     using std::imag;
+
+    // Matrix is in this form because the simulator uses inverse qubit order.
     return CreateGate<GateCirq<fp_type>, MatrixGate2>(
         time, q0, q1,
-        {real(m[0][0]), imag(m[0][0]), real(m[0][1]), imag(m[0][1]),
-         real(m[0][2]), imag(m[0][2]), real(m[0][3]), imag(m[0][3]),
-         real(m[1][0]), imag(m[1][0]), real(m[1][1]), imag(m[1][1]),
-         real(m[1][2]), imag(m[1][2]), real(m[1][3]), imag(m[1][3]),
-         real(m[2][0]), imag(m[2][0]), real(m[2][1]), imag(m[2][1]),
-         real(m[2][2]), imag(m[2][2]), real(m[2][3]), imag(m[2][3]),
-         real(m[3][0]), imag(m[3][0]), real(m[3][1]), imag(m[3][1]),
-         real(m[3][2]), imag(m[3][2]), real(m[3][3]), imag(m[3][3])});
+        {real(m[0][0]), imag(m[0][0]), real(m[0][2]), imag(m[0][2]),
+         real(m[0][1]), imag(m[0][1]), real(m[0][3]), imag(m[0][3]),
+         real(m[2][0]), imag(m[2][0]), real(m[2][2]), imag(m[2][2]),
+         real(m[2][1]), imag(m[2][1]), real(m[2][3]), imag(m[2][3]),
+         real(m[1][0]), imag(m[1][0]), real(m[1][2]), imag(m[1][2]),
+         real(m[1][1]), imag(m[1][1]), real(m[1][3]), imag(m[1][3]),
+         real(m[3][0]), imag(m[3][0]), real(m[3][2]), imag(m[3][2]),
+         real(m[3][1]), imag(m[3][1]), real(m[3][3]), imag(m[3][3])});
+  }
+
+  static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
+                                  Matrix<fp_type>&& m) {
+    MatrixShuffle({1, 0}, 2, m);
+    return
+        CreateGate<GateCirq<fp_type>, MatrixGate2>(time, q0, q1, std::move(m));
+  }
+
+  static GateCirq<fp_type> Create(unsigned time, unsigned q0, unsigned q1,
+                                  const Matrix<fp_type>& m) {
+    auto m2 = m;
+    MatrixShuffle({1, 0}, 2, m2);
+    return
+        CreateGate<GateCirq<fp_type>, MatrixGate2>(time, q0, q1, std::move(m2));
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {

@@ -204,8 +204,8 @@ TEST(RunQSimTest, QSimSampler) {
 }
 
 TEST(RunQSimTest, CirqGates) {
-  auto circuit = CirqCircuit1::GetCircuit<float>();
-  const auto& expected_results = CirqCircuit1::expected_results;
+  auto circuit = CirqCircuit1::GetCircuit<float>(true);
+  const auto& expected_results = CirqCircuit1::expected_results1;
 
   using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
