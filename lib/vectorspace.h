@@ -94,14 +94,6 @@ class VectorSpace {
     return Vector{Pointer{nullptr, &free}, 0};
   }
 
-  static fp_type* RawData(Vector& vec) {
-    return vec.get();
-  }
-
-  static const fp_type* RawData(const Vector& vec) {
-    return vec.get();
-  }
-
   static bool IsNull(const Vector& vec) {
     return vec.get() == nullptr;
   }
