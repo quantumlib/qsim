@@ -355,8 +355,7 @@ struct HybridSimulator final {
     sspace.SetStateZero(state0p);
     sspace.SetStateZero(state1p);
 
-    Simulator sim0(hd.num_qubits0, param.num_threads);
-    Simulator sim1(hd.num_qubits1, param.num_threads);
+    Simulator sim(param.num_threads);
 
     std::vector<unsigned> prev(hd.num_gatexs, -1);
 
@@ -366,8 +365,8 @@ struct HybridSimulator final {
 
     if (gatex_index == 0) {
       // Apply gates before the first checkpoint.
-      ApplyGates(fgates0, 0, loc0[0], sim0, state0p);
-      ApplyGates(fgates1, 0, loc1[0], sim1, state1p);
+      ApplyGates(fgates0, 0, loc0[0], sim, state0p);
+      ApplyGates(fgates1, 0, loc1[0], sim, state1p);
     } else {
       IO::errorf("invalid prefix %lu for prefix gate index %u.\n",
                  param.prefix, gatex_index - 1);
@@ -384,8 +383,8 @@ struct HybridSimulator final {
       if (SetSchmidtMatrices(num_p_gates, num_pr_gates,
                              r, prev, hd.gatexs) == 0) {
         // Apply gates before the second checkpoint.
-        ApplyGates(fgates0, loc0[0], loc0[1], sim0, state0r);
-        ApplyGates(fgates1, loc1[0], loc1[1], sim1, state1r);
+        ApplyGates(fgates0, loc0[0], loc0[1], sim, state0r);
+        ApplyGates(fgates1, loc1[0], loc1[1], sim, state1r);
       } else {
         continue;
       }
@@ -400,8 +399,8 @@ struct HybridSimulator final {
         if (SetSchmidtMatrices(num_pr_gates, hd.num_gatexs,
                                s, prev, hd.gatexs) == 0) {
           // Apply the rest of the gates.
-          ApplyGates(fgates0, loc0[1], fgates0.size(), sim0, state0s);
-          ApplyGates(fgates1, loc1[1], fgates1.size(), sim1, state1s);
+          ApplyGates(fgates0, loc0[1], fgates0.size(), sim, state0s);
+          ApplyGates(fgates1, loc1[1], fgates1.size(), sim, state1s);
         } else {
           continue;
         }

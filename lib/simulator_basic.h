@@ -33,8 +33,7 @@ class SimulatorBasic final {
   using fp_type = typename StateSpace::fp_type;
 
   template <typename... ForArgs>
-  explicit SimulatorBasic(unsigned num_qubits, ForArgs&&... args)
-      : for_(args...), num_qubits_(num_qubits) {}
+  explicit SimulatorBasic(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using non-vectorized instructions.
@@ -61,13 +60,13 @@ class SimulatorBasic final {
    * @param state The state of the system, to be updated by this method.
    */
   void ApplyGate1(unsigned q0, const fp_type* matrix, State& state) const {
-    uint64_t sizei = uint64_t{1} << num_qubits_;
+    uint64_t sizei = uint64_t{1} << state.num_qubits();
     uint64_t sizek = uint64_t{1} << (q0 + 1);
 
     uint64_t mask0 = sizek - 1;
     uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizek - 1);
 
-    auto rstate = StateSpace::RawData(state);
+    auto rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizek, uint64_t mask0, uint64_t mask1,
@@ -103,7 +102,7 @@ class SimulatorBasic final {
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
     // Assume q0 < q1.
 
-    uint64_t sizei = uint64_t{1} << (num_qubits_ - 1);
+    uint64_t sizei = uint64_t{1} << (state.num_qubits() - 1);
     uint64_t sizej = uint64_t{1} << (q1 + 1);
     uint64_t sizek = uint64_t{1} << (q0 + 1);
 
@@ -111,7 +110,7 @@ class SimulatorBasic final {
     uint64_t mask1 = (sizej - 1) ^ (2 * sizek - 1);
     uint64_t mask2 = (4 * sizei - 1) ^ (2 * sizej - 1);
 
-    fp_type* rstate = StateSpace::RawData(state);
+    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizej, uint64_t sizek,
@@ -154,7 +153,6 @@ class SimulatorBasic final {
   }
 
   For for_;
-  unsigned num_qubits_;
 };
 
 }  // namespace qsim

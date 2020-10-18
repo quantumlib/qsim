@@ -92,7 +92,7 @@ struct QSimRunner final {
     }
 
     state_space.SetStateZero(state);
-    Simulator simulator(circuit.num_qubits, param.num_threads);
+    Simulator simulator(param.num_threads);
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
                                         times_to_measure_at);
@@ -164,7 +164,7 @@ struct QSimRunner final {
 
     StateSpace state_space(param.num_threads);
 
-    Simulator simulator(circuit.num_qubits, param.num_threads);
+    Simulator simulator(param.num_threads);
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
