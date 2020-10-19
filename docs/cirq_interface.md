@@ -148,6 +148,6 @@ Known gates with no decomposition:
 ### Parametrized circuits
 
 QSimCircuit objects can also contain
-[parameterized gates](https://cirq.readthedocs.io/en/stable/tutorial.html#parameterizing-the-ansatz)
+[parameterized gates](https://cirq.readthedocs.io/en/stable/docs/tutorials/basics.html#Using-parameter-sweeps)
 which have values assigned by Cirq's `ParamResolver`. See the link above for
 details on how to use this feature.
