@@ -162,8 +162,8 @@ TEST(RunQSimHTest, QSimHRunner) {
 }
 
 TEST(RunQSimHTest, CirqGates) {
-  auto circuit = CirqCircuit1::GetCircuit<float>();
-  const auto& expected_results = CirqCircuit1::expected_results;
+  auto circuit = CirqCircuit1::GetCircuit<float>(false);
+  const auto& expected_results = CirqCircuit1::expected_results0;
 
   using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
