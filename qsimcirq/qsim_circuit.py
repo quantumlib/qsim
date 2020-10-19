@@ -167,7 +167,7 @@ class QSimCircuit(cirq.Circuit):
           qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
           params = {
             p.strip('_'): val for p, val in vars(qsim_op.gate).items()
-            if isinstance(val, float)
+            if isinstance(val, float) or isinstance(val, int)
           }
           if gate_kind == qsim.kMatrixGate1:
             qsim.add_matrix1(time, qubits,
