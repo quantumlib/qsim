@@ -29,33 +29,34 @@ def _cirq_gate_kind(gate):
       + 'only 1- or 2-qubit gates are supported.')
   if isinstance(gate, cirq.ops.XPowGate):
     # cirq.rx also uses this path.
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kX
     return qsim.kXPowGate
   if isinstance(gate, cirq.ops.YPowGate):
     # cirq.ry also uses this path.
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kY
     return qsim.kYPowGate
   if isinstance(gate, cirq.ops.ZPowGate):
     # cirq.rz also uses this path.
-    if gate.exponent == 1:
-      return qsim.kZ
-    if gate.exponent == 0.5:
-      return qsim.kS
-    if gate.exponent == 0.25:
-      return qsim.kT
+    if gate.global_shift == 0:
+      if gate.exponent == 1:
+        return qsim.kZ
+      if gate.exponent == 0.5:
+        return qsim.kS
+      if gate.exponent == 0.25:
+        return qsim.kT
     return qsim.kZPowGate
   if isinstance(gate, cirq.ops.HPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kH
     return qsim.kHPowGate
   if isinstance(gate, cirq.ops.CZPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kCZ
     return qsim.kCZPowGate
   if isinstance(gate, cirq.ops.CXPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kCX
     return qsim.kCXPowGate
   if isinstance(gate, cirq.ops.PhasedXPowGate):
@@ -63,24 +64,24 @@ def _cirq_gate_kind(gate):
   if isinstance(gate, cirq.ops.PhasedXZGate):
     return qsim.kPhasedXZGate
   if isinstance(gate, cirq.ops.XXPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kXX
     return qsim.kXXPowGate
   if isinstance(gate, cirq.ops.YYPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kYY
     return qsim.kYYPowGate
   if isinstance(gate, cirq.ops.ZZPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kZZ
     return qsim.kZZPowGate
   if isinstance(gate, cirq.ops.SwapPowGate):
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kSWAP
     return qsim.kSwapPowGate
   if isinstance(gate, cirq.ops.ISwapPowGate):
     # cirq.riswap also uses this path.
-    if gate.exponent == 1:
+    if gate.exponent == 1 and gate.global_shift == 0:
       return qsim.kISWAP
     return qsim.kISwapPowGate
   if isinstance(gate, cirq.ops.PhasedISwapPowGate):
