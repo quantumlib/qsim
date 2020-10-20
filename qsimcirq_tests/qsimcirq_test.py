@@ -37,6 +37,7 @@ class MainTest(unittest.TestCase):
     with self.assertRaises(NotImplementedError):
       qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
 
+
   def test_cirq_qsim_simulate(self):
     # Pick qubits.
     a, b, c, d = [
@@ -58,6 +59,7 @@ class MainTest(unittest.TestCase):
     result = qsimSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b0100, 0b1011])
     assert np.allclose(result, [0.5j, 0j])
+
 
   def test_cirq_qsim_simulate_fullstate(self):
     # Pick qubits.
@@ -97,6 +99,7 @@ class MainTest(unittest.TestCase):
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
 
+
   def test_cirq_qsim_run(self):
     # Pick qubits.
     a, b, c, d = [
@@ -124,6 +127,7 @@ class MainTest(unittest.TestCase):
     for key, value in result.measurements.items():
       assert(value.shape == (5, 1))
 
+
   def test_qsim_run_vs_cirq_run(self):
     # Simple circuit, want to check mapping of qubit(s) to their measurements
     a, b, c, d = [
@@ -150,6 +154,7 @@ class MainTest(unittest.TestCase):
     # are they the same?
     assert(qsim_result == cirq_result)
 
+
   def test_intermediate_measure(self):
     # Demonstrate that intermediate measurement is possible.
     a, b = [
@@ -171,7 +176,8 @@ class MainTest(unittest.TestCase):
     qsim_result = qsim_simulator.run(circuit, repetitions=20)
 
     assert(qsim_result == cirq_result)
-    
+
+
   def test_sampling_nondeterminism(self):
     # Ensure that reusing a QSimSimulator doesn't reuse the original seed.
     q = cirq.GridQubit(0, 0)
@@ -182,6 +188,7 @@ class MainTest(unittest.TestCase):
     result_counts = qsim_result.histogram(key='m')
     assert(result_counts[0] > 1)
     assert(result_counts[1] > 1)
+
 
   def test_matrix1_gate(self):
     q = cirq.LineQubit(0)
@@ -196,6 +203,7 @@ class MainTest(unittest.TestCase):
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
 
+
   def test_matrix2_gate(self):
     qubits = cirq.LineQubit.range(2)
     m = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -208,6 +216,7 @@ class MainTest(unittest.TestCase):
     cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
+
 
   def test_decomposable_gate(self):
     qubits = cirq.LineQubit.range(4)
@@ -233,6 +242,7 @@ class MainTest(unittest.TestCase):
     assert cirq.linalg.allclose_up_to_global_phase(
         result.state_vector(), cirq_result.state_vector())
 
+
   def test_cirq_irreconcilable_gate(self):
     a, b, c, d = [
         cirq.GridQubit(0, 0),
@@ -248,6 +258,7 @@ class MainTest(unittest.TestCase):
     qsimSim = qsimcirq.QSimSimulator()
     with self.assertRaises(ValueError):
       qsimSim.simulate(cirq_circuit)
+
 
   def test_cirq_qsim_simulate_random_unitary(self):
 
@@ -275,6 +286,7 @@ class MainTest(unittest.TestCase):
             atol = 1.e-6
         )
 
+
   def test_cirq_qsimh_simulate(self):
     # Pick qubits.
     a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
@@ -300,6 +312,255 @@ class MainTest(unittest.TestCase):
 
     qsim_simulator = qsimcirq.QSimSimulator()
     qsim_result = qsim_simulator.simulate(circuit, param_resolver = params)
+
+    assert cirq.linalg.allclose_up_to_global_phase(
+        qsim_result.state_vector(), cirq_result.state_vector())
+
+
+  def test_cirq_qsim_all_supported_gates(self):
+    q0 = cirq.GridQubit(1, 1)
+    q1 = cirq.GridQubit(1, 0)
+    q2 = cirq.GridQubit(0, 1)
+    q3 = cirq.GridQubit(0, 0)
+
+    circuit = cirq.Circuit(
+      cirq.Moment([
+        cirq.H(q0),
+        cirq.H(q1),
+        cirq.H(q2),
+        cirq.H(q3),
+      ]),
+      cirq.Moment([
+        cirq.T(q0),
+        cirq.T(q1),
+        cirq.T(q2),
+        cirq.T(q3),
+      ]),
+      cirq.Moment([
+        cirq.CZPowGate(exponent=0.7, global_shift=0.2)(q0, q1),
+        cirq.CXPowGate(exponent=1.2, global_shift=0.4)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.XPowGate(exponent=0.3, global_shift=1.1)(q0),
+        cirq.YPowGate(exponent=0.4, global_shift=1)(q1),
+        cirq.ZPowGate(exponent=0.5, global_shift=0.9)(q2),
+        cirq.HPowGate(exponent=0.6, global_shift=0.8)(q3),
+      ]),
+      cirq.Moment([
+        cirq.CX(q0, q2),
+        cirq.CZ(q1, q3),
+      ]),
+      cirq.Moment([
+        cirq.X(q0),
+        cirq.Y(q1),
+        cirq.Z(q2),
+        cirq.S(q3),
+      ]),
+      cirq.Moment([
+        cirq.XXPowGate(exponent=0.4, global_shift=0.7)(q0, q1),
+        cirq.YYPowGate(exponent=0.8, global_shift=0.5)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.I(q0),
+        cirq.I(q1),
+        cirq.IdentityGate(2)(q2, q3)
+      ]),
+      cirq.Moment([
+        cirq.rx(0.7)(q0),
+        cirq.ry(0.2)(q1),
+        cirq.rz(0.4)(q2),
+        cirq.PhasedXPowGate(
+            phase_exponent=0.8, exponent=0.6, global_shift=0.3)(q3),
+      ]),
+      cirq.Moment([
+        cirq.ZZPowGate(exponent=0.3, global_shift=1.3)(q0, q2),
+        cirq.ISwapPowGate(exponent=0.6, global_shift=1.2)(q1, q3),
+      ]),
+      cirq.Moment([
+        cirq.XPowGate(exponent=0.1, global_shift=0.9)(q0),
+        cirq.YPowGate(exponent=0.2, global_shift=1)(q1),
+        cirq.ZPowGate(exponent=0.3, global_shift=1.1)(q2),
+        cirq.HPowGate(exponent=0.4, global_shift=1.2)(q3),
+      ]),
+      cirq.Moment([
+        cirq.SwapPowGate(exponent=0.2, global_shift=0.9)(q0, q1),
+        cirq.PhasedISwapPowGate(phase_exponent = 0.8, exponent=0.6)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.PhasedXZGate(
+            x_exponent=0.2, z_exponent=0.3, axis_phase_exponent=1.4)(q0),
+        cirq.T(q1),
+        cirq.H(q2),
+        cirq.S(q3),
+      ]),
+      cirq.Moment([
+        cirq.SWAP(q0, q2),
+        cirq.XX(q1, q3),
+      ]),
+      cirq.Moment([
+        cirq.rx(0.8)(q0),
+        cirq.ry(0.9)(q1),
+        cirq.rz(1.2)(q2),
+        cirq.T(q3),
+      ]),
+      cirq.Moment([
+        cirq.YY(q0, q1),
+        cirq.ISWAP(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.T(q0),
+        cirq.Z(q1),
+        cirq.Y(q2),
+        cirq.X(q3),
+      ]),
+      cirq.Moment([
+        cirq.FSimGate(0.3, 1.7)(q0, q2),
+        cirq.ZZ(q1, q3),
+      ]),
+      cirq.Moment([
+        cirq.ry(1.3)(q0),
+        cirq.rz(0.4)(q1),
+        cirq.rx(0.7)(q2),
+        cirq.S(q3),
+      ]),
+      cirq.Moment([
+        cirq.MatrixGate(np.array([[0, -0.5 - 0.5j, -0.5 - 0.5j, 0],
+                                  [0.5 - 0.5j, 0, 0, -0.5 + 0.5j],
+                                  [0.5 - 0.5j, 0, 0, 0.5 - 0.5j],
+                                  [0, -0.5 - 0.5j, 0.5 + 0.5j, 0]]))(q0, q1),
+        cirq.MatrixGate(np.array([[0.5 - 0.5j, 0, 0, -0.5 + 0.5j],
+                                  [0, 0.5 - 0.5j, -0.5 + 0.5j, 0],
+                                  [0, -0.5 + 0.5j, -0.5 + 0.5j, 0],
+                                  [0.5 - 0.5j, 0, 0, 0.5 - 0.5j]]))(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.MatrixGate(np.array([[1, 0], [0, 1j]]))(q0),
+        cirq.MatrixGate(np.array([[0, -1j], [1j, 0]]))(q1),
+        cirq.MatrixGate(np.array([[0, 1], [1, 0]]))(q2),
+        cirq.MatrixGate(np.array([[1, 0], [0, -1]]))(q3),
+      ]),
+      cirq.Moment([
+        cirq.riswap(0.7)(q0, q1),
+        cirq.givens(1.2)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.H(q0),
+        cirq.H(q1),
+        cirq.H(q2),
+        cirq.H(q3),
+      ]),
+    )
+
+    simulator = cirq.Simulator()
+    cirq_result = simulator.simulate(circuit)
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.simulate(circuit)
+
+    assert cirq.linalg.allclose_up_to_global_phase(
+        qsim_result.state_vector(), cirq_result.state_vector())
+
+
+  def test_cirq_qsim_global_shift(self):
+    q0 = cirq.GridQubit(1, 1)
+    q1 = cirq.GridQubit(1, 0)
+    q2 = cirq.GridQubit(0, 1)
+    q3 = cirq.GridQubit(0, 0)
+
+    circuit = cirq.Circuit(
+      cirq.Moment([
+        cirq.H(q0),
+        cirq.H(q1),
+        cirq.H(q2),
+        cirq.H(q3),
+      ]),
+      cirq.Moment([
+        cirq.CXPowGate(exponent=1, global_shift=0.7)(q0, q1),
+        cirq.CZPowGate(exponent=1, global_shift=0.9)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.XPowGate(exponent=1, global_shift=1.1)(q0),
+        cirq.YPowGate(exponent=1, global_shift=1)(q1),
+        cirq.ZPowGate(exponent=1, global_shift=0.9)(q2),
+        cirq.HPowGate(exponent=1, global_shift=0.8)(q3),
+      ]),
+      cirq.Moment([
+        cirq.XXPowGate(exponent=1, global_shift=0.2)(q0, q1),
+        cirq.YYPowGate(exponent=1, global_shift=0.3)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.ZPowGate(exponent=0.25, global_shift=0.4)(q0),
+        cirq.ZPowGate(exponent=0.5, global_shift=0.5)(q1),
+        cirq.YPowGate(exponent=1, global_shift=0.2)(q2),
+        cirq.ZPowGate(exponent=1, global_shift=0.3)(q3),
+      ]),
+      cirq.Moment([
+        cirq.ZZPowGate(exponent=1, global_shift=0.2)(q0, q1),
+        cirq.SwapPowGate(exponent=1, global_shift=0.3)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.XPowGate(exponent=1, global_shift=0)(q0),
+        cirq.YPowGate(exponent=1, global_shift=0)(q1),
+        cirq.ZPowGate(exponent=1, global_shift=0)(q2),
+        cirq.HPowGate(exponent=1, global_shift=0)(q3),
+      ]),
+      cirq.Moment([
+        cirq.ISwapPowGate(exponent=1, global_shift=0.3)(q0, q1),
+        cirq.ZZPowGate(exponent=1, global_shift=0.5)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.ZPowGate(exponent=0.5, global_shift=0)(q0),
+        cirq.ZPowGate(exponent=0.25, global_shift=0)(q1),
+        cirq.XPowGate(exponent=0.9, global_shift=0)(q2),
+        cirq.YPowGate(exponent=0.8, global_shift=0)(q3),
+      ]),
+      cirq.Moment([
+        cirq.CZPowGate(exponent=0.3, global_shift=0)(q0, q1),
+        cirq.CXPowGate(exponent=0.4, global_shift=0)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.ZPowGate(exponent=1.3, global_shift=0)(q0),
+        cirq.HPowGate(exponent=0.8, global_shift=0)(q1),
+        cirq.XPowGate(exponent=0.9, global_shift=0)(q2),
+        cirq.YPowGate(exponent=0.4, global_shift=0)(q3),
+      ]),
+      cirq.Moment([
+        cirq.XXPowGate(exponent=0.8, global_shift=0)(q0, q1),
+        cirq.YYPowGate(exponent=0.6, global_shift=0)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.HPowGate(exponent=0.7, global_shift=0)(q0),
+        cirq.ZPowGate(exponent=0.2, global_shift=0)(q1),
+        cirq.YPowGate(exponent=0.3, global_shift=0)(q2),
+        cirq.XPowGate(exponent=0.7, global_shift=0)(q3),
+      ]),
+      cirq.Moment([
+        cirq.ZZPowGate(exponent=0.1, global_shift=0)(q0, q1),
+        cirq.SwapPowGate(exponent=0.6, global_shift=0)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.XPowGate(exponent=0.4, global_shift=0)(q0),
+        cirq.YPowGate(exponent=0.3, global_shift=0)(q1),
+        cirq.ZPowGate(exponent=0.2, global_shift=0)(q2),
+        cirq.HPowGate(exponent=0.1, global_shift=0)(q3),
+      ]),
+      cirq.Moment([
+        cirq.ISwapPowGate(exponent=1.3, global_shift=0)(q0, q1),
+        cirq.CXPowGate(exponent=0.5, global_shift=0)(q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.H(q0),
+        cirq.H(q1),
+        cirq.H(q2),
+        cirq.H(q3),
+      ]),
+    )
+
+    simulator = cirq.Simulator()
+    cirq_result = simulator.simulate(circuit)
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.simulate(circuit)
 
     assert cirq.linalg.allclose_up_to_global_phase(
         qsim_result.state_vector(), cirq_result.state_vector())
