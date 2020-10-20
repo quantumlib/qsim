@@ -3,9 +3,9 @@
 This file provides examples of how to use qsim with the
 [Cirq](https://github.com/quantumlib/cirq) Python library.
 
-qsim is currently built to work with Cirq version 0.8.2; if you have a later
-version of Cirq installed, you may need to downgrade (or run in a virtualenv)
-when working with qsim until support for the latest Cirq version is available.
+qsim is kept up-to-date with the latest version of Cirq. If you experience
+compatibility issues, please file an issue in the qsim or Cirq repository
+as appropriate.
 
 
 ## Setting up
