@@ -65,6 +65,20 @@ class SimulatorAVX final {
     }
   }
 
+  /**
+   * Applies a controlled gate using non-vectorized instructions.
+   * @param qs Indices of the qubits affected by this gate.
+   * @param cqs Indices of control qubits.
+   * @param cmask Bit mask of control qubit values.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
+  void ApplyControlledGate(const std::vector<unsigned>& qs,
+                           const std::vector<unsigned>& cqs, uint64_t cmask,
+                           const fp_type* matrix, State& state) const {
+    // Not implemented yet.
+  }
+
  private:
   // Applies a single-qubit gate for qubit > 2.
   // Performs vectorized sparse matrix-vector multiplication.

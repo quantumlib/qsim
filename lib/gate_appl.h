@@ -35,7 +35,12 @@ template <typename Simulator, typename Gate>
 inline void ApplyGate(const Simulator& simulator, const Gate& gate,
                       typename Simulator::State& state) {
   if (gate.kind != gate::kMeasurement) {
-    simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
+    if (gate.controlled_by.size() == 0) {
+      simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
+    } else {
+      simulator.ApplyControlledGate(gate.qubits, gate.controlled_by,
+                                    gate.cmask, gate.matrix.data(), state);
+    }
   }
 }
 
@@ -54,7 +59,13 @@ inline void ApplyGateDagger(const Simulator& simulator, const Gate& gate,
   if (gate.kind != gate::kMeasurement) {
     auto matrix = gate.matrix;
     MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
-    simulator.ApplyGate(gate.qubits, matrix.data(), state);
+
+    if (gate.controlled_by.size() == 0) {
+      simulator.ApplyGate(gate.qubits, matrix.data(), state);
+    } else {
+      simulator.ApplyControlledGate(gate.qubits, gate.controlled_by,
+                                    gate.cmask, gate.matrix.data(), state);
+    }
   }
 }
 
@@ -127,7 +138,12 @@ inline void ApplyFusedGate(const Simulator& simulator, const Gate& gate,
   if (gate.kind != gate::kMeasurement) {
     using fp_type = typename Simulator::fp_type;
     auto matrix = CalculateFusedMatrix<fp_type>(gate);
-    simulator.ApplyGate(gate.qubits, matrix.data(), state);
+    if (gate.parent->controlled_by.size() == 0) {
+      simulator.ApplyGate(gate.qubits, matrix.data(), state);
+    } else {
+      simulator.ApplyControlledGate(gate.qubits, gate.parent->controlled_by,
+                                    gate.parent->cmask, matrix.data(), state);
+    }
   }
 }
 
@@ -147,7 +163,12 @@ inline void ApplyFusedGateDagger(const Simulator& simulator, const Gate& gate,
     using fp_type = typename Simulator::fp_type;
     auto matrix = CalculateFusedMatrix<fp_type>(gate);
     MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
-    simulator.ApplyGate(gate.qubits, matrix.data(), state);
+    if (gate.parent->controlled_by.size() == 0) {
+      simulator.ApplyGate(gate.qubits, matrix.data(), state);
+    } else {
+      simulator.ApplyControlledGate(gate.qubits, gate.parent->controlled_by,
+                                    gate.parent->cmask, matrix.data(), state);
+    }
   }
 }
 

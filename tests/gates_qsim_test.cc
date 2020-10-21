@@ -31,7 +31,7 @@ TEST(GatesQsimTest, GateRX) {
   float s = std::sin(phi2);
 
   EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.num_qubits, 1);
+  EXPECT_EQ(gate.qubits.size(), 1);
   EXPECT_EQ(gate.qubits[0], qubit);
 
   EXPECT_FLOAT_EQ(gate.matrix[0], c);
@@ -55,7 +55,7 @@ TEST(GatesQsimTest, GateRY) {
   float s = std::sin(phi2);
 
   EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.num_qubits, 1);
+  EXPECT_EQ(gate.qubits.size(), 1);
   EXPECT_EQ(gate.qubits[0], qubit);
 
   EXPECT_FLOAT_EQ(gate.matrix[0], c);
@@ -79,7 +79,7 @@ TEST(GatesQsimTest, GateRZ) {
   float s = std::sin(phi2);
 
   EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.num_qubits, 1);
+  EXPECT_EQ(gate.qubits.size(), 1);
   EXPECT_EQ(gate.qubits[0], qubit);
 
   EXPECT_FLOAT_EQ(gate.matrix[0], c);
@@ -106,7 +106,7 @@ TEST(GatesQsimTest, GateRXY) {
   float st = std::sin(theta) * sp;
 
   EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.num_qubits, 1);
+  EXPECT_EQ(gate.qubits.size(), 1);
   EXPECT_EQ(gate.qubits[0], qubit);
 
   EXPECT_FLOAT_EQ(gate.matrix[0], cp);
@@ -133,7 +133,7 @@ TEST(GatesQsimTest, GateFS) {
   float sp = std::sin(phi);
 
   EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.num_qubits, 2);
+  EXPECT_EQ(gate.qubits.size(), 2);
   EXPECT_EQ(gate.qubits[0], qubit0);
   EXPECT_EQ(gate.qubits[1], qubit1);
 
@@ -251,7 +251,7 @@ TEST(GatesQsimTest, GateCP) {
   float sp = std::sin(phi);
 
   EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.num_qubits, 2);
+  EXPECT_EQ(gate.qubits.size(), 2);
   EXPECT_EQ(gate.qubits[0], qubit0);
   EXPECT_EQ(gate.qubits[1], qubit1);
 
