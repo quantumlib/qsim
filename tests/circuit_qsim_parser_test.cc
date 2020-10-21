@@ -342,7 +342,7 @@ R"(2
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
 
-TEST(CircuitQsimParserTest, NoControllQubits) {
+TEST(CircuitQsimParserTest, NoControlQubits) {
   constexpr char invalid_circuit[] =
 R"(4
 0 c is 0 1

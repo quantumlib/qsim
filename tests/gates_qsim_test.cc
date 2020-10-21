@@ -24,7 +24,7 @@ TEST(GatesQsimTest, GateRX) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
-  const auto& gate = GateRX<float>::Create(time, qubit, phi);
+  auto gate = GateRX<float>::Create(time, qubit, phi);
 
   float phi2 = -0.5 * phi;
   float c = std::cos(phi2);
@@ -48,7 +48,7 @@ TEST(GatesQsimTest, GateRY) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
-  const auto& gate = GateRY<float>::Create(time, qubit, phi);
+  auto gate = GateRY<float>::Create(time, qubit, phi);
 
   float phi2 = -0.5 * phi;
   float c = std::cos(phi2);
@@ -72,7 +72,7 @@ TEST(GatesQsimTest, GateRZ) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
-  const auto& gate = GateRZ<float>::Create(time, qubit, phi);
+  auto gate = GateRZ<float>::Create(time, qubit, phi);
 
   float phi2 = -0.5 * phi;
   float c = std::cos(phi2);
@@ -97,7 +97,7 @@ TEST(GatesQsimTest, GateRXY) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
-  const auto& gate = GateRXY<float>::Create(time, qubit, theta, phi);
+  auto gate = GateRXY<float>::Create(time, qubit, theta, phi);
 
   float phi2 = -0.5 * phi;
   float cp = std::cos(phi2);
@@ -125,7 +125,7 @@ TEST(GatesQsimTest, GateFS) {
   unsigned time = 7;
   unsigned qubit0 = 11;
   unsigned qubit1 = 12;
-  const auto& gate = GateFS<float>::Create(time, qubit0, qubit1, theta, phi);
+  auto gate = GateFS<float>::Create(time, qubit0, qubit1, theta, phi);
 
   float ct = std::cos(theta);
   float st = std::sin(theta);
@@ -170,7 +170,7 @@ TEST(GatesQsimTest, GateFS) {
   EXPECT_FLOAT_EQ(gate.matrix[30], cp);
   EXPECT_FLOAT_EQ(gate.matrix[31], -sp);
 
-  auto schmidt_decomp =  GateFS<float>::SchmidtDecomp(theta, phi);
+  auto schmidt_decomp = GateFS<float>::SchmidtDecomp(theta, phi);
 
   EXPECT_EQ(schmidt_decomp.size(), 4);
 
@@ -245,7 +245,7 @@ TEST(GatesQsimTest, GateCP) {
   unsigned time = 7;
   unsigned qubit0 = 11;
   unsigned qubit1 = 12;
-  const auto& gate = GateCP<float>::Create(time, qubit0, qubit1, phi);
+  auto gate = GateCP<float>::Create(time, qubit0, qubit1, phi);
 
   float cp = std::cos(phi);
   float sp = std::sin(phi);
@@ -288,7 +288,7 @@ TEST(GatesQsimTest, GateCP) {
   EXPECT_FLOAT_EQ(gate.matrix[30], cp);
   EXPECT_FLOAT_EQ(gate.matrix[31], -sp);
 
-  auto schmidt_decomp =  GateCP<float>::SchmidtDecomp(phi);
+  auto schmidt_decomp = GateCP<float>::SchmidtDecomp(phi);
 
   EXPECT_EQ(schmidt_decomp.size(), 2);
 
@@ -324,6 +324,19 @@ TEST(GatesQsimTest, GateCP) {
   EXPECT_FLOAT_EQ(schmidt_decomp[1][1][5], 0);
   EXPECT_FLOAT_EQ(schmidt_decomp[1][1][6], cp);
   EXPECT_FLOAT_EQ(schmidt_decomp[1][1][7], -sp);
+}
+
+TEST(GatesQsimTest, GateMeasurement) {
+  unsigned time = 5;
+  std::vector<unsigned> qubits = {3, 2, 4, 0, 7, 5, 1};
+  auto gate = gate::Measurement<GateQSim<float>>::Create(time, qubits);
+
+  EXPECT_EQ(gate.time, time);
+  EXPECT_EQ(gate.qubits.size(), qubits.size());
+
+  for (std::size_t i = 0; i < qubits.size(); ++i) {
+    EXPECT_EQ(gate.qubits[i], qubits[i]);
+  }
 }
 
 }  // namespace qsim

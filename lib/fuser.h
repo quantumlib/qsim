@@ -37,7 +37,8 @@ struct GateFused {
    */
   unsigned time;
   /**
-   * A list of qubits these gates act upon, possibly excluding control qubits.
+   * A list of qubits these gates act upon. Control qubits for
+   * explicitly-controlled gates are excluded from this list.
    */
   std::vector<unsigned> qubits;
   /**
