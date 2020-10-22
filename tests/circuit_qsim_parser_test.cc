@@ -402,6 +402,34 @@ R"(4
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
 
+TEST(CircuitQsimParserTest, OverlappingQubits1) {
+  constexpr char invalid_circuit[] =
+R"(4
+0 h 0
+0 h 1
+0 t 0
+)";
+
+  std::stringstream ss(invalid_circuit);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+}
+
+TEST(CircuitQsimParserTest, OverlappingQubits2) {
+  constexpr char invalid_circuit[] =
+R"(4
+0 h 0
+0 h 1
+0 c 0 2 t 3
+)";
+
+  std::stringstream ss(invalid_circuit);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
