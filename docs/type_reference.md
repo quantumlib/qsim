@@ -10,7 +10,7 @@ they fulfill the same expectations.
 | ------------------------|---------------------------------------------------|
 | Args (parfor.h)         | Arguments to a `Function` object.                 |
 | Bitstring               | Alias for `uint64_t`.                             |
-| Circuit                 | [`Circuit`](lib/circuit.h)                        |
+| Circuit                 | [`Circuit`](https://github.com/quantumlib/qsim/tree/master/lib/circuit.h)                        |
 | Container (util.h)      | A vector of strings, or `Op`'s output type.       |
 | Ctype                   | A complex type, e.g. `std::complex<float>`.       |
 | For                     | `for` loop abstractions, see below.               |
@@ -18,23 +18,24 @@ they fulfill the same expectations.
 | FP (simulator_basic.h)  | Same as `fp_type`.                                |
 | fp_type                 | A floating-point type, i.e. `float` or `double`.  |
 | Function (parfor.h)     | Any function; args are specified with `Args`.     |
-| FuserT                  | [`BasicGateFuser`](lib/fuser_basic.h)             |
-| Gate                    | [`Gate`](lib/gate.h)                              |
-| GateDef                 | [`GateRX`](lib/gate.h)                            |
-| GateQSim                | [`GateQSim`](lib/gates_qsim.h)                    |
-| GK / GateKind           | [`GateKind`](lib/gate.h)                          |
-| HybridSimulator         | [`HybridSimulator`](lib/hybrid.h)                 |
-| IO                      | [`IO`](lib/io.h)                                  |
-| IOFile                  | [`IOFile`](lib/io_file.h)                         |
+| FuserT                  | [`BasicGateFuser`](https://github.com/quantumlib/qsim/tree/master/lib/fuser_basic.h)             |
+| Gate                    | [`Gate`](https://github.com/quantumlib/qsim/tree/master/lib/gate.h)                              |
+| GateCirq                | [`GateCirq`](https://github.com/quantumlib/qsim/tree/master/lib/gates_cirq.h)                    |
+| GateDef                 | [`GateRX`](https://github.com/quantumlib/qsim/tree/master/lib/gate.h)                            |
+| GateQSim                | [`GateQSim`](https://github.com/quantumlib/qsim/tree/master/lib/gates_qsim.h)                    |
+| GK / GateKind           | [`GateKind`](https://github.com/quantumlib/qsim/tree/master/lib/gate.h)                          |
+| HybridSimulator         | [`HybridSimulator`](https://github.com/quantumlib/qsim/tree/master/lib/hybrid.h)                 |
+| IO                      | [`IO`](https://github.com/quantumlib/qsim/tree/master/lib/io.h)                                  |
+| IOFile                  | [`IOFile`](https://github.com/quantumlib/qsim/tree/master/lib/io_file.h)                         |
 | Matrix                  | A numeric C++ vector representing a matrix.       |
-| MeasurementFunc         | [`measure` (in `PrintAmplitudes`)](apps/qsim_base.cc) |
-| Op (util.h)             | [`to_int` (in `Options`)](apps/qsim_amplitudes.cc)    |
-| ParallelFor             | [`ParallelFor`](lib/parfor.h)                     |
+| MeasurementFunc         | [`measure` (in `PrintAmplitudes`)](https://github.com/quantumlib/qsim/tree/master/apps/qsim_base.cc) |
+| Op (util.h)             | [`to_int` (in `Options`)](https://github.com/quantumlib/qsim/tree/master/apps/qsim_amplitudes.cc)    |
+| ParallelFor             | [`ParallelFor`](https://github.com/quantumlib/qsim/tree/master/lib/parfor.h)                     |
 | Params                  | Vector of `fp_type`.                              |
-| SequentialFor           | [`SequentialFor`](lib/seqfor.h)                   |
-| Simulator               | [`SimulatorAVX`](lib/simulator_avx.h)             |
+| SequentialFor           | [`SequentialFor`](https://github.com/quantumlib/qsim/tree/master/lib/seqfor.h)                   |
+| Simulator               | [`SimulatorAVX`](https://github.com/quantumlib/qsim/tree/master/lib/simulator_avx.h)             |
 | State                   | Unique pointer to `fp_type`.                      |
-| StateSpace              | [`StateSpace`](lib/statespace.h)                  |
+| StateSpace              | [`StateSpace`](https://github.com/quantumlib/qsim/tree/master/lib/statespace.h)                  |
 | Stream                  | A valid input for `std::getline()`.               |
 
 ## `For` and `ForArgs`
