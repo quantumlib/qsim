@@ -12,7 +12,7 @@ gates with one gate per line. The format for a gate is
 time gate_name qubits parameters
 ```
 
-Here `time` is a gate application "time". Gates with the same time can be
+Here `time` refers to when the gate is applied in the circuit. Gates with the same time can be
 applied independently and they may be reordered for performance. Trailing
 spaces or characters are not allowed. A number of sample circuits are provided
 in [circuits](/circuits).
