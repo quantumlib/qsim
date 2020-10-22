@@ -74,7 +74,7 @@ TEST(CircuitQsimParserTest, ValidCircuitWithControlledGates) {
   constexpr char valid_circuit[] =
 R"(5
 0 c 0 1 h 2
-0 c 4 3 2 is 0 1
+1 c 4 3 2 is 0 1
 )";
 
   Circuit<GateQSim<float>> circuit;

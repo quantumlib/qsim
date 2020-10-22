@@ -182,8 +182,7 @@ class CircuitQsimParser final {
    */
   static bool ValidateGate(std::stringstream& ss, unsigned num_qubits,
                            const std::vector<unsigned>& qubits) {
-    return ss && /*ss.peek() != std::stringstream::traits_type::eof();
-        &&*/ ValidateQubits(num_qubits, qubits);
+    return ss && ValidateQubits(num_qubits, qubits);
   }
 
   static bool ValidateControlledGate(
