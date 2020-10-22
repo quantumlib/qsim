@@ -65,6 +65,7 @@ class CircuitQsimParser final {
 
     unsigned prev_time = 0;
 
+    std::vector<unsigned> last_times;
 
     while (std::getline(fs, line)) {
       ++k;
@@ -80,6 +81,8 @@ class CircuitQsimParser final {
                      provider.c_str(), k);
           return false;
         }
+
+        last_times.resize(circuit.num_qubits, -1);
 
         continue;
       }
@@ -112,6 +115,15 @@ class CircuitQsimParser final {
       } else if (!ParseGate<fp_type>(ss, time, circuit.num_qubits,
                                      gate_name, circuit.gates)) {
         InvalidGateError(provider, k);
+        return false;
+      }
+
+      const auto& gate = circuit.gates.back();
+
+      if (CheckForOverlappingQubits(time, gate.qubits, last_times)
+          || CheckForOverlappingQubits(time, gate.controlled_by, last_times)) {
+        IO::errorf("gates have overlapping qubits at time %i in %s.\n",
+                   time, provider.c_str());
         return false;
       }
     }
@@ -218,6 +230,20 @@ class CircuitQsimParser final {
     }
 
     return true;
+  }
+
+  static bool CheckForOverlappingQubits(unsigned time,
+                                        const std::vector<unsigned>& qubits,
+                                        std::vector<unsigned>& last_times) {
+    for (auto q : qubits) {
+      if (time == last_times[q]) {
+        return true;
+      }
+
+      last_times[q] = time;
+    }
+
+    return false;
   }
 
   template <typename fp_type, typename Stream, typename Gate>
