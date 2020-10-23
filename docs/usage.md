@@ -153,7 +153,7 @@ reasonably well in most cases.
 
 The runtime of an execution is heavily influenced by **-p**, as there is no
 summation over the "prefix" gates. The unique "prefix" path is specified by
-**-w**; see the `Distributed execution` section below for details on this.
+**-w**; see the "Distributed execution" section below for details on this.
 
 **-r** implicitly specifies the number of the "suffix" gates: the total number
 of gates on the cut minus the values specified by **-p** and **-r**. For
