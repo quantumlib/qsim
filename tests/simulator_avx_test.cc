@@ -37,6 +37,10 @@ TEST(SimulatorAVXTest, ApplyGate5) {
   TestApplyGate5<SimulatorAVX<For>>();
 }
 
+TEST(SimulatorAVXTest, ApplyControlGate) {
+  TestApplyControlGate<SimulatorAVX<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

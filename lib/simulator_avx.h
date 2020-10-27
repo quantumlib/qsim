@@ -19,15 +19,15 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <vector>
 
+#include "bits.h"
 #include "statespace_avx.h"
 
 namespace qsim {
 
 /**
- * Quantum circuit simulator with AVX vectorization.
- */
+* Quantum circuit simulator with AVX vectorization.
+*/
 template <typename For>
 class SimulatorAVX final {
  public:
@@ -36,7 +36,8 @@ class SimulatorAVX final {
   using fp_type = typename StateSpace::fp_type;
 
   template <typename... ForArgs>
-  explicit SimulatorAVX(ForArgs&&... args) : for_(args...) {}
+  explicit SimulatorAVX(ForArgs&&... args)
+      : w_(StateSpace::Create(15)), for_(args...) {}
 
   /**
    * Applies a gate using AVX instructions.
@@ -46,27 +47,77 @@ class SimulatorAVX final {
    */
   void ApplyGate(const std::vector<unsigned>& qs,
                  const fp_type* matrix, State& state) const {
-    if (qs.size() == 1) {
-      if (qs[0] > 2) {
-        ApplyGate1H(qs[0], matrix, state);
-      } else {
-        ApplyGate1L(qs[0], matrix, state);
-      }
-    } else if (qs.size() == 2) {
-      // Assume qs[0] < qs[1].
+    // Assume qs[0] < qs[1] < qs[2] < ... .
 
+    switch (qs.size()) {
+    case 1:
       if (qs[0] > 2) {
-        ApplyGate2HH(qs[0], qs[1], matrix, state);
-      } else if (qs[1] > 2) {
-        ApplyGate2HL(qs[0], qs[1], matrix, state);
+        ApplyGate1H(qs, matrix, state);
       } else {
-        ApplyGate2LL(qs[0], qs[1], matrix, state);
+        ApplyGate1L(qs, matrix, state);
       }
+      break;
+    case 2:
+      if (qs[0] > 2) {
+        ApplyGate2HH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        ApplyGate2HL(qs, matrix, state);
+      } else {
+        ApplyGate2LL(qs, matrix, state);
+      }
+      break;
+    case 3:
+      if (qs[0] > 2) {
+        ApplyGate3HHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        ApplyGate3HHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        ApplyGate3HLL(qs, matrix, state);
+      } else {
+        ApplyGate3LLL(qs, matrix, state);
+      }
+      break;
+    case 4:
+      if (qs[0] > 2) {
+        ApplyGate4HHHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        ApplyGate4HHHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        ApplyGate4HHLL(qs, matrix, state);
+      } else {
+        ApplyGate4HLLL(qs, matrix, state);
+      }
+      break;
+    case 5:
+      if (qs[0] > 2) {
+        ApplyGate5HHHHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        ApplyGate5HHHHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        ApplyGate5HHHLL(qs, matrix, state);
+      } else {
+        ApplyGate5HHLLL(qs, matrix, state);
+      }
+      break;
+    case 6:
+      if (qs[0] > 2) {
+        ApplyGate6HHHHHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        ApplyGate6HHHHHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        ApplyGate6HHHHLL(qs, matrix, state);
+      } else {
+        ApplyGate6HHHLLL(qs, matrix, state);
+      }
+      break;
+    default:
+      // Not implemented.
+      break;
     }
   }
 
   /**
-   * Applies a controlled gate using non-vectorized instructions.
+   * Applies a controlled gate using AVX instructions.
    * @param qs Indices of the qubits affected by this gate.
    * @param cqs Indices of control qubits.
    * @param cmask Bit mask of control qubit values.
@@ -76,554 +127,5272 @@ class SimulatorAVX final {
   void ApplyControlledGate(const std::vector<unsigned>& qs,
                            const std::vector<unsigned>& cqs, uint64_t cmask,
                            const fp_type* matrix, State& state) const {
-    // Not implemented yet.
+    if (cqs.size() == 0) {
+      ApplyGate(qs, matrix, state);
+      return;
+    }
+
+    switch (qs.size()) {
+    case 1:
+      if (qs[0] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate1H_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate1H_L(qs, cqs, cmask, matrix, state);
+        }
+      } else {
+        if (cqs[0] > 2) {
+          ApplyControlledGate1L_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate1L_L(qs, cqs, cmask, matrix, state);
+        }
+      }
+      break;
+    case 2:
+      if (qs[0] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate2HH_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate2HH_L(qs, cqs, cmask, matrix, state);
+        }
+      } else if (qs[1] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate2HL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate2HL_L(qs, cqs, cmask, matrix, state);
+        }
+      } else {
+        if (cqs[0] > 2) {
+          ApplyControlledGate2LL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate2LL_L(qs, cqs, cmask, matrix, state);
+        }
+      }
+      break;
+    case 3:
+      if (qs[0] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate3HHH_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate3HHH_L(qs, cqs, cmask, matrix, state);
+        }
+      } else if (qs[1] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate3HHL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate3HHL_L(qs, cqs, cmask, matrix, state);
+        }
+      } else if (qs[2] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate3HLL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate3HLL_L(qs, cqs, cmask, matrix, state);
+        }
+      } else {
+        if (cqs[0] > 2) {
+          ApplyControlledGate3LLL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate3LLL_L(qs, cqs, cmask, matrix, state);
+        }
+      }
+      break;
+    case 4:
+      if (qs[0] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate4HHHH_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate4HHHH_L(qs, cqs, cmask, matrix, state);
+        }
+      } else if (qs[1] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate4HHHL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate4HHHL_L(qs, cqs, cmask, matrix, state);
+        }
+      } else if (qs[2] > 2) {
+        if (cqs[0] > 2) {
+          ApplyControlledGate4HHLL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate4HHLL_L(qs, cqs, cmask, matrix, state);
+        }
+      } else {
+        if (cqs[0] > 2) {
+          ApplyControlledGate4HLLL_H(qs, cqs, cmask, matrix, state);
+        } else {
+          ApplyControlledGate4HLLL_L(qs, cqs, cmask, matrix, state);
+        }
+      }
+      break;
+    default:
+      // Not implemented.
+      break;
+    }
   }
 
  private:
-  // Applies a single-qubit gate for qubit > 2.
-  // Performs vectorized sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs AVX vectorization.
-  void ApplyGate1H(unsigned q0, const fp_type* matrix, State& state) const {
-    uint64_t sizei = uint64_t{1} << state.num_qubits();
-    uint64_t sizek = uint64_t{1} << (q0 + 1);
+  void ApplyGate1H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
 
-    uint64_t mask0 = sizek - 1;
-    uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizek - 1);
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
 
-    fp_type* rstate = state.get();
-
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                uint64_t sizek, uint64_t mask0, uint64_t mask1,
-                const float* matrix, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, ru, iu, rn, in;
-
-      uint64_t si = (32 * i & mask1) | (16 * i & mask0);
-      auto p0 = rstate + si;
-      auto p1 = p0 + sizek;
-
-      r0 = _mm256_load_ps(p0);
-      i0 = _mm256_load_ps(p0 + 8);
-      r1 = _mm256_load_ps(p1);
-      i1 = _mm256_load_ps(p1 + 8);
-
-      ru = _mm256_set1_ps(matrix[0]);
-      iu = _mm256_set1_ps(matrix[1]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[2]);
-      iu = _mm256_set1_ps(matrix[3]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-
-      _mm256_store_ps(p0, rn);
-      _mm256_store_ps(p0 + 8, in);
-
-      ru = _mm256_set1_ps(matrix[4]);
-      iu = _mm256_set1_ps(matrix[5]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[6]);
-      iu = _mm256_set1_ps(matrix[7]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-
-      _mm256_store_ps(p1, rn);
-      _mm256_store_ps(p1 + 8, in);
-    };
-
-    for_.Run(sizei / 16, f, sizek, mask0, mask1, matrix, rstate);
-  }
-
-  // Applies a single-qubit gate for qubit <= 2.
-  // Performs vectorized sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs AVX vectorization with permutations.
-  void ApplyGate1L(unsigned q0, const fp_type* matrix, State& state) const {
-    __m256i ml;
-    __m256 u[4];
-
-    switch (q0) {
-    case 0:
-      ml = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
-      u[0] = SetPs(matrix, 6, 0, 6, 0, 6, 0, 6, 0);
-      u[1] = SetPs(matrix, 7, 1, 7, 1, 7, 1, 7, 1);
-      u[2] = SetPs(matrix, 4, 2, 4, 2, 4, 2, 4, 2);
-      u[3] = SetPs(matrix, 5, 3, 5, 3, 5, 3, 5, 3);
-      break;
-    case 1:
-      ml = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
-      u[0] = SetPs(matrix, 6, 6, 0, 0, 6, 6, 0, 0);
-      u[1] = SetPs(matrix, 7, 7, 1, 1, 7, 7, 1, 1);
-      u[2] = SetPs(matrix, 4, 4, 2, 2, 4, 4, 2, 2);
-      u[3] = SetPs(matrix, 5, 5, 3, 3, 5, 5, 3, 3);
-      break;
-    case 2:
-      ml = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
-      u[0] = SetPs(matrix, 6, 6, 6, 6, 0, 0, 0, 0);
-      u[1] = SetPs(matrix, 7, 7, 7, 7, 1, 1, 1, 1);
-      u[2] = SetPs(matrix, 4, 4, 4, 4, 2, 2, 2, 2);
-      u[3] = SetPs(matrix, 5, 5, 5, 5, 3, 3, 3, 3);
-      break;
-    default:
-      // Cannot reach here.
-      ml = _mm256_set1_epi32(0);
-      for (std::size_t i = 0; i < 4; ++i) {
-        u[i] = _mm256_set1_ps(0);
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
       }
-      break;
+      xss[i] = a;
     }
 
-    uint64_t sizei = uint64_t{1} << (state.num_qubits() + 1);
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[2], is[2];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss, rstate);
+  }
+
+  void ApplyGate1L(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, State& state) const {
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 2; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (4 * i + 2 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (2 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
 
     fp_type* rstate = state.get();
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                __m256i ml, const __m256* u, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, rn, in;
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[2], is[2];
 
       auto p0 = rstate + 16 * i;
 
-      r0 = _mm256_load_ps(p0);
-      i0 = _mm256_load_ps(p0 + 8);
-      r1 = _mm256_permutevar8x32_ps(r0, ml);
-      i1 = _mm256_permutevar8x32_ps(i0, ml);
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0);
+        is[2 * l] = _mm256_load_ps(p0 + 8);
 
-      rn = _mm256_mul_ps(r0, u[0]);
-      in = _mm256_mul_ps(r0, u[1]);
-      rn = _mm256_fnmadd_ps(i0, u[1], rn);
-      in = _mm256_fmadd_ps(i0, u[0], in);
-      rn = _mm256_fmadd_ps(r1, u[2], rn);
-      in = _mm256_fmadd_ps(r1, u[3], in);
-      rn = _mm256_fnmadd_ps(i1, u[3], rn);
-      in = _mm256_fmadd_ps(i1, u[2], in);
-
-      _mm256_store_ps(p0, rn);
-      _mm256_store_ps(p0 + 8, in);
-    };
-
-    for_.Run(std::max(uint64_t{1}, sizei / 16), f, ml, u, rstate);
-  }
-
-  // Applies two-qubit gate for qubit0 > 2 and qubit1 > 2.
-  // Performs vectorized sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs AVX vectorization.
-  void ApplyGate2HH(
-      unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
-    uint64_t sizei = uint64_t{1} << (state.num_qubits() - 1);
-    uint64_t sizej = uint64_t{1} << (q1 + 1);
-    uint64_t sizek = uint64_t{1} << (q0 + 1);
-
-    uint64_t mask0 = sizek - 1;
-    uint64_t mask1 = (sizej - 1) ^ (2 * sizek - 1);
-    uint64_t mask2 = (4 * sizei - 1) ^ (2 * sizej - 1);
-
-    fp_type* rstate = state.get();
-
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                uint64_t sizej, uint64_t sizek,
-                uint64_t mask0, uint64_t mask1, uint64_t mask2,
-                const fp_type* matrix, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, r2, i2, r3, i3, ru, iu, rn, in;
-
-      uint64_t si = (64 * i & mask2) | (32 * i & mask1) | (16 * i & mask0);
-      auto p0 = rstate + si;
-      auto p1 = p0 + sizek;
-      auto p2 = p0 + sizej;
-      auto p3 = p1 + sizej;
-
-      r0 = _mm256_load_ps(p0);
-      i0 = _mm256_load_ps(p0 + 8);
-      r1 = _mm256_load_ps(p1);
-      i1 = _mm256_load_ps(p1 + 8);
-      r2 = _mm256_load_ps(p2);
-      i2 = _mm256_load_ps(p2 + 8);
-      r3 = _mm256_load_ps(p3);
-      i3 = _mm256_load_ps(p3 + 8);
-
-      ru = _mm256_set1_ps(matrix[0]);
-      iu = _mm256_set1_ps(matrix[1]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[2]);
-      iu = _mm256_set1_ps(matrix[3]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[4]);
-      iu = _mm256_set1_ps(matrix[5]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[6]);
-      iu = _mm256_set1_ps(matrix[7]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
-
-      _mm256_store_ps(p0, rn);
-      _mm256_store_ps(p0 + 8, in);
-
-      ru = _mm256_set1_ps(matrix[8]);
-      iu = _mm256_set1_ps(matrix[9]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[10]);
-      iu = _mm256_set1_ps(matrix[11]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[12]);
-      iu = _mm256_set1_ps(matrix[13]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[14]);
-      iu = _mm256_set1_ps(matrix[15]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
-
-      _mm256_store_ps(p1, rn);
-      _mm256_store_ps(p1 + 8, in);
-
-      ru = _mm256_set1_ps(matrix[16]);
-      iu = _mm256_set1_ps(matrix[17]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[18]);
-      iu = _mm256_set1_ps(matrix[19]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[20]);
-      iu = _mm256_set1_ps(matrix[21]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[22]);
-      iu = _mm256_set1_ps(matrix[23]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
-
-      _mm256_store_ps(p2, rn);
-      _mm256_store_ps(p2 + 8, in);
-
-      ru = _mm256_set1_ps(matrix[24]);
-      iu = _mm256_set1_ps(matrix[25]);
-      rn = _mm256_mul_ps(r0, ru);
-      in = _mm256_mul_ps(r0, iu);
-      rn = _mm256_fnmadd_ps(i0, iu, rn);
-      in = _mm256_fmadd_ps(i0, ru, in);
-      ru = _mm256_set1_ps(matrix[26]);
-      iu = _mm256_set1_ps(matrix[27]);
-      rn = _mm256_fmadd_ps(r1, ru, rn);
-      in = _mm256_fmadd_ps(r1, iu, in);
-      rn = _mm256_fnmadd_ps(i1, iu, rn);
-      in = _mm256_fmadd_ps(i1, ru, in);
-      ru = _mm256_set1_ps(matrix[28]);
-      iu = _mm256_set1_ps(matrix[29]);
-      rn = _mm256_fmadd_ps(r2, ru, rn);
-      in = _mm256_fmadd_ps(r2, iu, in);
-      rn = _mm256_fnmadd_ps(i2, iu, rn);
-      in = _mm256_fmadd_ps(i2, ru, in);
-      ru = _mm256_set1_ps(matrix[30]);
-      iu = _mm256_set1_ps(matrix[31]);
-      rn = _mm256_fmadd_ps(r3, ru, rn);
-      in = _mm256_fmadd_ps(r3, iu, in);
-      rn = _mm256_fnmadd_ps(i3, iu, rn);
-      in = _mm256_fmadd_ps(i3, ru, in);
-
-      _mm256_store_ps(p3, rn);
-      _mm256_store_ps(p3 + 8, in);
-    };
-
-    for_.Run(sizei / 16, f, sizej, sizek, mask0, mask1, mask2, matrix, rstate);
-  }
-
-  // Applies a two-qubit gate for qubit0 <= 2 and qubit1 > 2.
-  // Performs vectorized sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs AVX vectorization with permutations.
-  void ApplyGate2HL(
-      unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
-    __m256i ml;
-    __m256 u[16];
-
-    switch (q0) {
-    case 0:
-      ml = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
-      u[ 0] = SetPs(matrix, 10,  0, 10,  0, 10,  0, 10,  0);
-      u[ 1] = SetPs(matrix, 11,  1, 11,  1, 11,  1, 11,  1);
-      u[ 2] = SetPs(matrix,  8,  2,  8,  2,  8,  2,  8,  2);
-      u[ 3] = SetPs(matrix,  9,  3,  9,  3,  9,  3,  9,  3);
-      u[ 4] = SetPs(matrix, 14,  4, 14,  4, 14,  4, 14,  4);
-      u[ 5] = SetPs(matrix, 15,  5, 15,  5, 15,  5, 15,  5);
-      u[ 6] = SetPs(matrix, 12,  6, 12,  6, 12,  6, 12,  6);
-      u[ 7] = SetPs(matrix, 13,  7, 13,  7, 13,  7, 13,  7);
-      u[ 8] = SetPs(matrix, 26, 16, 26, 16, 26, 16, 26, 16);
-      u[ 9] = SetPs(matrix, 27, 17, 27, 17, 27, 17, 27, 17);
-      u[10] = SetPs(matrix, 24, 18, 24, 18, 24, 18, 24, 18);
-      u[11] = SetPs(matrix, 25, 19, 25, 19, 25, 19, 25, 19);
-      u[12] = SetPs(matrix, 30, 20, 30, 20, 30, 20, 30, 20);
-      u[13] = SetPs(matrix, 31, 21, 31, 21, 31, 21, 31, 21);
-      u[14] = SetPs(matrix, 28, 22, 28, 22, 28, 22, 28, 22);
-      u[15] = SetPs(matrix, 29, 23, 29, 23, 29, 23, 29, 23);
-      break;
-    case 1:
-      ml = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
-      u[ 0] = SetPs(matrix, 10, 10,  0,  0, 10, 10,  0,  0);
-      u[ 1] = SetPs(matrix, 11, 11,  1,  1, 11, 11,  1,  1);
-      u[ 2] = SetPs(matrix,  8,  8,  2,  2,  8,  8,  2,  2);
-      u[ 3] = SetPs(matrix,  9,  9,  3,  3,  9,  9,  3,  3);
-      u[ 4] = SetPs(matrix, 14, 14,  4,  4, 14, 14,  4,  4);
-      u[ 5] = SetPs(matrix, 15, 15,  5,  5, 15, 15,  5,  5);
-      u[ 6] = SetPs(matrix, 12, 12,  6,  6, 12, 12,  6,  6);
-      u[ 7] = SetPs(matrix, 13, 13,  7,  7, 13, 13,  7,  7);
-      u[ 8] = SetPs(matrix, 26, 26, 16, 16, 26, 26, 16, 16);
-      u[ 9] = SetPs(matrix, 27, 27, 17, 17, 27, 27, 17, 17);
-      u[10] = SetPs(matrix, 24, 24, 18, 18, 24, 24, 18, 18);
-      u[11] = SetPs(matrix, 25, 25, 19, 19, 25, 25, 19, 19);
-      u[12] = SetPs(matrix, 30, 30, 20, 20, 30, 30, 20, 20);
-      u[13] = SetPs(matrix, 31, 31, 21, 21, 31, 31, 21, 21);
-      u[14] = SetPs(matrix, 28, 28, 22, 22, 28, 28, 22, 22);
-      u[15] = SetPs(matrix, 29, 29, 23, 23, 29, 29, 23, 23);
-      break;
-    case 2:
-      ml = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
-      u[ 0] = SetPs(matrix, 10, 10, 10, 10,  0,  0,  0,  0);
-      u[ 1] = SetPs(matrix, 11, 11, 11, 11,  1,  1,  1,  1);
-      u[ 2] = SetPs(matrix,  8,  8,  8,  8,  2,  2,  2,  2);
-      u[ 3] = SetPs(matrix,  9,  9,  9,  9,  3,  3,  3,  3);
-      u[ 4] = SetPs(matrix, 14, 14, 14, 14,  4,  4,  4,  4);
-      u[ 5] = SetPs(matrix, 15, 15, 15, 15,  5,  5,  5,  5);
-      u[ 6] = SetPs(matrix, 12, 12, 12, 12,  6,  6,  6,  6);
-      u[ 7] = SetPs(matrix, 13, 13, 13, 13,  7,  7,  7,  7);
-      u[ 8] = SetPs(matrix, 26, 26, 26, 26, 16, 16, 16, 16);
-      u[ 9] = SetPs(matrix, 27, 27, 27, 27, 17, 17, 17, 17);
-      u[10] = SetPs(matrix, 24, 24, 24, 24, 18, 18, 18, 18);
-      u[11] = SetPs(matrix, 25, 25, 25, 25, 19, 19, 19, 19);
-      u[12] = SetPs(matrix, 30, 30, 30, 30, 20, 20, 20, 20);
-      u[13] = SetPs(matrix, 31, 31, 31, 31, 21, 21, 21, 21);
-      u[14] = SetPs(matrix, 28, 28, 28, 28, 22, 22, 22, 22);
-      u[15] = SetPs(matrix, 29, 29, 29, 29, 23, 23, 23, 23);
-      break;
-    default:
-      // Cannot reach here.
-      ml = _mm256_set1_epi32(0);
-      for (std::size_t i = 0; i < 16; ++i) {
-        u[i] = _mm256_set1_ps(0);
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
       }
-      break;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, idx, rstate);
+  }
+
+  void ApplyGate2HH(const std::vector<unsigned>& qs,
+                    const fp_type* matrix, State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
     }
 
-    uint64_t sizei = uint64_t{1} << state.num_qubits();
-    uint64_t sizej = uint64_t{1} << (q1 + 1);
-
-    uint64_t mask0 = sizej - 1;
-    uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizej - 1);
-
     fp_type* rstate = state.get();
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                uint64_t sizej, uint64_t mask0, uint64_t mask1,
-                __m256i ml, const __m256* u, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, r2, i2, r3, i3, rn, in;
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[4], is[4];
 
-      auto p0 = rstate + ((32 * i & mask1) | (16 * i & mask0));
-      auto p2 = p0 + sizej;
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
 
-      r0 = _mm256_load_ps(p0);
-      i0 = _mm256_load_ps(p0 + 8);
-      r1 = _mm256_permutevar8x32_ps(r0, ml);
-      i1 = _mm256_permutevar8x32_ps(i0, ml);
-      r2 = _mm256_load_ps(p2);
-      i2 = _mm256_load_ps(p2 + 8);
-      r3 = _mm256_permutevar8x32_ps(r2, ml);
-      i3 = _mm256_permutevar8x32_ps(i2, ml);
+      auto p0 = rstate + 2 * k;
 
-      rn = _mm256_mul_ps(r0, u[0]);
-      in = _mm256_mul_ps(r0, u[1]);
-      rn = _mm256_fnmadd_ps(i0, u[1], rn);
-      in = _mm256_fmadd_ps(i0, u[0], in);
-      rn = _mm256_fmadd_ps(r1, u[2], rn);
-      in = _mm256_fmadd_ps(r1, u[3], in);
-      rn = _mm256_fnmadd_ps(i1, u[3], rn);
-      in = _mm256_fmadd_ps(i1, u[2], in);
-      rn = _mm256_fmadd_ps(r2, u[4], rn);
-      in = _mm256_fmadd_ps(r2, u[5], in);
-      rn = _mm256_fnmadd_ps(i2, u[5], rn);
-      in = _mm256_fmadd_ps(i2, u[4], in);
-      rn = _mm256_fmadd_ps(r3, u[6], rn);
-      in = _mm256_fmadd_ps(r3, u[7], in);
-      rn = _mm256_fnmadd_ps(i3, u[7], rn);
-      in = _mm256_fmadd_ps(i3, u[6], in);
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
 
-      _mm256_store_ps(p0, rn);
-      _mm256_store_ps(p0 + 8, in);
+      uint64_t j = 0;
 
-      rn = _mm256_mul_ps(r0, u[8]);
-      in = _mm256_mul_ps(r0, u[9]);
-      rn = _mm256_fnmadd_ps(i0, u[9], rn);
-      in = _mm256_fmadd_ps(i0, u[8], in);
-      rn = _mm256_fmadd_ps(r1, u[10], rn);
-      in = _mm256_fmadd_ps(r1, u[11], in);
-      rn = _mm256_fnmadd_ps(i1, u[11], rn);
-      in = _mm256_fmadd_ps(i1, u[10], in);
-      rn = _mm256_fmadd_ps(r2, u[12], rn);
-      in = _mm256_fmadd_ps(r2, u[13], in);
-      rn = _mm256_fnmadd_ps(i2, u[13], rn);
-      in = _mm256_fmadd_ps(i2, u[12], in);
-      rn = _mm256_fmadd_ps(r3, u[14], rn);
-      in = _mm256_fmadd_ps(r3, u[15], in);
-      rn = _mm256_fnmadd_ps(i3, u[15], rn);
-      in = _mm256_fmadd_ps(i3, u[14], in);
+      for (unsigned l = 0; l < 4; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
 
-      _mm256_store_ps(p2, rn);
-      _mm256_store_ps(p2 + 8, in);
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
     };
 
-    for_.Run(sizei / 16, f, sizej, mask0, mask1, ml, u, rstate);
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss, rstate);
   }
 
-  // Applies a two-qubit gate for qubit0 <= 2 and qubit1 <= 2.
-  // Performs vectorized sparse matrix-vector multiplication.
-  // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-  // Performs AVX vectorization with permutations.
-  void ApplyGate2LL(
-      unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
-    __m256i ml[3];
-    __m256 u[8];
+  void ApplyGate2HL(const std::vector<unsigned>& qs,
+                    const fp_type* matrix, State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
 
-    switch (q0 + q1) {
-    case 1:
-      ml[0] = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
-      ml[1] = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
-      ml[2] = _mm256_set_epi32(4, 5, 6, 7, 0, 1, 2, 3);
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
 
-      u[0] = SetPs(matrix, 30, 20, 10,  0, 30, 20, 10,  0);
-      u[1] = SetPs(matrix, 31, 21, 11,  1, 31, 21, 11,  1);
-      u[2] = SetPs(matrix, 28, 22,  8,  2, 28, 22,  8,  2);
-      u[3] = SetPs(matrix, 29, 23,  9,  3, 29, 23,  9,  3);
-      u[4] = SetPs(matrix, 26, 16, 14,  4, 26, 16, 14,  4);
-      u[5] = SetPs(matrix, 27, 17, 15,  5, 27, 17, 15,  5);
-      u[6] = SetPs(matrix, 24, 18, 12,  6, 24, 18, 12,  6);
-      u[7] = SetPs(matrix, 25, 19, 13,  7, 25, 19, 13,  7);
-      break;
-    case 2:
-      ml[0] = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
-      ml[1] = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
-      ml[2] = _mm256_set_epi32(2, 3, 0, 1, 6, 7, 4, 5);
-
-      u[0] = SetPs(matrix, 30, 20, 30, 20, 10,  0, 10,  0);
-      u[1] = SetPs(matrix, 31, 21, 31, 21, 11,  1, 11,  1);
-      u[2] = SetPs(matrix, 28, 22, 28, 22,  8,  2,  8,  2);
-      u[3] = SetPs(matrix, 29, 23, 29, 23,  9,  3,  9,  3);
-      u[4] = SetPs(matrix, 26, 16, 26, 16, 14,  4, 14,  4);
-      u[5] = SetPs(matrix, 27, 17, 27, 17, 15,  5, 15,  5);
-      u[6] = SetPs(matrix, 24, 18, 24, 18, 12,  6, 12,  6);
-      u[7] = SetPs(matrix, 25, 19, 25, 19, 13,  7, 13,  7);
-      break;
-    case 3:
-      ml[0] = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
-      ml[1] = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
-      ml[2] = _mm256_set_epi32(1, 0, 3, 2, 5, 4, 7, 6);
-
-      u[0] = SetPs(matrix, 30, 30, 20, 20, 10, 10,  0,  0);
-      u[1] = SetPs(matrix, 31, 31, 21, 21, 11, 11,  1,  1);
-      u[2] = SetPs(matrix, 28, 28, 22, 22,  8,  8,  2,  2);
-      u[3] = SetPs(matrix, 29, 29, 23, 23,  9,  9,  3,  3);
-      u[4] = SetPs(matrix, 26, 26, 16, 16, 14, 14,  4,  4);
-      u[5] = SetPs(matrix, 27, 27, 17, 17, 15, 15,  5,  5);
-      u[6] = SetPs(matrix, 24, 24, 18, 18, 12, 12,  6,  6);
-      u[7] = SetPs(matrix, 25, 25, 19, 19, 13, 13,  7,  7);
-      break;
-    default:
-      // Cannot reach here.
-      ml[0] = _mm256_set1_epi32(0);
-      ml[1] = _mm256_set1_epi32(0);
-      ml[2] = _mm256_set1_epi32(0);
-      for (std::size_t i = 0; i < 8; ++i) {
-        u[i] = _mm256_set1_ps(0);
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
       }
-      break;
+      xss[i] = a;
     }
 
-    uint64_t sizei = uint64_t{1} << (state.num_qubits() + 1);
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (8 * i + 4 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
 
     fp_type* rstate = state.get();
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const __m256i* ml, const __m256* u, fp_type* rstate) {
-      __m256 r0, i0, r1, i1, r2, i2, r3, i3, rn, in;
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate2LL(const std::vector<unsigned>& qs,
+                    const fp_type* matrix, State& state) const {
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 4 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
 
       auto p0 = rstate + 16 * i;
 
-      r0 = _mm256_load_ps(p0);
-      i0 = _mm256_load_ps(p0 + 8);
-      r1 = _mm256_permutevar8x32_ps(r0, ml[0]);
-      i1 = _mm256_permutevar8x32_ps(i0, ml[0]);
-      r2 = _mm256_permutevar8x32_ps(r0, ml[1]);
-      i2 = _mm256_permutevar8x32_ps(i0, ml[1]);
-      r3 = _mm256_permutevar8x32_ps(r0, ml[2]);
-      i3 = _mm256_permutevar8x32_ps(i0, ml[2]);
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0);
+        is[4 * l] = _mm256_load_ps(p0 + 8);
 
-      rn = _mm256_mul_ps(r0, u[0]);
-      in = _mm256_mul_ps(r0, u[1]);
-      rn = _mm256_fnmadd_ps(i0, u[1], rn);
-      in = _mm256_fmadd_ps(i0, u[0], in);
-      rn = _mm256_fmadd_ps(r1, u[2], rn);
-      in = _mm256_fmadd_ps(r1, u[3], in);
-      rn = _mm256_fnmadd_ps(i1, u[3], rn);
-      in = _mm256_fmadd_ps(i1, u[2], in);
-      rn = _mm256_fmadd_ps(r2, u[4], rn);
-      in = _mm256_fmadd_ps(r2, u[5], in);
-      rn = _mm256_fnmadd_ps(i2, u[5], rn);
-      in = _mm256_fmadd_ps(i2, u[4], in);
-      rn = _mm256_fmadd_ps(r3, u[6], rn);
-      in = _mm256_fmadd_ps(r3, u[7], in);
-      rn = _mm256_fnmadd_ps(i3, u[7], rn);
-      in = _mm256_fmadd_ps(i3, u[6], in);
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
 
-      _mm256_store_ps(p0, rn);
-      _mm256_store_ps(p0 + 8, in);
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
     };
 
-    for_.Run(std::max(uint64_t{1}, sizei / 16), f, ml, u, rstate);
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, idx, rstate);
   }
 
-  __m256 SetPs(const fp_type* m,
-               unsigned i7, unsigned i6, unsigned i5, unsigned i4,
-               unsigned i3, unsigned i2, unsigned i1, unsigned i0) const {
-    return
-        _mm256_set_ps(m[i7], m[i6], m[i5], m[i4], m[i3], m[i2], m[i1], m[i0]);
+  void ApplyGate3HHH(const std::vector<unsigned>& qs,
+                     const fp_type* matrix, State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss, rstate);
   }
 
+  void ApplyGate3HHL(const std::vector<unsigned>& qs,
+                     const fp_type* matrix, State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 8 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate3HLL(const std::vector<unsigned>& qs,
+                     const fp_type* matrix, State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 8 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate3LLL(const std::vector<unsigned>& qs,
+                     const fp_type* matrix, State& state) const {
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 8 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      auto p0 = rstate + 16 * i;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0);
+        is[8 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, idx, rstate);
+  }
+
+  void ApplyGate4HHHH(const std::vector<unsigned>& qs,
+                      const fp_type* matrix, State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 7;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss, rstate);
+  }
+
+  void ApplyGate4HHHL(const std::vector<unsigned>& qs,
+                      const fp_type* matrix, State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 16 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate4HHLL(const std::vector<unsigned>& qs,
+                      const fp_type* matrix, State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 16 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate4HLLL(const std::vector<unsigned>& qs,
+                      const fp_type* matrix, State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 16 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate5HHHHH(const std::vector<unsigned>& qs,
+                       const fp_type* matrix, State& state) const {
+    uint64_t xs[5];
+    uint64_t ms[6];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 5; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
+
+    uint64_t xss[32];
+    for (unsigned i = 0; i < 32; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 5; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]) | (256 * i & ms[5]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 8;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss, rstate);
+  }
+
+  void ApplyGate5HHHHL(const std::vector<unsigned>& qs,
+                       const fp_type* matrix, State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 16; ++i) {
+      for (unsigned m = 0; m < 32; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 32 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (32 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 7;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate5HHHLL(const std::vector<unsigned>& qs,
+                       const fp_type* matrix, State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 32; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 32 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (32 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate5HHLLL(const std::vector<unsigned>& qs,
+                       const fp_type* matrix, State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 3] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 3]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 32; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (256 * i + 32 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (32 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate6HHHHHH(const std::vector<unsigned>& qs,
+                        const fp_type* matrix, State& state) const {
+    uint64_t xs[6];
+    uint64_t ms[7];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 6; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[6] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[5] - 1);
+
+    uint64_t xss[64];
+    for (unsigned i = 0; i < 64; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 6; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]) | (256 * i & ms[5])
+          | (512 * i & ms[6]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 9;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss, rstate);
+  }
+
+  void ApplyGate6HHHHHL(const std::vector<unsigned>& qs,
+                        const fp_type* matrix, State& state) const {
+    uint64_t xs[5];
+    uint64_t ms[6];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 5; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
+
+    uint64_t xss[32];
+    for (unsigned i = 0; i < 32; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 5; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 32; ++i) {
+      for (unsigned m = 0; m < 64; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 64 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (64 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]) | (256 * i & ms[5]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 8;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate6HHHHLL(const std::vector<unsigned>& qs,
+                        const fp_type* matrix, State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 16; ++i) {
+      for (unsigned m = 0; m < 64; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (256 * i + 64 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (64 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 7;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyGate6HHHLLL(const std::vector<unsigned>& qs,
+                        const fp_type* matrix, State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 3] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 3]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 64; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (512 * i + 64 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (64 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+  }
+
+  void ApplyControlledGate1H_H(const std::vector<unsigned>& qs,
+                               const std::vector<unsigned>& cqs,
+                               uint64_t cmask, const fp_type* matrix,
+                               State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[2], is[2];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate1H_L(const std::vector<unsigned>& qs,
+                               const std::vector<unsigned>& cqs,
+                               uint64_t cmask, const fp_type* matrix,
+                               State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 2; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (2 * i + 2 * k + m);
+        }
+
+        unsigned l = 2 * (2 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 2 == (p[j] / 2) % 2 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[2], is[2];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate1L_H(const std::vector<unsigned>& qs,
+                               const std::vector<unsigned>& cqs,
+                               uint64_t cmask, const fp_type* matrix,
+                               State& state) const {
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 2; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (4 * i + 2 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (2 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[2], is[2];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0);
+        is[2 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate1L_L(const std::vector<unsigned>& qs,
+                               const std::vector<unsigned>& cqs,
+                               uint64_t cmask, const fp_type* matrix,
+                               State& state) const {
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 2; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (4 * i + 2 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (2 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 2 == (p[j] / 2) % 2 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[2], is[2];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0);
+        is[2 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate2HH_H(const std::vector<unsigned>& qs,
+                                const std::vector<unsigned>& cqs,
+                                uint64_t cmask, const fp_type* matrix,
+                                State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate2HH_L(const std::vector<unsigned>& qs,
+                                const std::vector<unsigned>& cqs,
+                                uint64_t cmask, const fp_type* matrix,
+                                State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (4 * i + 4 * k + m);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate2HL_H(const std::vector<unsigned>& qs,
+                                const std::vector<unsigned>& cqs,
+                                uint64_t cmask, const fp_type* matrix,
+                                State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (8 * i + 4 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate2HL_L(const std::vector<unsigned>& qs,
+                                const std::vector<unsigned>& cqs,
+                                uint64_t cmask, const fp_type* matrix,
+                                State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (8 * i + 4 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate2LL_H(const std::vector<unsigned>& qs,
+                                const std::vector<unsigned>& cqs,
+                                uint64_t cmask, const fp_type* matrix,
+                                State& state) const {
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 4 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0);
+        is[4 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate2LL_L(const std::vector<unsigned>& qs,
+                                const std::vector<unsigned>& cqs,
+                                uint64_t cmask, const fp_type* matrix,
+                                State& state) const {
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 4 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0);
+        is[4 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate3HHH_H(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate3HHH_L(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (8 * i + 8 * k + m);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate3HHL_H(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 8 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate3HHL_L(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 8 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate3HLL_H(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 8 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate3HLL_L(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 8 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate3LLL_H(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 8 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0);
+        is[8 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate3LLL_L(const std::vector<unsigned>& qs,
+                                 const std::vector<unsigned>& cqs,
+                                 uint64_t cmask, const fp_type* matrix,
+                                 State& state) const {
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 8 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0);
+        is[8 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0, rn);
+        _mm256_store_ps(p0 + 8, in);
+      }
+    };
+
+    unsigned k = 3 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate4HHHH_H(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 7 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate4HHHH_L(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 16; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 16 * k + m);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 7 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  void ApplyControlledGate4HHHL_H(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 16 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate4HHHL_L(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 16 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 6 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate4HHLL_H(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 16 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate4HHLL_L(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 16 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 5 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate4HLLL_H(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 16 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  void ApplyControlledGate4HLLL_L(const std::vector<unsigned>& qs,
+                                  const std::vector<unsigned>& cqs,
+                                  uint64_t cmask, const fp_type* matrix,
+                                  State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned cl = 0;
+    uint64_t emaskl = 0;
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      } else {
+        ++cl;
+        emaskl |= uint64_t{1} << q;
+      }
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask >> cl, state.num_qubits(), emaskh);
+    uint64_t cmaskl = bits::ExpandBits(cmask & ((1 << cl) - 1), 3, emaskl);
+
+    for (auto q : qs) {
+      if (q > 2) {
+        emaskh |= uint64_t{1} << q;
+      }
+    }
+
+    emaskh = ~emaskh ^ 7;
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    fp_type* w = (fp_type*) w_.get();
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 16 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
+          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+        }
+      }
+    }
+
+    fp_type* rstate = state.get();
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                const __m256i* idx, fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = bits::ExpandBits(i, num_qubits, emaskh) | cmaskh;
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        _mm256_store_ps(p0 + xss[l], rn);
+        _mm256_store_ps(p0 + xss[l] + 8, in);
+      }
+    };
+
+    unsigned k = 4 + cqs.size() - cl;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size, f, (__m256*) w, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  static unsigned MaskedAdd(
+      unsigned a, unsigned b, unsigned mask, unsigned lsize) {
+    unsigned c = bits::CompressBits(a, 3, mask);
+    return bits::ExpandBits((c + b) % lsize, 3, mask);
+  }
+
+  State w_;
   For for_;
 };
 
