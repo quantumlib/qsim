@@ -33,10 +33,10 @@ void TestApplyGate1() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
+  Simulator simulator(num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -73,10 +73,10 @@ void TestApplyGate2() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
+  Simulator simulator(num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -127,10 +127,10 @@ void TestApplyGate3() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
+  Simulator simulator(num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -185,10 +185,10 @@ void TestApplyGate5() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  StateSpace state_space(num_qubits, num_threads);
-  Simulator simulator(num_qubits, num_threads);
+  StateSpace state_space(num_threads);
+  Simulator simulator(num_threads);
 
-  auto state = state_space.CreateState();
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
   auto gate1 = GateHd<fp_type>::Create(0, 0);
@@ -217,7 +217,7 @@ void TestApplyGate5() {
   auto gate24 = GateY2<fp_type>::Create(11, 3);
   auto gate25 = GateRX<fp_type>::Create(11, 4, 0.3);
 
-  GateFused<GateQSim<fp_type>> fgate1{kGateCZ, 2, 2, {0, 1}, &gate11,
+  GateFused<GateQSim<fp_type>> fgate1{kGateCZ, 2, {0, 1},  &gate11,
       {&gate1, &gate2, &gate6, &gate7, &gate11, &gate12, &gate13}};
   ApplyFusedGate(simulator, fgate1, state);
 
@@ -238,7 +238,7 @@ void TestApplyGate5() {
     EXPECT_NEAR(std::imag(ampl3), 0.5, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate2{kGateIS, 4, 2, {1, 2}, &gate14,
+  GateFused<GateQSim<fp_type>> fgate2{kGateIS, 4, {1, 2}, &gate14,
       {&gate3, &gate8, &gate14, &gate15, &gate16}};
   ApplyFusedGate(simulator, fgate2, state);
 
@@ -259,7 +259,7 @@ void TestApplyGate5() {
     EXPECT_NEAR(std::imag(ampl3), 0, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate3{kGateCNot, 6, 2, {2, 3}, &gate17,
+  GateFused<GateQSim<fp_type>> fgate3{kGateCNot, 6, {2, 3}, &gate17,
       {&gate4, &gate9, &gate17, &gate18, &gate19}};
   ApplyFusedGate(simulator, fgate3, state);
 
@@ -280,7 +280,7 @@ void TestApplyGate5() {
     EXPECT_NEAR(std::imag(ampl3), 0.00031570, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate4{kGateFS, 8, 2, {3, 4}, &gate20,
+  GateFused<GateQSim<fp_type>> fgate4{kGateFS, 8, {3, 4}, &gate20,
       {&gate5, &gate10, &gate20, &gate21, &gate22}};
   ApplyFusedGate(simulator, fgate4, state);
 
@@ -301,8 +301,7 @@ void TestApplyGate5() {
     EXPECT_NEAR(std::imag(ampl3), -0.00987822, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate5{kGateCP, 10, 2, {0, 1}, &gate23,
-                                      {&gate23}};
+  GateFused<GateQSim<fp_type>> fgate5{kGateCP, 10, {0, 1}, &gate23, {&gate23}};
   ApplyFusedGate(simulator, fgate5, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);

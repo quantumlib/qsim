@@ -335,17 +335,17 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     return {};
   }
 
-  StateSpace state_space(circuit.num_qubits, param.num_threads);
+  StateSpace state_space(param.num_threads);
 
   float *fsv;
   const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
-  const uint64_t buff_size = state_space.MinimumRawSize(fsv_size);
+  const uint64_t buff_size = state_space.MinSize(circuit.num_qubits);
   if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
     IO::errorf("Memory allocation failed.\n");
     return {};
   }
 
-  State state = state_space.CreateState(fsv, buff_size);
+  State state = state_space.Create(fsv, circuit.num_qubits);
   state_space.SetStateZero(state);
 
   if (!Runner::Run(param, circuit, state)) {
@@ -387,17 +387,16 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   }
 
   std::vector<MeasurementResult> results;
-  StateSpace state_space(circuit.num_qubits, param.num_threads);
+  StateSpace state_space(param.num_threads);
 
   float *fsv;
-  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
-  const uint64_t buff_size = state_space.MinimumRawSize(fsv_size);
+  const uint64_t buff_size = state_space.MinSize(circuit.num_qubits);
   if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
     IO::errorf("Memory allocation failed.\n");
     return {};
   }
 
-  State state = state_space.CreateState(fsv, buff_size);
+  State state = state_space.Create(fsv, circuit.num_qubits);
   state_space.SetStateZero(state);
 
   if (!Runner::Run(param, circuit, state, results)) {

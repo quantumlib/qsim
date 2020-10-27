@@ -18,7 +18,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <type_traits>
 #include <vector>
 
 #include "util.h"
@@ -31,9 +30,9 @@ namespace qsim {
  * manipulations. "AVX", "Basic", and "SSE" implementations are provided.
  */
 template <typename Impl, typename For, typename FP>
-class StateSpace : public VectorSpace<For, FP> {
+class StateSpace : public VectorSpace<Impl, For, FP> {
  private:
-  using Base = VectorSpace<For, FP>;
+  using Base = VectorSpace<Impl, For, FP>;
 
  public:
   using fp_type = typename Base::fp_type;
@@ -68,33 +67,12 @@ class StateSpace : public VectorSpace<For, FP> {
   };
 
   template <typename... ForArgs>
-  StateSpace(uint64_t raw_size, unsigned num_qubits, ForArgs&&... args)
-      : Base(raw_size, args...), num_qubits_(num_qubits) {}
-
-  State CreateState() const {
-    return Base::CreateVector();
-  }
-
-  static State CreateState(fp_type* p, uint64_t size) {
-    return Base::CreateVector(p, size);
-  }
-
-  static State NullState() {
-    return Base::NullVector();
-  }
-
-  bool CopyState(const State& src, State& dest) const {
-    return Base::CopyVector(src, dest);
-  }
-
-  uint64_t Size() const {
-    return uint64_t{1} << num_qubits_;
-  }
+  StateSpace(ForArgs&&... args) : Base(args...) {}
 
   double Norm(const State& state) const {
     auto partial_norms = static_cast<const Impl&>(*this).PartialNorms(state);
 
-    double norm = !partial_norms.empty() ? partial_norms[0] : std::nan("");
+    double norm = partial_norms[0];
     for (std::size_t i = 1; i < partial_norms.size(); ++i) {
       norm += partial_norms[i];
     }
@@ -109,7 +87,7 @@ class StateSpace : public VectorSpace<For, FP> {
         static_cast<const Impl&>(*this).VirtualMeasure(qubits, rgen, state);
 
     if (result.valid) {
-      static_cast<const Impl&>(*this).CollapseState(result, state);
+      static_cast<const Impl&>(*this).Collapse(result, state);
     }
 
     return result;
@@ -123,13 +101,8 @@ class StateSpace : public VectorSpace<For, FP> {
     result.valid = true;
     result.mask = 0;
 
-    if (state.size() != Base::raw_size_) {
-      result.valid = false;
-      return result;
-    }
-
     for (auto q : qubits) {
-      if (q >= num_qubits_) {
+      if (q >= state.num_qubits()) {
         result.valid = false;
         return result;
       }
@@ -164,9 +137,6 @@ class StateSpace : public VectorSpace<For, FP> {
 
     return result;
   }
-
- protected:
-  unsigned num_qubits_;
 };
 
 }  // namespace qsim

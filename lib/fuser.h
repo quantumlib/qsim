@@ -15,6 +15,7 @@
 #ifndef FUSER_H_
 #define FUSER_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "matrix.h"
@@ -28,22 +29,22 @@ namespace qsim {
 template <typename Gate>
 struct GateFused {
   /**
-   * Kind of the first ("master") gate.
+   * Kind of the first ("parent") gate.
    */
   typename Gate::GateKind kind;
   /**
-   * The time index of the first ("master") gate.
+   * The time index of the first ("parent") gate.
    */
   unsigned time;
-  unsigned num_qubits;
   /**
-   * A list of qubits these gates act upon.
+   * A list of qubits these gates act upon. Control qubits for
+   * explicitly-controlled gates are excluded from this list.
    */
   std::vector<unsigned> qubits;
   /**
-   * Pointer to the first ("master") gate.
+   * Pointer to the first ("parent") gate.
    */
-  const Gate* pmaster;
+  const Gate* parent;
   /**
    * Ordered list of component gates.
    */

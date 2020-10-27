@@ -47,12 +47,13 @@ struct HybridSimulator final {
 
     GateKind kind;
     unsigned time;
-    unsigned num_qubits;
     std::vector<unsigned> qubits;
+    std::vector<unsigned> controlled_by;
+    uint64_t cmask;
     std::vector<fp_type> params;
-    std::vector<fp_type> matrix;
+    Matrix<fp_type> matrix;
     bool unfusible;
-    bool inverse;
+    bool swapped;
 
     const Gate* parent;
     unsigned id;
@@ -63,7 +64,7 @@ struct HybridSimulator final {
     GateHybrid* decomposed1;
     schmidt_decomp_type<fp_type> schmidt_decomp;
     unsigned schmidt_bits;
-    unsigned inverse;
+    unsigned swapped;
   };
 
  public:
@@ -164,18 +165,23 @@ struct HybridSimulator final {
         return false;
       }
 
-      switch (gate.num_qubits) {
+      if (gate.controlled_by.size() > 0) {
+        IO::errorf("controlled gates are not suported by qsimh.\n");
+        return false;
+      }
+
+      switch (gate.qubits.size()) {
       case 1:  // Single qubit gates.
         switch (parts[gate.qubits[0]]) {
         case 0:
           hd.gates0.emplace_back(GateHybrid{gate.kind, gate.time,
-            1, {hd.qubit_map[gate.qubits[0]]}, gate.params, gate.matrix,
-             false, false, nullptr, 0});
+            {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, gate.matrix,
+            false, false, nullptr, 0});
           break;
         case 1:
           hd.gates1.emplace_back(GateHybrid{gate.kind, gate.time,
-            1, {hd.qubit_map[gate.qubits[0]]}, gate.params, gate.matrix,
-             false, false, nullptr, 0});
+            {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, gate.matrix,
+            false, false, nullptr, 0});
           break;
         }
         break;
@@ -184,40 +190,42 @@ struct HybridSimulator final {
           switch ((parts[gate.qubits[1]] << 1) | parts[gate.qubits[0]]) {
           case 0:  // Both qubits in part 0.
             hd.gates0.emplace_back(GateHybrid{gate.kind, gate.time,
-              2, {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
-              gate.params, gate.matrix, false, gate.inverse, nullptr, 0});
+              {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
+              {}, 0, gate.params, gate.matrix, false, gate.swapped,
+              nullptr, 0});
             break;
           case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
             hd.gates0.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              1, {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
-              true, gate.inverse, &gate, hd.num_gatexs});
+              {hd.qubit_map[gate.qubits[1]]}, {}, 0, gate.params, {},
+              true, gate.swapped, &gate, hd.num_gatexs});
             hd.gates1.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              1, {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
-              true, gate.inverse, &gate, hd.num_gatexs});
+              {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, {},
+              true, gate.swapped, &gate, hd.num_gatexs});
 
             ++hd.num_gatexs;
             break;
           case 2:  // Gate on the cut, qubit 0 in part 0, qubit 1 in part 1.
             hd.gates0.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              1, {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
-              true, gate.inverse, &gate, hd.num_gatexs});
+              {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, {},
+              true, gate.swapped, &gate, hd.num_gatexs});
             hd.gates1.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              1, {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
-              true, gate.inverse, &gate, hd.num_gatexs});
+              {hd.qubit_map[gate.qubits[1]]}, {}, 0, gate.params, {},
+              true, gate.swapped, &gate, hd.num_gatexs});
 
             ++hd.num_gatexs;
             break;
           case 3:  // Both qubits in part 1.
             hd.gates1.emplace_back(GateHybrid{gate.kind, gate.time,
-              2, {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
-              gate.params, gate.matrix, false, gate.inverse, nullptr, 0});
+              {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
+              {}, 0, gate.params, gate.matrix, false, gate.swapped,
+              nullptr, 0});
             break;
           }
         }
         break;
       default:
-        // Not supported.
-        break;
+        IO::errorf("multi-qubit gates are not suported by qsimh.\n");
+        return false;
       }
     }
 
@@ -249,10 +257,10 @@ struct HybridSimulator final {
           return false;
         }
 
-        unsigned inverse = parts[gate0.parent->qubits[0]];
-        if (gate0.parent->inverse) inverse = 1 - inverse;
+        unsigned swapped = parts[gate0.parent->qubits[0]];
+        if (gate0.parent->swapped) swapped = 1 - swapped;
         hd.gatexs.emplace_back(GateX{&gate0, nullptr, std::move(d),
-                                     schmidt_bits, inverse});
+                                     schmidt_bits, swapped});
       }
     }
 
@@ -323,41 +331,39 @@ struct HybridSimulator final {
       indices.push_back(index);
     }
 
-    StateSpace sspace0(hd.num_qubits0, param.num_threads);
-    StateSpace sspace1(hd.num_qubits1, param.num_threads);
+    StateSpace sspace(param.num_threads);
 
     State* rstate0;
     State* rstate1;
 
-    State state0p = sspace0.NullState();
-    State state1p = sspace1.NullState();
-    State state0r = sspace0.NullState();
-    State state1r = sspace1.NullState();
-    State state0s = sspace0.NullState();
-    State state1s = sspace1.NullState();
+    State state0p = sspace.Null();
+    State state1p = sspace.Null();
+    State state0r = sspace.Null();
+    State state1r = sspace.Null();
+    State state0s = sspace.Null();
+    State state1s = sspace.Null();
 
     // Create states.
 
-    if (!CreateStates(
-        sspace0, sspace1, true, state0p, state1p, rstate0, rstate1)) {
+    if (!CreateStates(hd.num_qubits0, hd.num_qubits1,
+                      sspace, true, state0p, state1p, rstate0, rstate1)) {
       return false;
     }
 
-    if (!CreateStates(
-        sspace0, sspace1, rmax > 1, state0r, state1r, rstate0, rstate1)) {
+    if (!CreateStates(hd.num_qubits0, hd.num_qubits1,
+                      sspace, rmax > 1, state0r, state1r, rstate0, rstate1)) {
       return false;
     }
 
-    if (!CreateStates(
-        sspace0, sspace1, smax > 1, state0s, state1s, rstate0, rstate1)) {
+    if (!CreateStates(hd.num_qubits0, hd.num_qubits1,
+                      sspace, smax > 1, state0s, state1s, rstate0, rstate1)) {
       return false;
     }
 
-    sspace0.SetStateZero(state0p);
-    sspace1.SetStateZero(state1p);
+    sspace.SetStateZero(state0p);
+    sspace.SetStateZero(state1p);
 
-    Simulator sim0(hd.num_qubits0, param.num_threads);
-    Simulator sim1(hd.num_qubits1, param.num_threads);
+    Simulator sim(param.num_threads);
 
     std::vector<unsigned> prev(hd.num_gatexs, -1);
 
@@ -367,8 +373,8 @@ struct HybridSimulator final {
 
     if (gatex_index == 0) {
       // Apply gates before the first checkpoint.
-      ApplyGates(fgates0, 0, loc0[0], sim0, state0p);
-      ApplyGates(fgates1, 0, loc1[0], sim1, state1p);
+      ApplyGates(fgates0, 0, loc0[0], sim, state0p);
+      ApplyGates(fgates1, 0, loc1[0], sim, state1p);
     } else {
       IO::errorf("invalid prefix %lu for prefix gate index %u.\n",
                  param.prefix, gatex_index - 1);
@@ -378,15 +384,15 @@ struct HybridSimulator final {
     // Branch over root gates on the cut. r encodes the root path.
     for (uint64_t r = 0; r < rmax; ++r) {
       if (rmax > 1) {
-        sspace0.CopyState(state0p, state0r);
-        sspace1.CopyState(state1p, state1r);
+        sspace.Copy(state0p, state0r);
+        sspace.Copy(state1p, state1r);
       }
 
       if (SetSchmidtMatrices(num_p_gates, num_pr_gates,
                              r, prev, hd.gatexs) == 0) {
         // Apply gates before the second checkpoint.
-        ApplyGates(fgates0, loc0[0], loc0[1], sim0, state0r);
-        ApplyGates(fgates1, loc1[0], loc1[1], sim1, state1r);
+        ApplyGates(fgates0, loc0[0], loc0[1], sim, state0r);
+        ApplyGates(fgates1, loc1[0], loc1[1], sim, state1r);
       } else {
         continue;
       }
@@ -394,32 +400,32 @@ struct HybridSimulator final {
       // Branch over suffix gates on the cut. s encodes the suffix path.
       for (uint64_t s = 0; s < smax; ++s) {
         if (smax > 1) {
-          sspace0.CopyState(rmax > 1 ? state0r : state0p, state0s);
-          sspace1.CopyState(rmax > 1 ? state1r : state1p, state1s);
+          sspace.Copy(rmax > 1 ? state0r : state0p, state0s);
+          sspace.Copy(rmax > 1 ? state1r : state1p, state1s);
         }
 
         if (SetSchmidtMatrices(num_pr_gates, hd.num_gatexs,
                                s, prev, hd.gatexs) == 0) {
           // Apply the rest of the gates.
-          ApplyGates(fgates0, loc0[1], fgates0.size(), sim0, state0s);
-          ApplyGates(fgates1, loc1[1], fgates1.size(), sim1, state1s);
+          ApplyGates(fgates0, loc0[1], fgates0.size(), sim, state0s);
+          ApplyGates(fgates1, loc1[1], fgates1.size(), sim, state1s);
         } else {
           continue;
         }
 
         auto f = [](unsigned n, unsigned m, uint64_t i,
-                    const StateSpace& sspace0, const StateSpace& sspace1,
+                    const StateSpace& sspace,
                     const State& state0, const State& state1,
                     const std::vector<Index>& indices,
                     std::vector<std::complex<fp_type>>& results) {
-          auto a0 = sspace0.GetAmpl(state0, indices[i].i0);
-          auto a1 = sspace1.GetAmpl(state1, indices[i].i1);
+          auto a0 = sspace.GetAmpl(state0, indices[i].i0);
+          auto a1 = sspace.GetAmpl(state1, indices[i].i1);
           results[i] += a0 * a1;
         };
 
         // Collect results.
-        for_.Run(results.size(), f, sspace0, sspace1, *rstate0, *rstate1,
-                 indices, results);
+        for_.Run(
+            results.size(), f, sspace, *rstate0, *rstate1, indices, results);
       }
     }
 
@@ -526,7 +532,7 @@ struct HybridSimulator final {
   }
 
   static void FillSchmidtMatrices(unsigned k, const GateX& gatex) {
-    unsigned part0 = gatex.inverse;
+    unsigned part0 = gatex.swapped;
     unsigned part1 = 1 - part0;
     {
       gatex.decomposed0->matrix.resize(gatex.schmidt_decomp[k][part0].size());
@@ -566,15 +572,15 @@ struct HybridSimulator final {
     }
   }
 
-  static bool CreateStates(
-      const StateSpace& sspace0, const StateSpace& sspace1,
-      bool create, State& state0, State& state1,
-      State* (&rstate0), State* (&rstate1)) {
+  static bool CreateStates(unsigned num_qubits0,unsigned num_qubits1,
+                           const StateSpace& sspace,
+                           bool create, State& state0, State& state1,
+                           State* (&rstate0), State* (&rstate1)) {
     if (create) {
-      state0 = sspace0.CreateState();
-      state1 = sspace1.CreateState();
+      state0 = sspace.Create(num_qubits0);
+      state1 = sspace.Create(num_qubits1);
 
-      if (sspace0.IsNull(state0) || sspace1.IsNull(state1)) {
+      if (sspace.IsNull(state0) || sspace.IsNull(state1)) {
         IO::errorf("not enough memory: is the number of qubits too large?\n");
         return false;
       }

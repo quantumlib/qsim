@@ -3,9 +3,9 @@
 This file provides examples of how to use qsim with the
 [Cirq](https://github.com/quantumlib/cirq) Python library.
 
-qsim is currently built to work with Cirq version 0.8.2; if you have a later
-version of Cirq installed, you may need to downgrade (or run in a virtualenv)
-when working with qsim until support for the latest Cirq version is available.
+qsim is kept up-to-date with the latest version of Cirq. If you experience
+compatibility issues, please file an issue in the qsim or Cirq repository
+as appropriate.
 
 
 ## Setting up
@@ -60,17 +60,18 @@ objects, which it wraps as `QSimCircuit` to enforce architectural constraints
 
 ### Usage procedure
 
-A QSimCircuit can be created from a Cirq circuit.
+We begin by defining a Cirq circuit which we want to simulate.
+
 ```
 my_circuit = cirq.Circuit()
 ```
 
-This circuit can then be simulated using either QSimSimulator or
-QSimhSimulator, depending on the output required:
+This circuit can then be simulated using either `QSimSimulator` or
+`QSimhSimulator`, depending on the desired output.
 
 #### QSimSimulator
 
-QSimSimulator uses a Schrödinger full state-vector simulator, suitable for
+`QSimSimulator` uses a Schrödinger full state-vector simulator, suitable for
 acquiring the complete state of a reasonably-sized circuit (~35 qubits).
 Options for the simulator, including number of threads and verbosity, can be
 set with the `qsim_options` field using the `qsim_base` flag format defined in
@@ -79,24 +80,25 @@ the [usage docs](/docs/usage.md).
 ```
 qsim_options = {'t': 8, 'v': 0}
 my_sim = qsimcirq.QSimSimulator(qsim_options)
-myres = my_sim.simulate(program = my_circuit)
+myres = my_sim.simulate(program=my_circuit)
 ```
 
-Alternatively, by using the `compute_amplitudes` method QSimSimulator can
+Alternatively, by using the `compute_amplitudes` method `QSimSimulator` can
 produce amplitudes for specific output bitstrings:
 ```
 my_sim = qsimcirq.QSimSimulator()
-myres = my_sim.compute_amplitudes(program = my_circuit,
-                                  bitstrings=['00', '01', '10', '11'])
+myres = my_sim.compute_amplitudes(program=my_circuit,
+                                  bitstrings=[0b00, 0b01, 0b10, 0b11])
 ```
 In the above example, the simulation is performed for the specified bitstrings
 of length 2. All the bitstring lengths should be equal to the number of qubits
 in `qsim_circuit`. Otherwise, BitstringsFromStream will raise an error.
 
-Finally, to retrieve sample measurements the `run` method can be used:
+Finally, to retrieve sample measurements the `run` method can be used. This requires
+the circuit to have measurements to sample from, else an error will be raised.
 ```
 my_sim = qsimcirq.QSimSimulator()
-myres = my_sim.run(program = my_circuit)
+myres = my_sim.run(program=my_circuit)
 ```
 
 This method may be more efficient if the final state vector is very large, as
@@ -110,7 +112,7 @@ reflected in the results.
 
 #### QSimhSimulator
 
-QSimhSimulator uses a hybrid Schrödinger-Feynman simulator. This limits it to
+`QSimhSimulator` uses a hybrid Schrödinger-Feynman simulator. This limits it to
 returning amplitudes for specific output bitstrings, but raises its upper
 bound on number of qubits simulated (50+ qubits, depending on depth).
 
@@ -123,11 +125,11 @@ qsimh_options = {
     'r': 2
 }
 my_sim = qsimcirq.QSimhSimulator(qsimh_options)
-myres = my_sim.compute_amplitudes(program = my_circuit,
-                                  bitstrings=['00', '01', '10', '11'])
+myres = my_sim.compute_amplitudes(program=my_circuit,
+                                  bitstrings=[0b00, 0b01, 0b10, 0b11])
 ```
 
-As with QSimSimulator, the options follow the flag format for `qsimh_base`
+As with `QSimSimulator`, the options follow the flag format for `qsimh_base`
 outlined in the [usage docs](/docs/usage.md).
 
 ## Additional features
@@ -142,12 +144,12 @@ gate set if possible. This uses the Cirq `decompose` operation.
 
 Known gates with no decomposition:
 
-- ControlledGate (i.e. gates constructed using the `controlled_by()` method)
-- Matrix gates on 3 or more qubits
+- Cirq `ControlledGate`s (i.e. gates constructed using the `cirq.ControlledGate` method).
+- Cirq `MatrixGate`s on 3 or more qubits.
 
 ### Parametrized circuits
 
 QSimCircuit objects can also contain
-[parameterized gates](https://cirq.readthedocs.io/en/stable/tutorial.html#parameterizing-the-ansatz)
+[parameterized gates](https://cirq.readthedocs.io/en/stable/docs/tutorials/basics.html#Using-parameter-sweeps)
 which have values assigned by Cirq's `ParamResolver`. See the link above for
 details on how to use this feature.

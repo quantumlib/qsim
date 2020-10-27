@@ -36,8 +36,7 @@ class SimulatorAVX final {
   using fp_type = typename StateSpace::fp_type;
 
   template <typename... ForArgs>
-  explicit SimulatorAVX(unsigned num_qubits, ForArgs&&... args)
-      : for_(args...), num_qubits_(num_qubits) {}
+  explicit SimulatorAVX(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using AVX instructions.
@@ -66,19 +65,33 @@ class SimulatorAVX final {
     }
   }
 
+  /**
+   * Applies a controlled gate using non-vectorized instructions.
+   * @param qs Indices of the qubits affected by this gate.
+   * @param cqs Indices of control qubits.
+   * @param cmask Bit mask of control qubit values.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
+  void ApplyControlledGate(const std::vector<unsigned>& qs,
+                           const std::vector<unsigned>& cqs, uint64_t cmask,
+                           const fp_type* matrix, State& state) const {
+    // Not implemented yet.
+  }
+
  private:
   // Applies a single-qubit gate for qubit > 2.
   // Performs vectorized sparse matrix-vector multiplication.
   // The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
   // Performs AVX vectorization.
   void ApplyGate1H(unsigned q0, const fp_type* matrix, State& state) const {
-    uint64_t sizei = uint64_t{1} << num_qubits_;
+    uint64_t sizei = uint64_t{1} << state.num_qubits();
     uint64_t sizek = uint64_t{1} << (q0 + 1);
 
     uint64_t mask0 = sizek - 1;
     uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizek - 1);
 
-    fp_type* rstate = StateSpace::RawData(state);
+    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizek, uint64_t mask0, uint64_t mask1,
@@ -169,9 +182,9 @@ class SimulatorAVX final {
       break;
     }
 
-    uint64_t sizei = uint64_t{1} << (num_qubits_ + 1);
+    uint64_t sizei = uint64_t{1} << (state.num_qubits() + 1);
 
-    fp_type* rstate = StateSpace::RawData(state);
+    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 __m256i ml, const __m256* u, fp_type* rstate) {
@@ -206,7 +219,7 @@ class SimulatorAVX final {
   // Performs AVX vectorization.
   void ApplyGate2HH(
       unsigned q0, unsigned q1, const fp_type* matrix, State& state) const {
-    uint64_t sizei = uint64_t{1} << (num_qubits_ - 1);
+    uint64_t sizei = uint64_t{1} << (state.num_qubits() - 1);
     uint64_t sizej = uint64_t{1} << (q1 + 1);
     uint64_t sizek = uint64_t{1} << (q0 + 1);
 
@@ -214,7 +227,7 @@ class SimulatorAVX final {
     uint64_t mask1 = (sizej - 1) ^ (2 * sizek - 1);
     uint64_t mask2 = (4 * sizei - 1) ^ (2 * sizej - 1);
 
-    fp_type* rstate = StateSpace::RawData(state);
+    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizej, uint64_t sizek,
@@ -429,13 +442,13 @@ class SimulatorAVX final {
       break;
     }
 
-    uint64_t sizei = uint64_t{1} << num_qubits_;
+    uint64_t sizei = uint64_t{1} << state.num_qubits();
     uint64_t sizej = uint64_t{1} << (q1 + 1);
 
     uint64_t mask0 = sizej - 1;
     uint64_t mask1 = (2 * sizei - 1) ^ (2 * sizej - 1);
 
-    fp_type* rstate = StateSpace::RawData(state);
+    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 uint64_t sizej, uint64_t mask0, uint64_t mask1,
@@ -561,9 +574,9 @@ class SimulatorAVX final {
       break;
     }
 
-    uint64_t sizei = uint64_t{1} << (num_qubits_ + 1);
+    uint64_t sizei = uint64_t{1} << (state.num_qubits() + 1);
 
-    fp_type* rstate = StateSpace::RawData(state);
+    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 const __m256i* ml, const __m256* u, fp_type* rstate) {
@@ -612,7 +625,6 @@ class SimulatorAVX final {
   }
 
   For for_;
-  unsigned num_qubits_;
 };
 
 }  // namespace qsim

@@ -84,8 +84,9 @@ TEST(RunQSimTest, QSimRunner1) {
     // Calculate entropy.
 
     entropy = 0;
+    auto size = uint64_t{1} << state.num_qubits();
 
-    for (uint64_t i = 0; i < state_space.Size(); ++i) {
+    for (uint64_t i = 0; i < size; ++i) {
       auto ampl = state_space.GetAmpl(state, i);
       float p = std::norm(ampl);
       entropy -= p * std::log(p);
@@ -115,8 +116,8 @@ TEST(RunQSimTest, QSimRunner2) {
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
-  StateSpace state_space(circuit.num_qubits, 1);
-  State state = state_space.CreateState();
+  StateSpace state_space(1);
+  State state = state_space.Create(circuit.num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(state));
 
@@ -132,8 +133,9 @@ TEST(RunQSimTest, QSimRunner2) {
   // Calculate entropy.
 
   float entropy = 0;
+  auto size = uint64_t{1} << circuit.num_qubits;
 
-  for (uint64_t i = 0; i < state_space.Size(); ++i) {
+  for (uint64_t i = 0; i < size; ++i) {
     auto ampl = state_space.GetAmpl(state, i);
     float p = std::norm(ampl);
     entropy -= p * std::log(p);
@@ -142,7 +144,7 @@ TEST(RunQSimTest, QSimRunner2) {
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
 
-constexpr char sample_circuit_string[] = 
+constexpr char sample_circuit_string[] =
 R"(2
 0 h 0
 0 x 1
@@ -171,8 +173,8 @@ TEST(RunQSimTest, QSimSampler) {
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
 
-  StateSpace state_space(circuit.num_qubits, 1);
-  State state = state_space.CreateState();
+  StateSpace state_space(1);
+  State state = state_space.Create(circuit.num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(state));
 
@@ -202,8 +204,8 @@ TEST(RunQSimTest, QSimSampler) {
 }
 
 TEST(RunQSimTest, CirqGates) {
-  auto circuit = CirqCircuit1::GetCircuit<float>();
-  const auto& expected_results = CirqCircuit1::expected_results;
+  auto circuit = CirqCircuit1::GetCircuit<float>(true);
+  const auto& expected_results = CirqCircuit1::expected_results1;
 
   using Simulator = Simulator<For>;
   using StateSpace = Simulator::StateSpace;
@@ -211,11 +213,13 @@ TEST(RunQSimTest, CirqGates) {
   using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
-  StateSpace state_space(circuit.num_qubits, 1);
-  State state = state_space.CreateState();
+  StateSpace state_space(1);
+  State state = state_space.Create(circuit.num_qubits);
+
+  auto size = uint64_t{1} << circuit.num_qubits;
 
   EXPECT_FALSE(state_space.IsNull(state));
-  EXPECT_EQ(state_space.Size(), expected_results.size());
+  EXPECT_EQ(size, expected_results.size());
 
   state_space.SetStateZero(state);
 
@@ -226,7 +230,7 @@ TEST(RunQSimTest, CirqGates) {
 
   EXPECT_TRUE(Runner::Run(param, circuit, state));
 
-  for (uint64_t i = 0; i < state_space.Size(); ++i) {
+  for (uint64_t i = 0; i < size; ++i) {
     auto ampl = state_space.GetAmpl(state, i);
     EXPECT_NEAR(std::real(ampl), std::real(expected_results[i]), 2e-6);
     EXPECT_NEAR(std::imag(ampl), std::imag(expected_results[i]), 2e-6);

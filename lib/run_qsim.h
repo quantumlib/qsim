@@ -83,16 +83,16 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space(circuit.num_qubits, param.num_threads);
+    StateSpace state_space(param.num_threads);
 
-    auto state = state_space.CreateState();
+    auto state = state_space.Create(circuit.num_qubits);
     if (state_space.IsNull(state)) {
       IO::errorf("not enough memory: is the number of qubits too large?\n");
       return false;
     }
 
     state_space.SetStateZero(state);
-    Simulator simulator(circuit.num_qubits, param.num_threads);
+    Simulator simulator(param.num_threads);
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
                                         times_to_measure_at);
@@ -162,9 +162,9 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space(circuit.num_qubits, param.num_threads);
+    StateSpace state_space(param.num_threads);
 
-    Simulator simulator(circuit.num_qubits, param.num_threads);
+    Simulator simulator(param.num_threads);
 
     auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {

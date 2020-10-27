@@ -23,7 +23,6 @@
 #include <cstdlib>
 #include <memory>
 #include <utility>
-#include <vector>
 
 namespace qsim {
 
@@ -33,8 +32,8 @@ inline void do_not_free(void*) noexcept {}
 
 }  // namespace detail
 
-// Routines for vec-vector manipulations.
-template <typename For, typename FP>
+// Routines for vector manipulations.
+template <typename Impl, typename For, typename FP>
 class VectorSpace {
  public:
   using fp_type = FP;
@@ -45,7 +44,10 @@ class VectorSpace {
  public:
   class Vector {
    public:
-    Vector(Pointer&& ptr, uint64_t size) : ptr_(std::move(ptr)), size_(size) {}
+    Vector() = delete;
+
+    Vector(Pointer&& ptr, unsigned num_qubits)
+        : ptr_(std::move(ptr)), num_qubits_(num_qubits) {}
 
     fp_type* get() {
       return ptr_.get();
@@ -55,70 +57,49 @@ class VectorSpace {
       return ptr_.get();
     }
 
-    uint64_t size() const {
-      return size_;
+    unsigned num_qubits() const {
+      return num_qubits_;
     }
 
    private:
     Pointer ptr_;
-    uint64_t size_;
+    unsigned num_qubits_;
   };
 
   template <typename... ForArgs>
-  VectorSpace(uint64_t raw_size, ForArgs&&... args)
-      : for_(args...), raw_size_(raw_size) {}
+  VectorSpace(ForArgs&&... args) : for_(args...) {}
 
-  Vector CreateVector() const {
-    auto size = sizeof(fp_type) * raw_size_;
+  static Vector Create(unsigned num_qubits) {
+    auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
     #ifdef _WIN32
       Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &_aligned_free};
-      uint64_t true_size = ptr.get() != nullptr ? raw_size_ : 0;
-      return Vector{std::move(ptr), true_size};
+      return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
     #else
       void* p = nullptr;
       if (posix_memalign(&p, 64, size) == 0) {
-        return Vector{Pointer{(fp_type*) p, &free}, raw_size_};
+        return Vector{Pointer{(fp_type*) p, &free}, num_qubits};
       } else {
-        return Vector{Pointer{nullptr, &free}, 0};
+        return Null();
       }
     #endif
   }
 
-  static Vector CreateVector(fp_type* p, uint64_t size) {
-    return Vector{Pointer{p, &detail::do_not_free}, size};
+  // It is the client's responsibility to make sure that p has at least
+  // 2 * 2^num_qubits elements.
+  static Vector Create(fp_type* p, unsigned num_qubits) {
+    return Vector{Pointer{p, &detail::do_not_free}, num_qubits};
   }
 
-  static Vector NullVector() {
+  static Vector Null() {
     return Vector{Pointer{nullptr, &free}, 0};
-  }
-
-  uint64_t RawSize() const {
-    return raw_size_;
-  }
-
-  static fp_type* RawData(Vector& vec) {
-    return vec.get();
-  }
-
-  static const fp_type* RawData(const Vector& vec) {
-    return vec.get();
   }
 
   static bool IsNull(const Vector& vec) {
     return vec.get() == nullptr;
   }
 
-  bool Swap(Vector& vec1, Vector& vec2) const {
-    if (vec1.size() != raw_size_ || vec2.size() != raw_size_) {
-      return false;
-    } else {
-      std::swap(vec1, vec2);
-      return true;
-    }
-  }
-
-  bool CopyVector(const Vector& src, Vector& dest) const {
-    if (src.size() != raw_size_ || dest.size() != raw_size_) {
+  bool Copy(const Vector& src, Vector& dest) const {
+    if (src.num_qubits() != dest.num_qubits()) {
       return false;
     }
 
@@ -127,14 +108,13 @@ class VectorSpace {
       dest[i] = src[i];
     };
 
-    for_.Run(raw_size_, f, src.get(), dest.get());
+    for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest.get());
 
     return true;
   }
 
  protected:
   For for_;
-  uint64_t raw_size_;
 };
 
 }  // namespace qsim

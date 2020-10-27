@@ -40,44 +40,28 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   using fp_type = typename Base::fp_type;
 
   template <typename... ForArgs>
-  explicit StateSpaceBasic(unsigned num_qubits, ForArgs&&... args)
-      : Base(MinimumRawSize(2 * (uint64_t{1} << num_qubits)),
-             num_qubits, args...) {}
+  explicit StateSpaceBasic(ForArgs&&... args) : Base(args...) {}
 
-  static uint64_t MinimumRawSize(uint64_t raw_size) {
-    return raw_size;
-  }
+  static uint64_t MinSize(unsigned num_qubits) {
+    return 2 * (uint64_t{1} << num_qubits);
+  };
 
-  bool InternalToNormalOrder(State& state) const {
-    return true;
-  }
+  void InternalToNormalOrder(State& state) const {}
 
-  bool NormalToInternalOrder(State& state) const {
-    return true;
-  }
+  void NormalToInternalOrder(State& state) const {}
 
-  bool SetAllZeros(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void SetAllZeros(State& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, fp_type* p) {
       p[2 * i] = 0;
       p[2 * i + 1] = 0;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 2, f, state.get());
   }
 
   // Uniform superposition.
-  bool SetStateUniform(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
-    fp_type val = fp_type{1} / std::sqrt(Base::Size());
+  void SetStateUniform(State& state) const {
+    fp_type val = fp_type{1} / std::sqrt(uint64_t{1} << state.num_qubits());
 
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 fp_type val, fp_type* p) {
@@ -85,21 +69,13 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       p[2 * i + 1] = 0;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, val, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 2, f, val, state.get());
   }
 
   // |0> state.
-  bool SetStateZero(State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void SetStateZero(State& state) const {
     SetAllZeros(state);
     state.get()[0] = 1;
-
-    return true;
   }
 
   static std::complex<fp_type> GetAmpl(const State& state, uint64_t i) {
@@ -121,8 +97,8 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
   }
 
   // Does the equivalent of dest += src elementwise.
-  bool AddState(const State& src, State& dest) const {
-    if (src.size() != Base::raw_size_ || dest.size() != Base::raw_size_) {
+  bool Add(const State& src, State& dest) const {
+    if (src.num_qubits() != dest.num_qubits()) {
       return false;
     }
 
@@ -132,30 +108,24 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       p2[2 * i + 1] += p1[2 * i + 1];
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, src.get(), dest.get());
+    Base::for_.Run(MinSize(src.num_qubits()) / 2, f, src.get(), dest.get());
 
     return true;
   }
 
   // Does the equivalent of state *= a elementwise.
-  bool Multiply(fp_type a, State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void Multiply(fp_type a, State& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, fp_type a, fp_type* p) {
       p[2 * i] *= a;
       p[2 * i + 1] *= a;
     };
 
-    Base::for_.Run(Base::raw_size_ / 2, f, a, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 2, f, a, state.get());
   }
 
   std::complex<double> InnerProduct(
       const State& state1, const State& state2) const {
-    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+    if (state1.num_qubits() != state2.num_qubits()) {
       return std::nan("");
     }
 
@@ -172,11 +142,11 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
 
     using Op = std::plus<std::complex<double>>;
     return Base::for_.RunReduce(
-        Base::raw_size_ / 2, f, Op(), state1.get(), state2.get());
+        MinSize(state1.num_qubits()) / 2, f, Op(), state1.get(), state2.get());
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
-    if (state1.size() != Base::raw_size_ || state2.size() != Base::raw_size_) {
+    if (state1.num_qubits() != state2.num_qubits()) {
       return std::nan("");
     }
 
@@ -190,7 +160,7 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
 
     using Op = std::plus<double>;
     return Base::for_.RunReduce(
-        Base::raw_size_ / 2, f, Op(), state1.get(), state2.get());
+        MinSize(state1.num_qubits()) / 2, f, Op(), state1.get(), state2.get());
   }
 
   template <typename DistrRealType = double>
@@ -198,9 +168,9 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
-    if (state.size() == Base::raw_size_ && num_samples > 0) {
+    if (num_samples > 0) {
       double norm = 0;
-      uint64_t size = Base::raw_size_ / 2;
+      uint64_t size = MinSize(state.num_qubits()) / 2;
 
       const fp_type* p = state.get();
 
@@ -232,11 +202,7 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
 
   using MeasurementResult = typename Base::MeasurementResult;
 
-  bool CollapseState(const MeasurementResult& mr, State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return false;
-    }
-
+  void Collapse(const MeasurementResult& mr, State& state) const {
     auto f1 = [](unsigned n, unsigned m, uint64_t i,
                  uint64_t mask, uint64_t bits, const fp_type* p) -> double {
       auto s = p + 2 * i;
@@ -244,8 +210,8 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
     };
 
     using Op = std::plus<double>;
-    double norm = Base::for_.RunReduce(Base::raw_size_ / 2, f1, Op(),
-                                       mr.mask, mr.bits, state.get());
+    double norm = Base::for_.RunReduce(MinSize(state.num_qubits()) / 2, f1,
+                                       Op(), mr.mask, mr.bits, state.get());
 
     double renorm = 1.0 / std::sqrt(norm);
 
@@ -258,17 +224,11 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       s[1] = not_zero ? s[1] * renorm : 0;
     };
 
-    Base::for_.Run(
-        Base::raw_size_ / 2, f2, mr.mask, mr.bits, renorm, state.get());
-
-    return true;
+    Base::for_.Run(MinSize(state.num_qubits()) / 2, f2,
+                   mr.mask, mr.bits, renorm, state.get());
   }
 
   std::vector<double> PartialNorms(const State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return {};
-    }
-
     auto f = [](unsigned n, unsigned m, uint64_t i,
                 const fp_type* p) -> double {
       auto s = p + 2 * i;
@@ -276,19 +236,16 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduceP(Base::raw_size_ / 2, f, Op(), state.get());
+    return Base::for_.RunReduceP(
+        MinSize(state.num_qubits()) / 2, f, Op(), state.get());
   }
 
   uint64_t FindMeasuredBits(
       unsigned m, double r, uint64_t mask, const State& state) const {
-    if (state.size() != Base::raw_size_) {
-      return -1;
-    }
-
     double csum = 0;
 
-    uint64_t k0 = Base::for_.GetIndex0(Base::raw_size_ / 2, m);
-    uint64_t k1 = Base::for_.GetIndex1(Base::raw_size_ / 2, m);
+    uint64_t k0 = Base::for_.GetIndex0(MinSize(state.num_qubits()) / 2, m);
+    uint64_t k1 = Base::for_.GetIndex1(MinSize(state.num_qubits()) / 2, m);
 
     const fp_type* p = state.get();
 
