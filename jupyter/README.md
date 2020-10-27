@@ -34,8 +34,6 @@ Explaining the concepts of quantum computing is beyond the scope of this tutoria
 
 ## **Objectives**
 
-
-
 *   Create a Container Optimized VM
 *   Run Docker container with Jupyter and qsim installed
 *   Run a demo circuit
@@ -70,13 +68,13 @@ For this reference guide, you need a Google Cloud [project](https://cloud.google
 
 1. Select or create a Google Cloud project.
 
-[GO TO THE PROJECT SELECTOR PAGE](https://pantheon.corp.google.com/projectselector2/home/dashboard)
+> [GO TO THE PROJECT SELECTOR PAGE](https://pantheon.corp.google.com/projectselector2/home/dashboard)
 
 
 
 2. Enable billing for your project.
 
-[ENABLE BILLING](https://support.google.com/cloud/answer/6293499#enable-billing)
+> [ENABLE BILLING](https://support.google.com/cloud/answer/6293499#enable-billing)
 
 When you finish this tutorial, you can avoid continued billing by deleting the resources you created. See [Cleaning up](#cleaning-up) for more detail.
 
@@ -88,7 +86,7 @@ Once you have a project enabled with a billing account, you will be able to crea
 
 ### Use the Cloud Console
 
-Connect to the Cloud Console and make sure your current project is selected. Them click on "Create" for a new VM instance:
+Connect to the Cloud Console and make sure your current project is selected. Then click on "Create" for a new VM instance:
 
 
 
@@ -129,16 +127,11 @@ To create the VM use the steps in sequence below:
 
 
 
-*   Finally, enable HTTP access
+Finally, enable HTTP access
 *   Click "Create"
-*   
-
-
 
 
 ![alt_text](images/image8.png )
-
-
 
 ## Running the qsim docker container
 
