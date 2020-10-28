@@ -198,7 +198,7 @@ You can skip the setup and go straight to the cell labeled "Full state-vector si
 ![alt_text](../images/image1.png )
 
 
-If you choose to modify the notebook, you can save it on the qsim-1 VM from File -> Save As, and saving to /homedir/mynotebook.ipynb.  This will save in your home directory on your VM, if your directory is open to write.
+If you choose to modify the notebook, you can save it on the *qsim-1* VM from *File* -> *Save As*, and saving to `/homedir/mynotebook.ipynb`.  This will save in your home directory on your VM, if your directory is open to write.
 
 
 
