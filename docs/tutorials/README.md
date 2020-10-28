@@ -224,7 +224,7 @@ $ docker ps
 ![alt_text](../images/image11.png )
 
 
-The CONTAINER ID is a UID something like "79804d33f250". Now you can connect to the container:
+The `CONTAINER_ID` is a UID something like "79804d33f250". Now you can connect to the container:
 
 
 ```console
