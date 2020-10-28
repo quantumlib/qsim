@@ -213,7 +213,7 @@ Navigate to  qsim > docs > tutorials. You will see:
 
 Click on qsimcirq.ipynb. This will load the notebook.
 
-You can skip the setup and go straight to the cell that "Full state-vector simulation":
+You can skip the setup and go straight to the cell labeled "Full state-vector simulation":
 
 
 
