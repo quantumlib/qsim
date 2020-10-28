@@ -216,7 +216,7 @@ Now, find the container ID with docker ps:
 
 
 ```
-    $ docker ps
+$ docker ps
 ```
 
 
