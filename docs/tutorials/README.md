@@ -146,17 +146,17 @@ The output will be something like:
 
 
 ```console
-    Unable to find image 'gcr.io/quantum-291919/jupyter_qsim:latest' locally
-    latest: Pulling from quantum-291919/jupyter_qsim
-    3c72a8ed6814: Pull complete 
-    2bd71a698eae: Pull complete 
-    Digest: sha256:d0d0040c6ef9925719459e736631c9fec957b94d377009c591d6285143ebb626
-    ...    
-        To access the notebook, open this file in a browser:
-            file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
-        Or copy and paste one of these URLs:
-            http://79804d33f250:8888/?token=d7a53e728e3dff08c6ed12a15810471486b4c15828a3d70a
-         or http://127.0.0.1:8888/?token=d7a53e728e3dff08c6ed12a15810471486b4c15828a3d70a
+ Unable to find image 'gcr.io/quantum-291919/jupyter_qsim:latest' locally
+ latest: Pulling from quantum-291919/jupyter_qsim
+ 3c72a8ed6814: Pull complete 
+ 2bd71a698eae: Pull complete 
+ Digest: sha256:d0d0040c6ef9925719459e736631c9fec957b94d377009c591d6285143ebb626
+ ...    
+     To access the notebook, open this file in a browser:
+         file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
+     Or copy and paste one of these URLs:
+         http://79804d33f250:8888/?token=d7a53e728e3dff08c6ed12a15810471486b4c15828a3d70a
+      or http://127.0.0.1:8888/?token=d7a53e728e3dff08c6ed12a15810471486b4c15828a3d70a
 ```
 
 
@@ -167,7 +167,7 @@ Copy the last URL (it starts with `127.0.0.1`). Replace `127.0.0.1` with the IP 
 
 
 ```console
-    http://[EXTERNAL_IP_ADDRESS]:8888/?token=7191178ae9aa4ebe1698b07bb67dea1d289cfd0e0b960373
+ http://[EXTERNAL_IP_ADDRESS]:8888/?token=7191178ae9aa4ebe1698b07bb67dea1d289cfd0e0b960373
 ```
 
 
