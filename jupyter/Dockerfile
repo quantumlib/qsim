@@ -17,5 +17,8 @@ RUN yum -y update && \
 	cd / && \
 	git clone https://github.com/quantumlib/qsim.git
 
+RUN groupadd -g 412 appuser && \
+    useradd -m -r -u 412 -g appuser appuser 
+USER appuser
 
 CMD ["jupyter-notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]

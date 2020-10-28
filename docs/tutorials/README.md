@@ -220,7 +220,7 @@ You can skip the setup and go straight to the cell that "Full state-vector simul
 ![alt_text](../images/image1.png )
 
 
-If you choose to modify the notebook, you can save it on the qsim-1 VM from File -> Save As, and saving to /homedir/mynotebook.ipynb.  This will save in your home directory on your VM.
+If you choose to modify the notebook, you can save it on the qsim-1 VM from File -> Save As, and saving to /homedir/mynotebook.ipynb.  This will save in your home directory on your VM, if your directory is open to write.
 
 
 
@@ -375,7 +375,7 @@ The easiest way to eliminate billing is to delete the project you created for th
 **Caution**: Deleting a project has the following effects:
 
 *   **Everything in the project is deleted.** If you used an existing project for this tutorial, when you delete it, you also delete any other work you've done in the project.
-*   **Custom project IDs are lost.** When you created this project, you might have created a custom project ID that you want to use in the future. To preserve the URLs that use the project ID, such as an **<code>appspot.com</code></strong> URL, delete selected resources inside the project instead of deleting the whole project.
+*   **Custom project IDs are lost.** When you created this project, you might have created a custom project ID that you want to use in the future. To preserve the URLs that use the project ID, such as an **```appspot.com```** URL, delete selected resources inside the project instead of deleting the whole project.
 
 If you plan to explore multiple tutorials and quickstarts, reusing projects can help you avoid exceeding project quota limits.
 
