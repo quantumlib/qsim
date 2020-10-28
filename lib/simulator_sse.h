@@ -26,8 +26,8 @@
 namespace qsim {
 
 /**
-* Quantum circuit simulator with SSE vectorization.
-*/
+ * Quantum circuit simulator with SSE vectorization.
+ */
 template <typename For>
 class SimulatorSSE final {
  public:
@@ -285,7 +285,8 @@ class SimulatorSSE final {
                    const fp_type* matrix, State& state) const {
     unsigned p[4];
 
-    __m128 w[4];
+    auto s = StateSpace::Create(4);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -457,7 +458,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[16];
+    auto s = StateSpace::Create(6);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -538,7 +540,8 @@ class SimulatorSSE final {
                     const fp_type* matrix, State& state) const {
     unsigned p[4];
 
-    __m128 w[8];
+    auto s = StateSpace::Create(5);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -717,7 +720,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[64];
+    auto s = StateSpace::Create(8);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -816,7 +820,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[32];
+    auto s = StateSpace::Create(7);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -998,7 +1003,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[256];
+    auto s = StateSpace::Create(10);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -1102,7 +1108,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[128];
+    auto s = StateSpace::Create(9);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -1284,7 +1291,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[1024];
+    auto s = StateSpace::Create(12);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -1388,7 +1396,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[512];
+    auto s = StateSpace::Create(11);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -1572,7 +1581,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[4096];
+    auto s = StateSpace::Create(14);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -1676,7 +1686,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[2048];
+    auto s = StateSpace::Create(13);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -1891,7 +1902,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[8];
+    auto s = StateSpace::Create(5);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -1987,7 +1999,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[4];
+    auto s = StateSpace::Create(4);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2094,7 +2107,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[4];
+    auto s = StateSpace::Create(4);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2315,7 +2329,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[32];
+    auto s = StateSpace::Create(7);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2429,7 +2444,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[16];
+    auto s = StateSpace::Create(6);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2555,7 +2571,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[16];
+    auto s = StateSpace::Create(6);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2656,7 +2673,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[8];
+    auto s = StateSpace::Create(5);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -2765,7 +2783,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[8];
+    auto s = StateSpace::Create(5);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -2988,7 +3007,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[128];
+    auto s = StateSpace::Create(9);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3106,7 +3126,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[64];
+    auto s = StateSpace::Create(8);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3236,7 +3257,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[64];
+    auto s = StateSpace::Create(8);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3355,7 +3377,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[32];
+    auto s = StateSpace::Create(7);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -3483,7 +3506,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[32];
+    auto s = StateSpace::Create(7);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -3707,7 +3731,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[512];
+    auto s = StateSpace::Create(11);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3825,7 +3850,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[256];
+    auto s = StateSpace::Create(10);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3955,7 +3981,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[256];
+    auto s = StateSpace::Create(10);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -4078,7 +4105,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[128];
+    auto s = StateSpace::Create(9);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -4210,7 +4238,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    __m128 w[128];
+    auto s = StateSpace::Create(9);
+    __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);

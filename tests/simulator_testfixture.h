@@ -48,19 +48,12 @@ void TestApplyGate1() {
   auto gate5 = GateZ<fp_type>::Create(4, 0);
   auto gate6 = GateHZ2<fp_type>::Create(5, 0);
 
-  puts("obs1");
   ApplyGate(simulator, gate1, state);
-  puts("obs2");
   ApplyGate(simulator, gate2, state);
-  puts("obs3");
   ApplyGate(simulator, gate3, state);
-  puts("obs4");
   ApplyGate(simulator, gate4, state);
-  puts("obs5");
   ApplyGate(simulator, gate5, state);
-  puts("obs6");
   ApplyGate(simulator, gate6, state);
-  puts("obs7");
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 

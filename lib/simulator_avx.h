@@ -26,8 +26,8 @@
 namespace qsim {
 
 /**
-* Quantum circuit simulator with AVX vectorization.
-*/
+ * Quantum circuit simulator with AVX vectorization.
+ */
 template <typename For>
 class SimulatorAVX final {
  public:
@@ -306,7 +306,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[4];
+    auto s = StateSpace::Create(4);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -487,7 +488,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[16];
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -577,7 +579,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[8];
+    auto s = StateSpace::Create(5);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -763,7 +766,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[64];
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -871,7 +875,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[32];
+    auto s = StateSpace::Create(7);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -961,7 +966,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[16];
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -1147,7 +1153,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[256];
+    auto s = StateSpace::Create(10);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -1260,7 +1267,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[128];
+    auto s = StateSpace::Create(9);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -1368,7 +1376,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[64];
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -1557,7 +1566,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[1024];
+    auto s = StateSpace::Create(12);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -1670,7 +1680,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[512];
+    auto s = StateSpace::Create(11);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -1783,7 +1794,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[256];
+    auto s = StateSpace::Create(10);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -1973,7 +1985,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[4096];
+    auto s = StateSpace::Create(14);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2086,7 +2099,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[2048];
+    auto s = StateSpace::Create(13);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -2199,7 +2213,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[1024];
+    auto s = StateSpace::Create(12);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -2420,7 +2435,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    __m256 w[8];
+    auto s = StateSpace::Create(5);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2517,7 +2533,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[4];
+    auto s = StateSpace::Create(4);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2633,7 +2650,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[4];
+    auto s = StateSpace::Create(4);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2862,7 +2880,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    __m256 w[32];
+    auto s = StateSpace::Create(7);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -2977,7 +2996,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[16];
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3112,7 +3132,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[16];
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3222,7 +3243,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[8];
+    auto s = StateSpace::Create(5);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -3338,7 +3360,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[8];
+    auto s = StateSpace::Create(5);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -3567,7 +3590,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    __m256 w[128];
+    auto s = StateSpace::Create(9);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3686,7 +3710,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[64];
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3825,7 +3850,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[64];
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -3953,7 +3979,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[32];
+    auto s = StateSpace::Create(7);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -4088,7 +4115,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[32];
+    auto s = StateSpace::Create(7);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -4198,7 +4226,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[16];
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -4314,7 +4343,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[16];
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -4543,7 +4573,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    __m256 w[512];
+    auto s = StateSpace::Create(11);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -4662,7 +4693,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[256];
+    auto s = StateSpace::Create(10);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -4801,7 +4833,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    __m256 w[256];
+    auto s = StateSpace::Create(10);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
@@ -4933,7 +4966,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[128];
+    auto s = StateSpace::Create(9);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -5072,7 +5106,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    __m256 w[128];
+    auto s = StateSpace::Create(9);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
@@ -5200,7 +5235,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[64];
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
@@ -5335,7 +5371,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    __m256 w[64];
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
     fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
