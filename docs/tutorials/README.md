@@ -1,28 +1,6 @@
 # Quantum simulation on GCP with _Cirq_ and _qsim_
 
 
-# **Table of Contents**
-
-  * [**Objectives**](#objectives)
-  * [**Costs**](#costs)
-  * [**Before you begin**](#--before-you-begin)
-  * [**Creating a GCE VM**](#creating-a-gce-vm)
-    + [Use the Cloud Console](#use-the-cloud-console)
-    + [Build a Container Optimized VM](#build-a-container-optimized-vm)
-  * [**Running the qsim docker container**](#running-the-qsim-docker-container)
-    + [Open a SSH window to your VM](#open-a-ssh-window-to-your-vm)
-  * [**Run interactively**](#run-interactively)
-    + [Build the circuit](#build-the-circuit)
-    + [Run the circuit](#run-the-circuit)
-    + [Running your own script](#running-your-own-script)
-    + [Exit the container](#exit-the-container)
-  * [**Cleaning up**](#--cleaning-up)
-    + [Delete the VM](#delete-the-vm)
-    + [Delete the project](#delete-the-project)
-  * [**What's next**](#--what-s-next)
-
-_--_
-
 
 
 This tutorial will demonstrate how to run [Cirq](https://cirq.readthedocs.io/en/latest/index.html) on Google Cloud Platform. This tutorial will walk through how to install Cirq within a Docker container on a GCE Virtual Machine and view results. You will run simulation both in a Jupyter environment and interactively within the container.
@@ -32,7 +10,7 @@ Explaining the concepts of quantum computing is beyond the scope of this tutoria
 ------
 
 
-## **Objectives**
+## Objectives
 
 *   Create a Container Optimized VM
 *   Run Docker container with Jupyter and qsim installed
@@ -41,7 +19,7 @@ Explaining the concepts of quantum computing is beyond the scope of this tutoria
 ----
 
 
-## **Costs**
+## Costs
 
 This tutorial uses billable components of Google Cloud Platform, including:
 
@@ -52,7 +30,7 @@ This tutorial uses billable components of Google Cloud Platform, including:
 Use the [Pricing Calculator](https://cloud.google.com/products/calculator) to generate a cost estimate based on your projected usage.
 
 
-## **Before you begin**
+## Before you begin
 
 These are the steps to follow to get started with this tutorial:
 
@@ -68,7 +46,7 @@ For this reference guide, you need a Google Cloud [project](https://cloud.google
 
 1. Select or create a Google Cloud project.
 
-> [GO TO THE PROJECT SELECTOR PAGE](https://pantheon.corp.google.com/projectselector2/home/dashboard)
+> [GO TO THE PROJECT SELECTOR PAGE](https://console.cloud.google.com/projectselector2/home/dashboard)
 
 
 
@@ -81,7 +59,7 @@ When you finish this tutorial, you can avoid continued billing by deleting the r
 
 ## Creating a GCE VM 
 
-Once you have a project enabled with a billing account, you will be able to create resources. The key resource required for this project is a Virtual Machine (VM) used to run the qsim Quantum Simulations. 
+Once you have a project enabled with a billing account, you will be able to create resources. The key resource required for this project is a Virtual Machine (VM) used to run the qsim quantum simulations. 
 
 
 ### Use the Cloud Console
@@ -353,7 +331,7 @@ Exit the container by typing cntl-d twice. You will see the output like:
 -----
 
 
-## **Cleaning up**
+## Cleaning up
 
 To avoid incurring charges to your Google Cloud Platform account for the resources used in this tutorial:
 
@@ -389,7 +367,7 @@ If you plan to explore multiple tutorials and quickstarts, reusing projects can 
 ----
 
 
-## **What's next**
+## What's next
 
 Additional tutorial examples are available here:
 
