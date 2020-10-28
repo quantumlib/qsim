@@ -35,8 +35,7 @@ class SimulatorBasic final {
   using fp_type = typename StateSpace::fp_type;
 
   template <typename... ForArgs>
-  explicit SimulatorBasic(ForArgs&&... args)
-      : w_(StateSpace::Create(15)), for_(args...) {}
+  explicit SimulatorBasic(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using non-vectorized instructions.
@@ -854,7 +853,6 @@ class SimulatorBasic final {
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
-  State w_;
   For for_;
 };
 

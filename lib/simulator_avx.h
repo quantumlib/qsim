@@ -36,8 +36,7 @@ class SimulatorAVX final {
   using fp_type = typename StateSpace::fp_type;
 
   template <typename... ForArgs>
-  explicit SimulatorAVX(ForArgs&&... args)
-      : w_(StateSpace::Create(15)), for_(args...) {}
+  explicit SimulatorAVX(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using AVX instructions.
@@ -307,7 +306,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[4];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -329,11 +329,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (2 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -385,7 +385,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, idx, rstate);
+    for_.Run(size, f, w, idx, rstate);
   }
 
   void ApplyGate2HH(const std::vector<unsigned>& qs,
@@ -487,7 +487,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -509,11 +510,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -568,7 +569,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate2LL(const std::vector<unsigned>& qs,
@@ -576,7 +577,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -598,11 +600,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -654,7 +656,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, idx, rstate);
+    for_.Run(size, f, w, idx, rstate);
   }
 
   void ApplyGate3HHH(const std::vector<unsigned>& qs,
@@ -761,7 +763,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -783,11 +786,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -842,7 +845,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate3HLL(const std::vector<unsigned>& qs,
@@ -868,7 +871,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -890,11 +894,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -949,7 +953,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate3LLL(const std::vector<unsigned>& qs,
@@ -957,7 +961,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -979,11 +984,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1035,7 +1040,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, idx, rstate);
+    for_.Run(size, f, w, idx, rstate);
   }
 
   void ApplyGate4HHHH(const std::vector<unsigned>& qs,
@@ -1142,7 +1147,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1164,11 +1170,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1224,7 +1230,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate4HHLL(const std::vector<unsigned>& qs,
@@ -1254,7 +1260,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -1276,11 +1283,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1335,7 +1342,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate4HLLL(const std::vector<unsigned>& qs,
@@ -1361,7 +1368,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -1383,11 +1391,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1442,7 +1450,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate5HHHHH(const std::vector<unsigned>& qs,
@@ -1549,7 +1557,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[1024];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1571,11 +1580,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (32 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1631,7 +1640,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate5HHHLL(const std::vector<unsigned>& qs,
@@ -1661,7 +1670,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[512];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -1683,11 +1693,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (32 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1743,7 +1753,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate5HHLLL(const std::vector<unsigned>& qs,
@@ -1773,7 +1783,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -1795,11 +1806,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (32 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -1854,7 +1865,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate6HHHHHH(const std::vector<unsigned>& qs,
@@ -1962,7 +1973,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[4096];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1984,11 +1996,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (64 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -2044,7 +2056,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate6HHHHLL(const std::vector<unsigned>& qs,
@@ -2074,7 +2086,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[2048];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -2096,11 +2109,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (64 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -2156,7 +2169,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyGate6HHHLLL(const std::vector<unsigned>& qs,
@@ -2186,7 +2199,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[1024];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -2208,11 +2222,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (64 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -2268,7 +2282,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss, idx, rstate);
+    for_.Run(size, f, w, ms, xss, idx, rstate);
   }
 
   void ApplyControlledGate1H_H(const std::vector<unsigned>& qs,
@@ -2406,7 +2420,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2421,11 +2436,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 2 == (p[j] / 2) % 2 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2475,7 +2490,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -2502,7 +2517,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[4];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2524,11 +2540,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (2 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -2582,7 +2598,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -2617,7 +2633,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[4];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2640,11 +2657,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 2 == (p[j] / 2) % 2 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2698,7 +2715,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -2845,7 +2862,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2860,11 +2878,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2914,7 +2932,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -2959,7 +2977,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2981,11 +3000,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -3040,7 +3059,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -3093,7 +3112,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3116,11 +3136,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3175,7 +3195,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -3202,7 +3222,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -3224,11 +3245,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -3282,7 +3303,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -3317,7 +3338,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -3340,11 +3362,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3398,7 +3420,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -3545,7 +3567,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3560,11 +3583,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3614,7 +3637,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -3663,7 +3686,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3685,11 +3709,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -3744,7 +3768,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -3801,7 +3825,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3824,11 +3849,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3883,7 +3908,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -3928,7 +3953,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -3950,11 +3976,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -4009,7 +4035,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -4062,7 +4088,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -4085,11 +4112,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -4144,7 +4171,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -4171,7 +4198,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -4193,11 +4221,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -4251,7 +4279,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -4286,7 +4314,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -4309,11 +4338,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -4367,7 +4396,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -4514,7 +4543,8 @@ class SimulatorAVX final {
 
     unsigned p[8];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[512];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -4529,11 +4559,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -4583,7 +4613,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -4632,7 +4662,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -4654,11 +4685,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -4713,7 +4744,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -4770,7 +4801,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[1];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -4793,11 +4825,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -4852,7 +4884,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -4901,7 +4933,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -4923,11 +4956,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -4982,7 +5015,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -5039,7 +5072,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[3];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -5062,11 +5096,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -5121,7 +5155,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -5166,7 +5200,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -5188,11 +5223,11 @@ class SimulatorAVX final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j] = matrix[p[j]];
+          wf[8 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = matrix[p[j] + 1];
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
         }
       }
     }
@@ -5247,7 +5282,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -5300,7 +5335,8 @@ class SimulatorAVX final {
     unsigned p[8];
     __m256i idx[7];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m256 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
 
@@ -5323,11 +5359,11 @@ class SimulatorAVX final {
 
         for (unsigned j = 0; j < 8; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[8 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 8; ++j) {
-          w[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[8 * l + j + 8] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -5382,7 +5418,7 @@ class SimulatorAVX final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m256*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
   }
 
@@ -5392,7 +5428,6 @@ class SimulatorAVX final {
     return bits::ExpandBits((c + b) % lsize, 3, mask);
   }
 
-  State w_;
   For for_;
 };
 

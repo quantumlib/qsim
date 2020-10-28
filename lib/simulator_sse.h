@@ -36,8 +36,7 @@ class SimulatorSSE final {
   using fp_type = typename StateSpace::fp_type;
 
   template <typename... ForArgs>
-  explicit SimulatorSSE(ForArgs&&... args)
-      : w_(StateSpace::Create(15)), for_(args...) {}
+  explicit SimulatorSSE(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using SSE instructions.
@@ -286,7 +285,8 @@ class SimulatorSSE final {
                    const fp_type* matrix, State& state) const {
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[4];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -300,11 +300,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (2 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -356,7 +356,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, qs[0], rstate);
+    for_.Run(size, f, w, qs[0], rstate);
   }
 
   void ApplyGate2HH(const std::vector<unsigned>& qs,
@@ -457,7 +457,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -471,11 +472,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -530,14 +531,15 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, qs[0], rstate);
+    for_.Run(size, f, w, ms, xss, qs[0], rstate);
   }
 
   void ApplyGate2LL(const std::vector<unsigned>& qs,
                     const fp_type* matrix, State& state) const {
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -551,11 +553,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -609,7 +611,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, rstate);
+    for_.Run(size, f, w, rstate);
   }
 
   void ApplyGate3HHH(const std::vector<unsigned>& qs,
@@ -715,7 +717,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -729,11 +732,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -788,7 +791,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, qs[0], rstate);
+    for_.Run(size, f, w, ms, xss, qs[0], rstate);
   }
 
   void ApplyGate3HLL(const std::vector<unsigned>& qs,
@@ -813,7 +816,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -827,11 +831,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -888,7 +892,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, rstate);
+    for_.Run(size, f, w, ms, xss, rstate);
   }
 
   void ApplyGate4HHHH(const std::vector<unsigned>& qs,
@@ -994,7 +998,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1008,11 +1013,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -1068,7 +1073,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, qs[0], rstate);
+    for_.Run(size, f, w, ms, xss, qs[0], rstate);
   }
 
   void ApplyGate4HHLL(const std::vector<unsigned>& qs,
@@ -1097,7 +1102,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -1111,11 +1117,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -1172,7 +1178,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, rstate);
+    for_.Run(size, f, w, ms, xss, rstate);
   }
 
   void ApplyGate5HHHHH(const std::vector<unsigned>& qs,
@@ -1278,7 +1284,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[1024];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1292,11 +1299,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (32 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -1352,7 +1359,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, qs[0], rstate);
+    for_.Run(size, f, w, ms, xss, qs[0], rstate);
   }
 
   void ApplyGate5HHHLL(const std::vector<unsigned>& qs,
@@ -1381,7 +1388,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[512];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -1395,11 +1403,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (32 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -1457,7 +1465,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, rstate);
+    for_.Run(size, f, w, ms, xss, rstate);
   }
 
   void ApplyGate6HHHHHH(const std::vector<unsigned>& qs,
@@ -1564,7 +1572,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[4096];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1578,11 +1587,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (64 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -1638,7 +1647,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, qs[0], rstate);
+    for_.Run(size, f, w, ms, xss, qs[0], rstate);
   }
 
   void ApplyGate6HHHHLL(const std::vector<unsigned>& qs,
@@ -1667,7 +1676,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[2048];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -1681,11 +1691,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (64 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -1743,7 +1753,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss, rstate);
+    for_.Run(size, f, w, ms, xss, rstate);
   }
 
   void ApplyControlledGate1H_H(const std::vector<unsigned>& qs,
@@ -1881,7 +1891,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1896,11 +1907,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 2 == (p[j] / 2) % 2 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -1950,7 +1961,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -1976,7 +1987,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[4];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -1990,11 +2002,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (2 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -2048,7 +2060,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -2082,7 +2094,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[4];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2097,11 +2110,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 2 == (p[j] / 2) % 2 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2155,7 +2168,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -2302,7 +2315,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2317,11 +2331,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2371,7 +2385,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -2415,7 +2429,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2429,11 +2444,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -2488,7 +2503,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -2540,7 +2555,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[16];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2555,11 +2571,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2614,7 +2630,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -2640,7 +2656,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -2654,11 +2671,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (4 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -2714,7 +2731,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -2748,7 +2765,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[8];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -2763,11 +2781,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 4 == (p[j] / 2) % 4 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -2823,7 +2841,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w,
+    for_.Run(size, f, w,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -2970,7 +2988,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -2985,11 +3004,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3039,7 +3058,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -3087,7 +3106,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3101,11 +3121,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -3160,7 +3180,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -3216,7 +3236,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[64];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3231,11 +3252,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3290,7 +3311,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -3334,7 +3355,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -3348,11 +3370,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (8 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -3409,7 +3431,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -3461,7 +3483,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[32];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -3476,11 +3499,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 8 == (p[j] / 2) % 8 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3537,7 +3560,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -3684,7 +3707,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[512];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3699,11 +3723,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -3753,7 +3777,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -3801,7 +3825,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3815,11 +3840,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -3874,7 +3899,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -3930,7 +3955,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[256];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]);
 
@@ -3945,11 +3971,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -4004,7 +4030,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, qs[0], rstate);
   }
 
@@ -4052,7 +4078,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -4066,11 +4093,11 @@ class SimulatorSSE final {
         unsigned l = 2 * (16 * i + m);
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j] = matrix[p[j]];
+          wf[4 * l + j] = matrix[p[j]];
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = matrix[p[j] + 1];
+          wf[4 * l + j + 4] = matrix[p[j] + 1];
         }
       }
     }
@@ -4127,7 +4154,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -4183,7 +4210,8 @@ class SimulatorSSE final {
 
     unsigned p[4];
 
-    fp_type* w = (fp_type*) w_.get();
+    __m128 w[128];
+    fp_type* wf = (fp_type*) w;
 
     unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
 
@@ -4198,11 +4226,11 @@ class SimulatorSSE final {
 
         for (unsigned j = 0; j < 4; ++j) {
           fp_type v = (p[j] / 2) / 16 == (p[j] / 2) % 16 ? 1 : 0;
-          w[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
+          wf[4 * l + j] = cmaskl == (j & emaskl) ? matrix[p[j]] : v;
         }
 
         for (unsigned j = 0; j < 4; ++j) {
-          w[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
+          wf[4 * l + j + 4] = cmaskl == (j & emaskl) ? matrix[p[j] + 1] : 0;
         }
       }
     }
@@ -4259,7 +4287,7 @@ class SimulatorSSE final {
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
-    for_.Run(size, f, (__m128*) w, ms, xss,
+    for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
   }
 
@@ -4269,7 +4297,6 @@ class SimulatorSSE final {
     return bits::ExpandBits((c + b) % lsize, 2, mask);
   }
 
-  State w_;
   For for_;
 };
 
