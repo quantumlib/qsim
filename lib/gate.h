@@ -143,6 +143,7 @@ template <typename Gate, typename Qubits>
 inline void MakeControlledGate(Qubits&& controlled_by,
                                const std::vector<unsigned>& control_values,
                                Gate& gate) {
+  // Assume controlled_by is sorted.
   // Assume controlled_by.size() == control_values.size().
 
   uint64_t cmask = 0;
