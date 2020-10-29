@@ -138,7 +138,7 @@ Start the container:
 
 
 ```console
-    $ docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-291919/jupyter_qsim
+    $ docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
 ```
 
 
