@@ -16,14 +16,13 @@
 #define SIMULATOR_TESTFIXTURE_H_
 
 #include <complex>
+#include <vector>
 
 #include "gtest/gtest.h"
 
-#include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_qsim.h"
-#include "../lib/io.h"
 
 namespace qsim {
 
@@ -346,123 +345,159 @@ void TestApplyGate5() {
 
 template <typename Simulator>
 void TestApplyControlGate() {
-    constexpr char circuit_str[] =
-R"(6
-0 h 0
-0 h 1
-0 h 2
-0 h 3
-0 h 4
-0 h 5
-1 c 0 t 1
-2 rx 0 0.1
-2 ry 1 0.2
-2 rz 2 0.3
-2 rx 3 0.4
-2 ry 4 0.5
-2 rz 5 0.6
-3 c 0 1 h 2
-4 rz 0 0.7
-4 rx 1 0.8
-4 ry 2 0.9
-4 rz 3 1.0
-4 rx 4 1.1
-4 rx 5 1.2
-5 c 0 1 2 t 3
-6 ry 0 1.3
-6 rz 1 1.4
-6 rx 2 1.5
-6 ry 3 1.6
-6 rz 4 1.7
-6 rx 5 1.8
-7 c 0 1 2 3 t 4
-8 rz 0 1.9
-8 rx 1 2.0
-8 ry 2 2.1
-8 rz 3 2.2
-8 rx 4 2.3
-8 ry 5 2.4
-9 c 0 is 1 2
-10 rx 0 2.5
-10 ry 1 2.6
-10 rz 2 2.7
-10 rx 3 2.8
-10 ry 4 2.9
-10 rz 5 3.0
-11 c 0 1 is 2 3
-12 ry 0 3.1
-12 rz 1 3.2
-12 rx 2 3.3
-12 ry 3 3.4
-12 rz 4 3.5
-12 rx 5 3.6
-13 c 0 1 2 is 3 4
-14 rz 0 3.7
-15 rx 1 3.8
-15 ry 2 3.9
-15 rz 3 4.0
-15 rx 4 4.1
-15 rx 5 4.2
-16 c 0 1 2 3 is 4 5
-17 rx 0 4.3
-17 ry 1 4.4
-17 rz 2 4.5
-17 rx 3 4.6
-17 ry 4 4.7
-17 rz 5 4.8
-18 c 3 is 4 5
-19 ry 0 4.9
-19 rz 1 5.0
-19 rx 2 5.1
-19 ry 3 5.2
-19 rz 4 5.3
-19 rx 5 5.4
-20 c 4 is 0 1
-21 rz 0 5.5
-21 rx 1 5.6
-21 ry 2 5.7
-21 rz 3 5.8
-21 rx 4 5.9
-21 ry 5 6.0
-22 c 4 is 0 2
-23 rx 0 6.1
-23 ry 1 6.2
-23 rz 2 6.3
-23 rx 3 6.4
-23 ry 4 6.5
-23 rz 5 6.6
-24 c 4 is 0 5
-25 ry 0 6.7
-25 rz 1 6.8
-25 rx 2 6.9
-25 ry 3 7.0
-25 rz 4 7.1
-25 rx 5 7.2
-26 c 4 h 5
-27 rz 0 7.3
-27 rx 1 7.4
-27 ry 2 7.5
-27 rz 3 7.6
-27 rx 4 7.7
-27 ry 5 7.8
-)";
-
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
+  using Gate = GateQSim<fp_type>;
 
-  Circuit<GateQSim<fp_type>> circuit;
-  std::stringstream ss(circuit_str);
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, "string", ss, circuit));
-  EXPECT_EQ(circuit.num_qubits, 6);
-  EXPECT_EQ(circuit.gates.size(), 97);
+  unsigned num_qubits = 6;
+
+  std::vector<Gate> gates;
+  gates.reserve(128);
+
+  gates.push_back(GateHd<fp_type>::Create(0, 0));
+  gates.push_back(GateHd<fp_type>::Create(0, 1));
+  gates.push_back(GateHd<fp_type>::Create(0, 2));
+  gates.push_back(GateHd<fp_type>::Create(0, 3));
+  gates.push_back(GateHd<fp_type>::Create(0, 4));
+  gates.push_back(GateHd<fp_type>::Create(0, 5));
+
+  gates.push_back(GateT<fp_type>::Create(1, 1));
+  MakeControlledGate({0}, {1}, gates.back());
+
+  gates.push_back(GateRX<fp_type>::Create(2, 0, 0.1));
+  gates.push_back(GateRY<fp_type>::Create(2, 1, 0.2));
+  gates.push_back(GateRZ<fp_type>::Create(2, 2, 0.3));
+  gates.push_back(GateRX<fp_type>::Create(2, 3, 0.4));
+  gates.push_back(GateRY<fp_type>::Create(2, 4, 0.5));
+  gates.push_back(GateRZ<fp_type>::Create(2, 5, 0.6));
+
+  gates.push_back(GateHd<fp_type>::Create(3, 2));
+  MakeControlledGate({1, 0}, {1, 0}, gates.back());
+
+  gates.push_back(GateRY<fp_type>::Create(4, 0, 0.7));
+  gates.push_back(GateRZ<fp_type>::Create(4, 1, 0.8));
+  gates.push_back(GateRX<fp_type>::Create(4, 2, 0.9));
+  gates.push_back(GateRY<fp_type>::Create(4, 3, 1.0));
+  gates.push_back(GateRZ<fp_type>::Create(4, 4, 1.1));
+  gates.push_back(GateRX<fp_type>::Create(4, 5, 1.2));
+
+  gates.push_back(GateT<fp_type>::Create(5, 3));
+  MakeControlledGate({0, 1, 2}, {1, 1, 0}, gates.back());
+
+  gates.push_back(GateRZ<fp_type>::Create(6, 0, 1.3));
+  gates.push_back(GateRX<fp_type>::Create(6, 1, 1.4));
+  gates.push_back(GateRY<fp_type>::Create(6, 2, 1.5));
+  gates.push_back(GateRZ<fp_type>::Create(6, 3, 1.6));
+  gates.push_back(GateRX<fp_type>::Create(6, 4, 1.7));
+  gates.push_back(GateRY<fp_type>::Create(6, 5, 1.8));
+
+  gates.push_back(GateT<fp_type>::Create(7, 4));
+  MakeControlledGate({0, 2, 3, 1}, {0, 1, 1, 0}, gates.back());
+
+  gates.push_back(GateRX<fp_type>::Create(8, 0, 1.9));
+  gates.push_back(GateRY<fp_type>::Create(8, 1, 2.0));
+  gates.push_back(GateRZ<fp_type>::Create(8, 2, 2.1));
+  gates.push_back(GateRX<fp_type>::Create(8, 3, 2.2));
+  gates.push_back(GateRY<fp_type>::Create(8, 4, 2.3));
+  gates.push_back(GateRZ<fp_type>::Create(8, 5, 2.4));
+
+  gates.push_back(GateIS<fp_type>::Create(9, 1, 2));
+  MakeControlledGate({0}, {0}, gates.back());
+
+  gates.push_back(GateRY<fp_type>::Create(10, 0, 2.5));
+  gates.push_back(GateRZ<fp_type>::Create(10, 1, 2.6));
+  gates.push_back(GateRX<fp_type>::Create(10, 2, 2.7));
+  gates.push_back(GateRY<fp_type>::Create(10, 3, 2.8));
+  gates.push_back(GateRZ<fp_type>::Create(10, 4, 2.9));
+  gates.push_back(GateRX<fp_type>::Create(10, 5, 3.0));
+
+  gates.push_back(GateIS<fp_type>::Create(11, 2, 3));
+  MakeControlledGate({1, 0}, {1, 1}, gates.back());
+
+  gates.push_back(GateRZ<fp_type>::Create(12, 0, 3.1));
+  gates.push_back(GateRX<fp_type>::Create(12, 1, 3.2));
+  gates.push_back(GateRY<fp_type>::Create(12, 2, 3.3));
+  gates.push_back(GateRZ<fp_type>::Create(12, 3, 3.4));
+  gates.push_back(GateRX<fp_type>::Create(12, 4, 3.5));
+  gates.push_back(GateRY<fp_type>::Create(12, 5, 3.6));
+
+  gates.push_back(GateCNot<fp_type>::Create(13, 3, 4));
+  MakeControlledGate({0, 2, 1}, {1, 1, 0}, gates.back());
+
+  gates.push_back(GateRX<fp_type>::Create(14, 0, 3.7));
+  gates.push_back(GateRY<fp_type>::Create(14, 1, 3.8));
+  gates.push_back(GateRZ<fp_type>::Create(14, 2, 3.9));
+  gates.push_back(GateRX<fp_type>::Create(14, 3, 4.0));
+  gates.push_back(GateRY<fp_type>::Create(14, 4, 4.1));
+  gates.push_back(GateRZ<fp_type>::Create(14, 5, 4.2));
+
+  gates.push_back(GateIS<fp_type>::Create(15, 4, 5));
+  MakeControlledGate({3, 1, 0, 2}, {1, 1, 0, 0}, gates.back());
+
+  gates.push_back(GateRY<fp_type>::Create(16, 0, 4.3));
+  gates.push_back(GateRZ<fp_type>::Create(16, 1, 4.4));
+  gates.push_back(GateRX<fp_type>::Create(16, 2, 4.5));
+  gates.push_back(GateRY<fp_type>::Create(16, 3, 4.6));
+  gates.push_back(GateRZ<fp_type>::Create(16, 4, 4.7));
+  gates.push_back(GateRX<fp_type>::Create(16, 5, 4.8));
+
+  gates.push_back(GateCNot<fp_type>::Create(17, 5, 4));
+  MakeControlledGate({3}, {0}, gates.back());
+
+  gates.push_back(GateRZ<fp_type>::Create(18, 0, 4.9));
+  gates.push_back(GateRX<fp_type>::Create(18, 1, 5.0));
+  gates.push_back(GateRY<fp_type>::Create(18, 2, 5.1));
+  gates.push_back(GateRZ<fp_type>::Create(18, 3, 5.2));
+  gates.push_back(GateRX<fp_type>::Create(18, 4, 5.3));
+  gates.push_back(GateRY<fp_type>::Create(18, 5, 5.4));
+
+  gates.push_back(GateIS<fp_type>::Create(19, 0, 1));
+  MakeControlledGate({4}, {1}, gates.back());
+
+  gates.push_back(GateRX<fp_type>::Create(20, 0, 5.5));
+  gates.push_back(GateRY<fp_type>::Create(20, 1, 5.6));
+  gates.push_back(GateRZ<fp_type>::Create(20, 2, 5.7));
+  gates.push_back(GateRX<fp_type>::Create(20, 3, 5.8));
+  gates.push_back(GateRY<fp_type>::Create(20, 4, 5.9));
+  gates.push_back(GateRZ<fp_type>::Create(20, 5, 6.0));
+
+  gates.push_back(GateIS<fp_type>::Create(21, 0, 2));
+  MakeControlledGate({4}, {1}, gates.back());
+
+  gates.push_back(GateRY<fp_type>::Create(22, 0, 6.1));
+  gates.push_back(GateRZ<fp_type>::Create(22, 1, 6.2));
+  gates.push_back(GateRX<fp_type>::Create(22, 2, 6.3));
+  gates.push_back(GateRY<fp_type>::Create(22, 3, 6.4));
+  gates.push_back(GateRZ<fp_type>::Create(22, 4, 6.5));
+  gates.push_back(GateRX<fp_type>::Create(22, 5, 6.6));
+
+  gates.push_back(GateIS<fp_type>::Create(23, 0, 5));
+  MakeControlledGate({4}, {0}, gates.back());
+
+  gates.push_back(GateRZ<fp_type>::Create(24, 0, 6.7));
+  gates.push_back(GateRX<fp_type>::Create(24, 1, 6.8));
+  gates.push_back(GateRY<fp_type>::Create(24, 2, 6.9));
+  gates.push_back(GateRZ<fp_type>::Create(24, 3, 7.0));
+  gates.push_back(GateRX<fp_type>::Create(24, 4, 7.1));
+  gates.push_back(GateRY<fp_type>::Create(24, 5, 7.2));
+
+  gates.push_back(GateHd<fp_type>::Create(25, 5));
+  MakeControlledGate({4}, {1}, gates.back());
+
+  gates.push_back(GateRX<fp_type>::Create(26, 0, 7.3));
+  gates.push_back(GateRY<fp_type>::Create(26, 1, 7.4));
+  gates.push_back(GateRZ<fp_type>::Create(26, 2, 7.5));
+  gates.push_back(GateRX<fp_type>::Create(26, 3, 7.6));
+  gates.push_back(GateRY<fp_type>::Create(26, 4, 7.7));
+  gates.push_back(GateRZ<fp_type>::Create(26, 5, 7.8));
 
   StateSpace state_space(1);
   Simulator simulator(1);
 
-  auto state = state_space.Create(circuit.num_qubits);
+  auto state = state_space.Create(num_qubits);
   state_space.SetStateZero(state);
 
-  for (const auto& gate : circuit.gates) {
+  for (const auto& gate : gates) {
     ApplyGate(simulator, gate, state);
   }
 
@@ -500,138 +535,137 @@ def main():
        cirq.rz(0.6)(q5),
     ]),
     cirq.Moment([
-      cirq.H(q2).controlled_by(q0, q1),
+      cirq.H(q2).controlled_by(q1, q0, control_values=[1, 0]),
     ]),
     cirq.Moment([
-       cirq.rz(0.7)(q0),
-       cirq.rx(0.8)(q1),
-       cirq.ry(0.9)(q2),
-       cirq.rz(1.0)(q3),
-       cirq.rx(1.1)(q4),
+       cirq.ry(0.7)(q0),
+       cirq.rz(0.8)(q1),
+       cirq.rx(0.9)(q2),
+       cirq.ry(1.0)(q3),
+       cirq.rz(1.1)(q4),
        cirq.rx(1.2)(q5),
     ]),
     cirq.Moment([
-      cirq.T(q3).controlled_by(q0, q1, q2),
+      cirq.T(q3).controlled_by(q0, q1, q2, control_values=[1, 1, 0]),
     ]),
     cirq.Moment([
-       cirq.ry(1.3)(q0),
-       cirq.rz(1.4)(q1),
-       cirq.rx(1.5)(q2),
-       cirq.ry(1.6)(q3),
-       cirq.rz(1.7)(q4),
-       cirq.rx(1.8)(q5),
+       cirq.rz(1.3)(q0),
+       cirq.rx(1.4)(q1),
+       cirq.ry(1.5)(q2),
+       cirq.rz(1.6)(q3),
+       cirq.rx(1.7)(q4),
+       cirq.ry(1.8)(q5),
     ]),
     cirq.Moment([
-      cirq.T(q4).controlled_by(q0, q1, q2, q3),
+      cirq.T(q4).controlled_by(q0, q2, q3, q1, control_values=[0, 1, 1, 0]),
     ]),
     cirq.Moment([
-       cirq.rz(1.9)(q0),
-       cirq.rx(2.0)(q1),
-       cirq.ry(2.1)(q2),
-       cirq.rz(2.2)(q3),
-       cirq.rx(2.3)(q4),
-       cirq.ry(2.4)(q5),
+       cirq.rx(1.9)(q0),
+       cirq.ry(2.0)(q1),
+       cirq.rz(2.1)(q2),
+       cirq.rx(2.2)(q3),
+       cirq.ry(2.3)(q4),
+       cirq.rz(2.4)(q5),
     ]),
     cirq.Moment([
-      cirq.ISWAP(q1, q2).controlled_by(q0),
+      cirq.ISWAP(q1, q2).controlled_by(q0, control_values=[0]),
     ]),
     cirq.Moment([
-       cirq.rx(2.5)(q0),
-       cirq.ry(2.6)(q1),
-       cirq.rz(2.7)(q2),
-       cirq.rx(2.8)(q3),
-       cirq.ry(2.9)(q4),
-       cirq.rz(3.0)(q5),
+       cirq.ry(2.5)(q0),
+       cirq.rz(2.6)(q1),
+       cirq.rx(2.7)(q2),
+       cirq.ry(2.8)(q3),
+       cirq.rz(2.9)(q4),
+       cirq.rx(3.0)(q5),
     ]),
     cirq.Moment([
-      cirq.ISWAP(q2, q3).controlled_by(q0, q1),
+      cirq.ISWAP(q2, q3).controlled_by(q1, q0),
     ]),
     cirq.Moment([
-       cirq.ry(3.1)(q0),
-       cirq.rz(3.2)(q1),
-       cirq.rx(3.3)(q2),
-       cirq.ry(3.4)(q3),
-       cirq.rz(3.5)(q4),
-       cirq.rx(3.6)(q5),
+       cirq.rz(3.1)(q0),
+       cirq.rx(3.2)(q1),
+       cirq.ry(3.3)(q2),
+       cirq.rz(3.4)(q3),
+       cirq.rx(3.5)(q4),
+       cirq.ry(3.6)(q5),
     ]),
     cirq.Moment([
-      cirq.ISWAP(q3, q4).controlled_by(q0, q1, q2),
+      cirq.CNOT(q3, q4).controlled_by(q0, q1, q2, control_values=[1, 0, 1]),
     ]),
     cirq.Moment([
-       cirq.rz(3.7)(q0),
+       cirq.rx(3.7)(q0),
+       cirq.ry(3.8)(q1),
+       cirq.rz(3.9)(q2),
+       cirq.rx(4.0)(q3),
+       cirq.ry(4.1)(q4),
+       cirq.rz(4.2)(q5),
     ]),
     cirq.Moment([
-       cirq.rx(3.8)(q1),
-       cirq.ry(3.9)(q2),
-       cirq.rz(4.0)(q3),
-       cirq.rx(4.1)(q4),
-       cirq.rx(4.2)(q5),
+      cirq.ISWAP(q4, q5).controlled_by(q3, q1, q0, q2,
+                                       control_values=[1, 1, 0, 0]),
     ]),
     cirq.Moment([
-      cirq.ISWAP(q4, q5).controlled_by(q0, q1, q2, q3),
+       cirq.ry(4.3)(q0),
+       cirq.rz(4.4)(q1),
+       cirq.rx(4.5)(q2),
+       cirq.ry(4.6)(q3),
+       cirq.rz(4.7)(q4),
+       cirq.rx(4.8)(q5),
     ]),
     cirq.Moment([
-       cirq.rx(4.3)(q0),
-       cirq.ry(4.4)(q1),
-       cirq.rz(4.5)(q2),
-       cirq.rx(4.6)(q3),
-       cirq.ry(4.7)(q4),
-       cirq.rz(4.8)(q5),
+      cirq.CNOT(q5, q4).controlled_by(q3, control_values=[0]),
     ]),
     cirq.Moment([
-      cirq.ISWAP(q4, q5).controlled_by(q3),
-    ]),
-    cirq.Moment([
-       cirq.ry(4.9)(q0),
-       cirq.rz(5.0)(q1),
-       cirq.rx(5.1)(q2),
-       cirq.ry(5.2)(q3),
-       cirq.rz(5.3)(q4),
-       cirq.rx(5.4)(q5),
+       cirq.rz(4.9)(q0),
+       cirq.rx(5.0)(q1),
+       cirq.ry(5.1)(q2),
+       cirq.rz(5.2)(q3),
+       cirq.rx(5.3)(q4),
+       cirq.ry(5.4)(q5),
     ]),
     cirq.Moment([
       cirq.ISWAP(q0, q1).controlled_by(q4),
     ]),
     cirq.Moment([
-       cirq.rz(5.5)(q0),
-       cirq.rx(5.6)(q1),
-       cirq.ry(5.7)(q2),
-       cirq.rz(5.8)(q3),
-       cirq.rx(5.9)(q4),
-       cirq.ry(6.0)(q5),
+       cirq.rx(5.5)(q0),
+       cirq.ry(5.6)(q1),
+       cirq.rz(5.7)(q2),
+       cirq.rx(5.8)(q3),
+       cirq.ry(5.9)(q4),
+       cirq.rz(6.0)(q5),
     ]),
     cirq.Moment([
       cirq.ISWAP(q0, q2).controlled_by(q4),
     ]),
     cirq.Moment([
-       cirq.rx(6.1)(q0),
-       cirq.ry(6.2)(q1),
-       cirq.rz(6.3)(q2),
-       cirq.rx(6.4)(q3),
-       cirq.ry(6.5)(q4),
-       cirq.rz(6.6)(q5),
+       cirq.ry(6.1)(q0),
+       cirq.rz(6.2)(q1),
+       cirq.rx(6.3)(q2),
+       cirq.ry(6.4)(q3),
+       cirq.rz(6.5)(q4),
+       cirq.rx(6.6)(q5),
     ]),
     cirq.Moment([
-      cirq.ISWAP(q0, q5).controlled_by(q4),
+      cirq.ISWAP(q0, q5).controlled_by(q4, control_values=[0]),
     ]),
     cirq.Moment([
-       cirq.ry(6.7)(q0),
-       cirq.rz(6.8)(q1),
-       cirq.rx(6.9)(q2),
-       cirq.ry(7.0)(q3),
-       cirq.rz(7.1)(q4),
-       cirq.rx(7.2)(q5),
+       cirq.rz(6.7)(q0),
+       cirq.rx(6.8)(q1),
+       cirq.ry(6.9)(q2),
+       cirq.rz(7.0)(q3),
+       cirq.rx(7.1)(q4),
+       cirq.ry(7.2)(q5),
     ]),
     cirq.Moment([
       cirq.H(q5).controlled_by(q4),
     ]),
     cirq.Moment([
-       cirq.rz(7.3)(q0),
-       cirq.rx(7.4)(q1),
-       cirq.ry(7.5)(q2),
-       cirq.rz(7.6)(q3),
-       cirq.rx(7.7)(q4),
-       cirq.ry(7.8)(q5),
+       cirq.rx(7.3)(q0),
+       cirq.ry(7.4)(q1),
+       cirq.rz(7.5)(q2),
+       cirq.rx(7.6)(q3),
+       cirq.ry(7.7)(q4),
+       cirq.rz(7.8)(q5),
     ]),
   )
 
@@ -644,81 +678,153 @@ def main():
 
 if __name__ == '__main__':
   main()
+
 */
 
   std::vector<std::vector<fp_type>> expected_results = {
-    {-0.024000414, 0.13359392},
-    {-0.010777686, 0.040734157},
-    {0.09360839, 0.10015345},
-    {-0.017626993, -0.037382595},
-    {0.16321257, 0.18193814},
-    {0.110039294, 0.00031051738},
-    {0.2403549, -0.14277315},
-    {-0.003620103, 0.021327903},
-    {-0.03628681, 0.035105858},
-    {0.010516882, 0.028288865},
-    {0.02837902, -0.09398348},
-    {0.015269253, -0.06789709},
-    {-0.042230412, -0.023053035},
-    {0.093636535, -0.031277604},
-    {-0.0024242331, 0.018563256},
-    {0.010324602, 0.05955182},
-    {-0.17416054, -0.044389807},
-    {-0.00607755, -0.07658397},
-    {-0.14872268, -0.080746755},
-    {-0.040476087, -0.02440174},
-    {-0.008808218, 0.13825473},
-    {-0.030034762, 0.089864776},
-    {0.14024268, 0.14761701},
-    {-0.00045500696, 0.09647506},
-    {-0.014829321, 0.09739353},
-    {0.024183076, 0.05714892},
-    {0.021111023, 0.046445612},
-    {-0.005038852, -0.04069536},
-    {0.052329402, -0.012001134},
-    {-0.014491424, 0.038514502},
-    {-0.0062525272, -0.05639422},
-    {-0.0823572, -0.014202977},
-    {-0.15058956, 0.023767654},
-    {0.06630518, -0.08713264},
-    {-0.049538083, -0.09937088},
-    {-0.0689518, -0.09209575},
-    {0.0022153333, -0.1445844},
-    {0.016036857, -0.003312569},
-    {-0.05356656, 0.11282002},
-    {-0.06705719, 0.050860442},
-    {0.034315012, -0.094269216},
-    {0.0027618187, 0.03822149},
-    {0.04699982, 0.0855632},
-    {-0.11269423, -0.030068845},
-    {0.06262903, 0.09884508},
-    {-0.10035621, 0.07141959},
-    {-0.0031322166, -0.019698868},
-    {0.033788137, -0.02274291},
-    {-0.15133715, -0.2433885},
-    {0.011551354, -0.031001069},
-    {-0.16904244, -0.3048535},
-    {0.024375454, 0.09429265},
-    {0.2454747, -0.18158379},
-    {0.07559521, 0.07178006},
-    {-0.20359893, -0.053257704},
-    {0.1096768, -0.028451644},
-    {-0.0577899, 0.07780492},
-    {0.07624379, -0.02042614},
-    {0.022697305, 0.037892006},
-    {-0.05274996, 0.1001262},
-    {-0.05086846, -0.019555436},
-    {0.014091074, 0.0069812844},
-    {0.049313433, 0.016418802},
-    {-0.10714137, 0.026649015},
+    {0.04056215, 0.11448385},
+    {0.04013729, -0.061976265},
+    {0.05715254, 0.06587616},
+    {-0.0999089, -0.0551068},
+    {-0.020135913, -0.0017108098},
+    {-0.056598634, -0.011147065},
+    {-0.05639626, 0.09074731},
+    {-0.057448477, 0.040516872},
+    {0.0344304, 0.016834},
+    {-0.0556134, -0.006876275},
+    {-0.036210306, -0.045713138},
+    {0.106739536, 0.04557059},
+    {0.0042791665, 0.071074575},
+    {-0.025317883, 0.06527158},
+    {0.003052316, -0.002724175},
+    {-0.027759908, 0.082198195},
+    {-0.10696569, 0.009430081},
+    {-0.03781139, 0.11874371},
+    {-0.020180658, -0.07570377},
+    {0.05576851, -0.022236263},
+    {-0.06552034, 0.058305625},
+    {-0.0484216, -0.1268896},
+    {-0.088334806, -0.2118823},
+    {-0.058212772, -0.10756658},
+    {0.06811757, -0.10867228},
+    {-0.006912032, -0.056490533},
+    {0.14454205, -0.08358974},
+    {0.09103435, 0.15097837},
+    {-0.023433153, -0.11143835},
+    {0.019963266, -0.0008750437},
+    {0.25689512, -0.13761702},
+    {0.060466085, -0.083674595},
+    {-0.10356863, -0.031856094},
+    {0.05267005, -0.040480673},
+    {0.0017506611, -0.057084523},
+    {-0.049090747, 0.0076575093},
+    {-0.05804465, 0.048070334},
+    {-0.037869103, 0.007335903},
+    {-0.13274089, -0.1556583},
+    {-0.013423506, -0.10376227},
+    {0.063333265, -0.20126863},
+    {-0.1259143, 0.07443194},
+    {0.13821091, 0.045418564},
+    {0.034076303, 0.054569334},
+    {-0.09922538, -0.09469399},
+    {0.09066829, -0.064125836},
+    {0.235489, -0.19617496},
+    {0.15996316, -0.036261443},
+    {-0.02887804, -0.047851864},
+    {0.046452887, -0.05820565},
+    {0.015137469, 0.07583993},
+    {-0.09476741, -0.054346137},
+    {0.015158612, 0.08472719},
+    {-0.03694186, 0.0070148334},
+    {-0.025821798, 0.08404015},
+    {0.061565418, -0.012411967},
+    {-0.078881726, 0.12779479},
+    {-0.05464944, 0.056015424},
+    {-0.16184065, -0.009010859},
+    {0.12749553, -0.12438276},
+    {0.019615382, 0.092316},
+    {-0.04924332, 0.044155773},
+    {-0.24133444, -0.033628717},
+    {-0.18774915, 0.12311842},
   };
 
-  unsigned size = 1 << circuit.num_qubits;
+  unsigned size = 1 << num_qubits;
 
   for (unsigned i = 0; i < size; ++i) {
     auto a = StateSpace::GetAmpl(state, i);
     EXPECT_NEAR(std::real(a), expected_results[i][0], 1e-6);
     EXPECT_NEAR(std::imag(a), expected_results[i][1], 1e-6);
+  }
+}
+
+template <typename Simulator>
+void TestMultiQubitGates() {
+  using StateSpace = typename Simulator::StateSpace;
+  using fp_type = typename StateSpace::fp_type;
+
+  for (unsigned q = 1; q < 6; ++q) {
+    unsigned size1 = 1 << q;
+    unsigned size2 = size1 * size1;
+
+    std::vector<fp_type> matrix;
+    matrix.reserve(2 * size2);
+
+    for (unsigned i = 0; i < 2 * size2; ++i) {
+      matrix.push_back(i + 1);
+    }
+
+    StateSpace state_space(1);
+    Simulator simulator(1);
+
+    unsigned num_qubits = 2 * q;
+    auto state = state_space.Create(num_qubits);
+
+    std::vector<unsigned> qubits;
+    qubits.reserve(q);
+
+    for (unsigned i = 0; i < q; ++i) {
+      qubits.push_back(i);
+    }
+
+    state_space.SetStateUniform(state);
+
+    // Apply q-qubit gate to the first q qubits.
+    simulator.ApplyGate(qubits, matrix.data(), state);
+
+    for (unsigned i = 0; i < size1; ++i) {
+      for (unsigned j = 0; j < size1; ++j) {
+        // Expected results are calculated analytically.
+        fp_type expected_real = size1 * (1 + 2 * j);
+        fp_type expected_imag = expected_real + 1;
+
+        auto a = state_space.GetAmpl(state, i * size1 + j);
+
+        EXPECT_NEAR(std::real(a), expected_real, 1e-6);
+        EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+      }
+    }
+
+    for (unsigned i = 0; i < q; ++i) {
+      qubits[i] = q + i;
+    }
+
+    state_space.SetStateUniform(state);
+
+    // Apply q-qubit gate to the last q qubits.
+    simulator.ApplyGate(qubits, matrix.data(), state);
+
+    for (unsigned i = 0; i < size1; ++i) {
+      for (unsigned j = 0; j < size1; ++j) {
+        // Expected results are calculated analytically.
+        fp_type expected_real = (1 + 2 * j) * size1;
+        fp_type expected_imag = expected_real + 1;
+
+        auto a = state_space.GetAmpl(state, j * size1 + i);
+
+        EXPECT_NEAR(std::real(a), expected_real, 1e-6);
+        EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+      }
+    }
   }
 }
 

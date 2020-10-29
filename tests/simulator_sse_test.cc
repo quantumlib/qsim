@@ -41,6 +41,10 @@ TEST(SimulatorSSETest, ApplyControlGate) {
   TestApplyControlGate<SimulatorSSE<For>>();
 }
 
+TEST(SimulatorSSETest, MultiQubitGates) {
+  TestMultiQubitGates<SimulatorSSE<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

@@ -41,6 +41,10 @@ TEST(SimulatorBasicTest, ApplyControlGate) {
   TestApplyControlGate<SimulatorBasic<For, double>>();
 }
 
+TEST(SimulatorBasicTest, MultiQubitGates) {
+  TestMultiQubitGates<SimulatorBasic<For, double>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
