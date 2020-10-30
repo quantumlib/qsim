@@ -408,8 +408,7 @@ class CircuitQsimParser final {
       return false;
     }
 
-    uint64_t cmask = (uint64_t{1} << controlled_by.size()) - 1;
-    MakeControlledGate(std::move(controlled_by), cmask, gates.back());
+    MakeControlledGate(std::move(controlled_by), gates.back());
 
     if (!ValidateControlledGate(num_qubits, gates.back().qubits,
                                 gates.back().controlled_by)) {
