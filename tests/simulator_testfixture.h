@@ -709,9 +709,9 @@ if __name__ == '__main__':
     {-0.18774915, 0.12311842},
   };
 
-//  unsigned size = 1 << num_qubits;
+  unsigned size = 1 << num_qubits;
 
-  for (unsigned i = 0; i < 1; ++i) {
+  for (unsigned i = 0; i < size; ++i) {
     auto a = StateSpace::GetAmpl(state, i);
     EXPECT_NEAR(std::real(a), expected_results[i][0], 1e-6);
     EXPECT_NEAR(std::imag(a), expected_results[i][1], 1e-6);
