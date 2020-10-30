@@ -360,130 +360,91 @@ void TestApplyControlGate() {
   gates.push_back(GateHd<fp_type>::Create(0, 3));
   gates.push_back(GateHd<fp_type>::Create(0, 4));
   gates.push_back(GateHd<fp_type>::Create(0, 5));
-
-  gates.push_back(GateT<fp_type>::Create(1, 1));
-  MakeControlledGate({0}, {1}, gates.back());
-
+  gates.push_back(GateT<fp_type>::Create(1, 1).ControlledBy({0}));
   gates.push_back(GateRX<fp_type>::Create(2, 0, 0.1));
   gates.push_back(GateRY<fp_type>::Create(2, 1, 0.2));
   gates.push_back(GateRZ<fp_type>::Create(2, 2, 0.3));
   gates.push_back(GateRX<fp_type>::Create(2, 3, 0.4));
   gates.push_back(GateRY<fp_type>::Create(2, 4, 0.5));
   gates.push_back(GateRZ<fp_type>::Create(2, 5, 0.6));
-
-  gates.push_back(GateHd<fp_type>::Create(3, 2));
-  MakeControlledGate({1, 0}, {1, 0}, gates.back());
-
+  gates.push_back(GateHd<fp_type>::Create(3, 2).ControlledBy({1, 0}, {1, 0}));
   gates.push_back(GateRY<fp_type>::Create(4, 0, 0.7));
   gates.push_back(GateRZ<fp_type>::Create(4, 1, 0.8));
   gates.push_back(GateRX<fp_type>::Create(4, 2, 0.9));
   gates.push_back(GateRY<fp_type>::Create(4, 3, 1.0));
   gates.push_back(GateRZ<fp_type>::Create(4, 4, 1.1));
   gates.push_back(GateRX<fp_type>::Create(4, 5, 1.2));
-
-  gates.push_back(GateT<fp_type>::Create(5, 3));
-  MakeControlledGate({0, 1, 2}, {1, 1, 0}, gates.back());
-
+  gates.push_back(GateT<fp_type>::Create(5, 3).ControlledBy({0, 1, 2}, {1, 1, 0}));
   gates.push_back(GateRZ<fp_type>::Create(6, 0, 1.3));
   gates.push_back(GateRX<fp_type>::Create(6, 1, 1.4));
   gates.push_back(GateRY<fp_type>::Create(6, 2, 1.5));
   gates.push_back(GateRZ<fp_type>::Create(6, 3, 1.6));
   gates.push_back(GateRX<fp_type>::Create(6, 4, 1.7));
   gates.push_back(GateRY<fp_type>::Create(6, 5, 1.8));
-
-  gates.push_back(GateT<fp_type>::Create(7, 4));
-  MakeControlledGate({0, 2, 3, 1}, {0, 1, 1, 0}, gates.back());
-
+  gates.push_back(GateT<fp_type>::Create(7, 4).ControlledBy({0, 2, 3, 1}, {0, 1, 1, 0}));
   gates.push_back(GateRX<fp_type>::Create(8, 0, 1.9));
   gates.push_back(GateRY<fp_type>::Create(8, 1, 2.0));
   gates.push_back(GateRZ<fp_type>::Create(8, 2, 2.1));
   gates.push_back(GateRX<fp_type>::Create(8, 3, 2.2));
   gates.push_back(GateRY<fp_type>::Create(8, 4, 2.3));
   gates.push_back(GateRZ<fp_type>::Create(8, 5, 2.4));
-
-  gates.push_back(GateIS<fp_type>::Create(9, 1, 2));
-  MakeControlledGate({0}, {0}, gates.back());
-
+  gates.push_back(GateIS<fp_type>::Create(9, 1, 2).ControlledBy({0}, {0}));
   gates.push_back(GateRY<fp_type>::Create(10, 0, 2.5));
   gates.push_back(GateRZ<fp_type>::Create(10, 1, 2.6));
   gates.push_back(GateRX<fp_type>::Create(10, 2, 2.7));
   gates.push_back(GateRY<fp_type>::Create(10, 3, 2.8));
   gates.push_back(GateRZ<fp_type>::Create(10, 4, 2.9));
   gates.push_back(GateRX<fp_type>::Create(10, 5, 3.0));
-
-  gates.push_back(GateIS<fp_type>::Create(11, 2, 3));
-  MakeControlledGate({1, 0}, {1, 1}, gates.back());
-
+  gates.push_back(GateIS<fp_type>::Create(11, 2, 3).ControlledBy({1, 0}));
   gates.push_back(GateRZ<fp_type>::Create(12, 0, 3.1));
   gates.push_back(GateRX<fp_type>::Create(12, 1, 3.2));
   gates.push_back(GateRY<fp_type>::Create(12, 2, 3.3));
   gates.push_back(GateRZ<fp_type>::Create(12, 3, 3.4));
   gates.push_back(GateRX<fp_type>::Create(12, 4, 3.5));
   gates.push_back(GateRY<fp_type>::Create(12, 5, 3.6));
-
-  gates.push_back(GateCNot<fp_type>::Create(13, 3, 4));
-  MakeControlledGate({0, 2, 1}, {1, 1, 0}, gates.back());
-
+  gates.push_back(GateCNot<fp_type>::Create(13, 3, 4).ControlledBy({0, 2, 1}, {1, 1, 0}));
   gates.push_back(GateRX<fp_type>::Create(14, 0, 3.7));
   gates.push_back(GateRY<fp_type>::Create(14, 1, 3.8));
   gates.push_back(GateRZ<fp_type>::Create(14, 2, 3.9));
   gates.push_back(GateRX<fp_type>::Create(14, 3, 4.0));
   gates.push_back(GateRY<fp_type>::Create(14, 4, 4.1));
   gates.push_back(GateRZ<fp_type>::Create(14, 5, 4.2));
-
-  gates.push_back(GateIS<fp_type>::Create(15, 4, 5));
-  MakeControlledGate({3, 1, 0, 2}, {1, 1, 0, 0}, gates.back());
-
+  gates.push_back(GateIS<fp_type>::Create(15, 4, 5).ControlledBy({3, 1, 0, 2}, {1, 1, 0, 0}));
   gates.push_back(GateRY<fp_type>::Create(16, 0, 4.3));
   gates.push_back(GateRZ<fp_type>::Create(16, 1, 4.4));
   gates.push_back(GateRX<fp_type>::Create(16, 2, 4.5));
   gates.push_back(GateRY<fp_type>::Create(16, 3, 4.6));
   gates.push_back(GateRZ<fp_type>::Create(16, 4, 4.7));
   gates.push_back(GateRX<fp_type>::Create(16, 5, 4.8));
-
-  gates.push_back(GateCNot<fp_type>::Create(17, 5, 4));
-  MakeControlledGate({3}, {0}, gates.back());
-
+  gates.push_back(GateCNot<fp_type>::Create(17, 5, 4).ControlledBy({3}, {0}));
   gates.push_back(GateRZ<fp_type>::Create(18, 0, 4.9));
   gates.push_back(GateRX<fp_type>::Create(18, 1, 5.0));
   gates.push_back(GateRY<fp_type>::Create(18, 2, 5.1));
   gates.push_back(GateRZ<fp_type>::Create(18, 3, 5.2));
   gates.push_back(GateRX<fp_type>::Create(18, 4, 5.3));
   gates.push_back(GateRY<fp_type>::Create(18, 5, 5.4));
-
-  gates.push_back(GateIS<fp_type>::Create(19, 0, 1));
-  MakeControlledGate({4}, {1}, gates.back());
-
+  gates.push_back(GateIS<fp_type>::Create(19, 0, 1).ControlledBy({4}));
   gates.push_back(GateRX<fp_type>::Create(20, 0, 5.5));
   gates.push_back(GateRY<fp_type>::Create(20, 1, 5.6));
   gates.push_back(GateRZ<fp_type>::Create(20, 2, 5.7));
   gates.push_back(GateRX<fp_type>::Create(20, 3, 5.8));
   gates.push_back(GateRY<fp_type>::Create(20, 4, 5.9));
   gates.push_back(GateRZ<fp_type>::Create(20, 5, 6.0));
-
-  gates.push_back(GateIS<fp_type>::Create(21, 0, 2));
-  MakeControlledGate({4}, {1}, gates.back());
-
+  gates.push_back(GateIS<fp_type>::Create(21, 0, 2).ControlledBy({4}));
   gates.push_back(GateRY<fp_type>::Create(22, 0, 6.1));
   gates.push_back(GateRZ<fp_type>::Create(22, 1, 6.2));
   gates.push_back(GateRX<fp_type>::Create(22, 2, 6.3));
   gates.push_back(GateRY<fp_type>::Create(22, 3, 6.4));
   gates.push_back(GateRZ<fp_type>::Create(22, 4, 6.5));
   gates.push_back(GateRX<fp_type>::Create(22, 5, 6.6));
-
-  gates.push_back(GateIS<fp_type>::Create(23, 0, 5));
-  MakeControlledGate({4}, {0}, gates.back());
-
+  gates.push_back(GateIS<fp_type>::Create(23, 0, 5).ControlledBy({4}, {0}));
   gates.push_back(GateRZ<fp_type>::Create(24, 0, 6.7));
   gates.push_back(GateRX<fp_type>::Create(24, 1, 6.8));
   gates.push_back(GateRY<fp_type>::Create(24, 2, 6.9));
   gates.push_back(GateRZ<fp_type>::Create(24, 3, 7.0));
   gates.push_back(GateRX<fp_type>::Create(24, 4, 7.1));
   gates.push_back(GateRY<fp_type>::Create(24, 5, 7.2));
-
-  gates.push_back(GateHd<fp_type>::Create(25, 5));
-  MakeControlledGate({4}, {1}, gates.back());
-
+  gates.push_back(GateHd<fp_type>::Create(25, 5).ControlledBy({4}));
   gates.push_back(GateRX<fp_type>::Create(26, 0, 7.3));
   gates.push_back(GateRY<fp_type>::Create(26, 1, 7.4));
   gates.push_back(GateRZ<fp_type>::Create(26, 2, 7.5));

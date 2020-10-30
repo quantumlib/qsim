@@ -408,7 +408,7 @@ class CircuitQsimParser final {
       return false;
     }
 
-    MakeControlledGate(std::move(controlled_by), gates.back());
+    gates.back().ControlledBy(std::move(controlled_by));
 
     if (!ValidateControlledGate(num_qubits, gates.back().qubits,
                                 gates.back().controlled_by)) {
