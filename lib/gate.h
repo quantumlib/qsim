@@ -131,10 +131,9 @@ inline Gate CreateGate(unsigned time, const std::vector<unsigned>& qubits,
 }
 
 template <typename Qubits = std::vector<unsigned>&&, typename Gate>
-inline void MakeControlledGate(Qubits&& controlled_by,
-                               uint64_t cmask, Gate& gate) {
+inline void MakeControlledGate(Qubits&& controlled_by, Gate& gate) {
   gate.controlled_by = std::forward<Qubits>(controlled_by);
-  gate.cmask = cmask;
+  gate.cmask = (uint64_t{1} << gate.controlled_by.size()) - 1;
 
   std::sort(gate.controlled_by.begin(), gate.controlled_by.end());
 }
