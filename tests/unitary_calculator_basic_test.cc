@@ -33,6 +33,10 @@ TEST(UnitaryCalculatorTest, ApplyGate2) {
   TestApplyGate2<UnitaryCalculatorBasic<For, float>>();
 }
 
+TEST(UnitaryCalculatorTest, ApplyFusedGate) {
+  TestApplyFusedGate<UnitaryCalculatorBasic<For, float>>();
+}
+
 }  // namspace
 }  // namespace unitary
 }  // namespace qsim
