@@ -148,11 +148,9 @@ cc_library(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:circuit_qsim_parser",
         "//lib:fuser",
         "//lib:gate_appl",
         "//lib:gates_qsim",
-        "//lib:io",
     ],
     testonly = 1,
 )
@@ -305,6 +303,9 @@ cc_library(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:fuser",
+        "//lib:gate_appl",
+        "//lib:gates_cirq",
     ],
     testonly = 1,
 )

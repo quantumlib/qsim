@@ -19,55 +19,101 @@ description: >
 landing_page:
   custom_css_path: /site-assets/css/style.css
   rows:
-  - heading: Quantum circuit simulators qsim and qsimh.
-
+  - classname: quantum-hero quantum-hero--qsim quantum-hero--icon-medium
+    options:
+    - hero
+    - description-50
+    - padding-large
+    heading: qsim and qsimh
+    icon:
+      path: /site-assets/images/icons/icon_qsim.png
+    description: >
+      Optimized quantum circuit simulators
     items:
-    - classname: devsite-landing-row-50
+    - description: >
+        <h4>qsim</h4>
+        <p>
+        qsim is a full wave function simulator written in C++. It uses gate
+        fusion, AVX/FMA vectorized instructions and multi-threading using
+        OpenMP to achieve state of the art simulations of quantum circuits.
+        qsim is integrated with Cirq and can be used to run simulations of up
+        to 40 qubits on a 90 core Intel Xeon workstation.
+        </p>
+        <h4>qsimh</h4>
+        <p>
+        qsimh is a hybrid Schrödinger-Feynman simulator built for parallel
+        execution on a cluster of machines. It produces amplitudes for user-
+        specified output bitstrings.
+        </p>
+      buttons:
+      - label: Get started with qsim on Cirq
+        path: /qsim/tutorials/qsimcirq
+        classname: button button-primary
+        icon_name: open_in_new
+      - label: GitHub repository
+        path: //github.com/quantumlib/qsim
+        classname: button button-white
+        icon_name: open_in_new
+      code_block: |
+        <pre class = "prettyprint">
+        import cirq
+        import qsimcirq
+
+        # Pick up to ~36 qubits to run on a large multi-core Intel CPU machine
+        qubits = [cirq.GridQubit(i,j) for i in range(6) for j in range(6)]
+
+        # Define a circuit to run (e.g. Quantum Supremacy Circuits)
+        circuit = cirq.experiments.
+            random_rotations_between_grid_interaction_layers_circuit(
+            qubits=qubits, depth=16)
+
+        # Simulate the circuit with qsim and return just the measurement values
+        # just like you would with Cirq
+        qsim_simulator = qsimcirq.QSimSimulator()
+        qsim_results = qsim_simulator.run(circuit, repetitions=5)
+        print('qsim results:')
+        print(qsim_results)
+        </pre>
+  - classname: quantum-row quantum-row--yellow
+    background: theme
+    heading: "Features and updates"
+    options:
+    - cards
+    items:
+    - heading: "Schrödinger simulation via qsim"
+      image_path: /site-assets/images/cards/qsim-card-schrodinger.png
       description: >
-        <h3>qsim</h3>
-        <p>
-        qsim is a Schrödinger full state-vector simulator. It computes all the
-        <em>2<sup>n</sup></em> amplitudes of the state vector, where <em>n</em>
-        is the number of qubits. Essentially, the simulator performs
-        matrix-vector multiplications repeatedly. One matrix-vector
-        multiplication corresponds to applying one gate. The total runtime is
-        proportional to <em>g2<sup>n</sup></em>., where <em>g</em> is the number
-        of 2-qubit gates. To speed up the simulator, we use gate fusion,
-        single-precision arithmetic, AVX/FMA instructions for vectorization and
-        OpenMP for multi-threading.
-        </p>
-        <h3>qsimh</h3>
-        <p>
-        qsimh is a hybrid Schrödinger-Feynman simulator. The lattice is split
-        into two parts and the Schmidt decomposition is used to decompose
-        2-qubit gates on the cut. If the Schmidt rank of each gate is <em>m</em>
-        and the number of gates on the cut is <em>k</em> then there are
-        <em>m<sup>k</sup></em> paths. To simulate a circuit with fidelity one, one
-        needs to simulate all the <em>m<sup>k</sup></em> paths and sum the results. The
-        total runtime is proportional to <em>(2<sup>n<sub>1</sub></sup> + 2<sup>n<sub>2</sub></sup>)m<sup>k</sup></em>,
-        where <em>n<sub>1</sub></em> and <em>n<sub>2</sub></em> are the qubit
-        numbers in the first and second parts. Path simulations are independent
-        of each other and can be trivially parallelized to run on supercomputers
-        or in data centers. Note that one can run simulations with fidelity <em>F < 1</em>
-        just by summing over a fraction <em>F</em> of all the paths.
-        </p>
-
-  - classname: devsite-landing-row-cards
-    items:
-    - heading: "Quantum supremacy using a programmable superconducting processor"
-      image_path: /site-assets/images/cards/google-research-card-16x9.png
-      path: https://ai.googleblog.com/2019/10/quantum-supremacy-using-programmable.html
+        qsim is a full wavefunction simulator that has been optimized to support
+        vectorized operations and multi-threading.
       buttons:
-      - label: "Read on the Google AI blog"
-        path: https://ai.googleblog.com/2019/10/quantum-supremacy-using-programmable.html
-    - heading: "Experimentally Scaling Up Variational Quantum Simulations of Fermions"
-      youtube_id: k-21vRCC0RM
+      - label: "Learn more"
+        path: /qsim/usage
+    - heading: "Schrödinger-Feynman simulation via qsimh"
+      image_path: /site-assets/images/cards/qsim-card-schrodinger-feynman.png
+      description: >
+        qsimh is a hybrid Schrödinger-Feynman simulator. It simulates separate
+        disjoint sets of qubit using a full wave vector simulator, and then uses
+        Feynman paths to sum over gates that span the sets.
       buttons:
-      - label: Watch the video
-        path: https://www.youtube.com/watch?v=k-21vRCC0RM
-    - heading: "qsim on GitHub"
-      image_path: /site-assets/images/cards/github-card-16x9.png
-      path: https://github.com/quantumlib/qsim
+      - label: "Learn more"
+        path: /qsim/usage#qsimh_base_usage
+    - heading: "Cirq integration"
+      image_path: /site-assets/images/cards/qsim-card-cirq-integrations.png
+      description: >
+        Cirq is a python framework for writing, simulating, and executing
+        quantum programs. Cirq’s built in simulator is useful to around 20
+        qubits. By using the qsim Cirq simulator one can boost the number of
+        qubits simulated to be mostly limited by available ram. Up to 40 qubits
+        can be simulated on a 90 core Intel Xeon workstation.
       buttons:
-      - label: "View on GitHub"
-        path: https://github.com/quantumlib/qsim
+      - label: "Learn more"
+        path: /qsim/cirq_interface
+    - heading: "Install qsim on GCP"
+      image_path: /site-assets/images/cards/qsim-card-gcp.jpg
+      description: >
+        Learn how to simulate up to 38 qubits on Google Cloud’s Compute Engine.
+        qsim has a prepackaged docker image that allows easy deployment of qsim,
+        Juypter, and Cirq onto a virtual machine.
+      buttons:
+      - label: "Learn more"
+        path: /qsim/tutorials/qsimcirq_gcp
