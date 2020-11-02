@@ -17,8 +17,9 @@ RUN yum -y update && \
 	cd / && \
 	git clone https://github.com/quantumlib/qsim.git
 
-RUN groupadd -g 412 appuser && \
-    useradd -m -r -u 412 -g appuser appuser 
-USER appuser
+RUN  jupyter serverextension enable --py jupyter_http_over_ws
 
-CMD ["jupyter-notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
+CMD ["jupyter-notebook", "--port=8888", "--no-browser",\
+      "--ip=0.0.0.0", "--allow-root", \
+	  "--NotebookApp.allow_origin='https://colab.research.google.com'", \
+      "--NotebookApp.port_retries=0"]
