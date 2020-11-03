@@ -52,7 +52,7 @@ Connect to the Cloud Console and make sure your current project is selected. The
 
 
 
-![alt_text](../images/image7.png )
+![alt_text](../images/qsimcirq_gcp/image7.png )
 
 
 
@@ -67,7 +67,7 @@ To create the VM use the steps in sequence below:
 *   Choose the machine family / series: N2
     *   Quantum simulation can require a high level of resources, so we are selecting powerful processors, but [many choices are available.](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
 
-![alt_text](../images/image13.png )
+![alt_text](../images/qsimcirq_gcp/image13.png )
 
 *   Choose the [Machine Type](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you): n2-standard-16
     *   16 CPUs
@@ -75,12 +75,12 @@ To create the VM use the steps in sequence below:
 *   Choose the Boot Disk image:[ Container-Optimized OS](https://cloud.google.com/container-optimized-os/docs/concepts/features-and-benefits)
     *   Leave the remaining as defaults.
 
-![alt_text](../images/image10.png )
+![alt_text](../images/qsimcirq_gcp/image10.png )
 
 Finally, enable HTTP access
 *   Click "Create"
 
-![alt_text](../images/image8.png )
+![alt_text](../images/qsimcirq_gcp/image8.png )
 
 ## Preparing your local system to connect to Colab
 [Colaboratory](https://colab.sandbox.google.com/notebooks/intro.ipynb) or "Colab" for short, allows you to write and execute Python in your browser, with
@@ -154,15 +154,15 @@ First, get a notebook up and running on Colab.
     
   If you are connect to Colab with a notebook visible, you can click on `Connect` to get the UI:
 
-<img src="../images/colab_local.png" width="400"/>
+<img src="../images/qsimcirq_gcp/colab_local.png" width="400"/>
 
 Select `Connect to local runtime`. You will see the UI:
 
-<img src="../images/colab_settings.png" width="500"/>
+<img src="../images/qsimcirq_gcp/colab_settings.png" width="500"/>
 
 This is where you past the edited URL from the previous section. Then click `Connect`
 
-<img src="../images/colab_success.png" width="300"/>
+<img src="../images/qsimcirq_gcp/colab_success.png" width="300"/>
 
 You should now be able to run the cells in the notebook.
 
@@ -189,23 +189,23 @@ In the previous step, you copied a URL like below. It is easy to just copy that 
  In the browser you should now see the Jupyter UI:
 
 
-![alt_text](../images/image2.png )
+![alt_text](../images/qsimcirq_gcp/image2.png )
 
 
 To see the notebooks, navigate to  qsim > docs > tutorials. You will see:
 
-![alt_text](../images/image12.png )
+![alt_text](../images/qsimcirq_gcp/image12.png )
 
 
 Click on qsimcirq.ipynb. This will load the notebook.
 
 You can now run these cells as you would in any notebook.
 
-![alt_text](../images/image1.png )
+![alt_text](../images/qsimcirq_gcp/image1.png )
 
 If you choose to modify the notebook, you can save it on the *qsim-1* VM from *File* -> *Save As*, and saving to `/homedir/mynotebook.ipynb`.  This will save in your home directory on your VM. If you intend to destroy the VM after this tutorial, either download the notebooks from the VM or save directly from your browser.
 
-![alt_text](../images/image4.png )
+![alt_text](../images/qsimcirq_gcp/image4.png )
 
 ## Run interactively
 
@@ -321,7 +321,7 @@ It is usually recommended to delete the entire project you created for this tuto
 
 
 
-![alt_text](../images/image9.png )
+![alt_text](../images/qsimcirq_gcp/image9.png )
 
 
 ### Delete the project
@@ -337,7 +337,7 @@ If you plan to explore multiple tutorials and quickstarts, reusing projects can 
 
 1. In the Cloud Console, [go to the **Manage Resources** page](https://console.cloud.google.com/iam-admin/projects)
 2. In the project list, select the project that you want to delete and then click **Delete** 
-<img src="../images/image3.png" width="18"/>
+<img src="../images/qsimcirq_gcp/image3.png" width="18"/>
 
 
 3. In the dialog, type the project ID and then click **Shut down** to delete the project.
