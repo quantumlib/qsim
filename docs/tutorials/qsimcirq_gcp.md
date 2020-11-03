@@ -229,33 +229,8 @@ CONTAINER ID        IMAGE                                       COMMAND         
 
 
 The `CONTAINER_ID` is a UID something like "8ab217d640a3". Now you can connect to the container:
-
 ```console
     $ docker exec -it [CONTAINER_ID] /bin/bash
-```
-
-
-This shell is running inside the container, with Python3, Cirq and qsim installed. Start python3:
-
-
-```console
-	$ python3
-```
-
-
-You will see the output:
-
-
-```python
-    Python 3.6.8 (default, Apr 16 2020, 01:36:27) 
-    [GCC 8.3.1 20191121 (Red Hat 8.3.1-5)] on linux
-    Type "help", "copyright", "credits" or "license" for more information.
-    >>>
-```
-
-
-You are now ready for an interactive session running qsim.
-
 
 ### Build the circuit
 
