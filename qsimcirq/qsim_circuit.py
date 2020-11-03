@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import warnings
 
 import cirq
 from qsimcirq import qsim
@@ -116,13 +117,14 @@ def _control_details(gate: cirq.ops.ControlledGate, qubits):
       continue
     elif 0 not in cvs and 1 not in cvs:
       # This gate will never trigger.
-      raise ValueError(f'Gate has no valid control value: {gate}')
-    else:
-      control_qubits.append(qubits[i])
-      if 0 in cvs:
-        control_values.append(0)
-      elif 1 in cvs:
-        control_values.append(1)
+      warnings.warn(f'Gate has no valid control value: {gate}', RuntimeWarning)
+      return (None, None)
+    # Either 0 or 1 is in cvs, but not both.
+    control_qubits.append(qubits[i])
+    if 0 in cvs:
+      control_values.append(0)
+    elif 1 in cvs:
+      control_values.append(1)
   
   return (control_qubits, control_values)
 
@@ -194,12 +196,10 @@ class QSimCircuit(cirq.Circuit):
           qsim_qubits = qubits
           is_controlled = isinstance(qsim_op.gate, cirq.ops.ControlledGate)
           if is_controlled:
-            try:
-              control_qubits, control_values = _control_details(qsim_op.gate,
-                                                                qubits)
-            except ValueError as e:
+            control_qubits, control_values = _control_details(qsim_op.gate,
+                                                              qubits)
+            if control_qubits is None:
               # This gate has no valid control, and will be omitted.
-              print(e)
               continue
             qsim_gate = qsim_gate.sub_gate
             qsim_qubits = qubits[qsim_op.gate.num_controls():]

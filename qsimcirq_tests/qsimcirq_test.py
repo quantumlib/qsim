@@ -284,7 +284,9 @@ class MainTest(unittest.TestCase):
       cirq.X(qubits[2]).controlled_by(*qubits[:2], control_values=[1, 2]),
     )
     qsimSim = qsimcirq.QSimSimulator()
-    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    with self.assertWarnsRegex(RuntimeWarning,
+                               'Gate has no valid control value'):
+      result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
     assert result.state_vector()[0] == 1
 
 
