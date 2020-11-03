@@ -1,8 +1,5 @@
 # Quantum simulation on GCP with _Cirq_ and _qsim_
 
-
-
-
 This tutorial will demonstrate how to run [Cirq](https://cirq.readthedocs.io/en/latest/index.html) on Google Cloud Platform. This tutorial will walk through how to install Cirq within a Docker container on a GCE Virtual Machine and view results. You will run simulation both in a Jupyter environment and interactively within the container.
 
 Explaining the concepts of quantum computing is beyond the scope of this tutorial, but many excellent references and texts exist. This website describes [Cirq](https://Cirq.readthedocs.io/en/stable/index.html) in detail. Additionally,  the textbook “Quantum Computation and Quantum Information” by Nielsen and Chuang is an excellent reference.
@@ -111,121 +108,153 @@ Finally, enable HTTP access
 
 ![alt_text](../images/image8.png )
 
-## Running the qsim docker container
+## Preparing your local system to connect to Colab
+[Colaboratory](https://colab.sandbox.google.com/notebooks/intro.ipynb) or "Colab" for short, allows you to write and execute Python in your browser, with
 
-There are two ways to run qsim from this container: from a Jupyter Notebook and interactively from a shell. In both cases, you need to connect to the VM you created above.
+* Zero configuration required
+* Free access to GPUs
+* Easy sharing
+
+We will focus on how to run simulations GCE VM your created above using Colab as the UI / frontend.
+
+### Install Gcloud on your local machine
+In order to connnect your VM to Colab, you need to forward the default Jupyter port (8888) to your localhost. Port forwarding to a GCP VM requires that you have th Google Cloud Platform SDK installed on your local computer. This will give you access to the `gcloud` command.
+
+Intallation instructions a be found [here](https://cloud.google.com/sdk/docs/install).
+
+After installing, initialize the Google Cloud environment.
+
+```bash
+gcloud init
+```
+Respond to the prompts with your project ID and the zone where you created your VM. When completed, view the glcoud configuration:
+
+```bash
+gcloud config list
+```
+Output should look something like: 
+
+```less
+region = us-east4
+zone = us-east4-c
+[core]
+account = wellhello@gargle.com
+disable_usage_reporting = False
+project = quantum-22222
+```
+
+## Connect via port forward to your VM
+You are now ready co connect to your VM via a port forward gcloud command. Detailed instructions can be found [here](https://research.google.com/colaboratory/local-runtimes.html), but the following instructions should be sufficient to succeed. Connect up with SSH with port 8888 forwarded to your local machine:
+
+```bash
+gcloud compute ssh [YOUR_INSTANCE_NAME] -- -L 8888:localhost:8888
+```
+You should now see the command line prompt from your VM:
+```bash
+wellhello@qsim-1 ~ $ 
+```
+### Run the Jupyter / qsim container on your VM 
+At the command prompt you can now start a Docker container with all the required code to run simulations. Start the container:
+
+```bash
+docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
+```
+You should see several lines of output ending with lines like:
+```less
+    
+    To access the notebook, open this file in a browser:
+        file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
+    Or copy and paste one of these URLs:
+        http://e1f7a7cca9fa:8888/?token=aa16e1b6d3f51c58928037d34cc6854dac47347dd4c0eae5
+     or http://127.0.0.1:8888/?token=aa16e1b6d3f51c58928037d34cc6854dac47347dd4c0eae5
+
+```
+Copy the last URL  in the output. Edit the URL to replace `127.0.0.1` with `localhost`. Save this URL for the next step. This URL points to your local runtime, running as a Docker container on your VM.
+
+## Connect Colab to your local runtime
+
+First, get a notebook up and running on Colab.
+
+ <a target="_blank" href="https://colab.research.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />Run a qsim notebook.</a>
+
+    
+  If you are connect to Colab with a notebook visible, you can click on `Connect` to get the UI:
+
+<img src="../images/colab_local.png" width="400"/>
+
+Select `Connect to local runtime`. You will see the UI:
+
+<img src="../images/colab_settings.png" width="500"/>
+
+This is where you past the edited URL from the previous section. Then click `Connect`
+
+<img src="../images/colab_success.png" width="300"/>
+
+You should now be able to run the cells in the notebook.
+
+### Large circuit
+A large circuit is provided with 32 qubits and a depth of 14 gate operations.  Run it here:
 
 
-### Open a SSH window to your VM
+<a target="_blank" href="https://colab.research.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />Run q32d14.ipynb.</a>
 
-Once VM is created you can connect via [SSH](https://cloud.google.com/compute/docs/ssh-in-browser) to your newly created simulation VM. The easiest is to click the SSH button in the console from the **Compute Engine** -> **VM Instances** page:
-
-
-
-![alt_text](../images/image5.png )
+This large circuit will not succeed if you attempt to run the default runtime. Ensure that you repeat the connection procedure to the local runtime.
 
 
-You will have a popup window connecting you to the simulation VM. You should have a command prompt:
+## Optional: Connect to Jupyter directly
 
+Once you have port 8888 forwarded and the container running on your GCE VM, it is easy to connect directly to Jupyter without using Colab.
 
+In the previous step, you copied a URL like below. It is easy to just copy that URL and paste it directly into a browser running on your local machine.
 
-
-
-![alt_text](../images/image6.png )
-
-
-Start the container:
-
-
-```console
-    $ docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
+```less
+ http://127.0.0.1:8888/?token=7191178ae9aa4ebe1698b07bb67dea1d289cfd0e0b960373
 ```
 
 
-The output will be something like:
-
-
-```console
- Unable to find image 'gcr.io/quantum-291919/jupyter_qsim:latest' locally
- latest: Pulling from quantum-291919/jupyter_qsim
- 3c72a8ed6814: Pull complete 
- 2bd71a698eae: Pull complete 
- Digest: sha256:d0d0040c6ef9925719459e736631c9fec957b94d377009c591d6285143ebb626
- ...    
-     To access the notebook, open this file in a browser:
-         file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
-     Or copy and paste one of these URLs:
-         http://79804d33f250:8888/?token=d7a53e728e3dff08c6ed12a15810471486b4c15828a3d70a
-      or http://127.0.0.1:8888/?token=d7a53e728e3dff08c6ed12a15810471486b4c15828a3d70a
-```
-
-
-Copy the last URL (it starts with `127.0.0.1`). Replace `127.0.0.1` with the IP address of the VM 
-
-
-[created above](#build-a-container-optimized-vm): 
-
-
-```console
- http://[EXTERNAL_IP_ADDRESS]:8888/?token=7191178ae9aa4ebe1698b07bb67dea1d289cfd0e0b960373
-```
-
-
-Paste that in your browser. You should now see the Jupyter UI:
-
-
-
+ In the browser you should now see the Jupyter UI:
 
 
 ![alt_text](../images/image2.png )
 
 
-Navigate to  qsim > docs > tutorials. You will see:
-
-
-
-
+To see the notebooks, navigate to  qsim > docs > tutorials. You will see:
 
 ![alt_text](../images/image12.png )
 
 
 Click on qsimcirq.ipynb. This will load the notebook.
 
-You can skip the setup and go straight to the cell labeled "Full state-vector simulation":
-
-
+You can now run these cells as you would in any notebook.
 
 ![alt_text](../images/image1.png )
 
-
-If you choose to modify the notebook, you can save it on the *qsim-1* VM from *File* -> *Save As*, and saving to `/homedir/mynotebook.ipynb`.  This will save in your home directory on your VM, if your directory is open to write.
-
-
-
-
+If you choose to modify the notebook, you can save it on the *qsim-1* VM from *File* -> *Save As*, and saving to `/homedir/mynotebook.ipynb`.  This will save in your home directory on your VM. If you intend to destroy the VM after this tutorial, either download the notebooks from the VM or save directly from your browser.
 
 ![alt_text](../images/image4.png )
 
-
-
 ## Run interactively
 
-To run interactively within the container, you can open a second shell window to the VM as you did [above](#open-a-ssh-window-to-your-vm).
+To run interactively within the container, you can open a second shell window to the VM as you did above, but without the port forwarding:
+
+```bash
+gcloud compute ssh [YOUR_VM_NAME]
+```
 
 Now, find the container ID with docker ps:
-
 
 ```
 $ docker ps
 ```
+You should see output something like:
+
+```less
+CONTAINER ID        IMAGE                                       COMMAND                  CREATED             STATUS              PORTS                    NAMES
+8ab217d640a3        gcr.io/quantum-291919/jupyter_qsim:latest   "jupyter-notebook --…"   2 hours ago         Up 2 hours          0.0.0.0:8888->8888/tcp   dazzling_lovelace
+```
 
 
-
-![alt_text](../images/image11.png )
-
-
-The `CONTAINER_ID` is a UID something like "79804d33f250". Now you can connect to the container:
-
+The `CONTAINER_ID` is a UID something like "8ab217d640a3". Now you can connect to the container:
 
 ```console
     $ docker exec -it [CONTAINER_ID] /bin/bash
@@ -277,7 +306,7 @@ To import the libraries and build the circuit, copy and paste following into the
 
 You should see the output as 
 
-```console
+```less
 
 (0, 0): ───X^0.5───
 
@@ -300,7 +329,7 @@ Now to see what the circuit does when under qsim. Again, copy the following into
 The output will be:
 
 
-```console
+```less
     measurements: (no measurements)
     output vector: (0.5+0.5j)|0⟩ + (0.5-0.5j)|1⟩
 ```
@@ -313,7 +342,7 @@ You have successfully simulated a quantum circuit on Google Cloud Platform using
 
 If you want to run a Python script, you can locate a file in the home directory on your VM, then run something like in the container shell
 
-```console
+```bash
     $ python3 /homedir/myscript.py
 ```
 
@@ -323,7 +352,7 @@ If you want to run a Python script, you can locate a file in the home directory 
 Exit the container by typing cntl-d twice. You will see the output like:
 
 
-```console
+```less
     [root@79804d33f250 /]# exit
 ```
 
