@@ -15,14 +15,7 @@ Explaining the concepts of quantum computing is beyond the scope of this tutoria
 
 ## Costs
 
-This tutorial uses billable components of Google Cloud Platform, including:
-
-
-
-*   Compute Engine
-
-Use the [Pricing Calculator](https://cloud.google.com/products/calculator) to generate a cost estimate based on your projected usage.
-
+This tutorial uses billable components of Google Cloud Platform, including the *Compute Engine*. Use the [Pricing Calculator](https://cloud.google.com/products/calculator) to generate a cost estimate based on your projected usage.
 
 ## Before you begin
 
