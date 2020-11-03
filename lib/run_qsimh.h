@@ -37,8 +37,8 @@ struct QSimHRunner final {
 
   /**
    * Evaluates the amplitudes for a given circuit and set of output states.
-   * @param param Options for parallelism and logging. Also specifies the size
-   *   of the 'prefix' and 'root' sections of the lattice.
+   * @param param Options for gate fusion, parallelism and logging. Also
+   *   specifies the size of the 'prefix' and 'root' sections of the lattice.
    * @param circuit The circuit to be simulated.
    * @param parts Lattice sections to be simulated.
    * @param bitstrings List of output states to simulate, as bitstrings.
@@ -81,12 +81,12 @@ struct QSimHRunner final {
       PrintInfo(param, hd);
     }
 
-    auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0);
+    auto fgates0 = Fuser::FuseGates(param, hd.num_qubits0, hd.gates0);
     if (fgates0.size() == 0 && hd.gates0.size() > 0) {
       return false;
     }
 
-    auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1);
+    auto fgates1 = Fuser::FuseGates(param, hd.num_qubits1, hd.gates1);
     if (fgates1.size() == 0 && hd.gates1.size() > 0) {
       return false;
     }

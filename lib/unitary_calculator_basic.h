@@ -74,6 +74,9 @@ class UnitaryCalculatorBasic final {
   using Unitary = typename UnitarySpace::Unitary;
   using fp_type = typename UnitarySpace::fp_type;
 
+  using StateSpace = UnitarySpace;
+  using State = Unitary;
+
   template <typename... ForArgs>
   explicit UnitaryCalculatorBasic(unsigned num_qubits, ForArgs&&... args)
       : for_(args...), num_qubits_(num_qubits) {}

@@ -106,9 +106,9 @@ struct HybridSimulator final {
   };
 
   /**
-   * User-specified parameters for hybrid simulation.
+   * User-specified parameters for gate fusion and hybrid simulation.
    */
-  struct Parameter {
+  struct Parameter : public Fuser::Parameter {
     /**
      * Fixed bitstring indicating values to assign to Schmidt decomposition
      * indices of prefix gates.
