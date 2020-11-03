@@ -2,10 +2,7 @@
 
 This tutorial will demonstrate how to run [Cirq](https://cirq.readthedocs.io/en/latest/index.html) on Google Cloud Platform. This tutorial will walk through how to install Cirq within a Docker container on a GCE Virtual Machine and view results. You will run simulation both in a Jupyter environment and interactively within the container.
 
-Explaining the concepts of quantum computing is beyond the scope of this tutorial, but many excellent references and texts exist. This website describes [Cirq](https://Cirq.readthedocs.io/en/stable/index.html) in detail. Additionally,  the textbook “Quantum Computation and Quantum Information” by Nielsen and Chuang is an excellent reference.
-
-------
-
+Explaining the concepts of quantum computing is beyond the scope of this tutorial, but many excellent references and texts exist. This website describes [Cirq](https://Cirq.readthedocs.io/en/stable/index.html) in detail. Additionally, the textbook *Quantum Computation and Quantum Information* by Nielsen and Chuang is an excellent reference.
 
 ## Objectives
 
