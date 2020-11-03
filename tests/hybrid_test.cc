@@ -84,18 +84,18 @@ R"(2
   EXPECT_EQ(hd.num_qubits1, 1);
   EXPECT_EQ(hd.num_gatexs, 7);
 
-  auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0);
-  auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1);
-
-  EXPECT_EQ(fgates0.size(), 7);
-  EXPECT_EQ(fgates1.size(), 7);
-
   HybridSimulator::Parameter param;
   param.prefix = 1;
   param.num_prefix_gatexs = 0;
   param.num_root_gatexs = 0;
   param.num_threads = 1;
   param.verbosity = 0;
+
+  auto fgates0 = Fuser::FuseGates(param, hd.num_qubits0, hd.gates0);
+  auto fgates1 = Fuser::FuseGates(param, hd.num_qubits1, hd.gates1);
+
+  EXPECT_EQ(fgates0.size(), 7);
+  EXPECT_EQ(fgates1.size(), 7);
 
   std::vector<uint64_t> bitstrings;
   bitstrings.reserve(4);
@@ -265,18 +265,18 @@ R"(4
   EXPECT_EQ(hd.num_qubits1, 2);
   EXPECT_EQ(hd.num_gatexs, 5);
 
-  auto fgates0 = Fuser::FuseGates(hd.num_qubits0, hd.gates0);
-  auto fgates1 = Fuser::FuseGates(hd.num_qubits1, hd.gates1);
-
-  EXPECT_EQ(fgates0.size(), 10);
-  EXPECT_EQ(fgates1.size(), 10);
-
   HybridSimulator::Parameter param;
   param.prefix = 1;
   param.num_prefix_gatexs = 2;
   param.num_root_gatexs = 1;
   param.num_threads = 1;
   param.verbosity = 0;
+
+  auto fgates0 = Fuser::FuseGates(param, hd.num_qubits0, hd.gates0);
+  auto fgates1 = Fuser::FuseGates(param, hd.num_qubits1, hd.gates1);
+
+  EXPECT_EQ(fgates0.size(), 10);
+  EXPECT_EQ(fgates1.size(), 10);
 
   std::vector<uint64_t> bitstrings;
   bitstrings.reserve(8);

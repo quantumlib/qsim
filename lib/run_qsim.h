@@ -31,14 +31,15 @@ namespace qsim {
 template <typename IO, typename Fuser, typename Simulator,
           typename RGen = std::mt19937>
 struct QSimRunner final {
+ public:
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
   /**
-   * User-specified parameters for simulation.
+   * User-specified parameters for gate fusion and simulation.
    */
-  struct Parameter {
+  struct Parameter : public Fuser::Parameter {
     /**
      * Random number generator seed to apply measurement gates.
      */
@@ -49,7 +50,7 @@ struct QSimRunner final {
 
   /**
    * Runs the given circuit, only measuring at the end.
-   * @param param Options for parallelism and logging.
+   * @param param Options for gate fusion, parallelism and logging.
    * @param circuit The circuit to be simulated.
    * @param measure Function that performs measurements (in the sense of
    *   computing expectation values, etc).
@@ -63,7 +64,7 @@ struct QSimRunner final {
 
   /**
    * Runs the given circuit, measuring at user-specified times.
-   * @param param Options for parallelism and logging.
+   * @param param Options for gate fusion, parallelism and logging.
    * @param times_to_measure_at Time steps at which to perform measurements.
    * @param circuit The circuit to be simulated.
    * @param measure Function that performs measurements (in the sense of
@@ -94,8 +95,8 @@ struct QSimRunner final {
     state_space.SetStateZero(state);
     Simulator simulator(param.num_threads);
 
-    auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates,
-                                        times_to_measure_at);
+    auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
+                                        circuit.gates, times_to_measure_at);
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
     }
@@ -139,7 +140,7 @@ struct QSimRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller,
    * recording the result of any intermediate measurements in the circuit.
-   * @param param Options for parallelism and logging.
+   * @param param Options for gate fusion, parallelism and logging.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
@@ -166,7 +167,8 @@ struct QSimRunner final {
 
     Simulator simulator(param.num_threads);
 
-    auto fused_gates = Fuser::FuseGates(circuit.num_qubits, circuit.gates);
+    auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
+                                        circuit.gates);
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
     }
@@ -201,7 +203,7 @@ struct QSimRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller,
    * discarding the result of any intermediate measurements in the circuit.
-   * @param param Options for parallelism and logging.
+   * @param param Options for gate fusion, parallelism and logging.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
