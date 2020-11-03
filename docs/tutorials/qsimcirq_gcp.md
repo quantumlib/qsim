@@ -64,19 +64,13 @@ Connect to the Cloud Console and make sure your current project is selected. The
 To create the VM use the steps in sequence below:
 
 
-
 *   Change the name of the VM to be something meaningful like "qsim-1".
 *   Choose a Region and Zone
     *   The values are not too important now, but for latency and availability [you may make different choice](https://cloud.google.com/compute/docs/regions-zones#available).
 *   Choose the machine family / series: N2
     *   Quantum simulation can require a high level of resources, so we are selecting powerful processors, but [many choices are available.](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
 
-
-
 ![alt_text](../images/image13.png )
-
-
-
 
 *   Choose the [Machine Type](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you): n2-standard-16
     *   16 CPUs
@@ -84,17 +78,10 @@ To create the VM use the steps in sequence below:
 *   Choose the Boot Disk image:[ Container-Optimized OS](https://cloud.google.com/container-optimized-os/docs/concepts/features-and-benefits)
     *   Leave the remaining as defaults.
 
-
-
-
 ![alt_text](../images/image10.png )
-
-
-
 
 Finally, enable HTTP access
 *   Click "Create"
-
 
 ![alt_text](../images/image8.png )
 
