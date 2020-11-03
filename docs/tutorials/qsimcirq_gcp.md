@@ -10,9 +10,6 @@ Explaining the concepts of quantum computing is beyond the scope of this tutoria
 *   Run Docker container with Jupyter and qsim installed
 *   Run a demo circuit
 
-----
-
-
 ## Costs
 
 This tutorial uses billable components of Google Cloud Platform, including the *Compute Engine*. Use the [Pricing Calculator](https://cloud.google.com/products/calculator) to generate a cost estimate based on your projected usage.
