@@ -18,7 +18,9 @@ import cirq
 from qsimcirq import qsim
 
 
-def _cirq_gate_kind(gate):
+def _cirq_gate_kind(gate: cirq.ops.Gate):
+  if isinstance(gate, cirq.ops.ControlledGate):
+    return _cirq_gate_kind(gate.sub_gate)
   if isinstance(gate, cirq.ops.identity.IdentityGate):
     if gate.num_qubits() == 1:
       return qsim.kI
@@ -104,6 +106,27 @@ def _cirq_gate_kind(gate):
   return None
 
 
+def _control_details(gate: cirq.ops.ControlledGate, qubits):
+  control_qubits = []
+  control_values = []
+  # TODO: support qudit control
+  for i, cvs in enumerate(gate.control_values):
+    if 0 in cvs and 1 in cvs:
+      # This qubit does not affect control.
+      continue
+    elif 0 not in cvs and 1 not in cvs:
+      # This gate will never trigger.
+      raise ValueError(f'Gate has no valid control value: {gate}')
+    else:
+      control_qubits.append(qubits[i])
+      if 0 in cvs:
+        control_values.append(0)
+      elif 1 in cvs:
+        control_values.append(1)
+  
+  return (control_qubits, control_values)
+
+
 class QSimCircuit(cirq.Circuit):
 
   def __init__(self,
@@ -166,20 +189,38 @@ class QSimCircuit(cirq.Circuit):
           gate_kind = _cirq_gate_kind(qsim_op.gate)
           time = time_offset + gi
           qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
+
+          qsim_gate = qsim_op.gate
+          qsim_qubits = qubits
+          is_controlled = isinstance(qsim_op.gate, cirq.ops.ControlledGate)
+          if is_controlled:
+            try:
+              control_qubits, control_values = _control_details(qsim_op.gate,
+                                                                qubits)
+            except ValueError as e:
+              # This gate has no valid control, and will be omitted.
+              print(e)
+              continue
+            qsim_gate = qsim_gate.sub_gate
+            qsim_qubits = qubits[qsim_op.gate.num_controls():]
+
           params = {
-            p.strip('_'): val for p, val in vars(qsim_op.gate).items()
+            p.strip('_'): val for p, val in vars(qsim_gate).items()
             if isinstance(val, float) or isinstance(val, int)
           }
           if gate_kind == qsim.kMatrixGate1:
-            qsim.add_matrix1(time, qubits,
-                             cirq.unitary(qsim_op.gate).tolist(),
+            qsim.add_matrix1(time, qsim_qubits,
+                             cirq.unitary(qsim_gate).tolist(),
                              qsim_circuit)
           elif gate_kind == qsim.kMatrixGate2:
-            qsim.add_matrix2(time, qubits,
-                             cirq.unitary(qsim_op.gate).tolist(),
+            qsim.add_matrix2(time, qsim_qubits,
+                             cirq.unitary(qsim_gate).tolist(),
                              qsim_circuit)
           else:
-            qsim.add_gate(gate_kind, time, qubits, params, qsim_circuit)
+            qsim.add_gate(gate_kind, time, qsim_qubits, params, qsim_circuit)
+
+          if is_controlled:
+            qsim.control_last_gate(control_qubits, control_values, qsim_circuit)
       time_offset += moment_length
 
     return qsim_circuit

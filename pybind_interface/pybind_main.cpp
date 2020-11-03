@@ -267,6 +267,12 @@ void add_matrix2(const unsigned time, const std::vector<unsigned>& qubits,
     Cirq::MatrixGate2<float>::Create(time, qubits[0], qubits[1], matrix));
 }
 
+void control_last_gate(const std::vector<unsigned>& qubits,
+                       const std::vector<unsigned>& values,
+                       Circuit<Cirq::GateCirq<float>>* circuit) {
+  MakeControlledGate(qubits, values, circuit->gates.back());
+}
+
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
   std::vector<Bitstring> bitstrings;
