@@ -1,6 +1,6 @@
 # Quantum simulation on GCP with _Cirq_ and _qsim_
 
-This tutorial will demonstrate how to run [Cirq](https://cirq.readthedocs.io/en/latest/index.html) on Google Cloud Platform. This tutorial will walk through how to install Cirq within a Docker container on a GCE Virtual Machine and view results. You will run simulation both in a Jupyter environment and interactively within the container.
+This tutorial demonstrates how to run Cirq on the Google Cloud Platform. It shows how to install Cirq within a Docker container on a GCE Virtual Machine and view results. You will run the simulation in a Jupyter environment and interactively within the container.
 
 Explaining the concepts of quantum computing is beyond the scope of this tutorial, but many excellent references and texts exist. This website describes [Cirq](https://Cirq.readthedocs.io/en/stable/index.html) in detail. Additionally, the textbook *Quantum Computation and Quantum Information* by Nielsen and Chuang is an excellent reference.
 
@@ -65,6 +65,7 @@ To create the VM use the steps in sequence below:
 *   Choose a Region and Zone
     *   The values are not too important now, but for latency and availability [you may make different choice](https://cloud.google.com/compute/docs/regions-zones#available).
 *   Choose the machine family / series: N2
+    * Other machine types, like N1 or C2, will also work
     *   Quantum simulation can require a high level of resources, so we are selecting powerful processors, but [many choices are available.](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
 
 ![alt_text](../images/qsimcirq_gcp/image13.png )
@@ -133,9 +134,8 @@ At the command prompt you can now start a Docker container with all the required
 ```bash
 docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
 ```
-You should see several lines of output ending with lines like:
+You should see several lines of output ending with lines like below. (If you get an error about `permission denied` you may need to run docker with `sudo` as [described here](https://docs.docker.com/engine/reference/run/#general-form)).
 ```less
-    
     To access the notebook, open this file in a browser:
         file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
     Or copy and paste one of these URLs:
@@ -170,7 +170,7 @@ You should now be able to run the cells in the notebook.
 A large circuit is provided with 32 qubits and a depth of 14 gate operations.  Run it here:
 
 
-<a target="_blank" href="https://colab.research.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />Run q32d14.ipynb.</a>
+<a target="_blank" href="https://colab.research.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/q32d14.ipynb"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />Run q32d14.ipynb.</a>
 
 This large circuit will not succeed if you attempt to run the default runtime. Ensure that you repeat the connection procedure to the local runtime.
 
@@ -231,11 +231,17 @@ CONTAINER ID        IMAGE                                       COMMAND         
 The `CONTAINER_ID` is a UID something like "8ab217d640a3". Now you can connect to the container:
 ```console
     $ docker exec -it [CONTAINER_ID] /bin/bash
+```
+
 
 ### Build the circuit
 
-To import the libraries and build the circuit, copy and paste following into the VM window.
+Run python3:
+```console
+$ python3
+```
 
+To import the libraries and build the circuit, copy and paste following into the VM window.
 
 ```python
     import cirq
