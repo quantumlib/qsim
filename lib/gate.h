@@ -149,55 +149,30 @@ struct Gate {
   }
 };
 
-template <typename Gate, typename GateDef>
-inline Gate CreateGate(unsigned time, unsigned q0,
-                       Matrix<typename Gate::fp_type>&& matrix,
+template <typename Gate, typename GateDef,
+          typename Qubits = std::vector<unsigned>,
+          typename M = Matrix<typename Gate::fp_type>>
+inline Gate CreateGate(unsigned time, Qubits&& qubits, M&& matrix = {},
                        std::vector<typename Gate::fp_type>&& params = {}) {
-  return Gate{GateDef::kind, time, {q0}, {}, 0,
-              std::move(params), std::move(matrix), false, false};
-}
+  Gate gate = {GateDef::kind, time, std::forward<Qubits>(qubits), {}, 0,
+               std::move(params), std::forward<M>(matrix), false, false};
 
-template <typename Gate, typename GateDef>
-inline Gate CreateGate(unsigned time, unsigned q0, unsigned q1,
-                       Matrix<typename Gate::fp_type>&& matrix,
-                       std::vector<typename Gate::fp_type>&& params = {}) {
-  Gate gate = {GateDef::kind, time, {q0, q1}, {}, 0,
-               std::move(params), std::move(matrix), false, false};
-
-  if (q0 > q1) {
-    gate.swapped = true;
-    std::swap(gate.qubits[0], gate.qubits[1]);
-    if (!GateDef::symmetric) {
-      MatrixShuffle({1, 0}, 2, gate.matrix);
+  if (GateDef::kind != gate::kMeasurement) {
+    switch (qubits.size()) {
+    case 1:
+      break;
+    case 2:
+      if (gate.qubits[0] > gate.qubits[1]) {
+        gate.swapped = true;
+        std::swap(gate.qubits[0], gate.qubits[1]);
+        if (!GateDef::symmetric) {
+          MatrixShuffle({1, 0}, 2, gate.matrix);
+        }
+      }
+      break;
+    default:
+      detail::SortQubits<Gate, GateDef>(gate);
     }
-  }
-
-  return gate;
-}
-
-template <typename Gate, typename GateDef>
-inline Gate CreateGate(unsigned time, std::vector<unsigned>&& qubits,
-                       Matrix<typename Gate::fp_type>&& matrix = {},
-                       std::vector<typename Gate::fp_type>&& params = {}) {
-  Gate gate = {GateDef::kind, time, std::move(qubits), {}, 0,
-               std::move(params), std::move(matrix), false, false};
-
-  if (GateDef::kind != gate::kMeasurement) {
-    detail::SortQubits<Gate, GateDef>(gate);
-  }
-
-  return gate;
-}
-
-template <typename Gate, typename GateDef>
-inline Gate CreateGate(unsigned time, const std::vector<unsigned>& qubits,
-                       Matrix<typename Gate::fp_type>&& matrix = {},
-                       std::vector<typename Gate::fp_type>&& params = {}) {
-  Gate gate = {GateDef::kind, time, qubits, {}, 0,
-               std::move(params), std::move(matrix), false, false};
-
-  if (GateDef::kind != gate::kMeasurement) {
-    detail::SortQubits<Gate, GateDef>(gate);
   }
 
   return gate;
