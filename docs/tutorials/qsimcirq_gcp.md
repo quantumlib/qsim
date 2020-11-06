@@ -357,7 +357,6 @@ Additional tutorial examples are available here:
 
 
 
-*   [Cirq examples](https://cirq.readthedocs.io/en/stable/examples.html)
-*   [Getting started with qsimcirq](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb)
+*   [Cirq examples](https://cirq.readthedocs.io/en/stable/docs/tutorials/examples.html)
 
 Try out other Google Cloud Platform features for yourself. Have a look at our [tutorials](https://cloud.google.com/docs/tutorials).
