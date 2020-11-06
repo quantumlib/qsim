@@ -195,7 +195,10 @@ cc_library(
 cc_library(
     name = "gates_cirq",
     hdrs = ["gates_cirq.h"],
-    deps = [":gate"],
+    deps = [
+        ":gate",
+        ":matrix",
+    ],
 )
 
 cc_library(

@@ -27,7 +27,7 @@ namespace qsim {
 namespace CirqCircuit1 {
 
 template <typename fp_type>
-Circuit<Cirq::GateCirq<fp_type>> GetCircuit(bool qsimh) {
+Circuit<Cirq::GateCirq<fp_type>> GetCircuit(bool qsim) {
   Circuit<Cirq::GateCirq<fp_type>> circuit{4, {}};
   circuit.gates.reserve(128);
 
@@ -64,8 +64,8 @@ Circuit<Cirq::GateCirq<fp_type>> GetCircuit(bool qsimh) {
   circuit.gates.emplace_back(
       Cirq::YYPowGate<fp_type>::Create(6, 2, 3, 0.8, 0.5));
 
-  circuit.gates.emplace_back(Cirq::I<fp_type>::Create(7, 0));
-  circuit.gates.emplace_back(Cirq::I<fp_type>::Create(7, 1));
+  circuit.gates.emplace_back(Cirq::I1<fp_type>::Create(7, 0));
+  circuit.gates.emplace_back(Cirq::I1<fp_type>::Create(7, 1));
   circuit.gates.emplace_back(Cirq::I2<fp_type>::Create(7, 2, 3));
 
   circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(8, 0, 0.7));
@@ -115,51 +115,75 @@ Circuit<Cirq::GateCirq<fp_type>> GetCircuit(bool qsimh) {
       Cirq::FSimGate<fp_type>::Create(17, 0, 2, 0.3, 1.7));
   circuit.gates.emplace_back(Cirq::ZZ<fp_type>::Create(17, 1, 3));
 
-  using C = std::complex<fp_type>;
-
-  if (qsimh) {
+  if (qsim) {
     circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(18, 0, 1.3));
     circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(18, 1, 0.4));
     circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(18, 2, 0.7));
     circuit.gates.emplace_back(Cirq::S<fp_type>::Create(18, 3));
 
-    using A4 = std::array<C, 4>;
-
-    Cirq::Matrix2q<fp_type> m40 =
-      {A4{C{0, 0}, C{-0.5, -0.5}, C{-0.5, -0.5}, C{0, 0}},
-       A4{C{0.5, -0.5}, C{0, 0}, C{0, 0}, C{-0.5, 0.5}},
-       A4{C{0.5, -0.5}, C{0, 0}, C{0, 0}, C{0.5, -0.5}},
-       A4{C{0, 0}, C{-0.5, -0.5}, C{0.5, 0.5}, C{0, 0}}};
-
-    Matrix<fp_type> m41 = {0.5, -0.5, 0, 0, 0, 0, -0.5, 0.5,
-                           0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0,
-                           0, 0, -0.5, 0.5, -0.5, 0.5, 0, 0,
-                           0.5, -0.5, 0, 0, 0, 0, 0.5, -0.5};
+    circuit.gates.emplace_back(Cirq::I<fp_type>::Create(19, {0, 1, 2, 3}));
 
     circuit.gates.emplace_back(
-        Cirq::MatrixGate2<fp_type>::Create(19, 0, 1, m40));
+        Cirq::CCZPowGate<fp_type>::Create(20, 2, 0, 1, 0.7, 0.3));
+
+    circuit.gates.emplace_back(Cirq::CCXPowGate<fp_type>::Create(
+        21, 3, 1, 0, 0.4, 0.6).ControlledBy({2}, {0}));
+
+    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(22, 0, 0.3));
+    circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(22, 1, 0.5));
+    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(22, 2, 0.7));
+    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(22, 3, 0.9));
+
     circuit.gates.emplace_back(
-        Cirq::MatrixGate2<fp_type>::Create(19, 2, 3, m41));
+        Cirq::TwoQubitDiagonalGate<fp_type>::Create(23, 0, 1,
+                                                    {0.1f, 0.2f, 0.3f, 0.4f}));
+
+    circuit.gates.emplace_back(
+        Cirq::ThreeQubitDiagonalGate<fp_type>::Create(
+            24, 1, 2, 3, {0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.3}));
+
+    circuit.gates.emplace_back(Cirq::CSwapGate<fp_type>::Create(25, 0, 3, 1));
+
+    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(26, 0, 0.6));
+    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(26, 1, 0.7));
+    circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(26, 2, 0.8));
+    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(26, 3, 0.9));
+
+    circuit.gates.emplace_back(Cirq::TOFFOLI<fp_type>::Create(27, 3, 2, 0));
+
+    circuit.gates.emplace_back(Cirq::FREDKIN<fp_type>::Create(28, 1, 3, 2));
+
+    Matrix<fp_type> m40 = {0, 0, -0.5, -0.5, -0.5, -0.5, 0, 0,
+                           0.5, -0.5, 0, 0, 0, 0, -0.5, 0.5,
+                           0.5, -0.5, 0, 0, 0, 0, 0.5, -0.5,
+                           0, 0, -0.5, -0.5, 0.5, 0.5, 0, 0};
+
+    circuit.gates.emplace_back(
+        Cirq::MatrixGate2<fp_type>::Create(51, 0, 1, m40));
+    circuit.gates.emplace_back(
+        Cirq::MatrixGate<fp_type>::Create(51, {2, 3},
+                                          {0.5, -0.5, 0, 0, 0, 0, -0.5, 0.5,
+                                           0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0,
+                                           0, 0, -0.5, 0.5, -0.5, 0.5, 0, 0,
+                                           0.5, -0.5, 0, 0, 0, 0, 0.5, -0.5}));
   }
 
-  using A2 = std::array<C, 2>;
-
   Matrix<fp_type> m20 = {1, 0, 0, 0, 0, 0, 0, 1};
-  Cirq::Matrix1q<fp_type> m21 = {A2{C{0, 0}, C{0, -1}}, A2{C{0, 1}, C{0, 0}}};
-  Cirq::Matrix1q<fp_type> m22 = {A2{C{0, 0}, C{1, 0}}, A2{C{1, 0}, C{0, 0}}};
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(20, 0, m20));
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(20, 1, m21));
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(20, 2, m22));
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(
-      20, 3, {1, 0, 0, 0, 0, 0, -1, 0}));
+  Matrix<fp_type> m21 = {0, 0, 0, -1, 0, 1, 0, 0};
+  Matrix<fp_type> m22 = {0, 0, 1, 0, 1, 0, 0, 0};
+  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(52, 0, m20));
+  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(52, 1, m21));
+  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(52, 2, m22));
+  circuit.gates.emplace_back(
+      Cirq::MatrixGate1<fp_type>::Create(52, 3, {1, 0, 0, 0, 0, 0, -1, 0}));
 
-  circuit.gates.emplace_back(Cirq::riswap<fp_type>::Create(21, 0, 1, 0.7));
-  circuit.gates.emplace_back(Cirq::givens<fp_type>::Create(21, 2, 3, 1.2));
+  circuit.gates.emplace_back(Cirq::riswap<fp_type>::Create(53, 0, 1, 0.7));
+  circuit.gates.emplace_back(Cirq::givens<fp_type>::Create(53, 2, 3, 1.2));
 
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(22, 0));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(22, 1));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(22, 2));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(22, 3));
+  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 0));
+  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 1));
+  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 2));
+  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 3));
 
   return circuit;
 }
@@ -184,22 +208,22 @@ std::vector<std::complex<double>> expected_results0 = {
 };
 
 std::vector<std::complex<double>> expected_results1 = {
- {-0.2793373, 0.04345847},
- {0.011749804, 0.016165959},
- {0.17934188, 0.14092307},
- {0.048778597, -0.13790636},
- {-0.03567368, 0.22674736},
- {-0.059383754, -0.3467964},
- {-0.1784511, 0.35632825},
- {-0.04453452, -0.12378654},
- {-0.07437507, 0.051441293},
- {0.20011382, -0.025952503},
- {-0.01476972, 0.03508006},
- {0.03354645, -0.27887696},
- {-0.22601734, -0.18618399},
- {-0.060738925, -0.16348544},
- {0.078519106, -0.4696969},
- {0.14574647, -0.015134549},
+  {-0.014675243, 0.05654204},
+  {-0.0075858636, 0.28545904},
+  {0.044140648, 0.053896483},
+  {-0.033529136, 0.32497203},
+  {-0.13991567, -0.13084067},
+  {0.234054, -0.07352882},
+  {-0.14253256, -0.022177307},
+  {-0.09260284, -0.13516076},
+  {-0.061443992, -0.14103678},
+  {0.25451535, 0.22917412},
+  {-0.34202546, -0.27581766},
+  {0.0010748552, 0.1542618},
+  {0.07094702, -0.21318978},
+  {0.06633715, 0.37584817},
+  {0.2312484, 0.09549438},
+  {-0.18656375, -0.08693269},
 };
 
 /*
@@ -310,14 +334,62 @@ def main():
         cirq.FSimGate(0.3, 1.7)(q0, q2),
         cirq.ZZ(q1, q3),
     ]),
-    # The following moment should not be included if qsimh is false above.
+    # The following moment should not be included if qsim is false above.
     cirq.Moment([
         cirq.ry(1.3)(q0),
         cirq.rz(0.4)(q1),
         cirq.rx(0.7)(q2),
         cirq.S(q3),
     ]),
-    # The following moment should not be included if qsimh is false above.
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.IdentityGate(4).on(q0, q1, q2, q3),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.CCZPowGate(exponent=0.7, global_shift=0.3)(q2, q0, q1),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.CCXPowGate(exponent=0.4, global_shift=0.6)(
+            q3, q1, q0).controlled_by(q2, control_values=[0]),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.rx(0.3)(q0),
+        cirq.ry(0.5)(q1),
+        cirq.rz(0.7)(q2),
+        cirq.rx(0.9)(q3),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.TwoQubitDiagonalGate([0.1, 0.2, 0.3, 0.4])(q0, q1),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.ThreeQubitDiagonalGate([0.5, 0.6, 0.7, 0.8,
+                                     0.9, 1, 1.2, 1.3])(q1, q2, q3),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.CSwapGate()(q0, q3, q1),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.rz(0.6)(q0),
+        cirq.rx(0.7)(q1),
+        cirq.ry(0.8)(q2),
+        cirq.rz(0.9)(q3),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.TOFFOLI(q3, q2, q0),
+    ]),
+    # The following moment should not be included if qsim is false above.
+    cirq.Moment([
+        cirq.FREDKIN(q1, q3, q2),
+    ]),
+    # The following moment should not be included if qsim is false above.
     cirq.Moment([
         cirq.MatrixGate(np.array([[0, -0.5 - 0.5j, -0.5 - 0.5j, 0],
                                   [0.5 - 0.5j, 0, 0, -0.5 + 0.5j],

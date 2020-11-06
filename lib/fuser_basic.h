@@ -173,7 +173,7 @@ struct BasicGateFuser final {
           }
 
           mea_gates_at_time.push_back(&gate);
-        } else if (gate.controlled_by.size() > 0) {
+        } else if (gate.controlled_by.size() > 0 || gate.qubits.size() > 2) {
           for (auto q : gate.qubits) {
             gates_lat[q].push_back(&gate);
           }
@@ -201,8 +201,9 @@ struct BasicGateFuser final {
       for (auto pgate : gates_seq) {
         if (pgate->kind == gate::kMeasurement) {
           delayed_measurement_gate = pgate;
-        } else if (pgate->controlled_by.size() > 0) {
-          // Controlled gate.
+        } else if (pgate->qubits.size() > 2
+                   || pgate->controlled_by.size() > 0) {
+          // Multi-qubit or controlled gate.
 
           for (auto q : pgate->qubits) {
             unsigned l = last[q];
@@ -338,7 +339,7 @@ struct BasicGateFuser final {
   static bool NextGate(unsigned k1, const std::vector<const Gate*>& wl1,
                        unsigned k2, const std::vector<const Gate*>& wl2) {
     return k1 < wl1.size() && k2 < wl2.size() && wl1[k1] == wl2[k2]
-        && wl1[k1]->controlled_by.size() == 0;
+        && wl1[k1]->qubits.size() < 3 && wl1[k1]->controlled_by.size() == 0;
   }
 
   template <typename GatesLat>

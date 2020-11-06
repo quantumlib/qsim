@@ -23,15 +23,18 @@ class MainTest(unittest.TestCase):
 
   def test_cirq_too_big_gate(self):
     # Pick qubits.
-    a, b, c, d = [
+    a, b, c, d, e, f, g = [
         cirq.GridQubit(0, 0),
         cirq.GridQubit(0, 1),
+        cirq.GridQubit(0, 2),
+        cirq.GridQubit(1, 0),
         cirq.GridQubit(1, 1),
-        cirq.GridQubit(1, 0)
+        cirq.GridQubit(1, 2),
+        cirq.GridQubit(2, 0),
     ]
 
-    # Create a circuit with a gate larger than 2 qubits.
-    cirq_circuit = cirq.Circuit(cirq.IdentityGate(4).on(a, b, c, d))
+    # Create a circuit with a gate larger than 6 qubits.
+    cirq_circuit = cirq.Circuit(cirq.IdentityGate(7).on(a, b, c, d, e, f, g))
 
     qsimSim = qsimcirq.QSimSimulator()
     with self.assertRaises(NotImplementedError):
@@ -494,6 +497,44 @@ class MainTest(unittest.TestCase):
         cirq.rz(0.4)(q1),
         cirq.rx(0.7)(q2),
         cirq.S(q3),
+      ]),
+      cirq.Moment([
+        cirq.IdentityGate(4).on(q0, q1, q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.CCZPowGate(exponent=0.7, global_shift=0.3)(q2, q0, q1),
+      ]),
+      cirq.Moment([
+        cirq.CCXPowGate(exponent=0.4, global_shift=0.6)(
+          q3, q1, q0).controlled_by(q2, control_values=[0]),
+      ]),
+      cirq.Moment([
+        cirq.rx(0.3)(q0),
+        cirq.ry(0.5)(q1),
+        cirq.rz(0.7)(q2),
+        cirq.rx(0.9)(q3),
+      ]),
+      cirq.Moment([
+        cirq.TwoQubitDiagonalGate([0.1, 0.2, 0.3, 0.4])(q0, q1),
+      ]),
+      cirq.Moment([
+        cirq.ThreeQubitDiagonalGate([0.5, 0.6, 0.7, 0.8,
+                                     0.9, 1, 1.2, 1.3])(q1, q2, q3),
+      ]),
+      cirq.Moment([
+          cirq.CSwapGate()(q0, q3, q1),
+      ]),
+      cirq.Moment([
+        cirq.rz(0.6)(q0),
+        cirq.rx(0.7)(q1),
+        cirq.ry(0.8)(q2),
+        cirq.rz(0.9)(q3),
+      ]),
+      cirq.Moment([
+        cirq.TOFFOLI(q3, q2, q0),
+      ]),
+      cirq.Moment([
+        cirq.FREDKIN(q1, q3, q2),
       ]),
       cirq.Moment([
         cirq.MatrixGate(np.array([[0, -0.5 - 0.5j, -0.5 - 0.5j, 0],
