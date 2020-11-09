@@ -228,14 +228,17 @@ class MainTest(unittest.TestCase):
       [1, 0, 0, 0, 0, 0, 0, 0],
       [0, 1, 0, 0, 0, 0, 0, 0],
       [0, 0, 1, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 1],
+      [0, 0, 0, 1, 0, 0, 0, 0],
       [0, 0, 0, 0, 1, 0, 0, 0],
       [0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 1],
       [0, 0, 0, 0, 0, 0, 1, 0],
-      [0, 0, 0, 1, 0, 0, 0, 0],
     ])
 
-    cirq_circuit = cirq.Circuit(cirq.MatrixGate(m).on(*qubits))
+    cirq_circuit = cirq.Circuit(
+      cirq.X(qubits[0]), cirq.X(qubits[1]),
+      cirq.MatrixGate(m).on(*qubits),
+    )
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
     assert result.state_vector().shape == (8,)
@@ -267,15 +270,18 @@ class MainTest(unittest.TestCase):
           [1, 0, 0, 0, 0, 0, 0, 0],
           [0, 1, 0, 0, 0, 0, 0, 0],
           [0, 0, 1, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 1],
+          [0, 0, 0, 1, 0, 0, 0, 0],
           [0, 0, 0, 0, 1, 0, 0, 0],
           [0, 0, 0, 0, 0, 1, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 1],
           [0, 0, 0, 0, 0, 0, 1, 0],
-          [0, 0, 0, 1, 0, 0, 0, 0],
         ])
 
     qubits = cirq.LineQubit.range(3)
-    cirq_circuit = cirq.Circuit(UnknownThreeQubitGate().on(*qubits))
+    cirq_circuit = cirq.Circuit(
+      cirq.X(qubits[0]), cirq.X(qubits[1]),
+      UnknownThreeQubitGate().on(*qubits),
+    )
     qsimSim = qsimcirq.QSimSimulator()
     result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
     assert result.state_vector().shape == (8,)
