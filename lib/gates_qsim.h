@@ -71,7 +71,7 @@ struct GateId1 {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateId1>(
-        time, q0, {1, 0, 0, 0, 0, 0, 1, 0});
+        time, {q0}, {1, 0, 0, 0, 0, 0, 1, 0});
   }
 };
 
@@ -89,7 +89,7 @@ struct GateHd {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateHd>(
-        time, q0, {is2, 0, is2, 0, is2, 0, -is2, 0});
+        time, {q0}, {is2, 0, is2, 0, is2, 0, -is2, 0});
   }
 };
 
@@ -107,7 +107,7 @@ struct GateT {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateT>(
-        time, q0, {1, 0, 0, 0, 0, 0, is2, is2});
+        time, {q0}, {1, 0, 0, 0, 0, 0, is2, is2});
   }
 };
 
@@ -123,7 +123,7 @@ struct GateX {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateX>(
-        time, q0, {0, 0, 1, 0, 1, 0, 0, 0});
+        time, {q0}, {0, 0, 1, 0, 1, 0, 0, 0});
   }
 };
 
@@ -139,7 +139,7 @@ struct GateY {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateY>(
-        time, q0, {0, 0, 0, -1, 0, 1, 0, 0});
+        time, {q0}, {0, 0, 0, -1, 0, 1, 0, 0});
   }
 };
 
@@ -155,7 +155,7 @@ struct GateZ {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateZ>(
-        time, q0, {1, 0, 0, 0, 0, 0, -1, 0});
+        time, {q0}, {1, 0, 0, 0, 0, 0, -1, 0});
   }
 };
 
@@ -173,7 +173,7 @@ struct GateX2 {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateX2>(
-        time, q0, {h, h, h, -h, h, -h, h, h});
+        time, {q0}, {h, h, h, -h, h, -h, h, h});
   }
 };
 
@@ -191,7 +191,7 @@ struct GateY2 {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateY2>(
-        time, q0, {h, h, -h, -h, h, h, h, h});
+        time, {q0}, {h, h, -h, -h, h, h, h, h});
   }
 };
 
@@ -212,7 +212,7 @@ struct GateRX {
     fp_type s = std::sin(phi2);
 
     return CreateGate<GateQSim<fp_type>, GateRX>(
-        time, q0, {c, 0, 0, s, 0, s, c, 0}, {phi});
+        time, {q0}, {c, 0, 0, s, 0, s, c, 0}, {phi});
   }
 };
 
@@ -233,7 +233,7 @@ struct GateRY {
     fp_type s = std::sin(phi2);
 
     return CreateGate<GateQSim<fp_type>, GateRY>(
-        time, q0, {c, 0, s, 0, -s, 0, c, 0}, {phi});
+        time, {q0}, {c, 0, s, 0, -s, 0, c, 0}, {phi});
   }
 };
 
@@ -254,7 +254,7 @@ struct GateRZ {
     fp_type s = std::sin(phi2);
 
     return CreateGate<GateQSim<fp_type>, GateRZ>(
-        time, q0, {c, s, 0, 0, 0, 0, c, -s}, {phi});
+        time, {q0}, {c, s, 0, 0, 0, 0, c, -s}, {phi});
   }
 };
 
@@ -277,7 +277,7 @@ struct GateRXY {
     fp_type st = std::sin(theta) * sp;
 
     return CreateGate<GateQSim<fp_type>, GateRXY>(
-        time, q0, {cp, 0, st, ct, -st, ct, cp, 0}, {theta, phi});
+        time, {q0}, {cp, 0, st, ct, -st, ct, cp, 0}, {theta, phi});
   }
 };
 
@@ -297,7 +297,7 @@ struct GateHZ2 {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateHZ2>(
-        time, q0, {h, h, 0, -is2, is2, 0, h, h});
+        time, {q0}, {h, h, 0, -is2, is2, 0, h, h});
   }
 };
 
@@ -313,7 +313,7 @@ struct GateS {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0) {
     return CreateGate<GateQSim<fp_type>, GateS>(
-        time, q0, {1, 0, 0, 0, 0, 0, 0, 1});
+        time, {q0}, {1, 0, 0, 0, 0, 0, 0, 1});
   }
 };
 
@@ -331,10 +331,10 @@ struct GateId2 {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateQSim<fp_type>, GateId2>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 1, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 1, 0});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 1, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -356,10 +356,10 @@ struct GateCZ {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateQSim<fp_type>, GateCZ>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 1, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, -1, 0});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 1, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, -1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -383,10 +383,10 @@ struct GateCNot {
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     // Matrix is in this form because the simulator uses inverse qubit order.
     return CreateGate<GateQSim<fp_type>, GateCNot>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 1, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0,
-                       0, 0, 1, 0, 0, 0, 0, 0});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 1, 0,
+                         0, 0, 0, 0, 1, 0, 0, 0,
+                         0, 0, 1, 0, 0, 0, 0, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -411,10 +411,10 @@ struct GateSwap {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateQSim<fp_type>, GateSwap>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0,
-                       0, 0, 1, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 1, 0});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1, 0, 0, 0,
+                         0, 0, 1, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -442,10 +442,10 @@ struct GateIS {
 
   static GateQSim<fp_type> Create(unsigned time, unsigned q0, unsigned q1) {
     return CreateGate<GateQSim<fp_type>, GateIS>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 1, 0, 0,
-                       0, 0, 0, 1, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 1, 0});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 1, 0, 0,
+                         0, 0, 0, 1, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 1, 0});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp() {
@@ -484,10 +484,10 @@ struct GateFS {
     fp_type sp = std::sin(phi);
 
     return CreateGate<GateQSim<fp_type>, GateFS>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, ct, 0, 0, -st, 0, 0,
-                       0, 0, 0, -st, ct, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, cp, -sp}, {theta, phi});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, ct, 0, 0, -st, 0, 0,
+                         0, 0, 0, -st, ct, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, cp, -sp}, {theta, phi});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp(
@@ -549,10 +549,10 @@ struct GateCP {
     fp_type sp = std::sin(phi);
 
     return CreateGate<GateQSim<fp_type>, GateCP>(
-        time, q0, q1, {1, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 1, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, cp, -sp}, {phi});
+        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 1, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, cp, -sp}, {phi});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp(fp_type phi) {
