@@ -187,11 +187,21 @@ class QSimCircuit(cirq.Circuit):
     # qsim numbers qubits in reverse order from cirq
     ordered_qubits = list(reversed(ordered_qubits))
 
+    def has_qsim_kind(op: cirq.ops.GateOperation):
+      return _cirq_gate_kind(op.gate) != None
+
+    def to_matrix(op: cirq.ops.GateOperation):
+      mat = cirq.protocols.unitary(op.gate, None)
+      if mat is None:
+          return NotImplemented
+      
+      return cirq.ops.MatrixGate(mat).on(*op.qubits)
+
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
     time_offset = 0
     for moment in self:
       ops_by_gate = [
-        cirq.decompose(op, keep=lambda x: _cirq_gate_kind(x.gate) != None)
+        cirq.decompose(op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
         for op in moment
       ]
       moment_length = max(len(gate_ops) for gate_ops in ops_by_gate)

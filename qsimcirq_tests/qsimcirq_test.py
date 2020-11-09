@@ -221,6 +221,76 @@ class MainTest(unittest.TestCase):
         result.state_vector(), cirq_result.state_vector())
 
 
+  def test_big_matrix_gates(self):
+    qubits = cirq.LineQubit.range(3)
+    # Toffoli gate as a matrix.
+    m = np.array([
+      [1, 0, 0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 0, 0],
+      [0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 1],
+      [0, 0, 0, 0, 0, 0, 1, 0],
+    ])
+
+    cirq_circuit = cirq.Circuit(
+      cirq.H(qubits[0]), cirq.H(qubits[1]),
+      cirq.MatrixGate(m).on(*qubits),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+
+  def test_decompose_to_matrix_gates(self):
+
+    class UnknownThreeQubitGate(cirq.ops.Gate):
+      """This gate is not recognized by qsim, and cannot be decomposed.
+      
+      qsim should attempt to convert it to a MatrixGate to resolve the issue.
+      """
+      def __init__(self):
+        pass
+
+      def _num_qubits_(self):
+        return 3
+
+      def _qid_shape_(self):
+        return (2, 2, 2)
+
+      def _unitary_(self):
+        # Toffoli gate as a matrix.
+        return np.array([
+          [1, 0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0, 0],
+          [0, 0, 1, 0, 0, 0, 0, 0],
+          [0, 0, 0, 1, 0, 0, 0, 0],
+          [0, 0, 0, 0, 1, 0, 0, 0],
+          [0, 0, 0, 0, 0, 1, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 1],
+          [0, 0, 0, 0, 0, 0, 1, 0],
+        ])
+
+    qubits = cirq.LineQubit.range(3)
+    cirq_circuit = cirq.Circuit(
+      cirq.H(qubits[0]), cirq.H(qubits[1]),
+      UnknownThreeQubitGate().on(*qubits),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+
   def test_basic_controlled_gate(self):
     qubits = cirq.LineQubit.range(3)
 
