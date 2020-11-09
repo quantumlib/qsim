@@ -236,7 +236,7 @@ class MainTest(unittest.TestCase):
     ])
 
     cirq_circuit = cirq.Circuit(
-      cirq.X(qubits[0]), cirq.X(qubits[1]),
+      cirq.H(qubits[0]), cirq.H(qubits[1]),
       cirq.MatrixGate(m).on(*qubits),
     )
     qsimSim = qsimcirq.QSimSimulator()
@@ -279,7 +279,7 @@ class MainTest(unittest.TestCase):
 
     qubits = cirq.LineQubit.range(3)
     cirq_circuit = cirq.Circuit(
-      cirq.X(qubits[0]), cirq.X(qubits[1]),
+      cirq.H(qubits[0]), cirq.H(qubits[1]),
       UnknownThreeQubitGate().on(*qubits),
     )
     qsimSim = qsimcirq.QSimSimulator()
