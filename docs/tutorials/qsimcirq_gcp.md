@@ -243,20 +243,20 @@ $ python3
 
 To import the libraries and build the circuit, copy and paste following into the VM window.
 
-```python
-    import cirq
-    import qsimcirq
+<pre class="devsite-terminal devsite-click-to-copy">
+import cirq
+import qsimcirq
 
-    # Pick a qubit.
-    qubit = cirq.GridQubit(0, 0)
+# Pick a qubit.
+qubit = cirq.GridQubit(0, 0)
 
-    # Create a circuit
-    circuit = cirq.Circuit(
-       cirq.X(qubit)**0.5,  # Square root of NOT.
-    )
-    print("Circuit:")
-    print(circuit)
-```
+# Create a circuit
+circuit = cirq.Circuit(
+    cirq.X(qubit)**0.5,  # Square root of NOT.
+)
+print("Circuit:")
+print(circuit)
+</pre>
 
 
 You should see the output as 
@@ -273,20 +273,20 @@ You should see the output as
 Now to see what the circuit does when under qsim. Again, copy the following into your VM window:
 
 
-```python
-    simulator = qsimcirq.QSimSimulator()
-    result = simulator.simulate(circuit)
-    print("Result:")
-    print(result)
-```
+<pre class="devsite-terminal devsite-click-to-copy">
+simulator = qsimcirq.QSimSimulator()
+result = simulator.simulate(circuit)
+print("Result:")
+print(result)
+</pre>
 
 
 The output will be:
 
 
 ```less
-    measurements: (no measurements)
-    output vector: (0.5+0.5j)|0⟩ + (0.5-0.5j)|1⟩
+measurements: (no measurements)
+output vector: (0.5+0.5j)|0⟩ + (0.5-0.5j)|1⟩
 ```
 
 
@@ -298,7 +298,7 @@ You have successfully simulated a quantum circuit on Google Cloud Platform using
 If you want to run a Python script, you can locate a file in the home directory on your VM, then run something like in the container shell
 
 ```bash
-    $ python3 /homedir/myscript.py
+$ python3 /homedir/myscript.py
 ```
 
 
@@ -308,7 +308,7 @@ Exit the container by typing cntl-d twice. You will see the output like:
 
 
 ```less
-    [root@79804d33f250 /]# exit
+[root@79804d33f250 /]# exit
 ```
 
 
