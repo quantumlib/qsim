@@ -15,6 +15,8 @@
 #ifndef BITS_H_
 #define BITS_H_
 
+#include <vector>
+
 #ifdef __BMI2__
 
 #include <immintrin.h>
