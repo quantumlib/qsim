@@ -18,8 +18,6 @@ This tutorial uses billable components of Google Cloud Platform, including the *
 
 These are the steps to follow to get started with this tutorial:
 
-
-
 *   Creating a Cloud Platform project
 *   Enabling billing for the project
 *   Enable Google Compute Engine API
