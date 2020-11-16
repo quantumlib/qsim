@@ -34,7 +34,7 @@ upper_tabs:
       - heading: "Tutorials"
       - title: "Get started with qsimcirq"
         path: /qsim/tutorials/qsimcirq
-      - title: "Quantum simulation on GCP with _Cirq_ and _qsim"
+      - title: "Quantum simulation on GCP with Cirq and qsim"
         path: /qsim/tutorials/qsimcirq_gcp.md
 
     - name: "Python Reference"
