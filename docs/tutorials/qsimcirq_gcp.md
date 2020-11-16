@@ -24,20 +24,12 @@ These are the steps to follow to get started with this tutorial:
 
 For this reference guide, you need a Google Cloud [project](https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy#projects). You can create a new one, or select a project you already created:
 
-
-
 1. Select or create a Google Cloud project.
-
-> [GO TO THE PROJECT SELECTOR PAGE](https://console.cloud.google.com/projectselector2/home/dashboard)
-
-
-
+    - [GO TO THE PROJECT SELECTOR PAGE](https://console.cloud.google.com/projectselector2/home/dashboard)
 2. Enable billing for your project.
-
-> [ENABLE BILLING](https://support.google.com/cloud/answer/6293499#enable-billing)
+    - [ENABLE BILLING](https://support.google.com/cloud/answer/6293499#enable-billing)
 
 When you finish this tutorial, you can avoid continued billing by deleting the resources you created. See [Cleaning up](#cleaning-up) for more detail.
-
 
 ## Creating a GCE VM 
 
