@@ -312,7 +312,6 @@ Exit the container by typing cntl-d twice. You will see the output like:
 ```
 
 
------
 
 
 ## Cleaning up
