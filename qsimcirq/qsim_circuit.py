@@ -24,12 +24,14 @@ def _cirq_gate_kind(gate: cirq.ops.Gate):
     return _cirq_gate_kind(gate.sub_gate)
   if isinstance(gate, cirq.ops.identity.IdentityGate):
     if gate.num_qubits() == 1:
-      return qsim.kI
+      return qsim.kI1
     if gate.num_qubits() == 2:
       return qsim.kI2
+    if gate.num_qubits() <= 6:
+      return qsim.kI
     raise NotImplementedError(
       f'Received identity on {gate.num_qubits()} qubits; '
-      + 'only 1- or 2-qubit gates are supported.')
+      + 'only up to 6-qubit gates are supported.')
   if isinstance(gate, cirq.ops.XPowGate):
     # cirq.rx also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:
@@ -92,14 +94,26 @@ def _cirq_gate_kind(gate: cirq.ops.Gate):
     return qsim.kPhasedISwapPowGate
   if isinstance(gate, cirq.ops.FSimGate):
     return qsim.kFSimGate
+  if isinstance(gate, cirq.ops.TwoQubitDiagonalGate):
+    return qsim.kTwoQubitDiagonalGate
+  if isinstance(gate, cirq.ops.ThreeQubitDiagonalGate):
+    return qsim.kThreeQubitDiagonalGate
+  if isinstance(gate, cirq.ops.CCZPowGate):
+    if gate.exponent == 1 and gate.global_shift == 0:
+      return qsim.kCCZ
+    return qsim.kCCZPowGate
+  if isinstance(gate, cirq.ops.CCXPowGate):
+    if gate.exponent == 1 and gate.global_shift == 0:
+      return qsim.kCCX
+    return qsim.kCCXPowGate
+  if isinstance(gate, cirq.ops.CSwapGate):
+    return qsim.kCSwapGate
   if isinstance(gate, cirq.ops.MatrixGate):
-    if gate.num_qubits() == 1:
-      return qsim.kMatrixGate1
-    if gate.num_qubits() == 2:
-      return qsim.kMatrixGate2
+    if gate.num_qubits() <= 6:
+      return qsim.kMatrixGate
     raise NotImplementedError(
       f'Received matrix on {gate.num_qubits()} qubits; '
-      + 'only 1- or 2-qubit gates are supported.')
+      + 'only up to 6-qubit gates are supported.')
   if isinstance(gate, cirq.ops.MeasurementGate):
     # needed to inherit SimulatesSamples in sims
     return qsim.kMeasurement
@@ -125,7 +139,7 @@ def _control_details(gate: cirq.ops.ControlledGate, qubits):
       control_values.append(0)
     elif 1 in cvs:
       control_values.append(1)
-  
+
   return (control_qubits, control_values)
 
 
@@ -173,11 +187,21 @@ class QSimCircuit(cirq.Circuit):
     # qsim numbers qubits in reverse order from cirq
     ordered_qubits = list(reversed(ordered_qubits))
 
+    def has_qsim_kind(op: cirq.ops.GateOperation):
+      return _cirq_gate_kind(op.gate) != None
+
+    def to_matrix(op: cirq.ops.GateOperation):
+      mat = cirq.protocols.unitary(op.gate, None)
+      if mat is None:
+          return NotImplemented
+      
+      return cirq.ops.MatrixGate(mat).on(*op.qubits)
+
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
     time_offset = 0
     for moment in self:
       ops_by_gate = [
-        cirq.decompose(op, keep=lambda x: _cirq_gate_kind(x.gate) != None)
+        cirq.decompose(op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
         for op in moment
       ]
       moment_length = max(len(gate_ops) for gate_ops in ops_by_gate)
@@ -201,22 +225,28 @@ class QSimCircuit(cirq.Circuit):
             if control_qubits is None:
               # This gate has no valid control, and will be omitted.
               continue
+
+            if qsim_gate.num_qubits() > 4:
+              raise NotImplementedError(
+              f'Received control gate on {gate.num_qubits()} target qubits; '
+              + 'only up to 4-qubit gates are supported.')
+
             qsim_gate = qsim_gate.sub_gate
             qsim_qubits = qubits[qsim_op.gate.num_controls():]
 
-          params = {
-            p.strip('_'): val for p, val in vars(qsim_gate).items()
-            if isinstance(val, float) or isinstance(val, int)
-          }
-          if gate_kind == qsim.kMatrixGate1:
-            qsim.add_matrix1(time, qsim_qubits,
-                             cirq.unitary(qsim_gate).tolist(),
-                             qsim_circuit)
-          elif gate_kind == qsim.kMatrixGate2:
-            qsim.add_matrix2(time, qsim_qubits,
-                             cirq.unitary(qsim_gate).tolist(),
-                             qsim_circuit)
+          if gate_kind == qsim.kTwoQubitDiagonalGate or gate_kind == qsim.kThreeQubitDiagonalGate:
+            qsim.add_diagonal_gate(time, qsim_qubits,
+                                   qsim_gate._diag_angles_radians, qsim_circuit)
+          elif gate_kind == qsim.kMatrixGate:
+            flatten = lambda l : [val for i in l for val in [i.real, i.imag]]
+            qsim.add_matrix_gate(time, qsim_qubits,
+                                 flatten(list(cirq.unitary(qsim_gate).flat)),
+                                 qsim_circuit)
           else:
+            params = {
+              p.strip('_'): val for p, val in vars(qsim_gate).items()
+              if isinstance(val, float) or isinstance(val, int)
+            }
             qsim.add_gate(gate_kind, time, qsim_qubits, params, qsim_circuit)
 
           if is_controlled:

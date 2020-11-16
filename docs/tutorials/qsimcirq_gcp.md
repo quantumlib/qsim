@@ -18,28 +18,18 @@ This tutorial uses billable components of Google Cloud Platform, including the *
 
 These are the steps to follow to get started with this tutorial:
 
-
-
 *   Creating a Cloud Platform project
 *   Enabling billing for the project
 *   Enable Google Compute Engine API
 
 For this reference guide, you need a Google Cloud [project](https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy#projects). You can create a new one, or select a project you already created:
 
-
-
 1. Select or create a Google Cloud project.
-
-> [GO TO THE PROJECT SELECTOR PAGE](https://console.cloud.google.com/projectselector2/home/dashboard)
-
-
-
+    - [GO TO THE PROJECT SELECTOR PAGE](https://console.cloud.google.com/projectselector2/home/dashboard)
 2. Enable billing for your project.
-
-> [ENABLE BILLING](https://support.google.com/cloud/answer/6293499#enable-billing)
+    - [ENABLE BILLING](https://support.google.com/cloud/answer/6293499#enable-billing)
 
 When you finish this tutorial, you can avoid continued billing by deleting the resources you created. See [Cleaning up](#cleaning-up) for more detail.
-
 
 ## Creating a GCE VM 
 
@@ -119,7 +109,7 @@ project = quantum-22222
 ```
 
 ## Connect via port forward to your VM
-You are now ready co connect to your VM via a port forward gcloud command. Detailed instructions can be found [here](https://research.google.com/colaboratory/local-runtimes.html), but the following instructions should be sufficient to succeed. Connect up with SSH with port 8888 forwarded to your local machine:
+You are now ready to connect to your VM through a port forward `gcloud` command. Detailed instructions can be found in the [Colab local runtumes guide](https://research.google.com/colaboratory/local-runtimes.html), but the following instructions are sufficient to succeed. Connect up with SSH with port 8888 forwarded to your local machine:
 
 ```bash
 gcloud compute ssh [YOUR_INSTANCE_NAME] -- -L 8888:localhost:8888
@@ -312,7 +302,6 @@ Exit the container by typing cntl-d twice. You will see the output like:
 ```
 
 
------
 
 
 ## Cleaning up
@@ -348,7 +337,6 @@ If you plan to explore multiple tutorials and quickstarts, reusing projects can 
 
 3. In the dialog, type the project ID and then click **Shut down** to delete the project.
 
-----
 
 
 ## What's next
