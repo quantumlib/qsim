@@ -119,7 +119,7 @@ project = quantum-22222
 ```
 
 ## Connect via port forward to your VM
-You are now ready co connect to your VM via a port forward gcloud command. Detailed instructions can be found [here](https://research.google.com/colaboratory/local-runtimes.html), but the following instructions should be sufficient to succeed. Connect up with SSH with port 8888 forwarded to your local machine:
+You are now ready to connect to your VM through a port forward `gcloud` command. Detailed instructions can be found in the [Colab local runtumes guide](https://research.google.com/colaboratory/local-runtimes.html), but the following instructions are sufficient to succeed. Connect up with SSH with port 8888 forwarded to your local machine:
 
 ```bash
 gcloud compute ssh [YOUR_INSTANCE_NAME] -- -L 8888:localhost:8888
