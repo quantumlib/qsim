@@ -348,7 +348,6 @@ If you plan to explore multiple tutorials and quickstarts, reusing projects can 
 
 3. In the dialog, type the project ID and then click **Shut down** to delete the project.
 
-----
 
 
 ## What's next
