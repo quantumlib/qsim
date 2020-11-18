@@ -29,7 +29,7 @@ upper_tabs:
       - title: "Docker"
         path: /qsim/docker
       - title: "Release process"
-        path: /qsim/release-qsimcirq
+        path: /qsim/release
 
       - heading: "Tutorials"
       - title: "Get started with qsimcirq"
