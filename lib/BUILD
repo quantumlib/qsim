@@ -312,19 +312,28 @@ cc_library(
 cc_library(
     name = "simulator_avx",
     hdrs = ["simulator_avx.h"],
-    deps = [":statespace_avx"],
+    deps = [
+        ":bits",
+        ":statespace_avx",
+    ],
 )
 
 cc_library(
     name = "simulator_basic",
     hdrs = ["simulator_basic.h"],
-    deps = [":statespace_basic"],
+    deps = [
+        ":bits",
+        ":statespace_basic",
+    ],
 )
 
 cc_library(
     name = "simulator_sse",
     hdrs = ["simulator_sse.h"],
-    deps = [":statespace_sse"],
+    deps = [
+        ":bits",
+        ":statespace_sse",
+    ],
 )
 
 # All three state-vector simulators with multiplexer
