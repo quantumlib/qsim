@@ -35,7 +35,9 @@ upper_tabs:
       - title: "Get started with qsimcirq"
         path: /qsim/tutorials/qsimcirq
       - title: "Quantum simulation on GCP with Cirq and qsim"
-        path: /qsim/tutorials/qsimcirq_gcp.md
+        path: /qsim/tutorials/qsimcirq_gcp
+      - title: "Simulate a large quantum circuit"
+        path: /qsim/tutorials/q32d14
 
     - name: "Python Reference"
       skip_translation: true
