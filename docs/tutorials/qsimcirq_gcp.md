@@ -60,11 +60,11 @@ To create the VM use the steps in sequence below:
 *   Change the name of the VM to be something meaningful like "qsim-1".
 *   Choose a Region and Zone
     * The values are not too important now, but for latency and availability
-      [you may make different choice](https://cloud.google.com/compute/docs/regions-zones#available).
+      [make a different choice](https://cloud.google.com/compute/docs/regions-zones#available).
 *   Choose the machine family / series: N2
-    * Other machine types, like N1 or C2, will also work
-    * Quantum simulation can require a high level of resources, so select
-      powerful processors, but [many choices are available.](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
+    * Quantum simulation requires powerful processors—the N2, N1, or C2 will work.
+    * But if you have your own prefences, other
+      [machine types](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
 
 ![alt_text](../images/qsimcirq_gcp/image13.png )
 
@@ -186,7 +186,7 @@ Select *Connect to local runtime*. You will see the UI:
 
 <img src="../images/qsimcirq_gcp/colab_settings.png" width="500"/>
 
-This is where you past the edited URL from the previous section. Then click *Connect*:
+Pass the edited URL from the previous section, then click *Connect*:
 
 <img src="../images/qsimcirq_gcp/colab_success.png" width="300"/>
 
