@@ -59,12 +59,13 @@ To create the VM use the steps in sequence below:
 
 *   Change the name of the VM to be something meaningful like "qsim-1".
 *   Choose a Region and Zone
-    * The values are not too important now, but for latency and availability
+    * The values are not too important now, but for latency and availability you may
       [make a different choice](https://cloud.google.com/compute/docs/regions-zones#available).
 *   Choose the machine family / series: N2
     * Quantum simulation requires powerful processors—the N2, N1, or C2 will work.
     * But if you have your own prefences, other
       [machine types](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
+      are available.
 
 ![alt_text](../images/qsimcirq_gcp/image13.png )
 
