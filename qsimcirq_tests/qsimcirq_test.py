@@ -23,15 +23,18 @@ class MainTest(unittest.TestCase):
 
   def test_cirq_too_big_gate(self):
     # Pick qubits.
-    a, b, c, d = [
+    a, b, c, d, e, f, g = [
         cirq.GridQubit(0, 0),
         cirq.GridQubit(0, 1),
+        cirq.GridQubit(0, 2),
+        cirq.GridQubit(1, 0),
         cirq.GridQubit(1, 1),
-        cirq.GridQubit(1, 0)
+        cirq.GridQubit(1, 2),
+        cirq.GridQubit(2, 0),
     ]
 
-    # Create a circuit with a gate larger than 2 qubits.
-    cirq_circuit = cirq.Circuit(cirq.IdentityGate(4).on(a, b, c, d))
+    # Create a circuit with a gate larger than 6 qubits.
+    cirq_circuit = cirq.Circuit(cirq.IdentityGate(7).on(a, b, c, d, e, f, g))
 
     qsimSim = qsimcirq.QSimSimulator()
     with self.assertRaises(NotImplementedError):
@@ -218,6 +221,148 @@ class MainTest(unittest.TestCase):
         result.state_vector(), cirq_result.state_vector())
 
 
+  def test_big_matrix_gates(self):
+    qubits = cirq.LineQubit.range(3)
+    # Toffoli gate as a matrix.
+    m = np.array([
+      [1, 0, 0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 0, 0],
+      [0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 1],
+      [0, 0, 0, 0, 0, 0, 1, 0],
+    ])
+
+    cirq_circuit = cirq.Circuit(
+      cirq.H(qubits[0]), cirq.H(qubits[1]),
+      cirq.MatrixGate(m).on(*qubits),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+
+  def test_decompose_to_matrix_gates(self):
+
+    class UnknownThreeQubitGate(cirq.ops.Gate):
+      """This gate is not recognized by qsim, and cannot be decomposed.
+      
+      qsim should attempt to convert it to a MatrixGate to resolve the issue.
+      """
+      def __init__(self):
+        pass
+
+      def _num_qubits_(self):
+        return 3
+
+      def _qid_shape_(self):
+        return (2, 2, 2)
+
+      def _unitary_(self):
+        # Toffoli gate as a matrix.
+        return np.array([
+          [1, 0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0, 0],
+          [0, 0, 1, 0, 0, 0, 0, 0],
+          [0, 0, 0, 1, 0, 0, 0, 0],
+          [0, 0, 0, 0, 1, 0, 0, 0],
+          [0, 0, 0, 0, 0, 1, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 1],
+          [0, 0, 0, 0, 0, 0, 1, 0],
+        ])
+
+    qubits = cirq.LineQubit.range(3)
+    cirq_circuit = cirq.Circuit(
+      cirq.H(qubits[0]), cirq.H(qubits[1]),
+      UnknownThreeQubitGate().on(*qubits),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+
+  def test_basic_controlled_gate(self):
+    qubits = cirq.LineQubit.range(3)
+
+    cirq_circuit = cirq.Circuit(
+      cirq.H(qubits[1]), cirq.Y(qubits[2]),
+      cirq.X(qubits[0]).controlled_by(qubits[1]),
+      cirq.CX(*qubits[1:]).controlled_by(qubits[0]),
+      cirq.H(qubits[1]).controlled_by(qubits[0], qubits[2]),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+
+  def test_controlled_matrix_gates(self):
+    qubits = cirq.LineQubit.range(4)
+    m1 = np.array([[1, 1j], [1j, 1]]) * np.sqrt(0.5)
+    m2 = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+
+    cirq_circuit = cirq.Circuit(
+      cirq.MatrixGate(m1).on(qubits[0]).controlled_by(qubits[3]),
+      cirq.MatrixGate(m2).on(*qubits[1:3]).controlled_by(qubits[0]),
+      cirq.MatrixGate(m1).on(qubits[2]).controlled_by(qubits[0], qubits[1],
+                                                      qubits[3]),
+      cirq.MatrixGate(m2).on(qubits[0], qubits[3]).controlled_by(*qubits[1:3]),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (16,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+
+  def test_control_values(self):
+    qubits = cirq.LineQubit.range(3)
+
+    cirq_circuit = cirq.Circuit(
+      # Controlled by |01) state on qubits 1 and 2
+      cirq.X(qubits[0]).controlled_by(*qubits[1:], control_values=[0, 1]),
+      # Controlled by either |0) or |1) on qubit 0 (i.e., uncontrolled)
+      cirq.X(qubits[1]).controlled_by(qubits[0], control_values=[(0, 1)]),
+      # Controlled by |10) state on qubits 0 and 1
+      cirq.X(qubits[2]).controlled_by(qubits[1], qubits[0],
+                                      control_values=[0, 1]),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (8,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
+
+    qubits = cirq.LineQid.for_qid_shape([2, 3, 2])
+    cirq_circuit = cirq.Circuit(
+      # Controlled by |12) state on qubits 0 and 1
+      # Since qsim does not support qudits (yet), this gate is omitted.
+      cirq.X(qubits[2]).controlled_by(*qubits[:2], control_values=[1, 2]),
+    )
+    qsimSim = qsimcirq.QSimSimulator()
+    with self.assertWarnsRegex(RuntimeWarning,
+                               'Gate has no valid control value'):
+      result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector()[0] == 1
+
+
   def test_decomposable_gate(self):
     qubits = cirq.LineQubit.range(4)
 
@@ -243,21 +388,21 @@ class MainTest(unittest.TestCase):
         result.state_vector(), cirq_result.state_vector())
 
 
-  def test_cirq_irreconcilable_gate(self):
-    a, b, c, d = [
-        cirq.GridQubit(0, 0),
-        cirq.GridQubit(0, 1),
-        cirq.GridQubit(1, 1),
-        cirq.GridQubit(1, 0)
-    ]
+  def test_complicated_decomposition(self):
+    qubits = cirq.LineQubit.range(4)
 
-    # The QFT gate does not decompose cleanly into the qsim gateset.
+    # The QFT gate decomposes cleanly into the qsim gateset.
     cirq_circuit = cirq.Circuit(
-        cirq.QuantumFourierTransformGate(4).on(a, b, c, d))
+        cirq.QuantumFourierTransformGate(4).on(*qubits))
 
     qsimSim = qsimcirq.QSimSimulator()
-    with self.assertRaises(ValueError):
-      qsimSim.simulate(cirq_circuit)
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert result.state_vector().shape == (16,)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, qubit_order=qubits)
+    # Decomposition may result in gates which add a global phase.
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector())
 
 
   def test_cirq_qsim_simulate_random_unitary(self):
@@ -422,6 +567,44 @@ class MainTest(unittest.TestCase):
         cirq.rz(0.4)(q1),
         cirq.rx(0.7)(q2),
         cirq.S(q3),
+      ]),
+      cirq.Moment([
+        cirq.IdentityGate(4).on(q0, q1, q2, q3),
+      ]),
+      cirq.Moment([
+        cirq.CCZPowGate(exponent=0.7, global_shift=0.3)(q2, q0, q1),
+      ]),
+      cirq.Moment([
+        cirq.CCXPowGate(exponent=0.4, global_shift=0.6)(
+          q3, q1, q0).controlled_by(q2, control_values=[0]),
+      ]),
+      cirq.Moment([
+        cirq.rx(0.3)(q0),
+        cirq.ry(0.5)(q1),
+        cirq.rz(0.7)(q2),
+        cirq.rx(0.9)(q3),
+      ]),
+      cirq.Moment([
+        cirq.TwoQubitDiagonalGate([0.1, 0.2, 0.3, 0.4])(q0, q1),
+      ]),
+      cirq.Moment([
+        cirq.ThreeQubitDiagonalGate([0.5, 0.6, 0.7, 0.8,
+                                     0.9, 1, 1.2, 1.3])(q1, q2, q3),
+      ]),
+      cirq.Moment([
+          cirq.CSwapGate()(q0, q3, q1),
+      ]),
+      cirq.Moment([
+        cirq.rz(0.6)(q0),
+        cirq.rx(0.7)(q1),
+        cirq.ry(0.8)(q2),
+        cirq.rz(0.9)(q3),
+      ]),
+      cirq.Moment([
+        cirq.TOFFOLI(q3, q2, q0),
+      ]),
+      cirq.Moment([
+        cirq.FREDKIN(q1, q3, q2),
       ]),
       cirq.Moment([
         cirq.MatrixGate(np.array([[0, -0.5 - 0.5j, -0.5 - 0.5j, 0],

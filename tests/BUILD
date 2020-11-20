@@ -303,6 +303,9 @@ cc_library(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:fuser",
+        "//lib:gate_appl",
+        "//lib:gates_cirq",
     ],
     testonly = 1,
 )

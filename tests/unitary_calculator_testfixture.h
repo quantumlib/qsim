@@ -19,6 +19,10 @@
 
 #include "gtest/gtest.h"
 
+#include "../lib/fuser.h"
+#include "../lib/gate_appl.h"
+#include "../lib/gates_cirq.h"
+
 namespace qsim {
 
 namespace unitary {
@@ -28,8 +32,8 @@ namespace {
 template <typename UnitarySpace, typename Unitary>
 void FillMatrix(UnitarySpace& us, Unitary& u, int n) {
   // Intentionally create non-unitary matrix with ascending elements.
-  for(int i =0; i < (1 << n); i++){
-    for(int j =0;j < (1 << n); j++) {
+  for(int i = 0; i < (1 << n); i++) {
+    for(int j = 0; j < (1 << n); j++) {
       us.SetEntry(u, i, j, 2 * i * (1 << n) + 2 * j,
         2 * i * (1 << n) + 2 * j + 1);
     }
@@ -37,8 +41,6 @@ void FillMatrix(UnitarySpace& us, Unitary& u, int n) {
 }
 
 }  // namespace
-
-constexpr char provider[] = "unitary_calculator_test";
 
 template <typename UC>
 void TestApplyGate1() {
@@ -218,6 +220,43 @@ void TestApplyGate2() {
         std::complex<float>(
           expected_mat_02[2 * i * 8 + 2 * j],
           expected_mat_02[2 * i * 8 + 2 * j + 1]));
+    }
+  }
+}
+
+template <typename UnitaryCalculator>
+void TestApplyFusedGate() {
+  using UnitarySpace = typename UnitaryCalculator::UnitarySpace;
+  using Unitary = typename UnitaryCalculator::Unitary;
+  using fp_type = typename UnitaryCalculator::fp_type;
+  using Gate = Cirq::GateCirq<fp_type>;
+
+  unsigned num_qubits = 1;
+
+  UnitaryCalculator uc(num_qubits, 1);
+  UnitarySpace us(num_qubits, 1);
+
+  Unitary u = us.CreateUnitary();
+  us.SetIdentity(u);
+
+  std::vector<Gate> gates = {Cirq::H<fp_type>::Create(0, 0),
+                             Cirq::H<fp_type>::Create(1, 0)};
+
+  GateFused<Gate> fgate{Cirq::kH, 0, {0}, &gates[0], {&gates[0], &gates[1]}};
+
+  ApplyFusedGate(uc, fgate, u);
+
+  unsigned size = 1 << num_qubits;
+  for (unsigned i = 0; i < size; ++i) {
+    for (unsigned j = 0; j < size; ++j) {
+      auto a = us.GetEntry(u, i, j);
+      if (i == j) {
+        EXPECT_NEAR(std::real(a), 1, 1e-6);
+      } else {
+        EXPECT_NEAR(std::real(a), 0, 1e-6);
+      }
+
+      EXPECT_NEAR(std::imag(a), 0, 1e-6);
     }
   }
 }

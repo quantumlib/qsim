@@ -31,13 +31,17 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::map<std::string, float>& params,
               qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
 
-void add_matrix1(const unsigned time, const std::vector<unsigned>& qubits,
-                 const qsim::Cirq::Matrix1q<float>& matrix,
-                 qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+void add_diagonal_gate(const unsigned time, const std::vector<unsigned>& qubits,
+                       const std::vector<float>& angles,
+                       qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
 
-void add_matrix2(const unsigned time, const std::vector<unsigned>& qubits,
-                 const qsim::Cirq::Matrix2q<float>& matrix,
-                 qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+void add_matrix_gate(const unsigned time, const std::vector<unsigned>& qubits,
+                     const std::vector<float>& matrix,
+                     qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+
+void control_last_gate(const std::vector<unsigned>& qubits,
+                       const std::vector<unsigned>& values,
+                       qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
@@ -66,8 +70,9 @@ PYBIND11_MODULE(qsim, m) {
     .def_readwrite("gates", &Circuit::gates);
 
   py::enum_<GateKind>(m, "GateKind")
-    .value("kI", GateKind::kI)
+    .value("kI1", GateKind::kI1)
     .value("kI2", GateKind::kI2)
+    .value("kI", GateKind::kI)
     .value("kXPowGate", GateKind::kXPowGate)
     .value("kYPowGate", GateKind::kYPowGate)
     .value("kZPowGate", GateKind::kZPowGate)
@@ -101,16 +106,24 @@ PYBIND11_MODULE(qsim, m) {
     .value("kPhasedISwapPowGate", GateKind::kPhasedISwapPowGate)
     .value("kgivens", GateKind::kgivens)
     .value("kFSimGate", GateKind::kFSimGate)
-    .value("kMatrixGate1", GateKind::kMatrixGate1)
-    .value("kMatrixGate2", GateKind::kMatrixGate2)
+    .value("kTwoQubitDiagonalGate", GateKind::kTwoQubitDiagonalGate)
+    .value("kThreeQubitDiagonalGate", GateKind::kThreeQubitDiagonalGate)
+    .value("kCCZPowGate", GateKind::kCCZPowGate)
+    .value("kCCXPowGate", GateKind::kCCXPowGate)
+    .value("kCSwapGate", GateKind::kCSwapGate)
+    .value("kCCZ", GateKind::kCCZ)
+    .value("kCCX", GateKind::kCCX)
+    .value("kMatrixGate", GateKind::kMatrixGate)
     .value("kMeasurement", GateKind::kMeasurement)
     .export_values();
 
   m.def("add_gate", &add_gate, "Adds a gate to the given circuit.");
-  m.def("add_matrix1", &add_matrix1,
-        "Adds a one-qubit matrix-defined gate to the given circuit.");
-  m.def("add_matrix2", &add_matrix2,
-        "Adds a two-qubit matrix-defined gate to the given circuit.");
+  m.def("add_diagonal_gate", &add_diagonal_gate,
+        "Adds a two- or three-qubit diagonal gate to the given circuit.");
+  m.def("add_matrix_gate", &add_matrix_gate,
+        "Adds a matrix-defined gate to the given circuit.");
+  m.def("control_last_gate", &control_last_gate,
+        "Applies controls to the final gate of a circuit.");
 }
 
 #endif

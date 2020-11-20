@@ -10,6 +10,8 @@ upper_tabs:
     other:
     - name: "Guide & Tutorials"
       contents:
+      - title: "qsim and qsimh"
+        path: /qsim/overview
       - title: "Usage"
         path: /qsim/usage
       - title: "Installing qsimcirq"
@@ -27,11 +29,15 @@ upper_tabs:
       - title: "Docker"
         path: /qsim/docker
       - title: "Release process"
-        path: /qsim/release-qsimcirq
+        path: /qsim/release
 
       - heading: "Tutorials"
       - title: "Get started with qsimcirq"
         path: /qsim/tutorials/qsimcirq
+      - title: "Quantum simulation on GCP with Cirq and qsim"
+        path: /qsim/tutorials/qsimcirq_gcp
+      - title: "Simulate a large quantum circuit"
+        path: /qsim/tutorials/q32d14
 
     - name: "Python Reference"
       skip_translation: true

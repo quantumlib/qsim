@@ -78,12 +78,15 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::map<std::string, float>& params,
               Circuit<Cirq::GateCirq<float>>* circuit) {
   switch (gate_kind) {
-    case Cirq::kI:
-      circuit->gates.push_back(Cirq::I<float>::Create(time, qubits[0]));
+    case Cirq::kI1:
+      circuit->gates.push_back(Cirq::I1<float>::Create(time, qubits[0]));
       break;
     case Cirq::kI2:
       circuit->gates.push_back(
         Cirq::I2<float>::Create(time, qubits[0], qubits[1]));
+      break;
+    case Cirq::kI:
+      circuit->gates.push_back(Cirq::I<float>::Create(time, qubits));
       break;
     case Cirq::kXPowGate:
       circuit->gates.push_back(
@@ -240,6 +243,30 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
         Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
                                       params.at("theta"), params.at("phi")));
       break;
+    case Cirq::kCCZPowGate:
+      circuit->gates.push_back(
+        Cirq::CCZPowGate<float>::Create(time, qubits[0], qubits[1], qubits[2],
+                                        params.at("exponent"),
+                                        params.at("global_shift")));
+      break;
+    case Cirq::kCCXPowGate:
+      circuit->gates.push_back(
+        Cirq::CCXPowGate<float>::Create(time, qubits[0], qubits[1], qubits[2],
+                                        params.at("exponent"),
+                                        params.at("global_shift")));
+      break;
+    case Cirq::kCSwapGate:
+      circuit->gates.push_back(
+        Cirq::CSwapGate<float>::Create(time, qubits[0], qubits[1], qubits[2]));
+      break;
+    case Cirq::kCCZ:
+      circuit->gates.push_back(
+        Cirq::CCZ<float>::Create(time, qubits[0], qubits[1], qubits[2]));
+      break;
+    case Cirq::kCCX:
+      circuit->gates.push_back(
+        Cirq::CCX<float>::Create(time, qubits[0], qubits[1], qubits[2]));
+      break;
     case Cirq::kMeasurement: {
       std::vector<unsigned> qubits_ = qubits;
       circuit->gates.push_back(
@@ -253,18 +280,55 @@ void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
   }
 }
 
-// The Matrix(1|2)q objects are typedefs for Python-compatible objects.
-void add_matrix1(const unsigned time, const std::vector<unsigned>& qubits,
-                 const qsim::Cirq::Matrix1q<float>& matrix,
-                 Circuit<Cirq::GateCirq<float>>* circuit) {
-  circuit->gates.push_back(
-    Cirq::MatrixGate1<float>::Create(time, qubits[0], matrix));
+void add_diagonal_gate(const unsigned time, const std::vector<unsigned>& qubits,
+                       const std::vector<float>& angles,
+                       Circuit<Cirq::GateCirq<float>>* circuit) {
+  switch (qubits.size()) {
+  case 2:
+    circuit->gates.push_back(
+        Cirq::TwoQubitDiagonalGate<float>::Create(time, qubits[0], qubits[1],
+                                                  angles));
+    break;
+  case 3:
+    circuit->gates.push_back(
+        Cirq::ThreeQubitDiagonalGate<float>::Create(time, qubits[0], qubits[1],
+                                                    qubits[2], angles));
+    break;
+  default:
+    throw std::invalid_argument(
+        "Only 2- or 3-qubit diagonal gates sre supported.");
+  }
 }
-void add_matrix2(const unsigned time, const std::vector<unsigned>& qubits,
-                 const qsim::Cirq::Matrix2q<float>& matrix,
-                 Circuit<Cirq::GateCirq<float>>* circuit) {
-  circuit->gates.push_back(
-    Cirq::MatrixGate2<float>::Create(time, qubits[0], qubits[1], matrix));
+
+void add_matrix_gate(const unsigned time, const std::vector<unsigned>& qubits,
+                     const std::vector<float>& matrix,
+                     Circuit<Cirq::GateCirq<float>>* circuit) {
+  switch (qubits.size()) {
+  case 1:
+    circuit->gates.push_back(
+        Cirq::MatrixGate1<float>::Create(time, qubits[0], matrix));
+    break;
+  case 2:
+    circuit->gates.push_back(
+        Cirq::MatrixGate2<float>::Create(time, qubits[0], qubits[1], matrix));
+    break;
+  case 3:
+  case 4:
+  case 5:
+  case 6:
+    circuit->gates.push_back(
+        Cirq::MatrixGate<float>::Create(time, qubits, matrix));
+    break;
+  default:
+    throw std::invalid_argument(
+        "Only up to 6-qubit matrix gates sre supported.");
+  }
+}
+
+void control_last_gate(const std::vector<unsigned>& qubits,
+                       const std::vector<unsigned>& values,
+                       Circuit<Cirq::GateCirq<float>>* circuit) {
+  MakeControlledGate(qubits, values, circuit->gates.back());
 }
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {

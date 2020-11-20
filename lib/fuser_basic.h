@@ -32,25 +32,34 @@ struct BasicGateFuser final {
   using GateFused = qsim::GateFused<Gate>;
 
   /**
+   * User-specified parameters for gate fusion.
+   * BasicGateFuser does not use any parameters.
+   */
+  struct Parameter {};
+
+  /**
    * Stores ordered sets of gates, each acting on two qubits, that can be
    * applied together. Note that gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * To respect specific time boundaries while fusing gates, use the other
    * version of this method below.
+   * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
    * @param gates The gates to be fused.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
-  static std::vector<GateFused> FuseGates(
-      unsigned num_qubits, const std::vector<Gate>& gates) {
-    return FuseGates(num_qubits, gates.cbegin(), gates.cend(), {});
+  static std::vector<GateFused> FuseGates(const Parameter& param,
+                                          unsigned num_qubits,
+                                          const std::vector<Gate>& gates) {
+    return FuseGates(param, num_qubits, gates.cbegin(), gates.cend(), {});
   }
 
   /**
    * Stores ordered sets of gates, each acting on two qubits, that can be
    * applied together. Note that gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
+   * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
    * @param gates The gates to be fused. Gate times should be ordered.
    * @param times_to_split_at Ordered list of time steps at which to separate
@@ -60,10 +69,11 @@ struct BasicGateFuser final {
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
+      const Parameter& param,
       unsigned num_qubits, const std::vector<Gate>& gates,
       const std::vector<unsigned>& times_to_split_at) {
-    return
-        FuseGates(num_qubits, gates.cbegin(), gates.cend(), times_to_split_at);
+    return FuseGates(param, num_qubits, gates.cbegin(), gates.cend(),
+                     times_to_split_at);
   }
 
   /**
@@ -72,6 +82,7 @@ struct BasicGateFuser final {
    * multiplied together until ApplyFusedGate is called on the output.
    * To respect specific time boundaries while fusing gates, use the other
    * version of this method below.
+   * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates in.
    *   Gate times should be ordered.
@@ -79,16 +90,17 @@ struct BasicGateFuser final {
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
-      unsigned num_qubits,
+      const Parameter& param, unsigned num_qubits,
       typename std::vector<Gate>::const_iterator gfirst,
       typename std::vector<Gate>::const_iterator glast) {
-    return FuseGates(num_qubits, gfirst, glast, {});
+    return FuseGates(param, num_qubits, gfirst, glast, {});
   }
 
   /**
    * Stores ordered sets of gates, each acting on two qubits, that can be
    * applied together. Note that gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
+   * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates in.
    *   Gate times should be ordered.
@@ -99,7 +111,7 @@ struct BasicGateFuser final {
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
-      unsigned num_qubits,
+      const Parameter& param, unsigned num_qubits,
       typename std::vector<Gate>::const_iterator gfirst,
       typename std::vector<Gate>::const_iterator glast,
       const std::vector<unsigned>& times_to_split_at) {
@@ -161,7 +173,7 @@ struct BasicGateFuser final {
           }
 
           mea_gates_at_time.push_back(&gate);
-        } else if (gate.controlled_by.size() > 0) {
+        } else if (gate.controlled_by.size() > 0 || gate.qubits.size() > 2) {
           for (auto q : gate.qubits) {
             gates_lat[q].push_back(&gate);
           }
@@ -189,8 +201,9 @@ struct BasicGateFuser final {
       for (auto pgate : gates_seq) {
         if (pgate->kind == gate::kMeasurement) {
           delayed_measurement_gate = pgate;
-        } else if (pgate->controlled_by.size() > 0) {
-          // Controlled gate.
+        } else if (pgate->qubits.size() > 2
+                   || pgate->controlled_by.size() > 0) {
+          // Multi-qubit or controlled gate.
 
           for (auto q : pgate->qubits) {
             unsigned l = last[q];
@@ -326,7 +339,7 @@ struct BasicGateFuser final {
   static bool NextGate(unsigned k1, const std::vector<const Gate*>& wl1,
                        unsigned k2, const std::vector<const Gate*>& wl2) {
     return k1 < wl1.size() && k2 < wl2.size() && wl1[k1] == wl2[k2]
-        && wl1[k1]->controlled_by.size() == 0;
+        && wl1[k1]->qubits.size() < 3 && wl1[k1]->controlled_by.size() == 0;
   }
 
   template <typename GatesLat>
