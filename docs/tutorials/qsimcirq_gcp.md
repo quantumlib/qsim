@@ -53,7 +53,7 @@ Then click on *Create* for a new VM instance:
 
 ![alt_text](../images/qsimcirq_gcp/image7.png )
 
-### Build a Container Optimized VM
+### Build a Container Optimized VM with container deployed
 
 To create the VM use the steps in sequence below:
 
@@ -72,14 +72,17 @@ To create the VM use the steps in sequence below:
 *   Choose the [Machine Type](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you): n2-standard-16
     * 16 CPUs
     * 64GB memory
-*   Choose the Boot Disk image:[ Container-Optimized OS](https://cloud.google.com/container-optimized-os/docs/concepts/features-and-benefits)
     * Leave the remaining as defaults.
 
 ![alt_text](../images/qsimcirq_gcp/image10.png )
+> Select `Deploy a container image to this VM instance`.
 
-Finally, enable HTTP access and click *Create*.
-
-![alt_text](../images/qsimcirq_gcp/image8.png )
+For the container image enter:
+```
+gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
+```
+![alt_text](../images/qsimcirq_gcp/container.png )
+> This may take a few minutes to complete, even after the VM is created, the container will take some time to complete.
 
 
 ## Preparing your local system to connect to Colab
@@ -145,32 +148,7 @@ You should now see the command line prompt from your VM:
 wellhello@qsim-1 ~ $ 
 ```
 
-### Run the Jupyter / qsim container on your VM 
-
-At the command prompt you can now start a Docker container with all the required
-code to run simulations. Start the container:
-
-```
-$ docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
-```
-
-You should see several lines of output ending with lines like below. (If you get
-an error about `permission denied` you may need to run docker with `sudo` as
-[described here](https://docs.docker.com/engine/reference/run/#general-form)).
-
-
-```
-To access the notebook, open this file in a browser:
-    file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
-Or copy and paste one of these URLs:
-    http://e1f7a7cca9fa:8888/?token=aa16e1b6d3f51c58928037d34cc6854dac47347dd4c0eae5
-    or http://127.0.0.1:8888/?token=aa16e1b6d3f51c58928037d34cc6854dac47347dd4c0eae5
-```
-
-Copy the last URL in the output. Edit the URL to replace `127.0.0.1` with
-`localhost`. Save this URL for the next step. This URL points to your local
-runtime, running as a Docker container on your VM.
-
+The container port is now forwarded to your local machine.
 
 ## Connect Colab to your local runtime
 
@@ -185,9 +163,9 @@ get the UI:
 
 Select *Connect to local runtime*. You will see the UI:
 
-<img src="../images/qsimcirq_gcp/colab_settings.png" width="500"/>
+<img src="../images/qsimcirq_gcp/connection.png" width="500"/>
 
-Pass the edited URL from the previous section, then click *Connect*:
+Type in the URL `http://localhost:8888/` , then click *Connect*:
 
 <img src="../images/qsimcirq_gcp/colab_success.png" width="300"/>
 
@@ -213,7 +191,7 @@ In the previous step, you copied a URL like below. It is easy to just copy that
 URL and paste it directly into a browser running on your local machine.
 
 ```
-http://127.0.0.1:8888/?token=7191178ae9aa4ebe1698b07bb67dea1d289cfd0e0b960373
+http://127.0.0.1:8888/
 ```
 
 In the browser you should now see the Jupyter UI:
@@ -229,11 +207,6 @@ Click on the `qsimcirq.ipynb` file. This will load the notebook.
 You can now run these cells as you would in any notebook.
 
 ![alt_text](../images/qsimcirq_gcp/image1.png)
-
-If you choose to modify the notebook, you can save it on the *qsim-1* VM from *File* -> *Save As*, and saving to `/homedir/mynotebook.ipynb`.  This will save in your home directory on your VM. If you intend to destroy the VM after this tutorial, either download the notebooks from the VM or save directly from your browser.
-
-![alt_text](../images/qsimcirq_gcp/image4.png)
-
 
 ## Run interactively
 
@@ -311,24 +284,6 @@ output vector: (0.5+0.5j)|0⟩ + (0.5-0.5j)|1⟩
 
 You have successfully simulated a quantum circuit on Google Cloud Platform using
 a Singularity container.
-
-### Running your own script
-
-If you want to run a Python script, you can locate a file in the home directory
-on your VM, then run something like the following in the container shell:
-
-```
-$ python3 /homedir/myscript.py
-```
-
-### Exit the container
-
-Exit the container by typing ctrl-d twice. You will see the output like:
-
-```
-[root@79804d33f250 /]# exit
-```
-
 
 ## Clean up
 
