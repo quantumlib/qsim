@@ -55,6 +55,21 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "fuser_mqubit_test",
+    srcs = ["fuser_mqubit_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:fuser_mqubit",
+        "//lib:gate",
+        "//lib:io",
+    ],
+)
+
 cc_library(
     name = "gates_cirq_testfixture",
     hdrs = ["gates_cirq_testfixture.h"],
