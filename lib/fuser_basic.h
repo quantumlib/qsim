@@ -35,7 +35,9 @@ struct BasicGateFuser final {
    * User-specified parameters for gate fusion.
    * BasicGateFuser does not use any parameters.
    */
-  struct Parameter {};
+  struct Parameter {
+    unsigned verbosity = 0;
+  };
 
   /**
    * Stores ordered sets of gates, each acting on two qubits, that can be

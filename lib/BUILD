@@ -11,8 +11,9 @@ cc_library(
         "circuit_qsim_parser.h",
         "circuit.h",
         "formux.h",
-        "fuser_basic.h",
         "fuser.h",
+        "fuser_basic.h",
+        "fuser_mqubit.h",
         "gate.h",
         "gate_appl.h",
         "gates_cirq.h",
@@ -52,6 +53,7 @@ cc_library(
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
+        "fuser_mqubit.h",
         "gate.h",
         "gate_appl.h",
         "gates_qsim.h",
@@ -88,6 +90,7 @@ cc_library(
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
+        "fuser_mqubit.h",
         "gate.h",
         "gate_appl.h",
         "gates_qsim.h",
@@ -235,6 +238,15 @@ cc_library(
 cc_library(
     name = "fuser_basic",
     hdrs = ["fuser_basic.h"],
+    deps = [
+        ":fuser",
+        ":gate",
+    ],
+)
+
+cc_library(
+    name = "fuser_mqubit",
+    hdrs = ["fuser_mqubit.h"],
     deps = [
         ":fuser",
         ":gate",
