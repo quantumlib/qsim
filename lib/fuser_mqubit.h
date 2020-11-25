@@ -74,9 +74,13 @@ class MultiQubitGateFuser {
     std::vector<Link> links_;
   };
 
+  struct GateF;
+
+  using LinkManager = LinkManagerT<GateF*>;
+  using Link = typename LinkManager::Link;
+
   // Intermediate representation of a fused gate.
   struct GateF {
-    using Link = typename LinkManagerT<GateF*>::Link;
     const Gate* parent;
     std::vector<unsigned> qubits;
     std::vector<const Gate*> gates; // Gates that get fused to this gate.
@@ -85,8 +89,19 @@ class MultiQubitGateFuser {
     unsigned visited;
   };
 
-  using LinkManager = LinkManagerT<GateF*>;
-  using Link = typename LinkManager::Link;
+  // Possible values for visited in GateF.
+  // Note that MakeGateSequence assignes values from kSecond to the number of
+  // gates in the sequence plus one, see below.
+  enum Visited {
+    kZero = 0,             // Start value for "normal" gates.
+    kFirst = 1,            // Valut after the first pass for partially fused
+                           // "normal" gates.
+    kSecond = 2,           // Start value to assign values in MakeGateSequence.
+    kCompress = 99999997,  // Used to compress links.
+    kMeaCnt = 99999998,    // Start value for controlled or measurement gates.
+    kFinal = 99999999,     // Value after the second pass for fused "normal"
+                           // gates or for controlled and measurement gates.
+  };
 
   struct Stat {
     unsigned num_mea_gates = 0;
@@ -124,7 +139,8 @@ class MultiQubitGateFuser {
   struct Parameter {
     /**
      * Maximum number of qubits in a fused gate. It can take values from 2 to
-     * 6 (0 and 1 are equivalent to 2). It is not recommended to use 5 or 6.
+     * 6 (0 and 1 are equivalent to 2). It is not recommended to use 5 or 6 as
+     * that might degrade performance for not very fast machines.
      */
     unsigned max_fused_size = 2;
     unsigned verbosity = 0;
@@ -230,6 +246,16 @@ class MultiQubitGateFuser {
     gates_seq.reserve(num_gates);
     gates_lat.reserve(num_qubits);
 
+    Scratch scratch;
+
+    scratch.data.reserve(1024);
+    scratch.prev1.reserve(32);
+    scratch.prev2.reserve(32);
+    scratch.next1.reserve(32);
+    scratch.next2.reserve(32);
+    scratch.longest_seq.reserve(8);
+    scratch.stack.reserve(8);
+
     Stat stat;
     stat.num_gates.resize(num_qubits + 1, 0);
 
@@ -276,7 +302,7 @@ class MultiQubitGateFuser {
 
           if (last_mea_gate == nullptr
               || last_mea_gate->parent->time != gate.time) {
-            gates_seq.push_back({&gate, {}, {}, {}, 0, 997});
+            gates_seq.push_back({&gate, {}, {}, {}, 0, kMeaCnt});
             last_mea_gate = &gates_seq.back();
 
             last_mea_gate->qubits.reserve(num_qubits);
@@ -296,7 +322,7 @@ class MultiQubitGateFuser {
 
           ++stat.num_mea_gates;
         } else {
-          gates_seq.push_back({&gate, {}, {}, {}, 0, 0});
+          gates_seq.push_back({&gate, {}, {}, {}, 0, kZero});
           auto& fgate = gates_seq.back();
 
           if (gate.controlled_by.size() == 0) {
@@ -327,7 +353,7 @@ class MultiQubitGateFuser {
             fgate.qubits.reserve(gate.qubits.size());
             fgate.links.reserve(size);
 
-            fgate.visited = 997;
+            fgate.visited = kMeaCnt;
             fgate.gates.push_back(&gate);
 
             ++stat.num_controlled_gates;
@@ -353,7 +379,7 @@ class MultiQubitGateFuser {
 
       if (max_fused_size > 2) {
         FuseGateSequences(
-            max_fused_size, num_qubits, gates_seq, stat, fused_gates);
+            max_fused_size, num_qubits, scratch, gates_seq, stat, fused_gates);
       } else {
         for (auto& fgate : gates_seq) {
           if (fgate.gates.size() > 0) {
@@ -362,7 +388,7 @@ class MultiQubitGateFuser {
                                    std::move(fgate.qubits), fgate.parent,
                                    std::move(fgate.gates)});
 
-            if (fgate.visited != 997) {
+            if (fgate.visited != kMeaCnt) {
               ++stat.num_fused_gates;
             }
           }
@@ -417,11 +443,11 @@ class MultiQubitGateFuser {
       std::size_t pos = 0;
 
       for (auto fgate : fgates[max_gate_size - i]) {
-        if (fgate->visited > 0) continue;
+        if (fgate->visited > kZero) continue;
 
         fgates[max_gate_size - i][pos++] = fgate;
 
-        fgate->visited = 1;
+        fgate->visited = kFirst;
 
         FusePrev(0, *fgate);
         fgate->gates.push_back(fgate->parent);
@@ -432,43 +458,20 @@ class MultiQubitGateFuser {
     }
   }
 
-  // Try to fuse gate sequences as follows. Gate time goes from left to right.
+  // Try to fuse gate sequences as follows. Gate time goes from bottom to top.
+  // Gates are fused either from left to right or from right to left.
   //
-  // max_fused_size = 3:
-  //  |
-  //   |
+  // max_fused_size = 3: _-  or  -_
   //
-  // max_fused_size = 4:
-  //  |
-  //   |
-  //  |
+  // max_fused_size = 4: _-_
   //
-  // max_fused_size = 5:
-  //  |
-  //   |
-  //  |
-  //   |
+  // max_fused_size = 5: _-_-  or  -_-_
   //
-  // max_fused_size = 6:
-  //  |
-  //   |
-  //  |
-  //   |
-  //  |
-  //
-  static void FuseGateSequences(unsigned max_fused_size, unsigned num_qubits,
+  // max_fused_size = 6: _-_-_
+  static void FuseGateSequences(unsigned max_fused_size,
+                                unsigned num_qubits, Scratch& scratch,
                                 std::vector<GateF>& gates_seq, Stat& stat,
                                 std::vector<GateFused>& fused_gates) {
-    Scratch scratch;
-
-    scratch.data.reserve(1024);
-    scratch.prev1.reserve(32);
-    scratch.prev2.reserve(32);
-    scratch.next1.reserve(32);
-    scratch.next2.reserve(32);
-    scratch.longest_seq.reserve(8);
-    scratch.stack.reserve(8);
-
     unsigned prev_time = 0;
 
     std::vector<GateF*> orphaned_gates;
@@ -484,15 +487,15 @@ class MultiQubitGateFuser {
         prev_time = fgate.parent->time;
       }
 
-      if (fgate.visited == 999 || fgate.gates.size() == 0) continue;
+      if (fgate.visited == kFinal || fgate.gates.size() == 0) continue;
 
-      if (fgate.visited == 997 || fgate.qubits.size() >= max_fused_size
+      if (fgate.visited == kMeaCnt || fgate.qubits.size() >= max_fused_size
           || fgate.parent->unfusible) {
-        if (fgate.visited != 997) {
+        if (fgate.visited != kMeaCnt) {
            ++stat.num_fused_gates;
         }
 
-        fgate.visited = 999;
+        fgate.visited = kFinal;
 
         fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
                                std::move(fgate.qubits), fgate.parent,
@@ -541,21 +544,21 @@ class MultiQubitGateFuser {
     for (std::size_t i = 0; i < orphaned_gates.size(); ++i) {
       auto ogate1 = orphaned_gates[i];
 
-      if (ogate1->visited == 999) continue;
+      if (ogate1->visited == kFinal) continue;
 
-      ogate1->visited = 999;
+      ogate1->visited = kFinal;
 
       for (std::size_t j = i + 1; j < orphaned_gates.size(); ++j) {
         auto ogate2 = orphaned_gates[j];
 
-        if (ogate2->visited == 999) continue;
+        if (ogate2->visited == kFinal) continue;
 
         ++count;
 
         unsigned cur_size = ogate1->qubits.size() + ogate2->qubits.size();
 
         if (cur_size <= max_fused_size) {
-          ogate2->visited = 999;
+          ogate2->visited = kFinal;
 
           for (auto q : ogate2->qubits) {
             ogate1->qubits.push_back(q);
@@ -590,21 +593,21 @@ class MultiQubitGateFuser {
 
   static void MakeGateSequence(
       unsigned max_fused_size, Scratch& scratch, GateF& fgate) {
-    unsigned level = 2 + scratch.count;
+    unsigned level = kSecond + scratch.count;
 
     FindLongestGateSequence(max_fused_size, level, scratch, fgate);
 
     auto longest_seq = scratch.longest_seq;
 
     if (longest_seq.size() == 1 && scratch.count == 0) {
-      fgate.visited = 1;
+      fgate.visited = kFirst;
       return;
     }
 
     ++scratch.count;
 
     for (auto p : longest_seq) {
-      p->gate->visited = 900;
+      p->gate->visited = kCompress;
 
       for (auto q : p->qubits) {
         fgate.qubits.push_back(q);
@@ -618,11 +621,11 @@ class MultiQubitGateFuser {
 
     // Compress links.
     for (auto& link : fgate.links) {
-      while (link->prev != nullptr && link->prev->val->visited == 900) {
+      while (link->prev != nullptr && link->prev->val->visited == kCompress) {
         link = link->prev;
       }
 
-      while (link->next != nullptr && link->next->val->visited == 900) {
+      while (link->next != nullptr && link->next->val->visited == kCompress) {
         LinkManager::Delete(link->next);
       }
     }
@@ -650,7 +653,7 @@ class MultiQubitGateFuser {
     }
 
     for (auto p : longest_seq) {
-      p->gate->visited = 999;
+      p->gate->visited = kFinal;
     }
 
     FuseNext(1, fgate);
@@ -675,7 +678,7 @@ class MultiQubitGateFuser {
 
       auto pgate = link->prev->val;
 
-      if (pgate->visited == 1) {
+      if (pgate->visited == kFirst) {
         MakeGateSequence(max_fused_size, scratch, *pgate);
       }
     }
@@ -717,14 +720,7 @@ class MultiQubitGateFuser {
         return;
       }
 
-      n1->gate->visited = level;
-      cur_size = cur_size2;
-      scratch.stack.push_back(n1);
-
-      if (cur_size > max_size) {
-        scratch.longest_seq = scratch.stack;
-        max_size = cur_size;
-      }
+      Push(level, cur_size2, cur_size, max_size, scratch, n1);
 
       for (auto p1 : scratch.prev1) {
         unsigned cur_size2 = cur_size + p1->qubits.size();
@@ -737,14 +733,7 @@ class MultiQubitGateFuser {
           return;
         }
 
-        p1->gate->visited = level;
-        cur_size = cur_size2;
-        scratch.stack.push_back(p1);
-
-        if (cur_size > max_size) {
-          scratch.longest_seq = scratch.stack;
-          max_size = cur_size;
-        }
+        Push(level, cur_size2, cur_size, max_size, scratch, p1);
 
         GetNextAvailableGates(max_fused_size, cur_size, *p1->gate, &fgate,
                               scratch.data, scratch.next2);
@@ -765,14 +754,7 @@ class MultiQubitGateFuser {
             return;
           }
 
-          n2->gate->visited = level;
-          cur_size = cur_size2;
-          scratch.stack.push_back(n2);
-
-          if (cur_size > max_size) {
-            scratch.longest_seq = scratch.stack;
-            max_size = cur_size;
-          }
+          Push(level, cur_size2, cur_size, max_size, scratch, n2);
 
           for (auto p2 : scratch.prev2) {
             unsigned cur_size2 = cur_size + p2->qubits.size();
@@ -793,20 +775,32 @@ class MultiQubitGateFuser {
             }
           }
 
-          n2->gate->visited = 1;
-          cur_size -= n2->qubits.size();
-          scratch.stack.pop_back();
+          Pop(cur_size, scratch, n2);
         }
 
-        p1->gate->visited = 1;
-        cur_size -= p1->qubits.size();
-        scratch.stack.pop_back();
+        Pop(cur_size, scratch, p1);
       }
 
-      n1->gate->visited = 1;
-      cur_size -= n1->qubits.size();
-      scratch.stack.pop_back();
+      Pop(cur_size, scratch, n1);
     }
+  }
+
+  static void Push(unsigned level, unsigned cur_size2, unsigned& cur_size,
+                   unsigned& max_size, Scratch& scratch, GateA* agate) {
+    agate->gate->visited = level;
+    cur_size = cur_size2;
+    scratch.stack.push_back(agate);
+
+    if (cur_size > max_size) {
+      scratch.longest_seq = scratch.stack;
+      max_size = cur_size;
+    }
+  }
+
+  static void Pop(unsigned& cur_size, Scratch& scratch, GateA* agate) {
+    agate->gate->visited = kFirst;
+    cur_size -= agate->qubits.size();
+    scratch.stack.pop_back();
   }
 
   static void GetNextAvailableGates(unsigned max_fused_size, unsigned cur_size,
@@ -820,7 +814,7 @@ class MultiQubitGateFuser {
 
       auto ngate = link->next->val;
 
-      if (ngate->visited > 1 || ngate->parent->unfusible) continue;
+      if (ngate->visited > kFirst || ngate->parent->unfusible) continue;
 
       GateA next = {ngate, {}, {}};
       next.qubits.reserve(8);
@@ -847,9 +841,9 @@ class MultiQubitGateFuser {
 
       auto pgate = link->prev->val;
 
-      if (pgate->visited > 997 || pgate->visited == level) continue;
+      if (pgate->visited == kFinal || pgate->visited == level) continue;
 
-      if (pgate->visited > 1 || pgate->parent->unfusible) {
+      if (pgate->visited > kFirst || pgate->parent->unfusible) {
         prev_gates.resize(0);
         return false;
       }
@@ -865,7 +859,7 @@ class MultiQubitGateFuser {
       for (auto link : pgate->links) {
         if (link->prev == nullptr) continue;
 
-        if (link->prev->val->visited <= 997) {
+        if (link->prev->val->visited <= kMeaCnt) {
           all_prev_visited = false;
           break;
         }
@@ -892,72 +886,28 @@ class MultiQubitGateFuser {
     for (std::size_t i = 0; i < fgate2.qubits.size(); ++i) {
       unsigned q2 = fgate2.qubits[i];
 
-      bool have_added_qubits = true;
+      if (std::find(fgate0.qubits.begin(), fgate0.qubits.end(), q2)
+          != fgate0.qubits.end()) continue;
 
-      for (auto q0 : fgate0.qubits) {
-        if (q0 == q2) {
-          have_added_qubits = false;
-          break;
-        }
-      }
+      if (fgate1 != nullptr
+          && std::find(fgate1->qubits.begin(), fgate1->qubits.end(), q2)
+            != fgate1->qubits.end()) continue;
 
-      if (have_added_qubits && fgate1 != nullptr) {
-        for (auto q1 : fgate1->qubits) {
-          if (q1 == q2) {
-            have_added_qubits = false;
-            break;
-          }
-        }
-      }
-
-      if (have_added_qubits) {
-        added.qubits.push_back(q2);
-        added.links.push_back(fgate2.links[i]);
-      }
+      added.qubits.push_back(q2);
+      added.links.push_back(fgate2.links[i]);
     }
   }
 
   // Fuse smaller gates with fgate back in gate time.
-  static void FusePrev(unsigned level, GateF& fgate) {
+  static void FusePrev(unsigned pass, GateF& fgate) {
     std::vector<const Gate*> gates;
     gates.reserve(fgate.gates.capacity());
 
-    uint64_t bad_mask = 0;
-    auto links = fgate.links;
+    auto neighbor = [](const Link* link) -> const Link* {
+      return link->prev;
+    };
 
-    bool may_have_gates_to_fuse = true;
-
-    while (may_have_gates_to_fuse) {
-      may_have_gates_to_fuse = false;
-
-      std::sort(links.begin(), links.end(),
-                [](const Link* l, const Link* r) -> bool {
-                  auto lp = l->prev;
-                  auto rp = r->prev;
-
-                  if (lp != nullptr && rp != nullptr) {
-                    return lp->val->parent->time > rp->val->parent->time;
-                  } else {
-                    return lp != nullptr || rp == nullptr;
-                  }
-                });
-
-      for (auto link : links) {
-        if (link->prev == nullptr) continue;
-
-        auto p = link->prev->val;
-
-        if (!QubitsAreIn(fgate.mask, p->mask) || (p->mask & bad_mask) != 0
-            || p->visited > level || p->parent->unfusible) {
-          bad_mask |= p->mask;
-        } else {
-          AddGates(level, *p, gates);
-
-          may_have_gates_to_fuse = true;
-          break;
-        }
-      }
-    }
+    FusePrevOrNext<std::greater<unsigned>>(pass, neighbor, fgate, gates);
 
     for (auto it = gates.rbegin(); it != gates.rend(); ++it) {
       fgate.gates.push_back(*it);
@@ -965,7 +915,17 @@ class MultiQubitGateFuser {
   }
 
   // Fuse smaller gates with fgate forward in gate time.
-  static void FuseNext(unsigned level, GateF& fgate) {
+  static void FuseNext(unsigned pass, GateF& fgate) {
+    auto neighbor = [](const Link* link) -> const Link* {
+      return link->next;
+    };
+
+    FusePrevOrNext<std::less<unsigned>>(pass, neighbor, fgate, fgate.gates);
+  }
+
+  template <typename R, typename Neighbor>
+  static void FusePrevOrNext(unsigned pass, Neighbor neighb, GateF& fgate,
+                             std::vector<const Gate*>& gates) {
     uint64_t bad_mask = 0;
     auto links = fgate.links;
 
@@ -974,52 +934,47 @@ class MultiQubitGateFuser {
     while (may_have_gates_to_fuse) {
       may_have_gates_to_fuse = false;
 
-      auto time = fgate.parent->time;
-
       std::sort(links.begin(), links.end(),
-                [&time](const Link* l, const Link* r) -> bool {
-                  auto ln = l->next;
-                  auto rn = r->next;
+                [&neighb](const Link* l, const Link* r) -> bool {
+                  auto ln = neighb(l);
+                  auto rn = neighb(r);
 
                   if (ln != nullptr && rn != nullptr) {
-                    return ln->val->parent->time < rn->val->parent->time;
+                    return R()(ln->val->parent->time, rn->val->parent->time);
                   } else {
                     return ln != nullptr || rn == nullptr;
                   }
                 });
 
       for (auto link : links) {
-        if (link->next == nullptr) continue;
+        auto n = neighb(link);
 
-        auto n = link->next->val;
+        if (n == nullptr) continue;
 
-        if (!QubitsAreIn(fgate.mask, n->mask) || (n->mask & bad_mask) != 0
-            || n->visited > level || n->parent->unfusible) {
-          bad_mask |= n->mask;
+        auto g = n->val;
+
+        if (!QubitsAreIn(fgate.mask, g->mask) || (g->mask & bad_mask) != 0
+            || g->visited > pass || g->parent->unfusible) {
+          bad_mask |= g->mask;
         } else {
-          AddGates(level, *n, fgate.gates);
+          g->visited = pass == 0 ? kFirst : kFinal;
+
+          if (pass == 0) {
+            gates.push_back(g->parent);
+          } else {
+            for (auto gate : g->gates) {
+              gates.push_back(gate);
+            }
+          }
+
+          for (auto link : g->links) {
+            LinkManager::Delete(link);
+          }
 
           may_have_gates_to_fuse = true;
           break;
         }
       }
-    }
-  }
-
-  static void AddGates(
-      unsigned level, GateF& fgate, std::vector<const Gate*>& gates) {
-    fgate.visited = level == 0 ? 1 : 999;
-
-    if (level == 0) {
-      gates.push_back(fgate.parent);
-    } else {
-      for (auto gate :fgate.gates) {
-        gates.push_back(gate);
-      }
-    }
-
-    for (auto link : fgate.links) {
-      LinkManager::Delete(link);
     }
   }
 
@@ -1029,56 +984,56 @@ class MultiQubitGateFuser {
 
   static void PrintStat(unsigned verbosity, const Stat& stat,
                         const std::vector<GateFused>& fused_gates) {
-    if (verbosity > 0) {
-      if (stat.num_controlled_gates > 0) {
-        IO::messagef("%lu controlled gates\n", stat.num_controlled_gates);
-      }
+    if (verbosity == 0) return;
 
-      if (stat.num_mea_gates > 0) {
-        IO::messagef("%lu measurement gates", stat.num_mea_gates);
-        if (stat.num_fused_mea_gates == stat.num_mea_gates) {
-          IO::messagef("\n");
+    if (stat.num_controlled_gates > 0) {
+      IO::messagef("%lu controlled gates\n", stat.num_controlled_gates);
+    }
+
+    if (stat.num_mea_gates > 0) {
+      IO::messagef("%lu measurement gates", stat.num_mea_gates);
+      if (stat.num_fused_mea_gates == stat.num_mea_gates) {
+        IO::messagef("\n");
+      } else {
+        IO::messagef(" are fused into %lu gates\n", stat.num_fused_mea_gates);
+      }
+    }
+
+    bool first = true;
+    for (unsigned i = 1; i < stat.num_gates.size(); ++i) {
+      if (stat.num_gates[i] > 0) {
+        if (first) {
+          first = false;
         } else {
-          IO::messagef(" are fused into %lu gates\n", stat.num_fused_mea_gates);
+          IO::messagef(", ");
         }
+        IO::messagef("%u %u-qubit", stat.num_gates[i], i);
+      }
+    }
+
+    IO::messagef(" gates are fused into %lu gates\n", stat.num_fused_gates);
+
+    if (verbosity == 1) return;
+
+    IO::messagef("fused gate qubits:\n");
+    for (const auto g : fused_gates) {
+      IO::messagef("%6u  ", g.parent->time);
+      if (g.parent->kind == gate::kMeasurement) {
+        IO::messagef("m");
+      } else if (g.parent->controlled_by.size() > 0) {
+        IO::messagef("c");
+        for (auto q : g.parent->controlled_by) {
+          IO::messagef("%3u", q);
+        }
+        IO::messagef("  t");
+      } else {
+        IO::messagef(" ");
       }
 
-      bool first = true;
-      for (unsigned i = 1; i < stat.num_gates.size(); ++i) {
-        if (stat.num_gates[i] > 0) {
-          if (first) {
-            first = false;
-          } else {
-            IO::messagef(", ");
-          }
-          IO::messagef("%u %u-qubit", stat.num_gates[i], i);
-        }
+      for (auto q : g.qubits) {
+        IO::messagef("%3u", q);
       }
-
-      IO::messagef(" gates are fused into %lu gates\n", stat.num_fused_gates);
-
-      if (verbosity > 1) {
-        IO::messagef("fused gate qubits:\n");
-        for (const auto g : fused_gates) {
-          IO::messagef("%6u  ", g.parent->time);
-          if (g.parent->kind == gate::kMeasurement) {
-            IO::messagef("m");
-          } else if (g.parent->controlled_by.size() > 0) {
-            IO::messagef("c");
-            for (auto q : g.parent->controlled_by) {
-              IO::messagef("%3u", q);
-            }
-            IO::messagef("  t");
-          } else {
-            IO::messagef(" ");
-          }
-
-          for (auto q : g.qubits) {
-            IO::messagef("%3u", q);
-          }
-          IO::messagef("\n");
-        }
-      }
+      IO::messagef("\n");
     }
   }
 };
