@@ -94,7 +94,7 @@ class MultiQubitGateFuser {
   // gates in the sequence plus one, see below.
   enum Visited {
     kZero = 0,             // Start value for "normal" gates.
-    kFirst = 1,            // Valut after the first pass for partially fused
+    kFirst = 1,            // Value after the first pass for partially fused
                            // "normal" gates.
     kSecond = 2,           // Start value to assign values in MakeGateSequence.
     kCompress = 99999997,  // Used to compress links.
