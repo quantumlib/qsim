@@ -132,7 +132,6 @@ int main(int argc, char* argv[]) {
 
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
-  param.fuser_verbosity = opt.verbosity;
   param.seed = opt.seed;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;

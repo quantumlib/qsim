@@ -64,9 +64,13 @@ cc_test(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:formux",
         "//lib:fuser_mqubit",
         "//lib:gate",
+        "//lib:gate_appl",
         "//lib:io",
+        "//lib:matrix",
+        "//lib:simulator",
     ],
 )
 

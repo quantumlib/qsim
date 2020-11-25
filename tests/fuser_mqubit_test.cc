@@ -12,15 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <random>
 #include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
 
+#include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gate.h"
+#include "../lib/gate_appl.h"
 #include "../lib/io.h"
+#include "../lib/matrix.h"
+#include "../lib/simmux.h"
 
 namespace qsim {
 
@@ -36,24 +43,27 @@ struct DummyGate {
 
   GateKind kind;
   unsigned time;
+  uint64_t cmask;
   std::vector<unsigned> qubits;
   std::vector<unsigned> controlled_by;
+  Matrix<float> matrix;
   bool unfusible;
 };
 
 DummyGate CreateDummyGate(unsigned time, std::vector<unsigned>&& qubits) {
-  return {kGateOther, time, std::move(qubits), {}, false};
+  return {kGateOther, time, 0, std::move(qubits), {}, {}, false};
 }
 
 DummyGate CreateDummyMeasurementGate(unsigned time,
                                      std::vector<unsigned>&& qubits) {
-  return {kMeasurement, time, std::move(qubits), {}, false};
+  return {kMeasurement, time, 0, std::move(qubits), {}, {}, false};
 }
 
 DummyGate CreateDummyControlledGate(unsigned time,
                                     std::vector<unsigned>&& qubits,
                                     std::vector<unsigned>&& controlled_by) {
-  return {kGateOther, time, std::move(qubits), std::move(controlled_by), false};
+  return
+  {kGateOther, time, 0, std::move(qubits), std::move(controlled_by), {}, false};
 }
 
 std::vector<unsigned> GenQubits(unsigned num_qubits, std::mt19937& rgen,
@@ -75,9 +85,9 @@ constexpr double p2 = 0.6 + p1;
 constexpr double p3 = 0.08 + p2;
 constexpr double p4 = 0.05 + p3;
 constexpr double p5 = 0.035 + p4;
-constexpr double p6 = 0.025 + p5;
-constexpr double pc = 0.005 + p6;
-constexpr double pm = 0.005 + pc;
+constexpr double p6 = 0.02 + p5;
+constexpr double pc = 0.0075 + p6;
+constexpr double pm = 0.0075 + pc;
 
 constexpr double pu = 0.002;
 
@@ -121,6 +131,12 @@ void AddToCircuit(unsigned time,
   if (r < p6 && distr(rgen) < pu) {
     circuit.back().unfusible = true;
   }
+
+  auto& gate = circuit.back();
+
+  if (gate.kind != gate::kMeasurement) {
+    std::sort(gate.qubits.begin(), gate.qubits.end());
+  }
 }
 
 std::vector<DummyGate> GenerateRandomCircuit1(unsigned num_qubits,
@@ -152,7 +168,7 @@ std::vector<DummyGate> GenerateRandomCircuit2(unsigned num_qubits,
   std::vector<DummyGate> circuit;
   circuit.reserve(num_qubits * depth);
 
-  std::mt19937 rgen(1);
+  std::mt19937 rgen(2);
   std::uniform_real_distribution<double> distr(0, 1);
 
   std::vector<unsigned> available(num_qubits, 0);
@@ -238,7 +254,7 @@ TEST(FuserMultiQubitTest, RandomCircuit1) {
   auto circuit = GenerateRandomCircuit1(num_qubits, depth);
 
   Fuser::Parameter param;
-  param.fuser_verbosity = 0;
+  param.verbosity = 0;
 
   for (unsigned q = 2; q <= 6; ++q) {
     param.max_fused_size = q;
@@ -268,7 +284,7 @@ TEST(FuserMultiQubitTest, RandomCircuit2) {
   auto circuit = GenerateRandomCircuit2(num_qubits, depth, 6);
 
   Fuser::Parameter param;
-  param.fuser_verbosity = 0;
+  param.verbosity = 0;
 
   for (unsigned q = 2; q <= 6; ++q) {
     param.max_fused_size = q;
@@ -284,6 +300,74 @@ TEST(FuserMultiQubitTest, RandomCircuit2) {
         param, num_qubits, circuit.begin(), circuit.end(), {300, 700, 2400});
 
     EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+}
+
+TEST(FuserMultiQubitTest, Simulation) {
+  using Fuser = MultiQubitGateFuser<IO, DummyGate>;
+
+  unsigned num_qubits = 12;
+  unsigned depth = 200;
+
+  auto circuit = GenerateRandomCircuit2(num_qubits, depth, 6);
+
+  std::mt19937 rgen(1);
+  std::uniform_real_distribution<double> distr(0, 1);
+
+  for (auto& gate : circuit) {
+    if (gate.controlled_by.size() > 0) {
+      gate.cmask = (uint64_t{1} << gate.controlled_by.size()) - 1;
+    }
+
+    unsigned size = unsigned{1} << (2 * gate.qubits.size() + 1);
+    gate.matrix.reserve(size);
+
+    // Random gate matrices.
+    for (unsigned i = 0; i < size; ++i) {
+      gate.matrix.push_back(2 * distr(rgen) - 1);
+    }
+  };
+
+  using StateSpace = typename Simulator<For>::StateSpace;
+
+  Simulator<For> simulator(1);
+  StateSpace state_space(1);
+
+  auto state0 = state_space.Create(num_qubits);
+  state_space.SetStateZero(state0);
+
+  // Simulate unfused gates.
+  for (const auto& gate : circuit) {
+    ApplyGate(simulator, gate, state0);
+    // Renormalize the state to prevent floating point overflow.
+    state_space.Multiply(1.0 / std::sqrt(state_space.Norm(state0)), state0);
+  }
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  auto state1 = state_space.Create(num_qubits);
+
+  for (unsigned q = 2; q <= 6; ++q) {
+    state_space.SetStateZero(state1);
+
+    param.max_fused_size = q;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+
+    // Simulate fused gates.
+    for (const auto& gate : fused_gates) {
+      ApplyFusedGate(simulator, gate, state1);
+      // Renormalize the state to prevent floating point overflow.
+      state_space.Multiply(1.0 / std::sqrt(state_space.Norm(state1)), state1);
+    }
+
+    unsigned size = 1 << (num_qubits + 1);
+    for (unsigned i = 0; i < size; ++i) {
+      EXPECT_NEAR(state0.get()[i], state1.get()[i], 1e-6);
+    }
   }
 }
 

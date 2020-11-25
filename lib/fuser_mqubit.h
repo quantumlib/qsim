@@ -127,7 +127,7 @@ class MultiQubitGateFuser {
      * 6 (0 and 1 are equivalent to 2). It is not recommended to use 5 or 6.
      */
     unsigned max_fused_size = 2;
-    unsigned fuser_verbosity = 0;
+    unsigned verbosity = 0;
   };
 
   /**
@@ -357,6 +357,7 @@ class MultiQubitGateFuser {
       } else {
         for (auto& fgate : gates_seq) {
           if (fgate.gates.size() > 0) {
+            // Assume fgate.qubits (gate.qubits) are sorted.
             fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
                                    std::move(fgate.qubits), fgate.parent,
                                    std::move(fgate.gates)});
@@ -369,7 +370,7 @@ class MultiQubitGateFuser {
       }
     }
 
-    PrintStat(param.fuser_verbosity, stat, fused_gates);
+    PrintStat(param.verbosity, stat, fused_gates);
 
     return fused_gates;
   }
