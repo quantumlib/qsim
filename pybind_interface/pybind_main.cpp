@@ -23,7 +23,6 @@
 
 #include "../lib/bitstring.h"
 #include "../lib/formux.h"
-#include "../lib/fuser_basic.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
