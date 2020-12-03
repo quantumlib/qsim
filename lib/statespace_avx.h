@@ -46,9 +46,13 @@ inline __m256i GetZeroMaskAVX(uint64_t i, uint64_t mask, uint64_t bits) {
 }
 
 inline double HorizontalSumAVX(__m256 s) {
-  float buf[8];
-  _mm256_storeu_ps(buf, s);
-  return buf[0] + buf[1] + buf[2] + buf[3] + buf[4] + buf[5] + buf[6] + buf[7];
+  __m128 l = _mm256_castps256_ps128(s);
+  __m128 h = _mm256_extractf128_ps(s, 1);
+  __m128 s1  = _mm_add_ps(h, l);
+  __m128 s1s = _mm_movehdup_ps(s1);
+  __m128 s2 = _mm_add_ps(s1, s1s);
+
+  return _mm_cvtss_f32(_mm_add_ss(s2, _mm_movehl_ps(s1s, s2)));
 }
 
 }  // namespace detail

@@ -10,6 +10,7 @@ cc_library(
         "bitstring.h",
         "circuit_qsim_parser.h",
         "circuit.h",
+        "expect.h",
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
@@ -50,6 +51,7 @@ cc_library(
         "bits.h",
         "circuit.h",
         "circuit_qsim_parser.h",
+        "expect.h",
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
@@ -87,6 +89,7 @@ cc_library(
         "bits.h",
         "circuit.h",
         "circuit_qsim_parser.h",
+        "expect.h",
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
@@ -250,6 +253,17 @@ cc_library(
     deps = [
         ":fuser",
         ":gate",
+    ],
+)
+
+### Expectation value library ###
+
+cc_library(
+    name = "expect",
+    hdrs = ["expect.h"],
+    deps = [
+        ":fuser",
+        ":gate_appl",
     ],
 )
 

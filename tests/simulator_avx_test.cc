@@ -45,6 +45,14 @@ TEST(SimulatorAVXTest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorAVX<For>>();
 }
 
+TEST(SimulatorAVXTest, ExpectationValue1) {
+  TestExpectationValue1<SimulatorAVX<For>>();
+}
+
+TEST(SimulatorAVXTest, ExpectationValue2) {
+  TestExpectationValue2<SimulatorAVX<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

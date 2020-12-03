@@ -40,6 +40,26 @@ cc_test(
 )
 
 cc_test(
+    name = "expect_test",
+    srcs = ["expect_test.cc"],
+    deps = [
+        ":gates_cirq_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:expect",
+        "//lib:formux",
+        "//lib:fuser_mqubit",
+        "//lib:gate_appl",
+        "//lib:gates_qsim",
+        "//lib:io",
+        "//lib:simulator",
+    ],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+)
+
+cc_test(
     name = "fuser_basic_test",
     srcs = ["fuser_basic_test.cc"],
     copts = select({
@@ -167,9 +187,11 @@ cc_library(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
-        "//lib:fuser",
+        "//lib:expect",
+        "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_qsim",
+        "//lib:io",
     ],
     testonly = 1,
 )

@@ -46,9 +46,10 @@ inline __m128i GetZeroMaskSSE(uint64_t i, uint64_t mask, uint64_t bits) {
 }
 
 inline double HorizontalSumSSE(__m128 s) {
-  float buf[4];
-  _mm_storeu_ps(buf, s);
-  return buf[0] + buf[1] + buf[2] + buf[3];
+  __m128 ss = _mm_movehdup_ps(s);
+  __m128 s1 = _mm_add_ps(s, ss);
+
+  return _mm_cvtss_f32(_mm_add_ss(s1, _mm_movehl_ps(ss, s1)));
 }
 
 }  // namespace detail
