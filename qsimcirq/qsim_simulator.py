@@ -62,7 +62,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
           'Keys "c" & "i" are reserved for internal use and cannot be used in QSimCircuit instantiation.'
       )
     self._prng = value.parse_random_state(seed)
-    self.qsim_options = {'t': 1, 'v': 0}
+    self.qsim_options = {'t': 1, 'f': 2, 'v': 0}
     self.qsim_options.update(qsim_options)
 
   def get_seed(self):
