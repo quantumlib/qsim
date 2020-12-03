@@ -405,6 +405,26 @@ class MainTest(unittest.TestCase):
         result.state_vector(), cirq_result.state_vector())
 
 
+  def test_multi_qubit_fusion(self):
+    q0, q1, q2, q3 = cirq.LineQubit.range(4)
+    qubits = [q0, q1, q2, q3]
+    cirq_circuit = cirq.Circuit(
+      cirq.CX(q0, q1), cirq.X(q2)**0.5, cirq.Y(q3)**0.5,
+      cirq.CX(q0, q2), cirq.T(q1), cirq.T(q3),
+      cirq.CX(q1, q2), cirq.X(q3)**0.5, cirq.Y(q0)**0.5,
+      cirq.CX(q1, q3), cirq.T(q0), cirq.T(q2),
+      cirq.CX(q2, q3), cirq.X(q0)**0.5, cirq.Y(q1)**0.5,
+    )
+
+    qsimSim = qsimcirq.QSimSimulator(qsim_options={'f': 2})
+    result_2q_fusion = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+
+    qsimSim = qsimcirq.QSimSimulator(qsim_options={'f': 4})
+    result_4q_fusion = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result_2q_fusion.state_vector(), result_4q_fusion.state_vector())
+
+
   def test_cirq_qsim_simulate_random_unitary(self):
 
     q0, q1 = cirq.LineQubit.range(2)

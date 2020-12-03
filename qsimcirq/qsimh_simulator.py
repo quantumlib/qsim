@@ -23,7 +23,7 @@ import qsimcirq.qsim_circuit as qsimc
 class QSimhSimulator(SimulatesAmplitudes):
 
   def __init__(self, qsimh_options: dict = {}):
-    self.qsimh_options = {'t': 1, 'v': 0}
+    self.qsimh_options = {'t': 1, 'f': 2, 'v': 0}
     self.qsimh_options.update(qsimh_options)
 
   def compute_amplitudes_sweep(

@@ -23,7 +23,7 @@
 
 #include "../lib/bitstring.h"
 #include "../lib/formux.h"
-#include "../lib/fuser_basic.h"
+#include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/run_qsim.h"
@@ -358,12 +358,13 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     }
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
+  using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
   Runner::Parameter param;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
@@ -386,12 +387,13 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
+  using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
   Runner::Parameter param;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
@@ -437,12 +439,13 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using MeasurementResult = StateSpace::MeasurementResult;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
+  using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
                             Simulator>;
 
   Runner::Parameter param;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
@@ -479,7 +482,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
-                                          BasicGateFuser, Simulator, For>;
+                                          MultiQubitGateFuser, Simulator, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Circuit<Cirq::GateCirq<float>> circuit;
@@ -495,6 +498,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
     param.num_prefix_gatexs = parseOptions<unsigned>(options, "p\0");
     param.num_root_gatexs = parseOptions<unsigned>(options, "r\0");
     param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
