@@ -7,7 +7,7 @@ researchers to test quantum algorithms before running on quantum hardware.
 qsim makes use of AVX/FMA vector operations, OpenMP multithreading, and
 gate fusion [[1]](https://arxiv.org/abs/1601.07195)
 [[2]](https://arxiv.org/abs/1704.01127)
-to accelerate simuations. This performance is best demonstrated by the use
+to accelerate simulations. This performance is best demonstrated by the use
 of qsim in cross-entropy benchmarks here:
 [[3]](https://www.nature.com/articles/s41586-019-1666-5).
 
