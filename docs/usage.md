@@ -2,11 +2,13 @@
 
 qsim and qsimh are designed to be extensible to a variety of different
 applications. The base versions of each are `qsim_base` and `qsimh_base`;
-sample extensions are provided in [apps](/apps). To compile the codes, just run
-`make qsim`. Binaries of the form `qsim(h)_*.x` will be added to the `apps`
-directory.
+sample extensions are provided in
+[apps](https://github.com/quantumlib/qsim/blob/master/apps). To compile the
+code, just run `make qsim`. Binaries of the form `qsim(h)_*.x` will be added
+to the `apps` directory.
 
-Sample circuits are provided in [circuits](/circuits).
+Sample circuits are provided in
+[circuits](https://github.com/quantumlib/qsim/blob/master/circuits).
 
 ## qsim_base usage
 
@@ -194,7 +196,7 @@ qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
 amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman
 method is used, see above.
 
-Bitstring files should contain bitstings (one bitstring per line) in text
+Bitstring files should contain bitstrings (one bitstring per line) in text
 format.
 
 Example (do not execute - see below):

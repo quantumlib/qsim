@@ -24,7 +24,7 @@ libraries, and can be installed with `pip3 install pybind11`.
 
 qsim can be installed with `pip3 install qsimcirq`. Alternatives (such as
 installing with Docker) can be found in the
-[installation doc](/docs/install_qsimcirq.md).
+[installation doc](./install_qsimcirq.md).
 
 ### Compiling qsimcirq
 
@@ -43,8 +43,9 @@ directory.
 ```
 make run-py-tests
 ```
-This will run [qsimcirq_test](/qsimcirq_tests/qsimcirq_test.py), which invokes
-qsim through the qsim-Cirq interface.
+This will run
+[qsimcirq_test](https://github.com/quantumlib/qsim/blob/master/qsimcirq_tests/qsimcirq_test.py),
+which invokes qsim through the qsim-Cirq interface.
 
 ## Interface design and operations
 
@@ -75,7 +76,7 @@ This circuit can then be simulated using either `QSimSimulator` or
 acquiring the complete state of a reasonably-sized circuit (~35 qubits).
 Options for the simulator, including number of threads and verbosity, can be
 set with the `qsim_options` field using the `qsim_base` flag format defined in
-the [usage docs](/docs/usage.md).
+the [usage docs](./usage.md).
 
 ```
 qsim_options = {'t': 8, 'v': 0}
@@ -130,7 +131,7 @@ myres = my_sim.compute_amplitudes(program=my_circuit,
 ```
 
 As with `QSimSimulator`, the options follow the flag format for `qsimh_base`
-outlined in the [usage docs](/docs/usage.md).
+outlined in the [usage docs](./usage.md).
 
 ## Additional features
 
