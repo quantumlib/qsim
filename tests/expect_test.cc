@@ -119,13 +119,13 @@ TEST(ExpectTest, ExpectationValue) {
       }
     }
 
-    auto evala = ExpectaionValue<Fuser>(param, strings, state_space, simulator,
-                                        state, tmp_state);
+    auto evala = ExpectationValue<Fuser>(param, strings, state_space, simulator,
+                                         state, tmp_state);
 
     EXPECT_NEAR(std::real(evala), expected_real[k - 1], 1e-6);
     EXPECT_NEAR(std::imag(evala), 0, 1e-8);
 
-    auto evalb = ExpectaionValue<Fuser>(strings, simulator, state);
+    auto evalb = ExpectationValue<IO, Fuser>(strings, simulator, state);
 
     EXPECT_NEAR(std::real(evalb), expected_real[k - 1], 1e-6);
     EXPECT_NEAR(std::imag(evalb), 0, 1e-8);

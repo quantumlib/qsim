@@ -985,7 +985,7 @@ for k in range(1, 7):
       }
     }
 
-    auto eval = ExpectaionValue<Fuser>(strings, simulator, state);
+    auto eval = ExpectationValue<IO, Fuser>(strings, simulator, state);
 
     EXPECT_NEAR(std::real(eval), expected_real[k - 1], 1e-6);
     EXPECT_NEAR(std::imag(eval), 0, 1e-8);

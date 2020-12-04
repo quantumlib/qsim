@@ -110,7 +110,7 @@ class SimulatorBasic final {
 
   /**
    * Computes the expectation value of an operator using non-vectorized
-  *  instructions.
+   * instructions.
    * @param qs Indices of the qubits the operator acts on.
    * @param matrix The operator matrix.
    * @param state The state of the system.

@@ -29,8 +29,9 @@ struct OpString {
 };
 
 /**
- * Computes the expectation value of the sum of operator strings. Operators
- * can be any supported gates. Uses a temporary state vector.
+ * Computes the expectation value of the sum of operator strings (operator
+ * sequences). Operators can act on any qubits and they can be any supported
+ * gates. This function uses a temporary state vector.
  * @param param Options for gate fusion.
  * @param strings Operator strings.
  * @param ss StateSpace object required to copy the state vector and compute
@@ -38,16 +39,15 @@ struct OpString {
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
  * @param state The state vector of the system.
- * @param state Temporary state vector.
+ * @param ket Temporary state vector.
  * @return The computed expectation value.
  */
 template <typename Fuser, typename Simulator, typename Gate>
-std::complex<double> ExpectaionValue(const typename Fuser::Parameter& param,
-                                     const std::vector<OpString<Gate>>& strings,
-                                     const typename Simulator::StateSpace& ss,
-                                     const Simulator& simulator,
-                                     const typename Simulator::State& state,
-                                     typename Simulator::State& ket) {
+std::complex<double> ExpectationValue(
+    const typename Fuser::Parameter& param,
+    const std::vector<OpString<Gate>>& strings,
+    const typename Simulator::StateSpace& ss, const Simulator& simulator,
+    const typename Simulator::State& state, typename Simulator::State& ket) {
   std::complex<double> eval = 0;
 
   for (const auto& str : strings) {
@@ -77,21 +77,21 @@ std::complex<double> ExpectaionValue(const typename Fuser::Parameter& param,
 }
 
 /**
- * Computes the expectation value of the sum of operator strings. Operators
- * can be any supported gates except for user-defined controlled gates.
- * Computation is performed in place. No additional memory is allocated. The
- * operator strings should act on no more than six qubits and they should be
- * fusible into one gate.
+ * Computes the expectation value of the sum of operator strings (operator
+ * sequences). Operators can act on any qubits and they can be any supported
+ * gates except for user-defined controlled gates. Computation is performed
+ * in place. No additional memory is allocated. The operator strings should
+ * act on no more than six qubits and they should be fusible into one gate.
  * @param strings Operator strings.
  * @param simulator Simulator object. Provides specific implementations for
  *   computing expectation values.
  * @param state The state of the system.
  * @return The computed expectation value.
  */
-template <typename Fuser, typename Simulator, typename Gate>
-std::complex<double> ExpectaionValue(const std::vector<OpString<Gate>>& strings,
-                                     const Simulator& simulator,
-                                     const typename Simulator::State& state) {
+template <typename IO, typename Fuser, typename Simulator, typename Gate>
+std::complex<double> ExpectationValue(
+    const std::vector<OpString<Gate>>& strings,
+    const Simulator& simulator, const typename Simulator::State& state) {
   std::complex<double> eval = 0;
 
   typename Fuser::Parameter param;
@@ -106,12 +106,23 @@ std::complex<double> ExpectaionValue(const std::vector<OpString<Gate>>& strings,
       eval += str.weight * r;
     } else {
       auto fused_gates = Fuser::FuseGates(param, state.num_qubits(), str.ops);
+
       if (fused_gates.size() != 1) {
+        IO::errorf("too many fused gates; "
+                   "cannot compute the expectation value.\n");
         eval = 0;
         break;
       }
 
       const auto& fgate = fused_gates[0];
+
+      if (fgate.qubits.size() > 6) {
+        IO::errorf("operator string acts on too many qubits; "
+                   "cannot compute the expectation value.\n");
+        eval = 0;
+        break;
+      }
+
       auto matrix = CalculateFusedMatrix<typename Simulator::fp_type>(fgate);
       auto r = simulator.ExpectationValue(fgate.qubits, matrix.data(), state);
       eval += str.weight * r;
