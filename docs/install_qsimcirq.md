@@ -4,8 +4,9 @@ The qsim-Cirq Python interface is available as a PyPI package for Linux users.
 For all other users, Dockerfiles are provided to install qsim in a contained
 environment.
 
-**Note:** The core qsim library (under [lib/](/lib)) can be included directly
-in C++ code without installing this interface.
+**Note:** The core qsim library (under
+[lib/](https://github.com/quantumlib/qsim/blob/master/lib)) can be included
+directly in C++ code without installing this interface.
 
 ## Linux installation
 
@@ -18,17 +19,17 @@ CMake can be installed from their website, or with the command
 `apt-get install cmake`.
 
 Other prerequisites (including pybind11 and pytest) are included in the
-[`requirements.txt`](/requirements.txt) file, and will be automatically
-installed along with qsimcirq.
+[`requirements.txt`](https://github.com/quantumlib/qsim/blob/master/requirements.txt)
+file, and will be automatically installed along with qsimcirq.
 
 To install the qsim-Cirq interface on Linux, simply run `pip3 install qsimcirq`.
 For examples of how to use this package, see the tests in
-[qsim/qsimcirq_tests/](/qsimcirq_tests/).
+[qsim/qsimcirq_tests/](https://github.com/quantumlib/qsim/blob/master/qsimcirq_tests/).
 
 ## MacOS and Windows installation
 
 For users interested in running qsim on a MacOS or Windows device, we strongly
-recommend using the [Docker config](/docs/docker.md) provided with this
+recommend using the [Docker config](./docker.md) provided with this
 repository.
 
 ### Experimental install process

@@ -24,7 +24,7 @@ libraries, and can be installed with `pip3 install pybind11`.
 
 qsim can be installed with `pip3 install qsimcirq`. Alternatives (such as
 installing with Docker) can be found in the
-[installation doc](/docs/install_qsimcirq.md).
+[installation doc](./install_qsimcirq.md).
 
 ### Compiling qsimcirq
 
@@ -43,8 +43,9 @@ directory.
 ```
 make run-py-tests
 ```
-This will run [qsimcirq_test](/qsimcirq_tests/qsimcirq_test.py), which invokes
-qsim through the qsim-Cirq interface.
+This will run
+[qsimcirq_test](https://github.com/quantumlib/qsim/blob/master/qsimcirq_tests/qsimcirq_test.py),
+which invokes qsim through the qsim-Cirq interface.
 
 ## Interface design and operations
 
@@ -56,7 +57,7 @@ circuits defined in Cirq.
 The interface includes QSimSimulator and QSimhSimulator which communicate
 through a Pybind11 interface with qsim. The simulator accepts `cirq.Circuit`
 objects, which it wraps as `QSimCircuit` to enforce architectural constraints
-(such as permitting only qsim-supported gate sets).
+(such as decomposing to qsim-supported gate sets).
 
 ### Usage procedure
 
@@ -72,10 +73,11 @@ This circuit can then be simulated using either `QSimSimulator` or
 #### QSimSimulator
 
 `QSimSimulator` uses a Schrödinger full state-vector simulator, suitable for
-acquiring the complete state of a reasonably-sized circuit (~35 qubits).
+acquiring the complete state of a reasonably-sized circuit (~25 qubits on an
+average PC, or up to 40 qubits on high-performance VMs).
 Options for the simulator, including number of threads and verbosity, can be
 set with the `qsim_options` field using the `qsim_base` flag format defined in
-the [usage docs](/docs/usage.md).
+the [usage docs](./usage.md).
 
 ```
 qsim_options = {'t': 8, 'v': 0}
@@ -130,7 +132,7 @@ myres = my_sim.compute_amplitudes(program=my_circuit,
 ```
 
 As with `QSimSimulator`, the options follow the flag format for `qsimh_base`
-outlined in the [usage docs](/docs/usage.md).
+outlined in the [usage docs](./usage.md).
 
 ## Additional features
 
@@ -140,12 +142,9 @@ circuit parameterization.
 ### Gate decompositions
 
 Circuits received by qsimcirq are automatically decomposed into the qsim
-gate set if possible. This uses the Cirq `decompose` operation.
-
-Known gates with no decomposition:
-
-- Cirq `ControlledGate`s (i.e. gates constructed using the `cirq.ControlledGate` method).
-- Cirq `MatrixGate`s on 3 or more qubits.
+gate set if possible. This uses the Cirq `decompose` operation. Gates with no
+decomposition to the qsim gate set will instead attempt to be parsed as raw
+matrices, if one is specified.
 
 ### Parametrized circuits
 

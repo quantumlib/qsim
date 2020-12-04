@@ -15,7 +15,7 @@ time gate_name qubits parameters
 Here `time` refers to when the gate is applied in the circuit. Gates with the same time can be
 applied independently and they may be reordered for performance. Trailing
 spaces or characters are not allowed. A number of sample circuits are provided
-in [circuits](/circuits).
+in [circuits](https://github.com/quantumlib/qsim/blob/master/circuits).
 
 # Supported gates
 
