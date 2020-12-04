@@ -57,7 +57,7 @@ circuits defined in Cirq.
 The interface includes QSimSimulator and QSimhSimulator which communicate
 through a Pybind11 interface with qsim. The simulator accepts `cirq.Circuit`
 objects, which it wraps as `QSimCircuit` to enforce architectural constraints
-(such as permitting only qsim-supported gate sets).
+(such as decomposing to qsim-supported gate sets).
 
 ### Usage procedure
 
@@ -73,7 +73,8 @@ This circuit can then be simulated using either `QSimSimulator` or
 #### QSimSimulator
 
 `QSimSimulator` uses a Schrödinger full state-vector simulator, suitable for
-acquiring the complete state of a reasonably-sized circuit (~35 qubits).
+acquiring the complete state of a reasonably-sized circuit (~25 qubits on an
+average PC, or up to 40 qubits on high-performance VMs).
 Options for the simulator, including number of threads and verbosity, can be
 set with the `qsim_options` field using the `qsim_base` flag format defined in
 the [usage docs](./usage.md).
@@ -141,12 +142,9 @@ circuit parameterization.
 ### Gate decompositions
 
 Circuits received by qsimcirq are automatically decomposed into the qsim
-gate set if possible. This uses the Cirq `decompose` operation.
-
-Known gates with no decomposition:
-
-- Cirq `ControlledGate`s (i.e. gates constructed using the `cirq.ControlledGate` method).
-- Cirq `MatrixGate`s on 3 or more qubits.
+gate set if possible. This uses the Cirq `decompose` operation. Gates with no
+decomposition to the qsim gate set will instead attempt to be parsed as raw
+matrices, if one is specified.
 
 ### Parametrized circuits
 
