@@ -20,9 +20,11 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/fuser.h"
+#include "../lib/expect.h"
+#include "../lib/fuser_mqubit.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_qsim.h"
+#include "../lib/io.h"
 
 namespace qsim {
 
@@ -777,7 +779,7 @@ void TestMultiQubitGates() {
     for (unsigned i = 0; i < size1; ++i) {
       for (unsigned j = 0; j < size1; ++j) {
         // Expected results are calculated analytically.
-        fp_type expected_real = (1 + 2 * j) * size1;
+        fp_type expected_real = size1 * (1 + 2 * j);
         fp_type expected_imag = expected_real + 1;
 
         auto a = state_space.GetAmpl(state, j * size1 + i);
@@ -786,6 +788,207 @@ void TestMultiQubitGates() {
         EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
       }
     }
+  }
+}
+
+template <typename Simulator>
+void TestExpectationValue1() {
+  using StateSpace = typename Simulator::StateSpace;
+  using fp_type = typename StateSpace::fp_type;
+
+  unsigned max_minq = 4;
+  unsigned max_gate_qubits = 6;
+  unsigned num_qubits = max_gate_qubits + max_minq;
+
+  StateSpace state_space(1);
+  Simulator simulator(1);
+
+  auto state = state_space.Create(num_qubits);
+
+  std::vector<fp_type> matrix;
+  matrix.reserve(1 << (2 * max_gate_qubits + 1));
+
+  std::vector<unsigned> qubits;
+  qubits.reserve(max_gate_qubits);
+
+  for (unsigned q = 1; q <= max_gate_qubits; ++q) {
+    unsigned size1 = 1 << q;
+    unsigned size2 = size1 * size1;
+
+    // Expected results are calculated analytically.
+    fp_type expected_real = size2 * size1;
+    fp_type expected_imag = expected_real + size1;
+
+    matrix.resize(0);
+
+    for (unsigned i = 0; i < 2 * size2; ++i) {
+      matrix.push_back(i + 1);
+    }
+
+    for (unsigned k = 0; k <= max_minq; ++k) {
+      qubits.resize(0);
+
+      for (unsigned i = 0; i < q; ++i) {
+        qubits.push_back(i + k);
+      }
+
+      state_space.SetStateUniform(state);
+      auto eval = simulator.ExpectationValue(qubits, matrix.data(), state);
+
+      EXPECT_NEAR(std::real(eval), expected_real, 1e-6);
+      EXPECT_NEAR(std::imag(eval), expected_imag, 1e-6);
+    }
+  }
+}
+
+template <typename Simulator>
+void TestExpectationValue2() {
+  using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
+  using fp_type = typename Simulator::fp_type;
+  using Fuser = MultiQubitGateFuser<IO, GateQSim<fp_type>>;
+
+  unsigned num_qubits = 16;
+  unsigned depth = 16;
+
+  StateSpace state_space(1);
+  Simulator simulator(1);
+
+  State state = state_space.Create(num_qubits);
+  state_space.SetStateZero(state);
+
+  std::vector<GateQSim<fp_type>> circuit;
+  circuit.reserve(num_qubits * (3 * depth / 2 + 1));
+
+  for (unsigned k = 0; k < num_qubits; ++k) {
+    circuit.push_back(GateHd<fp_type>::Create(0, k));
+  }
+
+  unsigned t = 1;
+
+  for (unsigned i = 0; i < depth / 2; ++i) {
+    for (unsigned k = 0; k < num_qubits; ++k) {
+      circuit.push_back(GateRX<fp_type>::Create(t, k, 0.1 * k));
+    }
+
+    ++t;
+
+    for (unsigned k = 0; k < num_qubits / 2; ++k) {
+      circuit.push_back(GateIS<fp_type>::Create(t, 2 * k, 2 * k + 1));
+    }
+
+    ++t;
+
+    for (unsigned k = 0; k < num_qubits; ++k) {
+      circuit.push_back(GateRY<fp_type>::Create(t, k, 0.1 * k));
+    }
+
+    ++t;
+
+    for (unsigned k = 0; k < num_qubits / 2; ++k) {
+      circuit.push_back(GateIS<fp_type>::Create(
+          t, 2 * k + 1, (2 * k + 2) % num_qubits));
+    }
+
+    ++t;
+  }
+
+  for (const auto& gate : circuit) {
+    ApplyGate(simulator, gate, state);
+  }
+
+/*
+
+The expected results are obtained with the following Cirq code.
+
+import cirq
+
+num_qubits = 16
+depth = 16
+
+num_qubits2 = num_qubits // 2
+
+qubits = cirq.LineQubit.range(num_qubits)
+qubits.reverse()
+
+circuit = cirq.Circuit()
+
+gates = [cirq.H(qubits[k]) for k in range(num_qubits)]
+circuit.append(cirq.Moment(gates))
+
+for i in range(depth // 2):
+  gates = [cirq.rx(0.1 * k)(qubits[k]) for k in range(num_qubits)]
+  circuit.append(cirq.Moment(gates))
+
+  gates = [cirq.ISWAP(qubits[2 * k], qubits[2 * k + 1])
+           for k in range(num_qubits2)]
+  circuit.append(cirq.Moment(gates))
+
+  gates = [cirq.ry(0.1 * k)(qubits[k]) for k in range(len(qubits))]
+  circuit.append(cirq.Moment(gates))
+
+  gates = [cirq.ISWAP(qubits[2 * k + 1], qubits[(2 * k + 2) % num_qubits])
+           for k in range(num_qubits2)]
+  circuit.append(cirq.Moment(gates))
+
+simulator = cirq.Simulator()
+results = simulator.simulate(circuit)
+
+state_vector = results.state_vector()
+
+qubit_map = {qubits[k]: num_qubits - 1 - k for k in range(num_qubits)}
+
+def op(j):
+  return [cirq.X, cirq.Y, cirq.Z][j % 3]
+
+for k in range(1, 7):
+  ps = [cirq.PauliString(0.1 + 0.2 * i, [op(j)(qubits[i + j])
+                                         for j in range(k)])
+        for i in range(num_qubits - k + 1)]
+  p = cirq.PauliSum.from_pauli_strings(ps);
+
+  expectation = p.expectation_from_state_vector(state_vector, qubit_map)
+  print(expectation)
+
+*/
+
+  fp_type expected_real[6] = {
+    0.014314421865856278,
+    0.021889885055134076,
+    -0.006954622792545706,
+    0.013091871136566622,
+    0.004322795104235413,
+    -0.008040613483171907,
+  };
+
+  for (unsigned k = 1; k <= 6; ++k) {
+    std::vector<OpString<GateQSim<fp_type>>> strings;
+    strings.reserve(num_qubits);
+
+    for (unsigned i = 0; i <= num_qubits - k; ++i) {
+      strings.push_back({{0.1 + 0.2 * i, 0}, {}});
+
+      strings.back().ops.reserve(k);
+
+      for (unsigned j = 0; j < k; ++j) {
+        switch (j % 3) {
+        case 0:
+          strings.back().ops.push_back(GateX<fp_type>::Create(0, i + j));
+          break;
+        case 1:
+          strings.back().ops.push_back(GateY<fp_type>::Create(0, i + j));
+          break;
+        case 2:
+          strings.back().ops.push_back(GateZ<fp_type>::Create(0, i + j));
+          break;
+        }
+      }
+    }
+
+    auto eval = ExpectationValue<IO, Fuser>(strings, simulator, state);
+
+    EXPECT_NEAR(std::real(eval), expected_real[k - 1], 1e-6);
+    EXPECT_NEAR(std::imag(eval), 0, 1e-8);
   }
 }
 

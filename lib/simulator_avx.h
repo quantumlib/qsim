@@ -18,6 +18,7 @@
 #include <immintrin.h>
 
 #include <algorithm>
+#include <complex>
 #include <cstdint>
 
 #include "bits.h"
@@ -228,6 +229,94 @@ class SimulatorAVX final {
     }
   }
 
+  /**
+   * Computes the expectation value of an operator using AVX instructions.
+   * @param qs Indices of the qubits the operator acts on.
+   * @param matrix The operator matrix.
+   * @param state The state of the system.
+   * @return The computed expectation value.
+   */
+  std::complex<double> ExpectationValue(const std::vector<unsigned>& qs,
+                                        const fp_type* matrix,
+                                        const State& state) const {
+    // Assume qs[0] < qs[1] < qs[2] < ... .
+
+    switch (qs.size()) {
+    case 1:
+      if (qs[0] > 2) {
+        return ExpectationValue1H(qs, matrix, state);
+      } else {
+        return ExpectationValue1L(qs, matrix, state);
+      }
+      break;
+    case 2:
+      if (qs[0] > 2) {
+        return ExpectationValue2HH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        return ExpectationValue2HL(qs, matrix, state);
+      } else {
+        return ExpectationValue2LL(qs, matrix, state);
+      }
+      break;
+    case 3:
+      if (qs[0] > 2) {
+        return ExpectationValue3HHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        return ExpectationValue3HHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        return ExpectationValue3HLL(qs, matrix, state);
+      } else {
+        return ExpectationValue3LLL(qs, matrix, state);
+      }
+      break;
+    case 4:
+      if (qs[0] > 2) {
+        return ExpectationValue4HHHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        return ExpectationValue4HHHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        return ExpectationValue4HHLL(qs, matrix, state);
+      } else {
+        return ExpectationValue4HLLL(qs, matrix, state);
+      }
+      break;
+    case 5:
+      if (qs[0] > 2) {
+        return ExpectationValue5HHHHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        return ExpectationValue5HHHHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        return ExpectationValue5HHHLL(qs, matrix, state);
+      } else {
+        return ExpectationValue5HHLLL(qs, matrix, state);
+      }
+      break;
+    case 6:
+      if (qs[0] > 2) {
+        return ExpectationValue6HHHHHH(qs, matrix, state);
+      } else if (qs[1] > 2) {
+        return ExpectationValue6HHHHHL(qs, matrix, state);
+      } else if (qs[2] > 2) {
+        return ExpectationValue6HHHHLL(qs, matrix, state);
+      } else {
+        return ExpectationValue6HHHLLL(qs, matrix, state);
+      }
+      break;
+    default:
+      // Not implemented.
+      break;
+    }
+
+    return 0;
+  }
+
+  /**
+   * @return The size of SIMD register if applicable.
+   */
+  unsigned SIMDRegisterSize() {
+    return 8;
+  }
+
  private:
   void ApplyGate1H(const std::vector<unsigned>& qs,
                    const fp_type* matrix, State& state) const {
@@ -248,8 +337,6 @@ class SimulatorAVX final {
       }
       xss[i] = a;
     }
-
-    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
@@ -293,6 +380,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -339,10 +428,8 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -382,6 +469,8 @@ class SimulatorAVX final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 3;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -412,8 +501,6 @@ class SimulatorAVX final {
       }
       xss[i] = a;
     }
-
-    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
@@ -457,6 +544,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -521,11 +610,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -566,6 +653,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -612,10 +701,8 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -655,6 +742,8 @@ class SimulatorAVX final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 3;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -685,8 +774,6 @@ class SimulatorAVX final {
       }
       xss[i] = a;
     }
-
-    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
@@ -731,6 +818,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -799,11 +888,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -844,6 +931,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -908,11 +997,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -953,6 +1040,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -999,10 +1088,8 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -1042,6 +1129,8 @@ class SimulatorAVX final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 3;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -1072,8 +1161,6 @@ class SimulatorAVX final {
       }
       xss[i] = a;
     }
-
-    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
@@ -1118,6 +1205,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 7;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -1186,11 +1275,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -1232,6 +1319,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -1300,11 +1389,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -1345,6 +1432,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -1409,11 +1498,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -1455,6 +1542,8 @@ class SimulatorAVX final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 4;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -1485,8 +1574,6 @@ class SimulatorAVX final {
       }
       xss[i] = a;
     }
-
-    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
@@ -1531,6 +1618,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 8;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -1599,11 +1688,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -1645,6 +1732,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 7;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -1713,11 +1802,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -1759,6 +1846,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -1827,11 +1916,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -1873,6 +1960,8 @@ class SimulatorAVX final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 5;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -1903,8 +1992,6 @@ class SimulatorAVX final {
       }
       xss[i] = a;
     }
-
-    fp_type* rstate = state.get();
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
@@ -1950,6 +2037,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 9;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2018,11 +2107,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -2064,6 +2151,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 8;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2132,11 +2221,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -2178,6 +2265,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 7;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2246,11 +2335,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -2292,6 +2379,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2336,8 +2425,6 @@ class SimulatorAVX final {
 
     emaskh = ~emaskh ^ 7;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -2380,6 +2467,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2461,8 +2550,6 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -2501,6 +2588,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2566,11 +2655,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -2610,6 +2697,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2684,11 +2773,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -2728,6 +2815,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2777,8 +2866,6 @@ class SimulatorAVX final {
 
     emaskh = ~emaskh ^ 7;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -2821,6 +2908,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -2906,8 +2995,6 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -2946,6 +3033,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3029,12 +3118,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3074,6 +3161,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3166,12 +3255,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3211,6 +3298,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3276,11 +3365,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3320,6 +3407,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3394,11 +3483,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3438,6 +3525,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3487,8 +3576,6 @@ class SimulatorAVX final {
 
     emaskh = ~emaskh ^ 7;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -3531,6 +3618,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3616,8 +3705,6 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -3656,6 +3743,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3743,12 +3832,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -3788,6 +3875,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -3884,12 +3973,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -3929,6 +4016,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4012,12 +4101,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4057,6 +4144,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4149,12 +4238,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4194,6 +4281,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4259,11 +4348,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4303,6 +4390,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4377,11 +4466,9 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4421,6 +4508,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4470,8 +4559,6 @@ class SimulatorAVX final {
 
     emaskh = ~emaskh ^ 7;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -4514,6 +4601,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 7 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4599,8 +4688,6 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -4639,6 +4726,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 7 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4726,12 +4815,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -4771,6 +4858,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4867,12 +4956,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -4912,6 +4999,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 6 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -4999,12 +5088,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5044,6 +5131,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -5140,12 +5229,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5185,6 +5272,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -5268,12 +5357,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5313,6 +5400,8 @@ class SimulatorAVX final {
         _mm256_store_ps(p0 + xss[l] + 8, in);
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -5405,12 +5494,10 @@ class SimulatorAVX final {
       }
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx, fp_type* rstate) {
+                const __m256i* idx,fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5451,12 +5538,2319 @@ class SimulatorAVX final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 4 + cqs.size() - cl;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
     for_.Run(size, f, w, ms, xss,
              state.num_qubits(), cmaskh, emaskh, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue1H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[2], is[2];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue1L(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    unsigned p[8];
+    __m256i idx[1];
+
+    auto s = StateSpace::Create(4);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 2; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (4 * i + 2 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (2 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[2], is[2];
+
+      auto p0 = rstate + 16 * i;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0);
+        is[2 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue2HH(const std::vector<unsigned>& qs,
+                                           const fp_type* matrix,
+                                           const State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue2HL(const std::vector<unsigned>& qs,
+                                           const fp_type* matrix,
+                                           const State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (8 * i + 4 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 2 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue2LL(const std::vector<unsigned>& qs,
+                                           const fp_type* matrix,
+                                           const State& state) const {
+    unsigned p[8];
+    __m256i idx[3];
+
+    auto s = StateSpace::Create(5);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 4; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 4 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (4 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[4], is[4];
+
+      auto p0 = rstate + 16 * i;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0);
+        is[4 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue3HHH(const std::vector<unsigned>& qs,
+                                            const fp_type* matrix,
+                                            const State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue3HHL(const std::vector<unsigned>& qs,
+                                            const fp_type* matrix,
+                                            const State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (16 * i + 8 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 2 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue3HLL(const std::vector<unsigned>& qs,
+                                            const fp_type* matrix,
+                                            const State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    auto s = StateSpace::Create(7);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 8 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 4 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue3LLL(const std::vector<unsigned>& qs,
+                                            const fp_type* matrix,
+                                            const State& state) const {
+    unsigned p[8];
+    __m256i idx[7];
+
+    auto s = StateSpace::Create(6);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned m = 0; m < 8; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 8 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (8 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[8], is[8];
+
+      auto p0 = rstate + 16 * i;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0);
+        is[8 * l] = _mm256_load_ps(p0 + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 1; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue4HHHH(const std::vector<unsigned>& qs,
+                                             const fp_type* matrix,
+                                             const State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 7;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue4HHHL(const std::vector<unsigned>& qs,
+                                             const fp_type* matrix,
+                                             const State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    auto s = StateSpace::Create(10);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (32 * i + 16 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 2 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue4HHLL(const std::vector<unsigned>& qs,
+                                             const fp_type* matrix,
+                                             const State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    auto s = StateSpace::Create(9);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 16 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 4 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue4HLLL(const std::vector<unsigned>& qs,
+                                             const fp_type* matrix,
+                                             const State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    auto s = StateSpace::Create(8);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 2; ++i) {
+      for (unsigned m = 0; m < 16; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 16 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (16 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[16], is[16];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 8 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue5HHHHH(const std::vector<unsigned>& qs,
+                                              const fp_type* matrix,
+                                              const State& state) const {
+    uint64_t xs[5];
+    uint64_t ms[6];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 5; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
+
+    uint64_t xss[32];
+    for (unsigned i = 0; i < 32; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 5; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]) | (256 * i & ms[5]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 8;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue5HHHHL(const std::vector<unsigned>& qs,
+                                              const fp_type* matrix,
+                                              const State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    auto s = StateSpace::Create(12);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 16; ++i) {
+      for (unsigned m = 0; m < 32; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (64 * i + 32 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (32 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 2 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 7;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue5HHHLL(const std::vector<unsigned>& qs,
+                                              const fp_type* matrix,
+                                              const State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    auto s = StateSpace::Create(11);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 32; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 32 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (32 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 4 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue5HHLLL(const std::vector<unsigned>& qs,
+                                              const fp_type* matrix,
+                                              const State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 3] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 3]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    auto s = StateSpace::Create(10);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned m = 0; m < 32; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (256 * i + 32 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (32 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[32], is[32];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 8 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue6HHHHHH(const std::vector<unsigned>& qs,
+                                               const fp_type* matrix,
+                                               const State& state) const {
+    uint64_t xs[6];
+    uint64_t ms[7];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 6; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[6] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[5] - 1);
+
+    uint64_t xss[64];
+    for (unsigned i = 0; i < 64; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 6; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      __m256 ru, iu, rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]) | (256 * i & ms[5])
+          | (512 * i & ms[6]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        rs[l] = _mm256_load_ps(p0 + xss[l]);
+        is[l] = _mm256_load_ps(p0 + xss[l] + 8);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        ru = _mm256_set1_ps(v[j]);
+        iu = _mm256_set1_ps(v[j + 1]);
+        rn = _mm256_mul_ps(rs[0], ru);
+        in = _mm256_mul_ps(rs[0], iu);
+        rn = _mm256_fnmadd_ps(is[0], iu, rn);
+        in = _mm256_fmadd_ps(is[0], ru, in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          ru = _mm256_set1_ps(v[j]);
+          iu = _mm256_set1_ps(v[j + 1]);
+          rn = _mm256_fmadd_ps(rs[n], ru, rn);
+          in = _mm256_fmadd_ps(rs[n], iu, in);
+          rn = _mm256_fnmadd_ps(is[n], iu, rn);
+          in = _mm256_fmadd_ps(is[n], ru, in);
+
+          j += 2;
+        }
+
+        __m256 v_re = _mm256_fmadd_ps(is[l], in, _mm256_mul_ps(rs[l], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[l], rn, _mm256_mul_ps(rs[l], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 9;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue6HHHHHL(const std::vector<unsigned>& qs,
+                                               const fp_type* matrix,
+                                               const State& state) const {
+    uint64_t xs[5];
+    uint64_t ms[6];
+
+    xs[0] = uint64_t{1} << (qs[1] + 1);
+    ms[0] = (uint64_t{1} << qs[1]) - 1;
+    for (unsigned i = 1; i < 5; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 1] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 1]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
+
+    uint64_t xss[32];
+    for (unsigned i = 0; i < 32; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 5; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[1];
+
+    auto s = StateSpace::Create(14);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]);
+
+    for (unsigned i = 0; i < 1; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 2) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 32; ++i) {
+      for (unsigned m = 0; m < 64; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (128 * i + 64 * k + 2 * (m / 2) + (k + m) % 2);
+        }
+
+        unsigned l = 2 * (64 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]) | (256 * i & ms[5]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rs[2 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[2 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 2; ++j) {
+          rs[2 * l + j] = _mm256_permutevar8x32_ps(rs[2 * l], idx[j - 1]);
+          is[2 * l + j] = _mm256_permutevar8x32_ps(is[2 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 2 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 8;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue6HHHHLL(const std::vector<unsigned>& qs,
+                                               const fp_type* matrix,
+                                               const State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[2] + 1);
+    ms[0] = (uint64_t{1} << qs[2]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 2] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 2]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[3];
+
+    auto s = StateSpace::Create(13);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]);
+
+    for (unsigned i = 0; i < 3; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 4) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 16; ++i) {
+      for (unsigned m = 0; m < 64; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (256 * i + 64 * k + 4 * (m / 4) + (k + m) % 4);
+        }
+
+        unsigned l = 2 * (64 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]) | (128 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[4 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[4 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 4; ++j) {
+          rs[4 * l + j] = _mm256_permutevar8x32_ps(rs[4 * l], idx[j - 1]);
+          is[4 * l + j] = _mm256_permutevar8x32_ps(is[4 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 4 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 7;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
+  }
+
+  std::complex<double> ExpectationValue6HHHLLL(const std::vector<unsigned>& qs,
+                                               const fp_type* matrix,
+                                               const State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[3] + 1);
+    ms[0] = (uint64_t{1} << qs[3]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 3] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 3]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    unsigned p[8];
+    __m256i idx[7];
+
+    auto s = StateSpace::Create(12);
+    __m256* w = (__m256*) s.get();
+    fp_type* wf = (fp_type*) w;
+
+    unsigned qmask = (1 << qs[0]) | (1 << qs[1]) | (1 << qs[2]);
+
+    for (unsigned i = 0; i < 7; ++i) {
+      for (unsigned j = 0; j < 8; ++j) {
+        p[j] = MaskedAdd(j, i + 1, qmask, 8) | (j & (-1 ^ qmask));
+      }
+
+      idx[i] = _mm256_set_epi32(p[7], p[6], p[5], p[4], p[3], p[2], p[1], p[0]);
+    }
+
+    for (unsigned i = 0; i < 8; ++i) {
+      for (unsigned m = 0; m < 64; ++m) {
+        for (unsigned j = 0; j < 8; ++j) {
+          unsigned k = bits::CompressBits(j, 3, qmask);
+          p[j] = 2 * (512 * i + 64 * k + 8 * (m / 8) + (k + m) % 8);
+        }
+
+        unsigned l = 2 * (64 * i + m);
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j] = matrix[p[j]];
+        }
+
+        for (unsigned j = 0; j < 8; ++j) {
+          wf[8 * l + j + 8] = matrix[p[j] + 1];
+        }
+      }
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
+                const uint64_t* ms, const uint64_t* xss,
+                const __m256i* idx,const fp_type* rstate) {
+      __m256 rn, in;
+      __m256 rs[64], is[64];
+
+      uint64_t k = (8 * i & ms[0]) | (16 * i & ms[1]) | (32 * i & ms[2])
+          | (64 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[8 * l] = _mm256_load_ps(p0 + xss[l]);
+        is[8 * l] = _mm256_load_ps(p0 + xss[l] + 8);
+
+        for (unsigned j = 1; j < 8; ++j) {
+          rs[8 * l + j] = _mm256_permutevar8x32_ps(rs[8 * l], idx[j - 1]);
+          is[8 * l + j] = _mm256_permutevar8x32_ps(is[8 * l], idx[j - 1]);
+        }
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = _mm256_mul_ps(rs[0], w[j]);
+        in = _mm256_mul_ps(rs[0], w[j + 1]);
+        rn = _mm256_fnmadd_ps(is[0], w[j + 1], rn);
+        in = _mm256_fmadd_ps(is[0], w[j], in);
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn = _mm256_fmadd_ps(rs[n], w[j], rn);
+          in = _mm256_fmadd_ps(rs[n], w[j + 1], in);
+          rn = _mm256_fnmadd_ps(is[n], w[j + 1], rn);
+          in = _mm256_fmadd_ps(is[n], w[j], in);
+
+          j += 2;
+        }
+
+        unsigned m = 8 * l;
+
+        __m256 v_re = _mm256_fmadd_ps(is[m], in, _mm256_mul_ps(rs[m], rn));
+        __m256 v_im = _mm256_fnmadd_ps(is[m], rn, _mm256_mul_ps(rs[m], in));
+
+        re += detail::HorizontalSumAVX(v_re);
+        im += detail::HorizontalSumAVX(v_im);
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), w, ms, xss, idx, rstate);
   }
 
   static unsigned MaskedAdd(

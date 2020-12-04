@@ -45,6 +45,14 @@ TEST(SimulatorSSETest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorSSE<For>>();
 }
 
+TEST(SimulatorSSETest, ExpectationValue1) {
+  TestExpectationValue1<SimulatorSSE<For>>();
+}
+
+TEST(SimulatorSSETest, ExpectationValue2) {
+  TestExpectationValue2<SimulatorSSE<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
