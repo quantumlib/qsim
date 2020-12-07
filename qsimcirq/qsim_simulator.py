@@ -171,8 +171,8 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       options['s'] = self.get_seed()
       final_state = qsim.qsim_simulate_fullstate(options)
       full_results = sim.sample_state_vector(
-        final_state, range(len(ordered_qubits)), repetitions=repetitions,
-        seed=self._prng)
+        final_state.view(np.complex64), range(len(ordered_qubits)),
+        repetitions=repetitions, seed=self._prng)
 
       for i in range(repetitions):
         for key, op in meas_ops.items():
