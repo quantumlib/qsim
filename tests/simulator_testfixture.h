@@ -15,6 +15,7 @@
 #ifndef SIMULATOR_TESTFIXTURE_H_
 #define SIMULATOR_TESTFIXTURE_H_
 
+#include <cmath>
 #include <complex>
 #include <vector>
 
@@ -725,64 +726,54 @@ void TestMultiQubitGates() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  for (unsigned q = 1; q < 6; ++q) {
+  unsigned max_minq = 4;
+  unsigned max_gate_qubits = 6;
+  unsigned num_qubits = max_gate_qubits + max_minq;
+
+  StateSpace state_space(1);
+  Simulator simulator(1);
+
+  auto state = state_space.Create(num_qubits);
+
+  std::vector<fp_type> matrix;
+  matrix.reserve(1 << (2 * max_gate_qubits + 1));
+
+  std::vector<unsigned> qubits;
+  qubits.reserve(max_gate_qubits);
+
+  unsigned size = 1 << num_qubits;
+  fp_type inorm = std::sqrt(1.0 / (1 << num_qubits));
+
+  for (unsigned q = 1; q <= max_gate_qubits; ++q) {
     unsigned size1 = 1 << q;
     unsigned size2 = size1 * size1;
 
-    std::vector<fp_type> matrix;
-    matrix.reserve(2 * size2);
+    matrix.resize(0);
 
     for (unsigned i = 0; i < 2 * size2; ++i) {
       matrix.push_back(i + 1);
     }
 
-    StateSpace state_space(1);
-    Simulator simulator(1);
+    unsigned mask = (1 << q) - 1;
 
-    unsigned num_qubits = 2 * q;
-    auto state = state_space.Create(num_qubits);
+    for (unsigned k = 0; k <= max_minq; ++k) {
+      qubits.resize(0);
 
-    std::vector<unsigned> qubits;
-    qubits.reserve(q);
-
-    for (unsigned i = 0; i < q; ++i) {
-      qubits.push_back(i);
-    }
-
-    state_space.SetStateUniform(state);
-
-    // Apply q-qubit gate to the first q qubits.
-    simulator.ApplyGate(qubits, matrix.data(), state);
-
-    for (unsigned i = 0; i < size1; ++i) {
-      for (unsigned j = 0; j < size1; ++j) {
-        // Expected results are calculated analytically.
-        fp_type expected_real = size1 * (1 + 2 * j);
-        fp_type expected_imag = expected_real + 1;
-
-        auto a = state_space.GetAmpl(state, i * size1 + j);
-
-        EXPECT_NEAR(std::real(a), expected_real, 1e-6);
-        EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+      for (unsigned i = 0; i < q; ++i) {
+        qubits.push_back(i + k);
       }
-    }
 
-    for (unsigned i = 0; i < q; ++i) {
-      qubits[i] = q + i;
-    }
+      state_space.SetStateUniform(state);
+      simulator.ApplyGate(qubits, matrix.data(), state);
 
-    state_space.SetStateUniform(state);
+      for (unsigned i = 0; i < size; ++i) {
+        unsigned j = (i >> k) & mask;
 
-    // Apply q-qubit gate to the last q qubits.
-    simulator.ApplyGate(qubits, matrix.data(), state);
-
-    for (unsigned i = 0; i < size1; ++i) {
-      for (unsigned j = 0; j < size1; ++j) {
         // Expected results are calculated analytically.
-        fp_type expected_real = size1 * (1 + 2 * j);
-        fp_type expected_imag = expected_real + 1;
+        fp_type expected_real = size2 * (1 + 2 * j) * inorm;
+        fp_type expected_imag = expected_real + size1 * inorm;
 
-        auto a = state_space.GetAmpl(state, j * size1 + i);
+        auto a = state_space.GetAmpl(state, i);
 
         EXPECT_NEAR(std::real(a), expected_real, 1e-6);
         EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);

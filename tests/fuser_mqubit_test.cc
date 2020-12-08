@@ -62,8 +62,8 @@ DummyGate CreateDummyMeasurementGate(unsigned time,
 DummyGate CreateDummyControlledGate(unsigned time,
                                     std::vector<unsigned>&& qubits,
                                     std::vector<unsigned>&& controlled_by) {
-  return
-  {kGateOther, time, 0, std::move(qubits), std::move(controlled_by), {}, false};
+  return {kGateOther, time, 0, std::move(qubits), std::move(controlled_by), {},
+          false};
 }
 
 std::vector<unsigned> GenQubits(unsigned num_qubits, std::mt19937& rgen,
@@ -315,6 +315,8 @@ TEST(FuserMultiQubitTest, Simulation) {
   std::uniform_real_distribution<double> distr(0, 1);
 
   for (auto& gate : circuit) {
+    if (gate.kind == kMeasurement) continue;
+
     if (gate.controlled_by.size() > 0) {
       gate.cmask = (uint64_t{1} << gate.controlled_by.size()) - 1;
     }
@@ -367,6 +369,269 @@ TEST(FuserMultiQubitTest, Simulation) {
     unsigned size = 1 << (num_qubits + 1);
     for (unsigned i = 0; i < size; ++i) {
       EXPECT_NEAR(state0.get()[i], state1.get()[i], 1e-6);
+    }
+  }
+}
+
+TEST(FuserMultiQubitTest, SmallCircuits) {
+  using Fuser = MultiQubitGateFuser<IO, DummyGate>;
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(0, {2, 3}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(2, {0, 1}),
+      CreateDummyGate(2, {2, 3}),
+      CreateDummyGate(3, {1, 2}),
+    };
+
+    param.max_fused_size = 4;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(0, {2, 3}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyControlledGate(1, {0}, {3}),
+      CreateDummyGate(3, {0, 1}),
+      CreateDummyGate(3, {2, 3}),
+      CreateDummyGate(4, {1, 2}),
+    };
+
+    param.max_fused_size = 4;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 3);
+  }
+
+  {
+    unsigned num_qubits = 6;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(0, {2, 3}),
+      CreateDummyGate(0, {4, 5}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(1, {3, 4}),
+      CreateDummyGate(2, {0, 1}),
+      CreateDummyGate(2, {2, 3}),
+      CreateDummyGate(2, {4, 5}),
+      CreateDummyGate(3, {1, 2}),
+      CreateDummyGate(3, {3, 4}),
+    };
+
+    param.max_fused_size = 6;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 6;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(0, {2, 3}),
+      CreateDummyGate(0, {4, 5}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(1, {3, 4}),
+      CreateDummyMeasurementGate(2, {0, 1, 2}),
+      CreateDummyMeasurementGate(2, {4, 5}),
+      CreateDummyGate(3, {0, 1}),
+      CreateDummyGate(3, {2, 3}),
+      CreateDummyGate(3, {4, 5}),
+      CreateDummyGate(4, {1, 2}),
+      CreateDummyGate(4, {3, 4}),
+    };
+
+    param.max_fused_size = 6;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 3);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1, 2}),
+      CreateDummyGate(1, {2, 3}),
+      CreateDummyGate(2, {1, 2}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 2);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(2, {2, 3}),
+      CreateDummyGate(3, {0, 1, 2}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 3);
+  }
+
+  {
+    unsigned num_qubits = 5;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(2, {2, 3}),
+      CreateDummyGate(3, {3, 4}),
+      CreateDummyGate(4, {0, 1, 2, 3}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 3);
+  }
+
+  {
+    unsigned num_qubits = 6;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(0, {2, 3}),
+      CreateDummyGate(0, {4, 5}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(1, {3, 4}),
+      CreateDummyGate(1, {5, 0}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 4);
+  }
+
+  {
+    unsigned num_qubits = 8;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(0, {2, 3}),
+      CreateDummyGate(0, {4, 5}),
+      CreateDummyGate(0, {6, 7}),
+      CreateDummyGate(1, {1, 2}),
+      CreateDummyGate(1, {3, 4}),
+      CreateDummyGate(1, {5, 6}),
+      CreateDummyGate(1, {7, 0}),
+    };
+
+    param.max_fused_size = 5;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 3);
+  }
+
+  {
+    unsigned num_qubits = 3;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {1, 2}),
+      CreateDummyGate(1, {0, 1}),
+      CreateDummyGate(2, {1, 2}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 3;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(1, {0, 2}),
+      CreateDummyGate(2, {1, 2}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 6;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyGate(1, {2, 3}),
+      CreateDummyGate(2, {4, 5}),
+      CreateDummyGate(3, {1, 2}),
+      CreateDummyGate(4, {2, 3, 4}),
+    };
+
+    param.max_fused_size = 3;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 4);
+  }
+
+  {
+    unsigned num_qubits = 7;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {1, 6}),
+      CreateDummyGate(1, {0, 1}),
+      CreateDummyGate(1, {4, 5}),
+      CreateDummyGate(2, {1, 2, 3}),
+      CreateDummyGate(2, {5, 6}),
+      CreateDummyGate(3, {3, 4}),
+    };
+
+    {
+      param.max_fused_size = 3;
+      auto fused_gates = Fuser::FuseGates(
+          param, num_qubits, circuit.begin(), circuit.end());
+
+      EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    }
+
+    {
+      param.max_fused_size = 5;
+      auto fused_gates = Fuser::FuseGates(
+          param, num_qubits, circuit.begin(), circuit.end());
+
+      EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
     }
   }
 }
