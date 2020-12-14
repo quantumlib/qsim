@@ -275,7 +275,7 @@ TEST(FuserMultiQubitTest, RandomCircuit1) {
 }
 
 TEST(FuserMultiQubitTest, RandomCircuit2) {
-  using Fuser = MultiQubitGateFuser<IO, DummyGate>;
+  using Fuser = MultiQubitGateFuser<IO, const DummyGate*>;
 
   unsigned num_qubits = 40;
   unsigned depth = 6400;
@@ -283,13 +283,21 @@ TEST(FuserMultiQubitTest, RandomCircuit2) {
   // Random circuit of approximately 100000 gates.
   auto circuit = GenerateRandomCircuit2(num_qubits, depth, 6);
 
+  // Vector of pointers to gates.
+  std::vector<const DummyGate*> pcircuit;
+  pcircuit.reserve(circuit.size());
+
+  for (const auto& gate : circuit) {
+    pcircuit.push_back(&gate);
+  }
+
   Fuser::Parameter param;
   param.verbosity = 0;
 
   for (unsigned q = 2; q <= 6; ++q) {
     param.max_fused_size = q;
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end());
+        param, num_qubits, pcircuit.begin(), pcircuit.end());
 
     EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
   }
@@ -297,7 +305,7 @@ TEST(FuserMultiQubitTest, RandomCircuit2) {
   for (unsigned q = 2; q <= 6; ++q) {
     param.max_fused_size = q;
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), {300, 700, 2400});
+        param, num_qubits, pcircuit.begin(), pcircuit.end(), {300, 700, 2400});
 
     EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
   }

@@ -813,9 +813,17 @@ TEST(FuserBasicTest, MeasurementGate) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 17);
 
-  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
+  // Vector of pointers to gates.
+  std::vector<const GateQSim<float>*> pgates;
+  pgates.reserve(circuit.gates.size());
+
+  for (const auto& gate : circuit.gates) {
+    pgates.push_back(&gate);
+  }
+
+  using Fuser = BasicGateFuser<IO, const GateQSim<float>*>;
   Fuser::Parameter param;
-  auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits, circuit.gates);
+  auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits, pgates);
 
   EXPECT_EQ(fused_gates.size(), 11);
 
@@ -972,9 +980,17 @@ TEST(FuserBasicTest, ControlledGate) {
   EXPECT_EQ(circuit.num_qubits, 5);
   EXPECT_EQ(circuit.gates.size(), 13);
 
-  using Fuser = BasicGateFuser<IO, GateQSim<float>>;
+  // Vector of pointers to gates.
+  std::vector<const GateQSim<float>*> pgates;
+  pgates.reserve(circuit.gates.size());
+
+  for (const auto& gate : circuit.gates) {
+    pgates.push_back(&gate);
+  }
+
+  using Fuser = BasicGateFuser<IO, const GateQSim<float>*>;
   Fuser::Parameter param;
-  auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits, circuit.gates);
+  auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits, pgates);
 
   EXPECT_EQ(fused_gates.size(), 8);
 
