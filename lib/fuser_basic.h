@@ -16,6 +16,7 @@
 #define FUSER_BASIC_H_
 
 #include <map>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -36,11 +37,11 @@ struct BasicGateFuser final {
  private:
   using RGate = typename std::remove_pointer<Gate>::type;
 
-  static const RGate& ConstRefToGate(const RGate& gate) {
+  static const RGate& GateToConstRef(const RGate& gate) {
     return gate;
   }
 
-  static const RGate& ConstRefToGate(const RGate* gate) {
+  static const RGate& GateToConstRef(const RGate* gate) {
     return *gate;
   }
 
@@ -167,11 +168,11 @@ struct BasicGateFuser final {
         gates_lat[k].reserve(128);
       }
 
-      auto prev_time = ConstRefToGate(*gate_it).time;
+      auto prev_time = GateToConstRef(*gate_it).time;
 
       // Fill gates_seq and gates_lat in.
       for (; gate_it < glast; ++gate_it) {
-        const auto& gate = ConstRefToGate(*gate_it);
+        const auto& gate = GateToConstRef(*gate_it);
 
         if (gate.time > times[l]) break;
 
@@ -318,7 +319,7 @@ struct BasicGateFuser final {
     std::size_t last = 0;
 
     for (auto gate_it = gfirst; gate_it < glast; ++gate_it) {
-      const auto& gate = ConstRefToGate(*gate_it);
+      const auto& gate = GateToConstRef(*gate_it);
 
       if (gate.kind == gate::kMeasurement
           && (times2.size() == 0 || times2.back() < gate.time)) {
@@ -336,8 +337,8 @@ struct BasicGateFuser final {
 
     const auto& back = *(glast - 1);
 
-    if (times2.size() == 0 || times2.back() < ConstRefToGate(back).time) {
-      times2.push_back(ConstRefToGate(back).time);
+    if (times2.size() == 0 || times2.back() < GateToConstRef(back).time) {
+      times2.push_back(GateToConstRef(back).time);
     }
 
     return times2;

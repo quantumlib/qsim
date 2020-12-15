@@ -38,11 +38,11 @@ class MultiQubitGateFuser {
  private:
   using RGate = typename std::remove_pointer<Gate>::type;
 
-  static const RGate& ConstRefToGate(const RGate& gate) {
+  static const RGate& GateToConstRef(const RGate& gate) {
     return gate;
   }
 
-  static const RGate& ConstRefToGate(const RGate* gate) {
+  static const RGate& GateToConstRef(const RGate* gate) {
     return *gate;
   }
 
@@ -291,11 +291,11 @@ class MultiQubitGateFuser {
       uint64_t max_gate_size = 0;
       GateF* last_mea_gate = nullptr;
 
-      auto prev_time = ConstRefToGate(*gate_it).time;
+      auto prev_time = GateToConstRef(*gate_it).time;
 
       // Iterate over input gates.
       for (; gate_it < glast; ++gate_it) {
-        const auto& gate = ConstRefToGate(*gate_it);
+        const auto& gate = GateToConstRef(*gate_it);
 
         if (gate.time > epochs[l]) break;
 
@@ -426,7 +426,7 @@ class MultiQubitGateFuser {
     std::size_t last = 0;
 
     for (auto gate_it = gfirst; gate_it < glast; ++gate_it) {
-      const auto& gate = ConstRefToGate(*gate_it);
+      const auto& gate = GateToConstRef(*gate_it);
 
       if (gate.kind == gate::kMeasurement
           && (epochs.size() == 0 || epochs.back() < gate.time)) {
@@ -444,8 +444,8 @@ class MultiQubitGateFuser {
 
     const auto& back = *(glast - 1);
 
-    if (epochs.size() == 0 || epochs.back() < ConstRefToGate(back).time) {
-      epochs.push_back(ConstRefToGate(back).time);
+    if (epochs.size() == 0 || epochs.back() < GateToConstRef(back).time) {
+      epochs.push_back(GateToConstRef(back).time);
     }
 
     return epochs;
