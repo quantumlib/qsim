@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -30,10 +31,21 @@ namespace qsim {
  * Multi-qubit gate fuser.
  * Measurement gates with equal times are fused together.
  * User-defined controlled gates (controlled_by.size() > 0) are not fused.
+ * The template parameter Gate can be Gate type or a pointer to Gate type.
  */
 template <typename IO, typename Gate>
 class MultiQubitGateFuser {
  private:
+  using RGate = typename std::remove_pointer<Gate>::type;
+
+  static const RGate& GateToConstRef(const RGate& gate) {
+    return gate;
+  }
+
+  static const RGate& GateToConstRef(const RGate* gate) {
+    return *gate;
+  }
+
   // Auxillary classes and structs.
 
   // Manages doubly-linked lists.
@@ -81,11 +93,11 @@ class MultiQubitGateFuser {
 
   // Intermediate representation of a fused gate.
   struct GateF {
-    const Gate* parent;
+    const RGate* parent;
     std::vector<unsigned> qubits;
-    std::vector<const Gate*> gates; // Gates that get fused to this gate.
-    std::vector<Link*> links;       // Gate "lattice" links.
-    uint64_t mask;                  // Qubit mask.
+    std::vector<const RGate*> gates;  // Gates that get fused to this gate.
+    std::vector<Link*> links;         // Gate "lattice" links.
+    uint64_t mask;                    // Qubit mask.
     unsigned visited;
   };
 
@@ -131,7 +143,7 @@ class MultiQubitGateFuser {
   };
 
  public:
-  using GateFused = qsim::GateFused<Gate>;
+  using GateFused = qsim::GateFused<RGate>;
 
   /**
    * User-specified parameters for gate fusion.
@@ -153,7 +165,8 @@ class MultiQubitGateFuser {
    * boundaries while fusing gates, use the other version of this method below.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
-   * @param gates The gates to be fused.
+   * @param gates The gates (or pointers to the gates) to be fused.
+   *   Gate times should be ordered.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -169,7 +182,8 @@ class MultiQubitGateFuser {
    * ApplyFusedGate is called on the output.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
-   * @param gates The gates to be fused. Gate times should be ordered.
+   * @param gates The gates (or pointers to the gates) to be fused.
+   *   Gate times should be ordered.
    * @param times_to_split_at Ordered list of time steps at which to separate
    *   fused gates. Each element of the output will contain gates from a single
    *   'window' in this list.
@@ -191,8 +205,8 @@ class MultiQubitGateFuser {
    * boundaries while fusing gates, use the other version of this method below.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
-   * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates in.
-   *   Gate times should be ordered.
+   * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
+   *   (or pointers to gates) in. Gate times should be ordered.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -209,8 +223,8 @@ class MultiQubitGateFuser {
    * ApplyFusedGate is called on the output.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
-   * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates in.
-   *   Gate times should be ordered.
+   * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
+   *   (or pointers to gates) in. Gate times should be ordered.
    * @param times_to_split_at Ordered list of time steps at which to separate
    *   fused gates. Each element of the output will contain gates from a single
    *   'window' in this list.
@@ -277,11 +291,11 @@ class MultiQubitGateFuser {
       uint64_t max_gate_size = 0;
       GateF* last_mea_gate = nullptr;
 
-      auto prev_time = gate_it->time;
+      auto prev_time = GateToConstRef(*gate_it).time;
 
       // Iterate over input gates.
       for (; gate_it < glast; ++gate_it) {
-        const auto& gate = *gate_it;
+        const auto& gate = GateToConstRef(*gate_it);
 
         if (gate.time > epochs[l]) break;
 
@@ -412,7 +426,7 @@ class MultiQubitGateFuser {
     std::size_t last = 0;
 
     for (auto gate_it = gfirst; gate_it < glast; ++gate_it) {
-      const auto& gate = *gate_it;
+      const auto& gate = GateToConstRef(*gate_it);
 
       if (gate.kind == gate::kMeasurement
           && (epochs.size() == 0 || epochs.back() < gate.time)) {
@@ -428,8 +442,10 @@ class MultiQubitGateFuser {
       }
     }
 
-    if (epochs.size() == 0 || epochs.back() < (glast - 1)->time) {
-      epochs.push_back((glast - 1)->time);
+    const auto& back = *(glast - 1);
+
+    if (epochs.size() == 0 || epochs.back() < GateToConstRef(back).time) {
+      epochs.push_back(GateToConstRef(back).time);
     }
 
     return epochs;
@@ -661,7 +677,7 @@ class MultiQubitGateFuser {
     scratch.gates.push_back(&fgate);
   }
 
-  static void AddGatesFromNext(std::vector<const Gate*>& gates, GateF& fgate) {
+  static void AddGatesFromNext(std::vector<const RGate*>& gates, GateF& fgate) {
     for (auto gate : gates) {
       fgate.gates.push_back(gate);
     }
@@ -900,7 +916,7 @@ class MultiQubitGateFuser {
 
   // Fuse smaller gates with fgate back in gate time.
   static void FusePrev(unsigned pass, GateF& fgate) {
-    std::vector<const Gate*> gates;
+    std::vector<const RGate*> gates;
     gates.reserve(fgate.gates.capacity());
 
     auto neighbor = [](const Link* link) -> const Link* {
@@ -925,7 +941,7 @@ class MultiQubitGateFuser {
 
   template <typename R, typename Neighbor>
   static void FusePrevOrNext(unsigned pass, Neighbor neighb, GateF& fgate,
-                             std::vector<const Gate*>& gates) {
+                             std::vector<const RGate*>& gates) {
     uint64_t bad_mask = 0;
     auto links = fgate.links;
 
