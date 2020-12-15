@@ -310,7 +310,7 @@ output vector: (0.5+0.5j)|0⟩ + (0.5-0.5j)|1⟩
 ```
 
 You have successfully simulated a quantum circuit on Google Cloud Platform using
-a Singularity container.
+a Docker container.
 
 ### Running your own script
 
