@@ -261,14 +261,21 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
           qubit_order: Determines the canonical ordering of the qubits. This is
             often used in specifying the initial state, i.e. the ordering of the
             computational basis states.
-          initial_state: The initial state for the simulation. The form of this
-            state depends on the simulation implementation.  See documentation
-            of the implementing class for details.
+          initial_state: The initial state for the simulation. This is currently
+            unsupported in qsim; the recommended workaround is to prepend the
+            circuit with X gates as necessary.
 
       Returns:
           List of SimulationTrialResults for this run, one for each
           possible parameter resolver.
+
+      Raises:
+          ValueError: if an initial_state is provided.
       """
+    if initial_state is not None:
+      raise ValueError(
+        f'initial_state is not supported; received {initial_state}')
+
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
 

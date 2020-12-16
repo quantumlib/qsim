@@ -103,6 +103,40 @@ class MainTest(unittest.TestCase):
         result.state_vector(), cirq_result.state_vector())
 
 
+  def test_cirq_qsim_simulate_sweep(self):
+    # Pick qubits.
+    a, b = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+    ]
+    x = sympy.Symbol('x')
+
+    # Create a circuit.
+    cirq_circuit = cirq.Circuit(
+        cirq.Moment([
+            cirq.X(a)**x,
+            cirq.H(b),       # Hadamard.
+        ]),
+        cirq.Moment([
+            cirq.CX(a, b),   # ControlX.
+        ]),
+    )
+
+    params = [{x: 0.25}, {x: 0.5}, {x: 0.75}]
+    qsimSim = qsimcirq.QSimSimulator()
+    qsim_result = qsimSim.simulate_sweep(cirq_circuit, params)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate_sweep(cirq_circuit, params)
+
+    for i in range(len(qsim_result)):
+      assert cirq.linalg.allclose_up_to_global_phase(
+        qsim_result[i].state_vector(), cirq_result[i].state_vector())
+
+    # initial_state is not supported.
+    with self.assertRaisesRegex(ValueError, 'initial_state'):
+      qsimSim.simulate_sweep(cirq_circuit, params, initial_state=0b01)
+
+
   def test_cirq_qsim_run(self):
     # Pick qubits.
     a, b, c, d = [
