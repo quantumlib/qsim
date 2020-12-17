@@ -24,6 +24,7 @@ cc_library(
         "io.h",
         "matrix.h",
         "parfor.h",
+        "qtrajectory.h",
         "run_qsim.h",
         "run_qsimh.h",
         "seqfor.h",
@@ -381,6 +382,14 @@ cc_library(
         ":gate",
         ":gate_appl",
     ],
+)
+
+### Quantum trajectory simulator ###
+
+cc_library(
+    name = "qtrajectory",
+    hdrs = ["qtrajectory.h"],
+    deps = [":gate"],
 )
 
 ### UnitarySpace libraries ###

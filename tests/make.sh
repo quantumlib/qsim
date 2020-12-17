@@ -26,8 +26,9 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o expect_test.x
 g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_basic_test.x fuser_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_mqubit_test.x fuser_mqubit_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o gates_qsim_test.x gates_qsim_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -o matrix_test.x matrix_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o hybrid_test.x hybrid_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -o matrix_test.x matrix_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o qtrajectory_test.x qtrajectory_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsim_test.x run_qsim_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsimh_test.x run_qsimh_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_avx_test.x simulator_avx_test.cc -lgtest -lpthread
