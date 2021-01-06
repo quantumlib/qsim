@@ -45,7 +45,8 @@ void control_last_gate(const std::vector<unsigned>& qubits,
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
-py::array_t<float> qsim_simulate_fullstate(const py::dict &options);
+py::array_t<float> qsim_simulate_fullstate(
+      const py::dict &options, int64_t input_state);
 py::array_t<float> qsim_simulate_fullstate(
       const py::dict &options, const py::array_t<float> &input_vector);
 
@@ -58,7 +59,7 @@ PYBIND11_MODULE(qsim, m) {
 
   m.def("qsim_simulate", &qsim_simulate, "Call the qsim simulator");
   m.def("qsim_simulate_fullstate",
-        static_cast<py::array_t<float>(*)(const py::dict&)>(
+        static_cast<py::array_t<float>(*)(const py::dict&, int64_t)>(
             &qsim_simulate_fullstate),
         "Call the qsim simulator for full state vector simulation");
   m.def("qsim_simulate_fullstate",

@@ -169,7 +169,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         )
       options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
       options['s'] = self.get_seed()
-      final_state = qsim.qsim_simulate_fullstate(options)
+      final_state = qsim.qsim_simulate_fullstate(options, 0)
       full_results = sim.sample_state_vector(
         final_state.view(np.complex64), range(len(ordered_qubits)),
         repetitions=repetitions, seed=self._prng)
@@ -273,7 +273,9 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       Raises:
           TypeError: if an invalid initial_state is provided.
       """
-    if not isinstance(initial_state, (type(None), int, np.ndarray)):
+    if initial_state is None:
+      initial_state = 0
+    if not isinstance(initial_state, (int, np.ndarray)):
       raise TypeError('initial_state must be an int or state vector.')
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
@@ -305,10 +307,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         qubit: index for index, qubit in enumerate(ordered_qubits)
       }
 
-      if initial_state is None:
-        qsim_state = qsim.qsim_simulate_fullstate(options)
-      else:
-        qsim_state = qsim.qsim_simulate_fullstate(options, input_vector)
+      qsim_state = qsim.qsim_simulate_fullstate(options, input_vector)
       assert qsim_state.dtype == np.float32
       assert qsim_state.ndim == 1
       final_state = QSimSimulatorState(qsim_state, qubit_map)
