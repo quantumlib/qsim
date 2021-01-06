@@ -376,6 +376,11 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 }
 
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
+  return qsim_simulate_fullstate(options, py::array_t<float>());
+}
+
+py::array_t<float> qsim_simulate_fullstate(
+    const py::dict &options, const py::array_t<float> &input_vector) {
   Circuit<Cirq::GateCirq<float>> circuit;
   try {
     circuit = getCircuit(options);
@@ -410,9 +415,21 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
     IO::errorf("Memory allocation failed.\n");
     return {};
   }
+  bool has_input_vector = input_vector.size() > 0;
+  if (has_input_vector) {
+    py::buffer_info buf = input_vector.request();
+    float* ptr = (float*)buf.ptr;
+    for (int i = 0; i < input_vector.size(); ++i) {
+      fsv[i] = ptr[i];
+    }
+  }
 
   State state = state_space.Create(fsv, circuit.num_qubits);
-  state_space.SetStateZero(state);
+  if (has_input_vector) {
+    state_space.NormalToInternalOrder(state);
+  } else {
+    state_space.SetStateZero(state);
+  }
 
   if (!Runner::Run(param, circuit, state)) {
     IO::errorf("qsim full state simulation of the circuit errored out.\n");

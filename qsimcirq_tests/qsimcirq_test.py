@@ -132,9 +132,23 @@ class MainTest(unittest.TestCase):
       assert cirq.linalg.allclose_up_to_global_phase(
         qsim_result[i].state_vector(), cirq_result[i].state_vector())
 
-    # initial_state is not supported.
-    with self.assertRaisesRegex(ValueError, 'initial_state'):
-      qsimSim.simulate_sweep(cirq_circuit, params, initial_state=0b01)
+    # initial_state supports bitstrings.
+    qsim_result = qsimSim.simulate_sweep(cirq_circuit, params,
+                                         initial_state=0b01)
+    cirq_result = qsimSim.simulate_sweep(cirq_circuit, params,
+                                         initial_state=0b01)
+    for i in range(len(qsim_result)):
+      assert cirq.linalg.allclose_up_to_global_phase(
+        qsim_result[i].state_vector(), cirq_result[i].state_vector())
+
+    # initial_state supports state vectors.
+    qsim_result = qsimSim.simulate_sweep(
+      cirq_circuit, params, initial_state=np.asarray([0.5j, 0.5, -0.5j, -0.5]))
+    cirq_result = qsimSim.simulate_sweep(
+      cirq_circuit, params, initial_state=np.asarray([0.5j, 0.5, -0.5j, -0.5]))
+    for i in range(len(qsim_result)):
+      assert cirq.linalg.allclose_up_to_global_phase(
+        qsim_result[i].state_vector(), cirq_result[i].state_vector())
 
 
   def test_cirq_qsim_run(self):

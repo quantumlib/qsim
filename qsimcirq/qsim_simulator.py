@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from cirq import (
   circuits,
@@ -247,7 +247,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       program: circuits.Circuit,
       params: study.Sweepable,
       qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
-      initial_state: Any = None,
+      initial_state: Optional[Union[int, np.ndarray]] = None,
   ) -> List['SimulationTrialResult']:
     """Simulates the supplied Circuit.
 
@@ -261,21 +261,20 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
           qubit_order: Determines the canonical ordering of the qubits. This is
             often used in specifying the initial state, i.e. the ordering of the
             computational basis states.
-          initial_state: The initial state for the simulation. This is currently
-            unsupported in qsim; the recommended workaround is to prepend the
-            circuit with X gates as necessary.
+          initial_state: The initial state for the simulation. This can either
+            be an integer representing a pure state (e.g. 11010) or a numpy
+            array containing the full state vector. If none is provided, this
+            is assumed to be the all-zeros state.
 
       Returns:
           List of SimulationTrialResults for this run, one for each
           possible parameter resolver.
 
       Raises:
-          ValueError: if an initial_state is provided.
+          TypeError: if an invalid initial_state is provided.
       """
-    if initial_state is not None:
-      raise ValueError(
-        f'initial_state is not supported; received {initial_state}')
-
+    if not isinstance(initial_state, (type(None), int, np.ndarray)):
+      raise TypeError('initial_state must be an int or state vector.')
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
 
@@ -283,6 +282,13 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     options.update(self.qsim_options)
 
     param_resolvers = study.to_resolvers(params)
+    num_qubits = len(program.all_qubits())
+    input_vector = None
+    if isinstance(initial_state, int):
+      input_vector = np.zeros(2**num_qubits * 2, dtype=np.float32)
+      input_vector[initial_state * 2] = 1
+    elif isinstance(initial_state, np.ndarray):
+      input_vector = initial_state.view(np.float32)
 
     trials_results = []
     for prs in param_resolvers:
@@ -299,7 +305,10 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         qubit: index for index, qubit in enumerate(ordered_qubits)
       }
 
-      qsim_state = qsim.qsim_simulate_fullstate(options)
+      if initial_state is None:
+        qsim_state = qsim.qsim_simulate_fullstate(options)
+      else:
+        qsim_state = qsim.qsim_simulate_fullstate(options, input_vector)
       assert qsim_state.dtype == np.float32
       assert qsim_state.ndim == 1
       final_state = QSimSimulatorState(qsim_state, qubit_map)
