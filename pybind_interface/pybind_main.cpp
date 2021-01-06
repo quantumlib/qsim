@@ -466,8 +466,7 @@ py::array_t<float> qsim_simulate_fullstate(
     IO::errorf("Memory allocation failed.\n");
     return {};
   }
-  py::buffer_info buf = input_vector.request();
-  float* ptr = (float*)buf.ptr;
+  const float* ptr = input_vector.data();
   for (int i = 0; i < input_vector.size(); ++i) {
     fsv[i] = ptr[i];
   }
