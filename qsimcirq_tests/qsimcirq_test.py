@@ -135,20 +135,38 @@ class MainTest(unittest.TestCase):
     # initial_state supports bitstrings.
     qsim_result = qsimSim.simulate_sweep(cirq_circuit, params,
                                          initial_state=0b01)
-    cirq_result = qsimSim.simulate_sweep(cirq_circuit, params,
+    cirq_result = cirqSim.simulate_sweep(cirq_circuit, params,
                                          initial_state=0b01)
     for i in range(len(qsim_result)):
       assert cirq.linalg.allclose_up_to_global_phase(
         qsim_result[i].state_vector(), cirq_result[i].state_vector())
 
     # initial_state supports state vectors.
+    initial_state = np.asarray([0.5j, 0.5, -0.5j, -0.5], dtype=np.complex64)
     qsim_result = qsimSim.simulate_sweep(
-      cirq_circuit, params, initial_state=np.asarray([0.5j, 0.5, -0.5j, -0.5]))
-    cirq_result = qsimSim.simulate_sweep(
-      cirq_circuit, params, initial_state=np.asarray([0.5j, 0.5, -0.5j, -0.5]))
+      cirq_circuit, params, initial_state=initial_state)
+    cirq_result = cirqSim.simulate_sweep(
+      cirq_circuit, params, initial_state=initial_state)
     for i in range(len(qsim_result)):
       assert cirq.linalg.allclose_up_to_global_phase(
         qsim_result[i].state_vector(), cirq_result[i].state_vector())
+
+  def test_input_vector_validation(self):
+    cirq_circuit = cirq.Circuit(
+      cirq.X(cirq.LineQubit(0)), cirq.X(cirq.LineQubit(1))
+    )
+    params = [{}]
+    qsimSim = qsimcirq.QSimSimulator()
+
+    with self.assertRaises(ValueError):
+      initial_state = np.asarray([0.25]*16, dtype=np.complex64)
+      qsim_result = qsimSim.simulate_sweep(
+        cirq_circuit, params, initial_state=initial_state)
+
+    with self.assertRaises(TypeError):
+      initial_state = np.asarray([0.5]*4)
+      qsim_result = qsimSim.simulate_sweep(
+        cirq_circuit, params, initial_state=initial_state)
 
 
   def test_cirq_qsim_run(self):

@@ -285,12 +285,13 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
     param_resolvers = study.to_resolvers(params)
     num_qubits = len(program.all_qubits())
-    input_vector = None
-    if isinstance(initial_state, int):
-      input_vector = np.zeros(2**num_qubits * 2, dtype=np.float32)
-      input_vector[initial_state * 2] = 1
-    elif isinstance(initial_state, np.ndarray):
+    if isinstance(initial_state, np.ndarray):
+      if initial_state.dtype != np.complex64:
+        raise TypeError(f'initial_state vector must have dtype np.complex64.')
       input_vector = initial_state.view(np.float32)
+      if len(input_vector) != 2**num_qubits * 2:
+        raise ValueError(f'initial_state vector size must match number of qubits.'
+          f'Expected: {2**num_qubits * 2} Received: {len(input_vector)}')
 
     trials_results = []
     for prs in param_resolvers:
@@ -307,7 +308,10 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         qubit: index for index, qubit in enumerate(ordered_qubits)
       }
 
-      qsim_state = qsim.qsim_simulate_fullstate(options, input_vector)
+      if isinstance(initial_state, int):
+        qsim_state = qsim.qsim_simulate_fullstate(options, initial_state)
+      elif isinstance(initial_state, np.ndarray):
+        qsim_state = qsim.qsim_simulate_fullstate(options, input_vector)
       assert qsim_state.dtype == np.float32
       assert qsim_state.ndim == 1
       final_state = QSimSimulatorState(qsim_state, qubit_map)

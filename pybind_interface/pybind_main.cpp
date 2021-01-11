@@ -377,7 +377,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 
 // Simulate from a "pure" starting state.
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
-                                           int64_t input_state) {
+                                           uint64_t input_state) {
   Circuit<Cirq::GateCirq<float>> circuit;
   try {
     circuit = getCircuit(options);
@@ -415,7 +415,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
 
   State state = state_space.Create(fsv, circuit.num_qubits);
   state_space.SetAllZeros(state);
-  state.get()[input_state] = 1;
+  state_space.SetAmpl(state, input_state, 1, 0);
 
   if (!Runner::Run(param, circuit, state)) {
     IO::errorf("qsim full state simulation of the circuit errored out.\n");
@@ -467,9 +467,12 @@ py::array_t<float> qsim_simulate_fullstate(
     return {};
   }
   const float* ptr = input_vector.data();
-  for (int i = 0; i < input_vector.size(); ++i) {
+  auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
+              float* fsv) {
     fsv[i] = ptr[i];
-  }
+  };
+
+  For(param.num_threads).Run(input_vector.size(), f, ptr, fsv);
 
   State state = state_space.Create(fsv, circuit.num_qubits);
   state_space.NormalToInternalOrder(state);
