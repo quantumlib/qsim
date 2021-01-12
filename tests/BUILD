@@ -43,7 +43,6 @@ cc_test(
     name = "expect_test",
     srcs = ["expect_test.cc"],
     deps = [
-        ":gates_cirq_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:expect",
         "//lib:formux",
@@ -148,6 +147,25 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:matrix",
     ],
+)
+
+cc_test(
+    name = "qtrajectory_test",
+    srcs = ["qtrajectory_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:formux",
+        "//lib:fuser_mqubit",
+        "//lib:gate_appl",
+        "//lib:gates_cirq",
+        "//lib:io",
+        "//lib:qtrajectory",
+        "//lib:simulator",
+    ],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
 )
 
 cc_test(

@@ -192,7 +192,7 @@ struct Measurement {
   static constexpr char name[] = "m";
   static constexpr bool symmetric = false;
 
-  template <typename Qubits>
+  template <typename Qubits = std::vector<unsigned>>
   static Gate Create(unsigned time, Qubits&& qubits) {
     return CreateGate<Gate, Measurement>(time, std::forward<Qubits>(qubits));
   }
