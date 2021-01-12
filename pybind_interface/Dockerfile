@@ -3,7 +3,10 @@ FROM qsim
 
 # Install additional requirements
 RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
-RUN pip3 install cirq
+
+# The --force flag is used mainly so that the old numpy installation from pybind
+# gets replaced with the one cirq requires
+RUN pip3 install cirq --force
 
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/

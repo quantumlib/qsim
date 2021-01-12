@@ -375,7 +375,9 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   return amplitudes;
 }
 
-py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
+// Simulate from a "pure" starting state.
+py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
+                                           uint64_t input_state) {
   Circuit<Cirq::GateCirq<float>> circuit;
   try {
     circuit = getCircuit(options);
@@ -412,7 +414,68 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options) {
   }
 
   State state = state_space.Create(fsv, circuit.num_qubits);
-  state_space.SetStateZero(state);
+  state_space.SetAllZeros(state);
+  state_space.SetAmpl(state, input_state, 1, 0);
+
+  if (!Runner::Run(param, circuit, state)) {
+    IO::errorf("qsim full state simulation of the circuit errored out.\n");
+    return {};
+  }
+
+  state_space.InternalToNormalOrder(state);
+
+  auto capsule = py::capsule(
+      fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
+  return py::array_t<float>(fsv_size, fsv, capsule);
+}
+
+// Simulate from an initial state vector.
+py::array_t<float> qsim_simulate_fullstate(
+    const py::dict &options, const py::array_t<float> &input_vector) {
+  Circuit<Cirq::GateCirq<float>> circuit;
+  try {
+    circuit = getCircuit(options);
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
+                            Simulator>;
+
+  Runner::Parameter param;
+  try {
+    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
+    param.verbosity = parseOptions<unsigned>(options, "v\0");
+    param.seed = parseOptions<unsigned>(options, "s\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  StateSpace state_space(param.num_threads);
+
+  float *fsv;
+  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
+  const uint64_t buff_size = state_space.MinSize(circuit.num_qubits);
+  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
+    IO::errorf("Memory allocation failed.\n");
+    return {};
+  }
+  const float* ptr = input_vector.data();
+  auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
+              float* fsv) {
+    fsv[i] = ptr[i];
+  };
+
+  For(param.num_threads).Run(input_vector.size(), f, ptr, fsv);
+
+  State state = state_space.Create(fsv, circuit.num_qubits);
+  state_space.NormalToInternalOrder(state);
 
   if (!Runner::Run(param, circuit, state)) {
     IO::errorf("qsim full state simulation of the circuit errored out.\n");
