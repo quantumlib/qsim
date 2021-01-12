@@ -51,7 +51,7 @@ struct KrausOperator {
   double prob;
 
   /**
-   * Sequence of operations that represet the Kraus operator. This can be just
+   * Sequence of operations that represent the Kraus operator. This can be just
    * one operation.
    */
   std::vector<Gate> ops;
@@ -70,7 +70,7 @@ template <typename Gate>
 using NoisyCircuit = std::vector<Channel<Gate>>;
 
 /**
- * Qauntum trajectory simulator.
+ * Quantum trajectory simulator.
  */
 template <typename IO, typename Gate,
           template <typename, typename> class FuserT, typename Simulator,
