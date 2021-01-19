@@ -34,8 +34,8 @@ void FillMatrix(UnitarySpace& us, Unitary& u, int n) {
   // Intentionally create non-unitary matrix with ascending elements.
   for(int i = 0; i < (1 << n); i++) {
     for(int j = 0; j < (1 << n); j++) {
-      us.SetEntry(u, i, j, 2 * i * (1 << n) + 2 * j,
-        2 * i * (1 << n) + 2 * j + 1);
+      auto val = 2 * i * (1 << n) + 2 * j;
+      us.SetEntry(u, i, j, val, val + 1);
     }
   }
 }

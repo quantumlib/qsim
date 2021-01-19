@@ -87,10 +87,10 @@ class UnitaryCalculatorBasic final {
    * @param matrix Matrix representation of the gate to be applied.
    * @param state The state of the system, to be updated by this method.
    */
-  void ApplyGate(const std::vector<unsigned>& qs,
-                 const fp_type* matrix, Unitary& state) const {
+  void ApplyGate(const std::vector<unsigned>& qs, const fp_type* matrix,
+                 Unitary& state) const {
     if (qs.size() == 1) {
-       ApplyGate1(qs[0], matrix, state);
+      ApplyGate1(qs[0], matrix, state);
     } else if (qs.size() == 2) {
       // Assume qs[0] < qs[1].
       ApplyGate2(qs[0], qs[1], matrix, state);
@@ -121,68 +121,73 @@ class UnitaryCalculatorBasic final {
    * @param state The state of the system, to be updated by this method.
    */
   void ApplyGate1(unsigned q0, const fp_type* matrix, Unitary& state) const {
-    const uint64_t sizei = uint64_t(1) << num_qubits_;
-    const uint64_t sizek = uint64_t(1) << q0;
+    uint64_t xs[1];
+    uint64_t ms[2];
 
-    auto data = state.get();
+    xs[0] = uint64_t{1} << (q0 + 1);
+    ms[0] = (uint64_t{1} << q0) - 1;
+    ms[1] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[0] - 1);
 
-    auto f = [](unsigned n, unsigned m, uint64_t l, unsigned num_qubits,
-                uint64_t sizei, uint64_t sizek,
-                const fp_type* matrix, fp_type* data) {
-      uint64_t l1 = l >> (num_qubits - 1);
-      uint64_t k = l1 & (sizek - 1);
-      uint64_t i = 2 * (l1 ^ k);
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
 
-      uint64_t l2 = l & (sizei / 2 - 1);
-      uint64_t kk = l2 & (sizek - 1);
-      uint64_t ii = 2 * (l2 ^ kk);
+    auto f = [](unsigned n, unsigned m, uint64_t ii, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss, unsigned n_qb,
+                unsigned sqrt_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[4], is[4];
 
-      uint64_t si = i | k;
-      uint64_t si2 = ii | kk;
-      uint64_t p = si;
-      uint64_t pp = si2;
-      fp_type m00_r = data[2 * p * sizei + 2 * pp];
-      fp_type m00_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m01_r = data[2 * p * sizei + 2 * pp];
-      fp_type m01_i = data[2 * p * sizei + 2 * pp + 1];
+      auto row_size = uint64_t{1} << n_qb;
 
-      p = si | sizek;
-      pp = si2;
-      fp_type m10_r = data[2 * p * sizei + 2 * pp];
-      fp_type m10_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m11_r = data[2 * p * sizei + 2 * pp];
-      fp_type m11_i = data[2 * p * sizei + 2 * pp + 1];
+      uint64_t i = ii % sqrt_size;
+      uint64_t j = ii / sqrt_size;
 
-      // End of extraction. Begin computation.
-      p = si;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m00_r, m00_i, m10_r, m10_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m00_r, m00_i, m10_r, m10_i, 0, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m01_r, m01_i, m11_r, m11_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m01_r, m01_i, m11_r, m11_i, 0, matrix);
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]);
+      uint64_t kk = (1 * j & ms[0]) | (2 * j & ms[1]);
 
-      p = si | sizek;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m00_r, m00_i, m10_r, m10_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m00_r, m00_i, m10_r, m10_i, 1, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m01_r, m01_i, m11_r, m11_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m01_r, m01_i, m11_r, m11_i, 1, matrix);
+      auto p0 = rstate + row_size * 2 * kk + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        for (unsigned k = 0; k < 2; ++k) {
+          rs[2 * l + k] = *(p0 + xss[l] * row_size + xss[k]);
+          is[2 * l + k] = *(p0 + xss[l] * row_size + xss[k] + 1);
+        }
+      }
+
+      for (unsigned l = 0; l < 2; l++) {
+        uint64_t j = 0;
+        for (unsigned k = 0; k < 2; ++k) {
+          rn = rs[l] * v[j] - is[l] * v[j + 1];
+          in = rs[l] * v[j + 1] + is[l] * v[j];
+          j += 2;
+
+          for (unsigned p = 1; p < 2; ++p) {
+            rn += rs[2 * p + l] * v[j] - is[2 * p + l] * v[j + 1];
+            in += rs[2 * p + l] * v[j + 1] + is[2 * p + l] * v[j];
+
+            j += 2;
+          }
+          *(p0 + xss[k] * row_size + xss[l]) = rn;
+          *(p0 + xss[k] * row_size + xss[l] + 1) = in;
+        }
+      }
     };
 
-    for_.Run((sizei / 2) * (sizei / 2), f,
-             num_qubits_, sizei, sizek, matrix, data);
+    fp_type* rstate = state.get();
+
+    unsigned k = 1;
+    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size * size, f, matrix, ms, xss, num_qubits_, size, rstate);
   }
 
   /**
@@ -197,209 +202,76 @@ class UnitaryCalculatorBasic final {
   void ApplyGate2(unsigned q0, unsigned q1, const fp_type* matrix,
                   Unitary& state) const {
     // Assume q0 < q1.
-    const uint64_t sizei = uint64_t(1) << num_qubits_;
-    const uint64_t sizej = uint64_t(1) << q1;
-    const uint64_t sizek = uint64_t(1) << q0;
+    uint64_t xs[2];
+    uint64_t ms[3];
 
-    auto data = state.get();
+    xs[0] = uint64_t{1} << (q0 + 1);
+    ms[0] = (uint64_t{1} << q0) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (q1 + 1);
+      ms[i] = ((uint64_t{1} << q1) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[1] - 1);
 
-    auto f = [](unsigned n, unsigned m, uint64_t l, unsigned num_qubits,
-                uint64_t sizei, uint64_t sizej, uint64_t sizek,
-                const fp_type* matrix, fp_type* data) {
-      uint64_t l1 = l >> (num_qubits - 2);
-      uint64_t k = l1 & (sizek - 1);
-      uint64_t t = l1 & (sizej / 2 - 1);
-      uint64_t j = 2 * (t ^ k);
-      uint64_t i = 4 * (l1 ^ t);
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
 
-      uint64_t l2 = l & (sizei / 4 - 1);
-      uint64_t kk = l2 & (sizek - 1);
-      uint64_t tt = l2 & (sizej / 2 - 1);
-      uint64_t jj = 2 * (tt ^ kk);
-      uint64_t ii = 4 * (l2 ^ tt);
+    auto f = [q0, q1](unsigned n, unsigned m, uint64_t ii, const fp_type* v,
+                      const uint64_t* ms, const uint64_t* xss, unsigned n_qb,
+                      unsigned sqrt_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[16], is[16];
 
-      uint64_t si = i | j | k;
-      uint64_t si2 = ii | jj | kk;
-      uint64_t p = si;
-      uint64_t pp = si2;
-      fp_type m00_r = data[2 * p * sizei + 2 * pp];
-      fp_type m00_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m01_r = data[2 * p * sizei + 2 * pp];
-      fp_type m01_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m02_r = data[2 * p * sizei + 2 * pp];
-      fp_type m02_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m03_r = data[2 * p * sizei + 2 * pp];
-      fp_type m03_i = data[2 * p * sizei + 2 * pp + 1];
+      auto row_size = uint64_t{1} << n_qb;
+      uint64_t i = ii % sqrt_size;
+      uint64_t j = ii / sqrt_size;
 
-      p = si | sizek;
-      pp = si2;
-      fp_type m10_r = data[2 * p * sizei + 2 * pp];
-      fp_type m10_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m11_r = data[2 * p * sizei + 2 * pp];
-      fp_type m11_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m12_r = data[2 * p * sizei + 2 * pp];
-      fp_type m12_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m13_r = data[2 * p * sizei + 2 * pp];
-      fp_type m13_i = data[2 * p * sizei + 2 * pp + 1];
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2]);
+      uint64_t kk = (1 * j & ms[0]) | (2 * j & ms[1]) | (4 * j & ms[2]);
 
-      p = si | sizej;
-      pp = si2;
-      fp_type m20_r = data[2 * p * sizei + 2 * pp];
-      fp_type m20_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m21_r = data[2 * p * sizei + 2 * pp];
-      fp_type m21_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m22_r = data[2 * p * sizei + 2 * pp];
-      fp_type m22_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m23_r = data[2 * p * sizei + 2 * pp];
-      fp_type m23_i = data[2 * p * sizei + 2 * pp + 1];
+      auto p0 = rstate + row_size * 2 * kk + 2 * k;
 
-      p |= sizek;
-      pp = si2;
-      fp_type m30_r = data[2 * p * sizei + 2 * pp];
-      fp_type m30_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m31_r = data[2 * p * sizei + 2 * pp];
-      fp_type m31_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m32_r = data[2 * p * sizei + 2 * pp];
-      fp_type m32_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m33_r = data[2 * p * sizei + 2 * pp];
-      fp_type m33_i = data[2 * p * sizei + 2 * pp + 1];
+      for (unsigned l = 0; l < 4; ++l) {
+        for (unsigned k = 0; k < 4; ++k) {
+          rs[4 * l + k] = *(p0 + xss[l] * row_size + xss[k]);
+          is[4 * l + k] = *(p0 + xss[l] * row_size + xss[k] + 1);
+        }
+      }
 
-      // End of extraction. Begin computation.
-      p = si;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 0, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 0, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 0, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 0, matrix);
+      for (unsigned l = 0; l < 4; l++) {
+        uint64_t j = 0;
+        for (unsigned k = 0; k < 4; ++k) {
+          rn = rs[l] * v[j] - is[l] * v[j + 1];
+          in = rs[l] * v[j + 1] + is[l] * v[j];
+          j += 2;
 
-      p = si | sizek;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 1, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 1, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 1, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 1, matrix);
+          for (unsigned p = 1; p < 4; ++p) {
+            rn += rs[4 * p + l] * v[j] - is[4 * p + l] * v[j + 1];
+            in += rs[4 * p + l] * v[j + 1] + is[4 * p + l] * v[j];
 
-      p = si | sizej;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 2, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 2, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 2, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 2, matrix);
-
-      p |= sizek;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 3, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 3, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 3, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 3, matrix);
+            j += 2;
+          }
+          *(p0 + xss[k] * row_size + xss[l]) = rn;
+          *(p0 + xss[k] * row_size + xss[l] + 1) = in;
+        }
+      }
     };
 
-    for_.Run((sizei / 4) * (sizei / 4), f,
-             num_qubits_, sizei, sizej, sizek, matrix, data);
+    fp_type* rstate = state.get();
+
+    unsigned k = 2;
+    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    for_.Run(size * size, f, matrix, ms, xss, num_qubits_, size, rstate);
   }
 
   For for_;
