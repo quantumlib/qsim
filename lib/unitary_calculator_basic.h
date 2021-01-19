@@ -21,48 +21,7 @@
 #include "unitaryspace_basic.h"
 
 namespace qsim {
-
 namespace unitary {
-
-namespace {
-
-template <typename FP = float>
-inline const FP dot_one_r(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const int i, const FP* gate) {
-  return m_0i_r * gate[i * 4 + 0] - m_0i_i * gate[i * 4 + 1] +
-         m_1i_r * gate[i * 4 + 2] - m_1i_i * gate[i * 4 + 3];
-}
-
-template <typename FP = float>
-inline const FP dot_one_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const int i, const FP* gate) {
-  return m_0i_r * gate[i * 4 + 1] + m_0i_i * gate[i * 4 + 0] +
-         m_1i_r * gate[i * 4 + 3] + m_1i_i * gate[i * 4 + 2];
-}
-
-template <typename FP = float>
-inline const FP dot_two_r(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const FP m_2i_r, const FP m_2i_i,
-                          const FP m_3i_r, const FP m_3i_i, const int i,
-                          const FP* gate) {
-  return m_0i_r * gate[i * 8 + 0] - m_0i_i * gate[i * 8 + 1] +
-         m_1i_r * gate[i * 8 + 2] - m_1i_i * gate[i * 8 + 3] +
-         m_2i_r * gate[i * 8 + 4] - m_2i_i * gate[i * 8 + 5] +
-         m_3i_r * gate[i * 8 + 6] - m_3i_i * gate[i * 8 + 7];
-}
-
-template <typename FP = float>
-inline const FP dot_two_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const FP m_2i_r, const FP m_2i_i,
-                          const FP m_3i_r, const FP m_3i_i, const int i,
-                          const FP* gate) {
-  return m_0i_r * gate[i * 8 + 1] + m_0i_i * gate[i * 8 + 0] +
-         m_1i_r * gate[i * 8 + 3] + m_1i_i * gate[i * 8 + 2] +
-         m_2i_r * gate[i * 8 + 5] + m_2i_i * gate[i * 8 + 4] +
-         m_3i_r * gate[i * 8 + 7] + m_3i_i * gate[i * 8 + 6];
-}
-
-}  // namespace
 
 /**
  * Quantum circuit unitary calculator without vectorization.
