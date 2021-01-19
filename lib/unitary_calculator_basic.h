@@ -109,10 +109,10 @@ class UnitaryCalculatorBasic final {
       uint64_t i = ii % sqrt_size;
       uint64_t j = ii / sqrt_size;
 
-      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]);
-      uint64_t kk = (1 * j & ms[0]) | (2 * j & ms[1]);
+      uint64_t col_loc = (1 * i & ms[0]) | (2 * i & ms[1]);
+      uint64_t row_loc = (1 * j & ms[0]) | (2 * j & ms[1]);
 
-      auto p0 = rstate + row_size * 2 * kk + 2 * k;
+      auto p0 = rstate + row_size * 2 * row_loc + 2 * col_loc;
 
       for (unsigned l = 0; l < 2; ++l) {
         for (unsigned k = 0; k < 2; ++k) {
@@ -193,10 +193,10 @@ class UnitaryCalculatorBasic final {
       uint64_t i = ii % sqrt_size;
       uint64_t j = ii / sqrt_size;
 
-      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2]);
-      uint64_t kk = (1 * j & ms[0]) | (2 * j & ms[1]) | (4 * j & ms[2]);
+      uint64_t col_loc = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2]);
+      uint64_t row_loc = (1 * j & ms[0]) | (2 * j & ms[1]) | (4 * j & ms[2]);
 
-      auto p0 = rstate + row_size * 2 * kk + 2 * k;
+      auto p0 = rstate + row_size * 2 * row_loc + 2 * col_loc;
 
       for (unsigned l = 0; l < 4; ++l) {
         for (unsigned k = 0; k < 4; ++k) {
