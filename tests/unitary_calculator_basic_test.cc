@@ -29,6 +29,10 @@ TEST(UnitaryCalculatorTest, ApplyGate1) {
   TestApplyGate1<UnitaryCalculatorBasic<For, float>>();
 }
 
+TEST(UnitaryCalculatorTest, ApplyControlledGate1) {
+  TestApplyControlledGate1<UnitaryCalculatorBasic<For, float>>();
+}
+
 TEST(UnitaryCalculatorTest, ApplyGate2) {
   TestApplyGate2<UnitaryCalculatorBasic<For, float>>();
 }
