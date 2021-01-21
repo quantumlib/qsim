@@ -58,7 +58,6 @@ class UnitaryCalculatorBasic final {
 
   /**
    * Applies a controlled gate using non-vectorized instructions.
-   * This function is not implemented.
    * @param qs Indices of the qubits affected by this gate.
    * @param cqs Indices of control qubits.
    * @param cmask Bit mask of control qubit values.
@@ -68,17 +67,103 @@ class UnitaryCalculatorBasic final {
   void ApplyControlledGate(const std::vector<unsigned>& qs,
                            const std::vector<unsigned>& cqs, uint64_t cmask,
                            const fp_type* matrix, Unitary& state) const {
-    // Not implemented.
+    if (qs.size() == 1) {
+      ApplyControlledGate1(qs[0], cqs, cmask, matrix, state);
+    }
+    // Implement 2 qubit version.
   }
 
  private:
-  /**
-   * Applies a single-qubit gate using non-vectorized instructions.
-   * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-   * @param q0 Index of the qubit affected by this gate.
-   * @param matrix Matrix representation of the gate to be applied.
-   * @param state The state of the system, to be updated by this method.
-   */
+  void ApplyControlledGate1(unsigned q0, const std::vector<unsigned>& cqs,
+                            uint64_t cmask, const fp_type* matrix,
+                            State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (q0 + 1);
+    ms[0] = (uint64_t{1} << q0) - 1;
+    ms[1] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, num_qubits_, emaskh);
+
+    emaskh |= uint64_t{1} << q0;
+
+    emaskh = ~emaskh;
+
+    auto f = [](unsigned n, unsigned m, uint64_t ii, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss, unsigned n_qb,
+                unsigned sqrt_size, uint64_t cmaskh, uint64_t emaskh,
+                fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[4], is[4];
+
+      auto row_size = uint64_t{1} << n_qb;
+
+      uint64_t i = ii % sqrt_size;
+      uint64_t j = ii / sqrt_size;
+
+      uint64_t col_loc = (1 * i & ms[0]) | (2 * i & ms[1]);
+      uint64_t row_loc = bits::ExpandBits(j, n_qb, emaskh) | cmaskh;
+
+      auto p0 = rstate + row_size * 2 * row_loc + 2 * col_loc;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        for (unsigned k = 0; k < 2; ++k) {
+          rs[2 * l + k] = *(p0 + xss[l] * row_size + xss[k]);
+          is[2 * l + k] = *(p0 + xss[l] * row_size + xss[k] + 1);
+        }
+      }
+
+      for (unsigned l = 0; l < 2; l++) {
+        uint64_t j = 0;
+        for (unsigned k = 0; k < 2; ++k) {
+          rn = rs[l] * v[j] - is[l] * v[j + 1];
+          in = rs[l] * v[j + 1] + is[l] * v[j];
+          j += 2;
+
+          for (unsigned p = 1; p < 2; ++p) {
+            rn += rs[2 * p + l] * v[j] - is[2 * p + l] * v[j + 1];
+            in += rs[2 * p + l] * v[j + 1] + is[2 * p + l] * v[j];
+
+            j += 2;
+          }
+          *(p0 + xss[k] * row_size + xss[l]) = rn;
+          *(p0 + xss[k] * row_size + xss[l] + 1) = in;
+        }
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 1 + cqs.size();
+    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    unsigned kk = 1;
+    unsigned nn = num_qubits_ > kk ? num_qubits_ - kk : 0;
+    uint64_t size2 = uint64_t{1} << nn;
+
+    for_.Run(size * size2, f, matrix, ms, xss, num_qubits_, size2, cmaskh,
+             emaskh, rstate);
+  }
+
   void ApplyGate1(unsigned q0, const fp_type* matrix, Unitary& state) const {
     uint64_t xs[1];
     uint64_t ms[2];
@@ -149,15 +234,6 @@ class UnitaryCalculatorBasic final {
     for_.Run(size * size, f, matrix, ms, xss, num_qubits_, size, rstate);
   }
 
-  /**
-   * Apply a two-qubit gate using non-vectorized instructions.
-   * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-   * Note that qubit order is inverted in this operation.
-   * @param q0 Index of the second qubit affected by this gate.
-   * @param q1 Index of the first qubit affected by this gate.
-   * @param matrix Matrix representation of the gate to be applied.
-   * @param state The state of the system, to be updated by this method.
-   */
   void ApplyGate2(unsigned q0, unsigned q1, const fp_type* matrix,
                   Unitary& state) const {
     // Assume q0 < q1.
