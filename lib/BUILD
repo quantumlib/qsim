@@ -414,7 +414,10 @@ cc_library(
 cc_library(
     name = "unitary_calculator_basic",
     hdrs = ["unitary_calculator_basic.h"],
-    deps = [":unitaryspace_basic"],
+    deps = [
+        ":bits",
+        ":unitaryspace_basic"
+    ],
 )
 
 ### Unitary mux header ###
