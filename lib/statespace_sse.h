@@ -167,8 +167,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       valu = _mm_set1_ps(v);
     }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, __m128 val0, __m128 valu,
-                fp_type* p) {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                __m128 val0, __m128 valu, fp_type* p) {
       _mm_store_ps(p + 8 * i, valu);
       _mm_store_ps(p + 8 * i + 4, val0);
     };
@@ -187,8 +187,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     return std::complex<fp_type>(state.get()[p], state.get()[p + 4]);
   }
 
-  static void SetAmpl(State& state, uint64_t i,
-                      const std::complex<fp_type>& ampl) {
+  static void SetAmpl(
+      State& state, uint64_t i, const std::complex<fp_type>& ampl) {
     uint64_t p = (8 * (i / 4)) + (i % 4);
     state.get()[p] = std::real(ampl);
     state.get()[p + 4] = std::imag(ampl);
@@ -236,8 +236,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       return false;
     }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* p1,
-                fp_type* p2) {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, fp_type* p2) {
       __m128 re1 = _mm_load_ps(p1 + 8 * i);
       __m128 im1 = _mm_load_ps(p1 + 8 * i + 4);
       __m128 re2 = _mm_load_ps(p2 + 8 * i);
@@ -270,14 +270,14 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     Base::for_.Run(MinSize(state.num_qubits()) / 8, f, r, state.get());
   }
 
-  std::complex<double> InnerProduct(const State& state1,
-                                    const State& state2) const {
+  std::complex<double> InnerProduct(
+      const State& state1, const State& state2) const {
     if (state1.num_qubits() != state2.num_qubits()) {
       return std::nan("");
     }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* p1,
-                const fp_type* p2) -> std::complex<double> {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> std::complex<double> {
       __m128 re1 = _mm_load_ps(p1 + 8 * i);
       __m128 im1 = _mm_load_ps(p1 + 8 * i + 4);
       __m128 re2 = _mm_load_ps(p2 + 8 * i);
@@ -293,8 +293,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<std::complex<double>>;
-    return Base::for_.RunReduce(MinSize(state1.num_qubits()) / 8, f, Op(),
-                                state1.get(), state2.get());
+    return Base::for_.RunReduce(
+        MinSize(state1.num_qubits()) / 8, f, Op(), state1.get(), state2.get());
   }
 
   double RealInnerProduct(const State& state1, const State& state2) const {
@@ -302,8 +302,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       return std::nan("");
     }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* p1,
-                const fp_type* p2) -> double {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* p1, const fp_type* p2) -> double {
       __m128 re1 = _mm_load_ps(p1 + 8 * i);
       __m128 im1 = _mm_load_ps(p1 + 8 * i + 4);
       __m128 re2 = _mm_load_ps(p2 + 8 * i);
@@ -315,13 +315,13 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduce(MinSize(state1.num_qubits()) / 8, f, Op(),
-                                state1.get(), state2.get());
+    return Base::for_.RunReduce(
+        MinSize(state1.num_qubits()) / 8, f, Op(), state1.get(), state2.get());
   }
 
   template <typename DistrRealType = double>
-  std::vector<uint64_t> Sample(const State& state, uint64_t num_samples,
-                               unsigned seed) const {
+  std::vector<uint64_t> Sample(
+      const State& state, uint64_t num_samples, unsigned seed) const {
     std::vector<uint64_t> bitstrings;
 
     if (num_samples > 0) {
@@ -378,9 +378,9 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    double norm =
-        Base::for_.RunReduce(MinSize(state.num_qubits()) / 8, f1, Op(), mr.mask,
-                             mr.bits, zero, state.get());
+    double norm = Base::for_.RunReduce(MinSize(state.num_qubits()) / 8, f1,
+                                       Op(), mr.mask, mr.bits, zero,
+                                       state.get());
 
     __m128 renorm = _mm_set1_ps(1.0 / std::sqrt(norm));
 
@@ -398,8 +398,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       _mm_store_ps(p + 8 * i + 4, im);
     };
 
-    Base::for_.Run(MinSize(state.num_qubits()) / 8, f2, mr.mask, mr.bits,
-                   renorm, zero, state.get());
+    Base::for_.Run(MinSize(state.num_qubits()) / 8, f2,
+                   mr.mask, mr.bits, renorm, zero, state.get());
   }
 
   std::vector<double> PartialNorms(const State& state) const {
@@ -413,12 +413,12 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     using Op = std::plus<double>;
-    return Base::for_.RunReduceP(MinSize(state.num_qubits()) / 8, f, Op(),
-                                 state.get());
+    return Base::for_.RunReduceP(
+        MinSize(state.num_qubits()) / 8, f, Op(), state.get());
   }
 
-  uint64_t FindMeasuredBits(unsigned m, double r, uint64_t mask,
-                            const State& state) const {
+  uint64_t FindMeasuredBits(
+      unsigned m, double r, uint64_t mask, const State& state) const {
     double csum = 0;
 
     uint64_t k0 = Base::for_.GetIndex0(MinSize(state.num_qubits()) / 8, m);
