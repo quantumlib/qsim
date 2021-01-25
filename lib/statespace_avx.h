@@ -253,7 +253,8 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
                 uint64_t bitsv, __m256 re_n, __m256 im_n, fp_type* p) {
-      __m256 ml = (__m256)detail::GetZeroMaskAVX(8 * i, maskv, bitsv);
+      __m256 ml =
+          _mm256_castsi256_ps(detail::GetZeroMaskAVX(8 * i, maskv, bitsv));
 
       __m256 re = _mm256_load_ps(p + 16 * i);
       __m256 im = _mm256_load_ps(p + 16 * i + 8);
