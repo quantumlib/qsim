@@ -41,6 +41,10 @@ TEST(SimulatorAVXTest, ApplyControlGate) {
   TestApplyControlGate<SimulatorAVX<For>>();
 }
 
+TEST(SimulatorAVXTest, ApplyControlGateDagger) {
+  TestApplyControlGateDagger<SimulatorAVX<For>>();
+}
+
 TEST(SimulatorAVXTest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorAVX<For>>();
 }

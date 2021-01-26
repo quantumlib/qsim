@@ -41,6 +41,10 @@ TEST(SimulatorBasicTest, ApplyControlGate) {
   TestApplyControlGate<SimulatorBasic<For, double>>();
 }
 
+TEST(SimulatorBasicTest, ApplyControlGateDagger) {
+  TestApplyControlGateDagger<SimulatorBasic<For, double>>();
+}
+
 TEST(SimulatorBasicTest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorBasic<For, double>>();
 }
