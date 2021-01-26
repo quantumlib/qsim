@@ -70,6 +70,9 @@ TEST(StateSpaceAVXTest, BulkSetAmplExclude) {
   TestBulkSetAmplitudeExclusion<StateSpaceAVX<For>>();
 }
 
+TEST(StateSpaceAVXTest, BulkSetAmplDefault) {
+  TestBulkSetAmplitudeDefault<StateSpaceAVX<For>>();
+}
 
 }  // namespace qsim
 

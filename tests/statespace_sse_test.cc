@@ -70,6 +70,10 @@ TEST(StateSpaceSSETest, BulkSetAmplExclude) {
   TestBulkSetAmplitudeExclusion<StateSpaceSSE<For>>();
 }
 
+TEST(StateSpaceSSETest, BulkSetAmplDefault) {
+  TestBulkSetAmplitudeDefault<StateSpaceSSE<For>>();
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
