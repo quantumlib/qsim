@@ -902,11 +902,11 @@ void TestApplyControlGateDagger() {
     {-0.18774915, 0.12311842},
   };
 
-  for (unsigned i = 0; i < size; i++) {
+  for (unsigned i = 0; i < size; ++i) {
     state_space.SetAmpl(state, i, final_amplitudes[i][0], final_amplitudes[i][1]);
   }
 
-  for (int i = gates.size() - 1; i >= 0; i--) {
+  for (int i = gates.size() - 1; i >= 0; --i) {
     ApplyGateDagger(simulator, gates[i], state);
   }
 
