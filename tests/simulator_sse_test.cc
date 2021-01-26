@@ -41,6 +41,10 @@ TEST(SimulatorSSETest, ApplyControlGate) {
   TestApplyControlGate<SimulatorSSE<For>>();
 }
 
+TEST(SimulatorSSETest, ApplyControlGateDagger) {
+  TestApplyControlGateDagger<SimulatorSSE<For>>();
+}
+
 TEST(SimulatorSSETest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorSSE<For>>();
 }
