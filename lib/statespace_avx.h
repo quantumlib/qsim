@@ -239,6 +239,37 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     state.get()[k + 8] = im;
   }
 
+  // Sets state[i] = val where (i & mask) == bits
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits,
+                   const std::complex<fp_type>& val) const {
+    BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val));
+  }
+
+  // Sets state[i] = complex(re, im) where (i & mask) == bits
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits, fp_type re,
+                   fp_type im) const {
+    __m256 re_reg = _mm256_set1_ps(re);
+    __m256 im_reg = _mm256_set1_ps(im);
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
+                uint64_t bitsv, __m256 re_n, __m256 im_n, fp_type* p) {
+      __m256 ml =
+          _mm256_castsi256_ps(detail::GetZeroMaskAVX(8 * i, maskv, bitsv));
+
+      __m256 re = _mm256_load_ps(p + 16 * i);
+      __m256 im = _mm256_load_ps(p + 16 * i + 8);
+
+      re = _mm256_blendv_ps(re, re_n, ml);
+      im = _mm256_blendv_ps(im, im_n, ml);
+
+      _mm256_store_ps(p + 16 * i, re);
+      _mm256_store_ps(p + 16 * i + 8, im);
+    };
+
+    Base::for_.Run(MinSize(state.num_qubits()) / 16, f, mask, bits, re_reg,
+                   im_reg, state.get());
+  }
+
   // Does the equivalent of dest += src elementwise.
   bool Add(const State& src, State& dest) const {
     if (src.num_qubits() != dest.num_qubits()) {

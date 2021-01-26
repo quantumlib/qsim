@@ -200,6 +200,36 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     state.get()[p + 4] = im;
   }
 
+  // Sets state[i] = val where (i & mask) == bits
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits,
+                   const std::complex<fp_type>& val) const {
+    BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val));
+  }
+
+  // Sets state[i] = complex(re, im) where (i & mask) == bits
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits, fp_type re,
+                   fp_type im) const {
+    __m128 re_reg = _mm_set1_ps(re);
+    __m128 im_reg = _mm_set1_ps(im);
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
+                uint64_t bitsv, __m128 re_n, __m128 im_n, fp_type* p) {
+      __m128 ml = _mm_castsi128_ps(detail::GetZeroMaskSSE(4 * i, maskv, bitsv));
+
+      __m128 re = _mm_load_ps(p + 8 * i);
+      __m128 im = _mm_load_ps(p + 8 * i + 4);
+
+      re = _mm_blendv_ps(re, re_n, ml);
+      im = _mm_blendv_ps(im, im_n, ml);
+
+      _mm_store_ps(p + 8 * i, re);
+      _mm_store_ps(p + 8 * i + 4, im);
+    };
+
+    Base::for_.Run(MinSize(state.num_qubits()) / 8, f, mask, bits, re_reg,
+                   im_reg, state.get());
+  }
+
   // Does the equivalent of dest += src elementwise.
   bool Add(const State& src, State& dest) const {
     if (src.num_qubits() != dest.num_qubits()) {
