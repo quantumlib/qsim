@@ -96,26 +96,30 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
     state.get()[p + 1] = im;
   }
 
-  // Sets state[i] = val where (i & mask) == bits
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
   void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits,
-                   const std::complex<fp_type>& val) const {
-    BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val));
+                   const std::complex<fp_type>& val,
+                   bool exclude = false) const {
+    BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val), exclude);
   }
 
-  // Sets state[i] = complex(re, im) where (i & mask) == bits
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
   void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits, fp_type re,
-                   fp_type im) const {
+                   fp_type im, bool exclude = false) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
-                uint64_t bitsv, fp_type re_n, fp_type im_n, fp_type* p) {
+                uint64_t bitsv, fp_type re_n, fp_type im_n, bool excludev,
+                fp_type* p) {
       auto s = p + 2 * i;
       bool in_mask = (i & maskv) == bitsv;
-
+      in_mask ^= excludev;
       s[0] = in_mask ? re_n : s[0];
       s[1] = in_mask ? im_n : s[1];
     };
 
     Base::for_.Run(MinSize(state.num_qubits()) / 2, f, mask, bits, re, im,
-                   state.get());
+                   exclude, state.get());
   }
 
   // Does the equivalent of dest += src elementwise.

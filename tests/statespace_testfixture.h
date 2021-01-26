@@ -820,7 +820,7 @@ void TestBulkSetAmplitude() {
   for(int i = 0; i < 8; i++) {
     state_space.SetAmpl(state, i, 1, 1);
   }
-  state_space.BulkSetAmpl(state, 1, 0, 0, 0);
+  state_space.BulkSetAmpl(state, 1, 0, 0, 0, false);
   EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
   EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
   EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
@@ -833,7 +833,7 @@ void TestBulkSetAmplitude() {
   for(int i = 0; i < 8; i++) {
     state_space.SetAmpl(state, i, 1, 1);
   }
-  state_space.BulkSetAmpl(state, 2, 0, 0, 0);
+  state_space.BulkSetAmpl(state, 2, 0, 0, 0, false);
   EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
   EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
   EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
@@ -846,7 +846,7 @@ void TestBulkSetAmplitude() {
   for(int i = 0; i < 8; i++) {
     state_space.SetAmpl(state, i, 1, 1);
   }
-  state_space.BulkSetAmpl(state, 4, 0, 0, 0);
+  state_space.BulkSetAmpl(state, 4, 0, 0, 0, false);
   EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
   EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
   EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
@@ -859,7 +859,7 @@ void TestBulkSetAmplitude() {
   for(int i = 0; i < 8; i++) {
     state_space.SetAmpl(state, i, 1, 1);
   }
-  state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0);
+  state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0, false);
   EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
   EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
   EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
@@ -868,6 +868,67 @@ void TestBulkSetAmplitude() {
   EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
   EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
   EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
+}
+
+template <typename StateSpace>
+void TestBulkSetAmplitudeExclusion() {
+  using State = typename StateSpace::State;
+  unsigned num_qubits = 3;
+
+  StateSpace state_space(1);
+
+  State state = state_space.Create(num_qubits);
+  for(int i = 0; i < 8; i++) {
+    state_space.SetAmpl(state, i, 1, 1);
+  }
+  state_space.BulkSetAmpl(state, 1, 0, 0, 0, true);
+  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
+
+  for(int i = 0; i < 8; i++) {
+    state_space.SetAmpl(state, i, 1, 1);
+  }
+  state_space.BulkSetAmpl(state, 2, 0, 0, 0, true);
+  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
+
+  for(int i = 0; i < 8; i++) {
+    state_space.SetAmpl(state, i, 1, 1);
+  }
+  state_space.BulkSetAmpl(state, 4, 0, 0, 0, true);
+  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
+
+  for(int i = 0; i < 8; i++) {
+    state_space.SetAmpl(state, i, 1, 1);
+  }
+  state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0, true);
+  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
 }
 
 }  // namespace qsim

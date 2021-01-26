@@ -62,8 +62,12 @@ TEST(StateSpaceSSETest, InvalidStateSize) {
   TestInvalidStateSize<StateSpaceSSE<For>>();
 }
 
-TEST(StateSpaceBasicTest, BulkSetAmpl) {
+TEST(StateSpaceSSETest, BulkSetAmpl) {
   TestBulkSetAmplitude<StateSpaceSSE<For>>();
+}
+
+TEST(StateSpaceBasicTest, BulkSetAmplExclude) {
+  TestBulkSetAmplitudeExclusion<StateSpaceSSE<For>>();
 }
 
 }  // namespace qsim

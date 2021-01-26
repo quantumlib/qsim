@@ -200,21 +200,30 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     state.get()[p + 4] = im;
   }
 
-  // Sets state[i] = val where (i & mask) == bits
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
   void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits,
-                   const std::complex<fp_type>& val) const {
+                   const std::complex<fp_type>& val,
+                   bool exclude = false) const {
     BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val));
   }
 
-  // Sets state[i] = complex(re, im) where (i & mask) == bits
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
   void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits, fp_type re,
-                   fp_type im) const {
+                   fp_type im, bool exclude = false) const {
     __m128 re_reg = _mm_set1_ps(re);
     __m128 im_reg = _mm_set1_ps(im);
+    __m128i exclude_reg = _mm_setzero_si128();
+    if (exclude) {
+      exclude_reg = _mm_cmpeq_epi32(exclude_reg, exclude_reg);
+    }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
-                uint64_t bitsv, __m128 re_n, __m128 im_n, fp_type* p) {
-      __m128 ml = _mm_castsi128_ps(detail::GetZeroMaskSSE(4 * i, maskv, bitsv));
+                uint64_t bitsv, __m128 re_n, __m128 im_n, __m128i exclude_n,
+                fp_type* p) {
+      __m128 ml = _mm_castsi128_ps(_mm_xor_si128(
+          detail::GetZeroMaskSSE(4 * i, maskv, bitsv), exclude_n));
 
       __m128 re = _mm_load_ps(p + 8 * i);
       __m128 im = _mm_load_ps(p + 8 * i + 4);
@@ -227,7 +236,7 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     };
 
     Base::for_.Run(MinSize(state.num_qubits()) / 8, f, mask, bits, re_reg,
-                   im_reg, state.get());
+                   im_reg, exclude_reg, state.get());
   }
 
   // Does the equivalent of dest += src elementwise.
