@@ -66,7 +66,7 @@ TEST(StateSpaceSSETest, BulkSetAmpl) {
   TestBulkSetAmplitude<StateSpaceSSE<For>>();
 }
 
-TEST(StateSpaceBasicTest, BulkSetAmplExclude) {
+TEST(StateSpaceSSETest, BulkSetAmplExclude) {
   TestBulkSetAmplitudeExclusion<StateSpaceSSE<For>>();
 }
 
