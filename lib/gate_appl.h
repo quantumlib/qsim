@@ -64,7 +64,7 @@ inline void ApplyGateDagger(const Simulator& simulator, const Gate& gate,
       simulator.ApplyGate(gate.qubits, matrix.data(), state);
     } else {
       simulator.ApplyControlledGate(gate.qubits, gate.controlled_by,
-                                    gate.cmask, gate.matrix.data(), state);
+                                    gate.cmask, matrix.data(), state);
     }
   }
 }
