@@ -165,9 +165,15 @@ class QSimCircuit(cirq.Circuit):
     # equality is tested, for the moment, for cirq.Circuit
     return super().__eq__(other)
 
-  def _resolve_parameters_(self, param_resolver: cirq.study.ParamResolver):
+  def _resolve_parameters_(
+    self,
+    param_resolver: cirq.study.ParamResolver,
+    recursive: bool,
+  ) -> 'QSimCircuit':
     return QSimCircuit(
-      super()._resolve_parameters_(param_resolver), device=self.device)
+      super()._resolve_parameters_(param_resolver, recursive), 
+      device=self.device,
+    )
 
   def translate_cirq_to_qsim(
       self,
