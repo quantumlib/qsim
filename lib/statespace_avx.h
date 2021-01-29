@@ -481,7 +481,8 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       }
     }
 
-    return -1;
+    // Return the last bitstring in the unlikely case of underflow.
+    return (8 * k1 - 1) & mask;
   }
 };
 
