@@ -57,6 +57,20 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
   def __init__(self, qsim_options: dict = {},
                seed: value.RANDOM_STATE_OR_SEED_LIKE = None):
+    """Creates a new QSimSimulator using the given options and seed.
+    
+    Args:
+        qsim_options: A map of circuit options for the simulator. These will be
+            applied to all circuits run using this simulator. Accepted keys and
+            their behavior are as follows:
+                - 'f': int (> 0). Maximum size of fused gates. Default: 2.
+                - 't': int (> 0). Number of threads to run on. Default: 1.
+                - 'v': int (>= 0). Log verbosity. Default: 0.
+        seed: A random state or seed object, as defined in cirq.value.
+    
+    Raises:
+        ValueError if internal keys 'c' or 'i' are included in 'qsim_options'.
+    """
     if any(k in qsim_options for k in ('c', 'i')):
       raise ValueError(
           'Keys "c" & "i" are reserved for internal use and cannot be used in QSimCircuit instantiation.'
