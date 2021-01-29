@@ -23,6 +23,20 @@ import qsimcirq.qsim_circuit as qsimc
 class QSimhSimulator(SimulatesAmplitudes):
 
   def __init__(self, qsimh_options: dict = {}):
+    """Creates a new QSimhSimulator using the given options.
+    
+    Args:
+        qsim_options: A map of circuit options for the simulator. These will be
+            applied to all circuits run using this simulator. Accepted keys and
+            their behavior are as follows:
+                - 'k': Comma-separated list of ints. Indices of "part 1" qubits.
+                - 'p': int (>= 0). Number of "prefix" gates.
+                - 'r': int (>= 0). Number of "root" gates.
+                - 't': int (> 0). Number of threads to run on. Default: 1.
+                - 'v': int (>= 0). Log verbosity. Default: 0.
+                - 'w': int (>= 0). Prefix value.
+            See qsim/docs/usage.md for more details on these options.
+    """
     self.qsimh_options = {'t': 1, 'f': 2, 'v': 0}
     self.qsimh_options.update(qsimh_options)
 
