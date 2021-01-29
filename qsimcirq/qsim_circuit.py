@@ -254,3 +254,14 @@ class QSimCircuit(cirq.Circuit):
       time_offset += moment_length
 
     return qsim_circuit
+
+
+  def translate_cirq_to_qtrajectory(
+      self,
+      qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
+  ) -> qsim.NoisyCircuit:
+    """
+        Translates this noisy Cirq circuit to the qsim representation.
+        :qubit_order: Ordering of qubits
+        :return: a C++ qsim NoisyCircuit object
+        """

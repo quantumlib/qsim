@@ -375,6 +375,10 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   return amplitudes;
 }
 
+std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
+  return {};
+}
+
 // Simulate from a "pure" starting state.
 py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
                                            uint64_t input_state) {
@@ -427,6 +431,16 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
+}
+
+py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
+                                                  uint64_t input_state) {
+  return {};
+}
+
+py::array_t<float> qtrajectory_simulate_fullstate(
+    const py::dict &options, const py::array_t<float> &input_vector) {
+  return {};
 }
 
 // Simulate from an initial state vector.
@@ -540,6 +554,10 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
                        result.bitstring.end());
   }
   return result_bits;
+}
+
+std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
+  return {};
 }
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {

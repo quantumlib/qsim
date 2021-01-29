@@ -53,6 +53,23 @@ class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
                        final_simulator_state=final_simulator_state)
 
 
+# This should probably live in Cirq...
+# TODO: update to support CircuitOperations.
+# TODO(now): parameterized gates have no unitary
+def _needs_trajectories(circuit: circuits.Circuit) -> bool:
+  """Checks if the circuit requires trajectory simulation."""
+  for op in circuit.all_operations():
+    test_op = (
+      op if not protocols.is_parameterized(op)
+      else protocols.resolve_parameters(
+          op, {param: 1 for param in protocols.parameter_names(op)}
+        )
+    )
+    if not (protocols.has_unitary(test_op) or protocols.is_measurement(test_op)):
+      return True
+  return False
+
+
 class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
   def __init__(self, qsim_options: dict = {},
@@ -171,7 +188,15 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
                                 dtype=int)
 
 
-    if program.are_all_measurements_terminal() and repetitions > 1:
+    noisy = _needs_trajectories(program)
+    if noisy:
+      translator_fn_name = 'translate_cirq_to_qtrajectory'
+      sampler_fn = qsim.qtrajectory_sample
+    else:
+      translator_fn_name = 'translate_cirq_to_qsim'
+      sampler_fn = qsim.qsim_sample
+
+    if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
       print('Provided circuit has no intermediate measurements. ' +
             'Sampling repeatedly from final state vector.')
       # Measurements must be replaced with identity gates to sample properly.
@@ -195,10 +220,11 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
           for j, q in enumerate(meas_indices):
             results[key][i][j] = full_results[i][q]
     else:
-      options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
+      translator_fn = getattr(program, translator_fn_name)
+      options['c'] = translator_fn(ops.QubitOrder.DEFAULT)
       for i in range(repetitions):
         options['s'] = self.get_seed()
-        measurements = qsim.qsim_sample(options)
+        measurements = sampler_fn(options)
         for key, bound in bounds.items():
           for j in range(bound[1]-bound[0]):
             results[key][i][j] = int(measurements[bound[0]+j])
@@ -245,14 +271,19 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     param_resolvers = study.to_resolvers(params)
 
     trials_results = []
+    if _needs_trajectories(program):
+      translator_fn_name = 'translate_cirq_to_qtrajectory'
+      simulator_fn = qsim.qtrajectory_simulate
+    else:
+      translator_fn_name = 'translate_cirq_to_qsim'
+      simulator_fn = qsim.qsim_simulate
+
     for prs in param_resolvers:
-
       solved_circuit = protocols.resolve_parameters(program, prs)
-
-      options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+      translator_fn = getattr(solved_circuit, translator_fn_name)
+      options['c'] = translator_fn(qubit_order)
       options['s'] = self.get_seed()
-
-      amplitudes = qsim.qsim_simulate(options)
+      amplitudes = simulator_fn(options)
       trials_results.append(amplitudes)
 
     return trials_results
@@ -309,10 +340,17 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
           f'Expected: {2**num_qubits * 2} Received: {len(input_vector)}')
 
     trials_results = []
+    if _needs_trajectories(program):
+      translator_fn_name = 'translate_cirq_to_qtrajectory'
+      fullstate_simulator_fn = qsim.qtrajectory_simulate_fullstate
+    else:
+      translator_fn_name = 'translate_cirq_to_qsim'
+      fullstate_simulator_fn = qsim.qsim_simulate_fullstate
+
     for prs in param_resolvers:
       solved_circuit = protocols.resolve_parameters(program, prs)
-
-      options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+      translator_fn = getattr(solved_circuit, translator_fn_name)
+      options['c'] = translator_fn(qubit_order)
       options['s'] = self.get_seed()
       ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         solved_circuit.all_qubits())
@@ -324,9 +362,9 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       }
 
       if isinstance(initial_state, int):
-        qsim_state = qsim.qsim_simulate_fullstate(options, initial_state)
+        qsim_state = fullstate_simulator_fn(options, initial_state)
       elif isinstance(initial_state, np.ndarray):
-        qsim_state = qsim.qsim_simulate_fullstate(options, input_vector)
+        qsim_state = fullstate_simulator_fn(options, input_vector)
       assert qsim_state.dtype == np.float32
       assert qsim_state.ndim == 1
       final_state = QSimSimulatorState(qsim_state, qubit_map)
