@@ -66,6 +66,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
                 - 'f': int (> 0). Maximum size of fused gates. Default: 2.
                 - 't': int (> 0). Number of threads to run on. Default: 1.
                 - 'v': int (>= 0). Log verbosity. Default: 0.
+            See qsim/docs/usage.md for more details on these options.
         seed: A random state or seed object, as defined in cirq.value.
     
     Raises:
