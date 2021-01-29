@@ -446,7 +446,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       }
     }
 
-    return -1;
+    // Return the last bitstring in the unlikely case of underflow.
+    return (4 * k1 - 1) & mask;
   }
 };
 

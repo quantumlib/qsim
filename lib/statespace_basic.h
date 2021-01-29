@@ -284,7 +284,8 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
       }
     }
 
-    return -1;
+    // Return the last bitstring in the unlikely case of underflow.
+    return (k1 - 1) & mask;
   }
 };
 
