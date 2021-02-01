@@ -331,6 +331,8 @@ void control_last_gate(const std::vector<unsigned>& qubits,
   MakeControlledGate(qubits, values, circuit->gates.back());
 }
 
+// TODO: need methods for creating Kraus ops and channels
+
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
   std::vector<Bitstring> bitstrings;
@@ -376,6 +378,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 }
 
 std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
+  // TODO: implement
   return {};
 }
 
@@ -431,16 +434,6 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
-}
-
-py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
-                                                  uint64_t input_state) {
-  return {};
-}
-
-py::array_t<float> qtrajectory_simulate_fullstate(
-    const py::dict &options, const py::array_t<float> &input_vector) {
-  return {};
 }
 
 // Simulate from an initial state vector.
@@ -503,6 +496,18 @@ py::array_t<float> qsim_simulate_fullstate(
   return py::array_t<float>(fsv_size, fsv, capsule);
 }
 
+py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
+                                                  uint64_t input_state) {
+  // TODO: implement
+  return {};
+}
+
+py::array_t<float> qtrajectory_simulate_fullstate(
+    const py::dict &options, const py::array_t<float> &input_vector) {
+  // TODO: implement
+  return {};
+}
+
 std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
   try {
@@ -557,6 +562,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
 }
 
 std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
+  // TODO: implement
   return {};
 }
 

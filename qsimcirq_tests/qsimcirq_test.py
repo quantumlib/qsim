@@ -21,6 +21,8 @@ import qsimcirq
 
 class MainTest(unittest.TestCase):
 
+  # TODO: test with noise
+
   def test_cirq_too_big_gate(self):
     # Pick qubits.
     a, b, c, d, e, f, g = [
