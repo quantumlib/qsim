@@ -21,7 +21,39 @@ import qsimcirq
 
 class MainTest(unittest.TestCase):
 
-  # TODO: test with noise
+  # TODO: update to full circuit-translation tests
+  def test_noisy_circuit_placeholder(self):
+    from qsimcirq import qsim
+    nc = qsim.NoisyCircuit()
+    assert qsim.count_gates(nc) == 0
+
+    a, b, c = cirq.LineQubit.range(3)
+    gate_to_add = cirq.X(a)
+
+    gkind = qsim.kX
+    time = 0
+    qubits = [0]
+    params = {}
+    qsim.add_gate_channel(gkind, time, qubits, params, nc)
+    assert qsim.count_gates(nc) == 1
+
+    time = 1
+    qubits = [0, 1]
+    angles = [0.25, 0.5, 0.75]
+    qsim.add_diagonal_gate_channel(time, qubits, angles, nc)
+    assert qsim.count_gates(nc) == 2
+
+    time = 2
+    qubits = [2]
+    matrix = [0, 1, 1, 0]
+    qsim.add_matrix_gate_channel(time, qubits, matrix, nc)
+    assert qsim.count_gates(nc) == 3
+
+    control_qubits = [0]
+    control_values = [1]
+    qsim.control_last_gate_channel(control_qubits, control_values, nc)
+    assert qsim.count_gates(nc) == 3
+
 
   def test_cirq_too_big_gate(self):
     # Pick qubits.

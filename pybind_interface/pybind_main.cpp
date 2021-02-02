@@ -26,6 +26,7 @@
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
+#include "../lib/qtrajectory.h"
 #include "../lib/run_qsim.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
@@ -263,6 +264,51 @@ void control_last_gate(const std::vector<unsigned>& qubits,
                        const std::vector<unsigned>& values,
                        Circuit<Cirq::GateCirq<float>>* circuit) {
   MakeControlledGate(qubits, values, circuit->gates.back());
+}
+
+template <typename Gate>
+Channel<Gate> create_single_gate_channel(Gate gate) {
+  return {{KrausOperator<Gate>::kNormal, 1, 1.0, {gate}}};
+}
+
+void add_gate_channel(const qsim::Cirq::GateKind gate_kind, const unsigned time,
+                      const std::vector<unsigned>& qubits,
+                      const std::map<std::string, float>& params,
+                      NoisyCircuit<Cirq::GateCirq<float>>* ncircuit) {
+  ncircuit->push_back(create_single_gate_channel(
+    create_gate(gate_kind, time, qubits, params)));
+}
+
+void add_diagonal_gate_channel(const unsigned time,
+                               const std::vector<unsigned>& qubits,
+                               const std::vector<float>& angles,
+                               NoisyCircuit<Cirq::GateCirq<float>>* ncircuit) {
+  ncircuit->push_back(create_single_gate_channel(
+    create_diagonal_gate(time, qubits, angles)));
+}
+
+void add_matrix_gate_channel(const unsigned time,
+                             const std::vector<unsigned>& qubits,
+                             const std::vector<float>& matrix,
+                             NoisyCircuit<Cirq::GateCirq<float>>* ncircuit) {
+  ncircuit->push_back(create_single_gate_channel(
+    create_matrix_gate(time, qubits, matrix)));
+}
+
+void control_last_gate_channel(const std::vector<unsigned>& qubits,
+                               const std::vector<unsigned>& values,
+                               NoisyCircuit<Cirq::GateCirq<float>>* ncircuit) {
+  if (ncircuit->back().size() > 1) {
+    throw std::invalid_argument(
+        "Control cannot be added to noisy channels.");
+  }
+  for (Cirq::GateCirq<float>& op : ncircuit->back()[0].ops) {
+    MakeControlledGate(qubits, values, op);
+  }
+}
+
+int count_gates(NoisyCircuit<Cirq::GateCirq<float>> ncircuit) {
+  return ncircuit.size();
 }
 
 // TODO: need methods for creating Kraus ops and channels
