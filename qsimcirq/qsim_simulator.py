@@ -55,7 +55,6 @@ class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
 
 # This should probably live in Cirq...
 # TODO: update to support CircuitOperations.
-# TODO(now): parameterized gates have no unitary
 def _needs_trajectories(circuit: circuits.Circuit) -> bool:
   """Checks if the circuit requires trajectory simulation."""
   for op in circuit.all_operations():
