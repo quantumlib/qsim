@@ -73,256 +73,190 @@ std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
 
 }  // namespace
 
-void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
-              const std::vector<unsigned>& qubits,
-              const std::map<std::string, float>& params,
-              Circuit<Cirq::GateCirq<float>>* circuit) {
+Cirq::GateCirq<float> create_gate(const qsim::Cirq::GateKind gate_kind,
+                                  const unsigned time,
+                                  const std::vector<unsigned>& qubits,
+                                  const std::map<std::string, float>& params) {
   switch (gate_kind) {
     case Cirq::kI1:
-      circuit->gates.push_back(Cirq::I1<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::I1<float>::Create(time, qubits[0]);
     case Cirq::kI2:
-      circuit->gates.push_back(
-        Cirq::I2<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::I2<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kI:
-      circuit->gates.push_back(Cirq::I<float>::Create(time, qubits));
-      break;
+      return Cirq::I<float>::Create(time, qubits);
     case Cirq::kXPowGate:
-      circuit->gates.push_back(
-        Cirq::XPowGate<float>::Create(time, qubits[0], params.at("exponent"),
-                                      params.at("global_shift")));
-      break;
+      return Cirq::XPowGate<float>::Create(
+        time, qubits[0], params.at("exponent"), params.at("global_shift"));
     case Cirq::kYPowGate:
-      circuit->gates.push_back(
-        Cirq::YPowGate<float>::Create(time, qubits[0], params.at("exponent"),
-                                      params.at("global_shift")));
-      break;
+      return Cirq::YPowGate<float>::Create(
+        time, qubits[0], params.at("exponent"), params.at("global_shift"));
     case Cirq::kZPowGate:
-      circuit->gates.push_back(
-        Cirq::ZPowGate<float>::Create(time, qubits[0], params.at("exponent"),
-                                      params.at("global_shift")));
-      break;
+      return Cirq::ZPowGate<float>::Create(
+        time, qubits[0], params.at("exponent"), params.at("global_shift"));
     case Cirq::kHPowGate:
-      circuit->gates.push_back(
-        Cirq::HPowGate<float>::Create(time, qubits[0], params.at("exponent"),
-                                      params.at("global_shift")));
-      break;
+      return Cirq::HPowGate<float>::Create(
+        time, qubits[0], params.at("exponent"), params.at("global_shift"));
     case Cirq::kCZPowGate:
-      circuit->gates.push_back(
-        Cirq::CZPowGate<float>::Create(time, qubits[0], qubits[1],
-                                       params.at("exponent"),
-                                       params.at("global_shift")));
-      break;
+      return Cirq::CZPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kCXPowGate:
-      circuit->gates.push_back(
-        Cirq::CXPowGate<float>::Create(time, qubits[0], qubits[1],
-                                       params.at("exponent"),
-                                       params.at("global_shift")));
-      break;
+      return Cirq::CXPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::krx:
-      circuit->gates.push_back(
-        Cirq::rx<float>::Create(time, qubits[0], params.at("phi")));
-      break;
+      return Cirq::rx<float>::Create(time, qubits[0], params.at("phi"));
     case Cirq::kry:
-      circuit->gates.push_back(
-        Cirq::ry<float>::Create(time, qubits[0], params.at("phi")));
-      break;
+      return Cirq::ry<float>::Create(time, qubits[0], params.at("phi"));
     case Cirq::krz:
-      circuit->gates.push_back(
-        Cirq::rz<float>::Create(time, qubits[0], params.at("phi")));
-      break;
+      return Cirq::rz<float>::Create(time, qubits[0], params.at("phi"));
     case Cirq::kH:
-      circuit->gates.push_back(Cirq::H<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::H<float>::Create(time, qubits[0]);
     case Cirq::kS:
-      circuit->gates.push_back(Cirq::S<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::S<float>::Create(time, qubits[0]);
     case Cirq::kCZ:
-      circuit->gates.push_back(
-        Cirq::CZ<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::CZ<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kCX:
-      circuit->gates.push_back(
-        Cirq::CX<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::CX<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kT:
-      circuit->gates.push_back(Cirq::T<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::T<float>::Create(time, qubits[0]);
     case Cirq::kX:
-      circuit->gates.push_back(Cirq::X<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::X<float>::Create(time, qubits[0]);
     case Cirq::kY:
-      circuit->gates.push_back(Cirq::Y<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::Y<float>::Create(time, qubits[0]);
     case Cirq::kZ:
-      circuit->gates.push_back(Cirq::Z<float>::Create(time, qubits[0]));
-      break;
+      return Cirq::Z<float>::Create(time, qubits[0]);
     case Cirq::kPhasedXPowGate:
-      circuit->gates.push_back(
-        Cirq::PhasedXPowGate<float>::Create(time, qubits[0],
-                                            params.at("phase_exponent"),
-                                            params.at("exponent"),
-                                            params.at("global_shift")));
-      break;
+      return Cirq::PhasedXPowGate<float>::Create(
+        time, qubits[0], params.at("phase_exponent"), params.at("exponent"),
+        params.at("global_shift"));
     case Cirq::kPhasedXZGate:
-      circuit->gates.push_back(
-        Cirq::PhasedXZGate<float>::Create(time, qubits[0],
-                                          params.at("x_exponent"),
-                                          params.at("z_exponent"),
-                                          params.at("axis_phase_exponent")));
-      break;
+      return Cirq::PhasedXZGate<float>::Create(
+        time, qubits[0], params.at("x_exponent"), params.at("z_exponent"),
+        params.at("axis_phase_exponent"));
     case Cirq::kXXPowGate:
-      circuit->gates.push_back(
-        Cirq::XXPowGate<float>::Create(time, qubits[0], qubits[1],
-                                       params.at("exponent"),
-                                       params.at("global_shift")));
-      break;
+      return Cirq::XXPowGate<float>::Create(
+        time, qubits[0], qubits[1], params.at("exponent"),
+        params.at("global_shift"));
     case Cirq::kYYPowGate:
-      circuit->gates.push_back(
-        Cirq::YYPowGate<float>::Create(time, qubits[0], qubits[1],
-                                       params.at("exponent"),
-                                       params.at("global_shift")));
-      break;
+      return Cirq::YYPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kZZPowGate:
-      circuit->gates.push_back(
-        Cirq::ZZPowGate<float>::Create(time, qubits[0], qubits[1],
-                                       params.at("exponent"),
-                                       params.at("global_shift")));
-      break;
+      return Cirq::ZZPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kXX:
-      circuit->gates.push_back(
-        Cirq::XX<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::XX<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kYY:
-      circuit->gates.push_back(
-        Cirq::YY<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::YY<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kZZ:
-      circuit->gates.push_back(
-        Cirq::ZZ<float>::Create(time, qubits[0], qubits[1]));
+      return Cirq::ZZ<float>::Create(time, qubits[0], qubits[1]);
       break;
     case Cirq::kSwapPowGate:
-      circuit->gates.push_back(
-        Cirq::SwapPowGate<float>::Create(time, qubits[0], qubits[1],
-                                         params.at("exponent"),
-                                         params.at("global_shift")));
-      break;
+      return Cirq::SwapPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kISwapPowGate:
-      circuit->gates.push_back(
-        Cirq::ISwapPowGate<float>::Create(time, qubits[0], qubits[1],
-                                          params.at("exponent"),
-                                          params.at("global_shift")));
-      break;
+      return Cirq::ISwapPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kriswap:
-      circuit->gates.push_back(
-        Cirq::riswap<float>::Create(time, qubits[0], qubits[1],
-                                    params.at("phi")));
-      break;
+      return Cirq::riswap<float>::Create(time, qubits[0], qubits[1],
+                                    params.at("phi"));
     case Cirq::kSWAP:
-      circuit->gates.push_back(
-        Cirq::SWAP<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::SWAP<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kISWAP:
-      circuit->gates.push_back(
-        Cirq::ISWAP<float>::Create(time, qubits[0], qubits[1]));
-      break;
+      return Cirq::ISWAP<float>::Create(time, qubits[0], qubits[1]);
     case Cirq::kPhasedISwapPowGate:
-      circuit->gates.push_back(
-        Cirq::PhasedISwapPowGate<float>::Create(time, qubits[0], qubits[1],
-                                                params.at("phase_exponent"),
-                                                params.at("exponent")));
-      break;
+      return Cirq::PhasedISwapPowGate<float>::Create(
+        time, qubits[0], qubits[1],
+        params.at("phase_exponent"), params.at("exponent"));
     case Cirq::kgivens:
-      circuit->gates.push_back(
-        Cirq::givens<float>::Create(time, qubits[0], qubits[1],
-                                    params.at("phi")));
-      break;
+      return Cirq::givens<float>::Create(
+        time, qubits[0], qubits[1], params.at("phi"));
     case Cirq::kFSimGate:
-      circuit->gates.push_back(
-        Cirq::FSimGate<float>::Create(time, qubits[0], qubits[1],
-                                      params.at("theta"), params.at("phi")));
-      break;
+      return Cirq::FSimGate<float>::Create(
+        time, qubits[0], qubits[1], params.at("theta"), params.at("phi"));
     case Cirq::kCCZPowGate:
-      circuit->gates.push_back(
-        Cirq::CCZPowGate<float>::Create(time, qubits[0], qubits[1], qubits[2],
-                                        params.at("exponent"),
-                                        params.at("global_shift")));
-      break;
+      return Cirq::CCZPowGate<float>::Create(
+        time, qubits[0], qubits[1], qubits[2],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kCCXPowGate:
-      circuit->gates.push_back(
-        Cirq::CCXPowGate<float>::Create(time, qubits[0], qubits[1], qubits[2],
-                                        params.at("exponent"),
-                                        params.at("global_shift")));
-      break;
+      return Cirq::CCXPowGate<float>::Create(
+        time, qubits[0], qubits[1], qubits[2],
+        params.at("exponent"), params.at("global_shift"));
     case Cirq::kCSwapGate:
-      circuit->gates.push_back(
-        Cirq::CSwapGate<float>::Create(time, qubits[0], qubits[1], qubits[2]));
-      break;
+      return Cirq::CSwapGate<float>::Create(
+        time, qubits[0], qubits[1], qubits[2]);
     case Cirq::kCCZ:
-      circuit->gates.push_back(
-        Cirq::CCZ<float>::Create(time, qubits[0], qubits[1], qubits[2]));
-      break;
+      return Cirq::CCZ<float>::Create(time, qubits[0], qubits[1], qubits[2]);
     case Cirq::kCCX:
-      circuit->gates.push_back(
-        Cirq::CCX<float>::Create(time, qubits[0], qubits[1], qubits[2]));
-      break;
+      return Cirq::CCX<float>::Create(time, qubits[0], qubits[1], qubits[2]);
     case Cirq::kMeasurement: {
       std::vector<unsigned> qubits_ = qubits;
-      circuit->gates.push_back(
-        gate::Measurement<Cirq::GateCirq<float>>::Create(time,
-                                                         std::move(qubits_)));
+      return gate::Measurement<Cirq::GateCirq<float>>::Create(
+        time, std::move(qubits_));
       }
-      break;
     // Matrix gates are handled in the add_matrix methods below.
     default:
       throw std::invalid_argument("GateKind not supported.");
   }
 }
 
-void add_diagonal_gate(const unsigned time, const std::vector<unsigned>& qubits,
-                       const std::vector<float>& angles,
-                       Circuit<Cirq::GateCirq<float>>* circuit) {
+Cirq::GateCirq<float> create_diagonal_gate(const unsigned time,
+                                           const std::vector<unsigned>& qubits,
+                                           const std::vector<float>& angles) {
   switch (qubits.size()) {
   case 2:
-    circuit->gates.push_back(
-        Cirq::TwoQubitDiagonalGate<float>::Create(time, qubits[0], qubits[1],
-                                                  angles));
-    break;
+    return Cirq::TwoQubitDiagonalGate<float>::Create(
+      time, qubits[0], qubits[1], angles);
   case 3:
-    circuit->gates.push_back(
-        Cirq::ThreeQubitDiagonalGate<float>::Create(time, qubits[0], qubits[1],
-                                                    qubits[2], angles));
-    break;
+    return Cirq::ThreeQubitDiagonalGate<float>::Create(
+      time, qubits[0], qubits[1], qubits[2], angles);
   default:
     throw std::invalid_argument(
         "Only 2- or 3-qubit diagonal gates sre supported.");
   }
 }
 
-void add_matrix_gate(const unsigned time, const std::vector<unsigned>& qubits,
-                     const std::vector<float>& matrix,
-                     Circuit<Cirq::GateCirq<float>>* circuit) {
+Cirq::GateCirq<float> create_matrix_gate(const unsigned time,
+                                         const std::vector<unsigned>& qubits,
+                                         const std::vector<float>& matrix) {
   switch (qubits.size()) {
   case 1:
-    circuit->gates.push_back(
-        Cirq::MatrixGate1<float>::Create(time, qubits[0], matrix));
-    break;
+    return Cirq::MatrixGate1<float>::Create(time, qubits[0], matrix);
   case 2:
-    circuit->gates.push_back(
-        Cirq::MatrixGate2<float>::Create(time, qubits[0], qubits[1], matrix));
-    break;
+    return Cirq::MatrixGate2<float>::Create(time, qubits[0], qubits[1], matrix);
   case 3:
   case 4:
   case 5:
   case 6:
-    circuit->gates.push_back(
-        Cirq::MatrixGate<float>::Create(time, qubits, matrix));
-    break;
+    return Cirq::MatrixGate<float>::Create(time, qubits, matrix);
   default:
     throw std::invalid_argument(
-        "Only up to 6-qubit matrix gates sre supported.");
+        "Only up to 6-qubit matrix gates are supported.");
   }
+}
+
+void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
+              const std::vector<unsigned>& qubits,
+              const std::map<std::string, float>& params,
+              Circuit<Cirq::GateCirq<float>>* circuit) {
+  circuit->gates.push_back(create_gate(gate_kind, time, qubits, params));
+}
+
+void add_diagonal_gate(const unsigned time, const std::vector<unsigned>& qubits,
+                       const std::vector<float>& angles,
+                       Circuit<Cirq::GateCirq<float>>* circuit) {
+  circuit->gates.push_back(create_diagonal_gate(time, qubits, angles));
+}
+
+void add_matrix_gate(const unsigned time,
+                     const std::vector<unsigned>& qubits,
+                     const std::vector<float>& matrix,
+                     Circuit<Cirq::GateCirq<float>>* circuit) {
+  circuit->gates.push_back(create_matrix_gate(time, qubits, matrix));
 }
 
 void control_last_gate(const std::vector<unsigned>& qubits,
