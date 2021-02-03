@@ -16,45 +16,54 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#include "../lib/parfor.h"
+#include "../lib/seqfor.h"
 #include "../lib/simulator_avx.h"
 
 namespace qsim {
 
-TEST(SimulatorAVXTest, ApplyGate1) {
-  TestApplyGate1<SimulatorAVX<For>>();
+template <class T>
+class SimulatorAVXTest : public testing::Test {};
+
+using ::testing::Types;
+typedef Types<ParallelFor, SequentialFor> for_impl;
+
+TYPED_TEST_SUITE(SimulatorAVXTest, for_impl);
+
+TYPED_TEST(SimulatorAVXTest, ApplyGate1) {
+  TestApplyGate1<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyGate2) {
-  TestApplyGate2<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyGate2) {
+  TestApplyGate2<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyGate3) {
-  TestApplyGate3<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyGate3) {
+  TestApplyGate3<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyGate5) {
-  TestApplyGate5<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyGate5) {
+  TestApplyGate5<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyControlGate) {
+  TestApplyControlGate<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyControlGateDagger) {
-  TestApplyControlGateDagger<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyControlGateDagger) {
+  TestApplyControlGateDagger<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, MultiQubitGates) {
+  TestMultiQubitGates<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ExpectationValue1) {
-  TestExpectationValue1<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ExpectationValue1) {
+  TestExpectationValue1<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ExpectationValue2) {
-  TestExpectationValue2<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ExpectationValue2) {
+  TestExpectationValue2<SimulatorAVX<TypeParam>>();
 }
 
 }  // namespace qsim

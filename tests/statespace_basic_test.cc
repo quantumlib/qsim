@@ -16,62 +16,75 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#include "../lib/parfor.h"
+#include "../lib/seqfor.h"
 #include "../lib/simulator_basic.h"
 #include "../lib/statespace_basic.h"
 
 namespace qsim {
 
-TEST(StateSpaceBasicTest, Add) {
-  TestAdd<StateSpaceBasic<For, float>>();
+template <class T>
+class StateSpaceBasicTest : public testing::Test {};
+
+using ::testing::Types;
+typedef Types<ParallelFor, SequentialFor> for_impl;
+
+TYPED_TEST_SUITE(StateSpaceBasicTest, for_impl);
+
+TYPED_TEST(StateSpaceBasicTest, Add) {
+  TestAdd<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, NormSmall) {
-  TestNormSmall<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, NormSmall) {
+  TestNormSmall<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, NormAndInnerProductSmall) {
+  TestNormAndInnerProductSmall<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, NormAndInnerProduct) {
+  TestNormAndInnerProduct<SimulatorBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, SamplingSmall) {
+  TestSamplingSmall<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, SamplingCrossEntropyDifference) {
+  TestSamplingCrossEntropyDifference<SimulatorBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, Ordering) {
-  TestOrdering<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, Ordering) {
+  TestOrdering<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceBasic<For, float>, For>();
+TYPED_TEST(StateSpaceBasicTest, MeasurementSmall) {
+  TestMeasurementSmall<StateSpaceBasic<TypeParam, float>, TypeParam>();
 }
 
-TEST(StateSpaceBasicTest, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, MeasurementLarge) {
+  TestMeasurementLarge<SimulatorBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, InvalidStateSize) {
+  TestInvalidStateSize<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, BulkSetAmpl) {
-  TestBulkSetAmplitude<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, BulkSetAmpl) {
+  TestBulkSetAmplitude<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, BulkSetAmplExclude) {
-  TestBulkSetAmplitudeExclusion<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, BulkSetAmplExclude) {
+  TestBulkSetAmplitudeExclusion<StateSpaceBasic<TypeParam, float>>();
 }
 
-TEST(StateSpaceBasicTest, BulkSetAmplDefault) {
-  TestBulkSetAmplitudeDefault<StateSpaceBasic<For, float>>();
+TYPED_TEST(StateSpaceBasicTest, BulkSetAmplDefault) {
+  TestBulkSetAmplitudeDefault<StateSpaceBasic<TypeParam, float>>();
+}
+
+TYPED_TEST(StateSpaceBasicTest, ThreadThrashing) {
+  TestThreadThrashing<StateSpaceBasic<TypeParam, float>>();
 }
 
 }  // namespace qsim

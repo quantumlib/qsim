@@ -220,7 +220,8 @@ cc_test(
     deps = [
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:formux",
+        "//lib:parfor",
+        "//lib:seqfor",
         "//lib:simulator_avx",
     ],
     copts = select({
@@ -235,7 +236,8 @@ cc_test(
     deps = [
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:formux",
+        "//lib:parfor",
+        "//lib:seqfor",
         "//lib:simulator_basic",
     ],
     copts = select({
@@ -250,7 +252,8 @@ cc_test(
     deps = [
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:formux",
+        "//lib:parfor",
+        "//lib:seqfor",
         "//lib:simulator_sse",
     ],
     copts = select({
@@ -283,7 +286,8 @@ cc_test(
     deps = [
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:formux",
+        "//lib:parfor",
+        "//lib:seqfor",
         "//lib:simulator_avx",
         "//lib:statespace_avx",
     ],
@@ -299,7 +303,8 @@ cc_test(
     deps = [
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:formux",
+        "//lib:parfor",
+        "//lib:seqfor",
         "//lib:simulator_basic",
         "//lib:statespace_basic",
     ],
@@ -315,7 +320,8 @@ cc_test(
     deps = [
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
-        "//lib:formux",
+        "//lib:parfor",
+        "//lib:seqfor",
         "//lib:simulator_sse",
         "//lib:statespace_sse",
     ],

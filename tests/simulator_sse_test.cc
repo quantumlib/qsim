@@ -16,45 +16,54 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#include "../lib/parfor.h"
+#include "../lib/seqfor.h"
 #include "../lib/simulator_sse.h"
 
 namespace qsim {
 
-TEST(SimulatorSSETest, ApplyGate1) {
-  TestApplyGate1<SimulatorSSE<For>>();
+template <class T>
+class SimulatorSSETest : public testing::Test {};
+
+using ::testing::Types;
+typedef Types<ParallelFor, SequentialFor> for_impl;
+
+TYPED_TEST_SUITE(SimulatorSSETest, for_impl);
+
+TYPED_TEST(SimulatorSSETest, ApplyGate1) {
+  TestApplyGate1<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ApplyGate2) {
-  TestApplyGate2<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ApplyGate2) {
+  TestApplyGate2<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ApplyGate3) {
-  TestApplyGate3<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ApplyGate3) {
+  TestApplyGate3<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ApplyGate5) {
-  TestApplyGate5<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ApplyGate5) {
+  TestApplyGate5<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ApplyControlGate) {
+  TestApplyControlGate<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ApplyControlGateDagger) {
-  TestApplyControlGateDagger<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ApplyControlGateDagger) {
+  TestApplyControlGateDagger<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, MultiQubitGates) {
+  TestMultiQubitGates<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ExpectationValue1) {
-  TestExpectationValue1<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ExpectationValue1) {
+  TestExpectationValue1<SimulatorSSE<TypeParam>>();
 }
 
-TEST(SimulatorSSETest, ExpectationValue2) {
-  TestExpectationValue2<SimulatorSSE<For>>();
+TYPED_TEST(SimulatorSSETest, ExpectationValue2) {
+  TestExpectationValue2<SimulatorSSE<TypeParam>>();
 }
 
 }  // namespace qsim
