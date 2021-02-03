@@ -16,7 +16,9 @@
 
 #include "gtest/gtest.h"
 
+#ifdef _OPENMP
 #include "../lib/parfor.h"
+#endif
 #include "../lib/seqfor.h"
 #include "../lib/simulator_avx.h"
 
