@@ -26,7 +26,11 @@ template <class T>
 class SimulatorSSETest : public testing::Test {};
 
 using ::testing::Types;
+#ifdef _OPENMP
 typedef Types<ParallelFor, SequentialFor> for_impl;
+#else
+typedef Types<SequentialFor> for_impl;
+#endif
 
 TYPED_TEST_SUITE(SimulatorSSETest, for_impl);
 
