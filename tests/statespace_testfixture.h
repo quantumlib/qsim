@@ -953,6 +953,21 @@ void TestBulkSetAmplitudeDefault() {
   EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
 }
 
+template <typename StateSpace>
+void TestThreadThrashing() {
+  using State = typename StateSpace::State;
+  StateSpace state_space(1024);
+  unsigned n_qubits = 13;
+  State state = state_space.Create(n_qubits);  // must be larger than MIN_SIZE.
+  for (int i = 0; i < 100; i++) {
+    state_space.SetStateZero(state);
+  }
+  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 0));
+  for (int i = 1; i < (1 << n_qubits); i++) {
+    EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+  }
+}
+
 }  // namespace qsim
 
 #endif  // STATESPACE_TESTFIXTURE_H_

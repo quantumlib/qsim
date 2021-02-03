@@ -16,45 +16,60 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#ifdef _OPENMP
+#include "../lib/parfor.h"
+#endif
+#include "../lib/seqfor.h"
 #include "../lib/simulator_basic.h"
 
 namespace qsim {
 
-TEST(SimulatorBasicTest, ApplyGate1) {
-  TestApplyGate1<SimulatorBasic<For, double>>();
+template <class T>
+class SimulatorBasicTest : public testing::Test {};
+
+using ::testing::Types;
+#ifdef _OPENMP
+typedef Types<ParallelFor, SequentialFor> for_impl;
+#else
+typedef Types<SequentialFor> for_impl;
+#endif
+
+TYPED_TEST_SUITE(SimulatorBasicTest, for_impl);
+
+TYPED_TEST(SimulatorBasicTest, ApplyGate1) {
+  TestApplyGate1<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ApplyGate2) {
-  TestApplyGate2<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ApplyGate2) {
+  TestApplyGate2<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ApplyGate3) {
-  TestApplyGate3<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ApplyGate3) {
+  TestApplyGate3<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ApplyGate5) {
-  TestApplyGate5<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ApplyGate5) {
+  TestApplyGate5<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ApplyControlGate) {
+  TestApplyControlGate<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ApplyControlGateDagger) {
-  TestApplyControlGateDagger<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ApplyControlGateDagger) {
+  TestApplyControlGateDagger<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, MultiQubitGates) {
+  TestMultiQubitGates<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ExpectationValue1) {
-  TestExpectationValue1<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ExpectationValue1) {
+  TestExpectationValue1<SimulatorBasic<TypeParam, double>>();
 }
 
-TEST(SimulatorBasicTest, ExpectationValue2) {
-  TestExpectationValue2<SimulatorBasic<For, double>>();
+TYPED_TEST(SimulatorBasicTest, ExpectationValue2) {
+  TestExpectationValue2<SimulatorBasic<TypeParam, double>>();
 }
 
 }  // namespace qsim
