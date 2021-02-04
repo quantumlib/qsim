@@ -191,7 +191,8 @@ def test_input_vector_validation():
       cirq_circuit, params, initial_state=initial_state)
 
 
-def test_cirq_qsim_run():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_cirq_qsim_run(mode: str):
   # Pick qubits.
   a, b, c, d = [
       cirq.GridQubit(0, 0),
@@ -211,6 +212,9 @@ def test_cirq_qsim_run():
       cirq.measure(c, key='mc'),
       cirq.measure(d, key='md'),
   )
+  if mode == 'noisy':
+    cirq_circuit.append(NoiseTrigger().on(a))
+
   qsimSim = qsimcirq.QSimSimulator()
   assert isinstance(qsimSim, cirq.SimulatesSamples)
 
@@ -219,7 +223,8 @@ def test_cirq_qsim_run():
     assert(value.shape == (5, 1))
 
 
-def test_qsim_run_vs_cirq_run():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_qsim_run_vs_cirq_run(mode: str):
   # Simple circuit, want to check mapping of qubit(s) to their measurements
   a, b, c, d = [
     cirq.GridQubit(0, 0),
@@ -234,6 +239,9 @@ def test_qsim_run_vs_cirq_run():
       cirq.measure(d, key='md'),
   )
 
+  if mode == 'noisy':
+    circuit.append(NoiseTrigger().on(a))
+
   # run in cirq
   simulator = cirq.Simulator()
   cirq_result = simulator.run(circuit, repetitions=20)
@@ -246,7 +254,8 @@ def test_qsim_run_vs_cirq_run():
   assert(qsim_result == cirq_result)
 
 
-def test_intermediate_measure():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_intermediate_measure(mode: str):
   # Demonstrate that intermediate measurement is possible.
   a, b = [
     cirq.GridQubit(0, 0),
@@ -260,6 +269,9 @@ def test_intermediate_measure():
     cirq.H(a), cirq.H(b),
   )
 
+  if mode == 'noisy':
+    circuit.append(NoiseTrigger().on(a))
+
   simulator = cirq.Simulator()
   cirq_result = simulator.run(circuit, repetitions=20)
 
@@ -269,10 +281,14 @@ def test_intermediate_measure():
   assert(qsim_result == cirq_result)
 
 
-def test_sampling_nondeterminism():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_sampling_nondeterminism(mode: str):
   # Ensure that reusing a QSimSimulator doesn't reuse the original seed.
   q = cirq.GridQubit(0, 0)
   circuit = cirq.Circuit(cirq.H(q), cirq.measure(q, key='m'))
+  if mode == 'noisy':
+    circuit.append(NoiseTrigger().on(q))
+
   qsim_simulator = qsimcirq.QSimSimulator()
   qsim_result = qsim_simulator.run(circuit, repetitions=100)
 

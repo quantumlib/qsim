@@ -276,7 +276,11 @@ void control_last_gate(const std::vector<unsigned>& qubits,
 
 template <typename Gate>
 Channel<Gate> create_single_gate_channel(Gate gate) {
-  return {{KrausOperator<Gate>::kNormal, 1, 1.0, {gate}}};
+  auto gate_kind = KrausOperator<Gate>::kNormal;
+  if (gate.kind == gate::kMeasurement) {
+    gate_kind = KrausOperator<Gate>::kMeasurement;
+  }
+  return {{gate_kind, 1, 1.0, {gate}}};
 }
 
 void add_gate_channel(const qsim::Cirq::GateKind gate_kind, const unsigned time,
@@ -387,12 +391,13 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
                                                   Simulator>;
 
   Runner::Parameter param;
+  uint64_t seed;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     // TODO: check with Sergei (move from method argument?)
-    // param.seed = parseOptions<unsigned>(options, "s\0");
+    seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -407,7 +412,6 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     }
   };
 
-  uint64_t seed = 1;
   if (!Runner::Run(param, num_qubits, ncircuit, seed, seed + 1, measure)) {
     IO::errorf("qtrajectory simulation of the circuit errored out.\n");
     return {};
@@ -549,12 +553,13 @@ py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
                                                   Simulator>;
 
   Runner::Parameter param;
+  uint64_t seed;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     // TODO: check with Sergei (move from method argument?)
-    // param.seed = parseOptions<unsigned>(options, "s\0");
+    seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -575,7 +580,6 @@ py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
   state_space.SetAmpl(state, input_state, 1, 0);
 
   State scratch = StateSpace(1).Null();
-  uint64_t seed = 1;
   std::vector<uint64_t> stat;
   if (!Runner::Run(param, num_qubits, ncircuit, seed, scratch, state, stat)) {
     IO::errorf(
@@ -610,12 +614,13 @@ py::array_t<float> qtrajectory_simulate_fullstate(
                                                   Simulator>;
 
   Runner::Parameter param;
+  uint64_t seed;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     // TODO: check with Sergei (move from method argument?)
-    // param.seed = parseOptions<unsigned>(options, "s\0");
+    seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -642,7 +647,6 @@ py::array_t<float> qtrajectory_simulate_fullstate(
   state_space.NormalToInternalOrder(state);
 
   State scratch = StateSpace(1).Null();
-  uint64_t seed = 1;
   std::vector<uint64_t> stat;
   if (!Runner::Run(param, num_qubits, ncircuit, seed, scratch, state, stat)) {
     IO::errorf(
@@ -711,8 +715,73 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
 }
 
 std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
-  // TODO: implement
-  return {};
+  NoisyCircuit<Cirq::GateCirq<float>> ncircuit;
+  unsigned num_qubits;
+  try {
+    ncircuit = getNoisyCircuit(options);
+    num_qubits = qsim::count_qubits(ncircuit);
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
+                                                  MultiQubitGateFuser,
+                                                  Simulator>;
+
+  Runner::Parameter param;
+  uint64_t seed;
+  try {
+    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
+    param.verbosity = parseOptions<unsigned>(options, "v\0");
+    // TODO: check with Sergei (move from method argument?)
+    seed = parseOptions<unsigned>(options, "s\0");
+    param.collect_mea_stat = true;
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  std::vector<std::vector<unsigned>> results;
+  StateSpace state_space(param.num_threads);
+  auto measure = [&results, &ncircuit, &state_space](
+                  unsigned k, const State &state,
+                  std::vector<uint64_t>& stat) {
+    // Converts stat (which matches the MeasurementResult 'bits' field) into
+    // bitstrings matching the MeasurementResult 'bitstring' field.
+    unsigned idx = 0;
+    for (const auto &channel : ncircuit) {
+      if (channel[0].kind != gate::kMeasurement)
+        continue;
+      for (const auto &op : channel[0].ops) {
+        std::vector<unsigned> bitstring;
+        uint64_t val = stat[idx];
+        for (const auto &q : op.qubits) {
+          bitstring.push_back((val >> q) & 1);
+        }
+        results.push_back(bitstring);
+
+        idx += 1;
+        if (idx >= stat.size())
+          return;
+      }
+    }
+  };
+
+  if (!Runner::Run(param, num_qubits, ncircuit, seed, seed + 1, measure)) {
+    IO::errorf("qtrajectory sampling of the circuit errored out.\n");
+    return {};
+  }
+
+  std::vector<unsigned> result_bits;
+  for (const auto& bitstring : results) {
+    result_bits.insert(result_bits.end(), bitstring.begin(), bitstring.end());
+  }
+  return result_bits;
 }
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
