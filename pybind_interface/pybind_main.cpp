@@ -55,6 +55,14 @@ Circuit<Cirq::GateCirq<float>> getCircuit(const py::dict &options) {
   }
 }
 
+NoisyCircuit<Cirq::GateCirq<float>> getNoisyCircuit(const py::dict &options) {
+  try {
+    return options["c\0"].cast<NoisyCircuit<Cirq::GateCirq<float>>>();
+  } catch (const std::invalid_argument &exp) {
+    throw;
+  }
+}
+
 std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
   std::string bitstrings_str;
   try {
@@ -307,10 +315,6 @@ void control_last_gate_channel(const std::vector<unsigned>& qubits,
   }
 }
 
-int count_gates(NoisyCircuit<Cirq::GateCirq<float>> ncircuit) {
-  return ncircuit.size();
-}
-
 // TODO: need methods for creating Kraus ops and channels
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
@@ -358,8 +362,57 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 }
 
 std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
-  // TODO: implement
-  return {};
+  NoisyCircuit<Cirq::GateCirq<float>> ncircuit;
+  unsigned num_qubits;
+  std::vector<Bitstring> bitstrings;
+  try {
+    ncircuit = getNoisyCircuit(options);
+    num_qubits = qsim::count_qubits(ncircuit);
+    bitstrings = getBitstrings(options, num_qubits);
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+
+  // Define container for amplitudes
+  std::vector<std::complex<float>> amplitudes;
+  amplitudes.reserve(bitstrings.size());
+
+  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
+                                                  MultiQubitGateFuser,
+                                                  Simulator>;
+
+  Runner::Parameter param;
+  try {
+    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
+    param.verbosity = parseOptions<unsigned>(options, "v\0");
+    // TODO: check with Sergei (move from method argument?)
+    // param.seed = parseOptions<unsigned>(options, "s\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  StateSpace state_space(param.num_threads);
+  auto measure = [&bitstrings, &ncircuit, &amplitudes, &state_space](
+                  unsigned k, const State &state,
+                  std::vector<uint64_t>& stat) {
+    for (const auto &b : bitstrings) {
+      amplitudes.push_back(state_space.GetAmpl(state, b));
+    }
+  };
+
+  uint64_t seed = 1;
+  if (!Runner::Run(param, num_qubits, ncircuit, seed, seed + 1, measure)) {
+    IO::errorf("qtrajectory simulation of the circuit errored out.\n");
+    return {};
+  }
+  return amplitudes;
 }
 
 // Simulate from a "pure" starting state.
@@ -478,14 +531,130 @@ py::array_t<float> qsim_simulate_fullstate(
 
 py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
                                                   uint64_t input_state) {
-  // TODO: implement
-  return {};
+  NoisyCircuit<Cirq::GateCirq<float>> ncircuit;
+  unsigned num_qubits;
+  try {
+    ncircuit = getNoisyCircuit(options);
+    num_qubits = qsim::count_qubits(ncircuit);
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
+                                                  MultiQubitGateFuser,
+                                                  Simulator>;
+
+  Runner::Parameter param;
+  try {
+    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
+    param.verbosity = parseOptions<unsigned>(options, "v\0");
+    // TODO: check with Sergei (move from method argument?)
+    // param.seed = parseOptions<unsigned>(options, "s\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  StateSpace state_space(param.num_threads);
+
+  float *fsv;
+  const uint64_t fsv_size = std::pow(2, num_qubits + 1);
+  const uint64_t buff_size = state_space.MinSize(num_qubits);
+  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
+    IO::errorf("Memory allocation failed.\n");
+    return {};
+  }
+
+  State state = state_space.Create(fsv, num_qubits);
+  state_space.SetAllZeros(state);
+  state_space.SetAmpl(state, input_state, 1, 0);
+
+  State scratch = StateSpace(1).Null();
+  uint64_t seed = 1;
+  std::vector<uint64_t> stat;
+  if (!Runner::Run(param, num_qubits, ncircuit, seed, scratch, state, stat)) {
+    IO::errorf(
+      "qtrajectory full state simulation of the circuit errored out.\n");
+    return {};
+  }
+
+  state_space.InternalToNormalOrder(state);
+
+  auto capsule = py::capsule(
+      fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
+  return py::array_t<float>(fsv_size, fsv, capsule);
 }
 
 py::array_t<float> qtrajectory_simulate_fullstate(
     const py::dict &options, const py::array_t<float> &input_vector) {
-  // TODO: implement
-  return {};
+  NoisyCircuit<Cirq::GateCirq<float>> ncircuit;
+  unsigned num_qubits;
+  try {
+    ncircuit = getNoisyCircuit(options);
+    num_qubits = qsim::count_qubits(ncircuit);
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
+                                                  MultiQubitGateFuser,
+                                                  Simulator>;
+
+  Runner::Parameter param;
+  try {
+    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
+    param.verbosity = parseOptions<unsigned>(options, "v\0");
+    // TODO: check with Sergei (move from method argument?)
+    // param.seed = parseOptions<unsigned>(options, "s\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  StateSpace state_space(param.num_threads);
+
+  float *fsv;
+  const uint64_t fsv_size = std::pow(2, num_qubits + 1);
+  const uint64_t buff_size = state_space.MinSize(num_qubits);
+  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
+    IO::errorf("Memory allocation failed.\n");
+    return {};
+  }
+  const float* ptr = input_vector.data();
+  auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
+              float* fsv) {
+    fsv[i] = ptr[i];
+  };
+
+  For(param.num_threads).Run(input_vector.size(), f, ptr, fsv);
+
+  State state = state_space.Create(fsv, num_qubits);
+  state_space.NormalToInternalOrder(state);
+
+  State scratch = StateSpace(1).Null();
+  uint64_t seed = 1;
+  std::vector<uint64_t> stat;
+  if (!Runner::Run(param, num_qubits, ncircuit, seed, scratch, state, stat)) {
+    IO::errorf(
+      "qtrajectory full state simulation of the circuit errored out.\n");
+    return {};
+  }
+
+  state_space.InternalToNormalOrder(state);
+
+  auto capsule = py::capsule(
+      fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
+  return py::array_t<float>(fsv_size, fsv, capsule);
 }
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {

@@ -68,6 +68,21 @@ using Channel = std::vector<KrausOperator<Gate>>;
 template <typename Gate>
 using NoisyCircuit = std::vector<Channel<Gate>>;
 
+template <typename Gate>
+unsigned count_qubits(const NoisyCircuit<Gate>& ncircuit) {
+  std::set<int> qubit_set;
+  for (const Channel<Gate>& channel : ncircuit) {
+    for (const KrausOperator<Gate>& kop : channel) {
+      for (const Gate& gate : kop.ops) {
+        for (const unsigned& qidx : gate.qubits) {
+          qubit_set.insert(qidx);
+        }
+      }
+    }
+  }
+  return qubit_set.size();
+}
+
 /**
  * Quantum trajectory simulator.
  */

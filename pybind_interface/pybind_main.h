@@ -70,9 +70,6 @@ void control_last_gate_channel(
     const std::vector<unsigned>& qubits, const std::vector<unsigned>& values,
     qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
 
-// TODO: remove when full tests are available.
-int count_gates(qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>> ncircuit);
-
 // Methods for simulating noiseless circuits.
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
@@ -138,10 +135,6 @@ PYBIND11_MODULE(qsim, m) {
     .def_readwrite("gates", &Circuit::gates);
 
   py::bind_vector<NoisyCircuit>(m, "NoisyCircuit");
-
-  // TODO: remove when full tests are available.
-  m.def("count_gates", &count_gates,
-        "Test method that returns the number of gates in a noisy circuit.");
 
   py::enum_<GateKind>(m, "GateKind")
     .value("kI1", GateKind::kI1)

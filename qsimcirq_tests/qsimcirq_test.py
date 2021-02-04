@@ -19,44 +19,17 @@ import pytest
 import qsimcirq
 
 
-# TODO: update to full circuit-translation tests
-# Parameterize all with a "noisy" trailing gate?
-# Plus explicit testing for noise-only behaviors:
-#   - channels
-#   - mixtures
-#   - gates-as-channels
-def test_noisy_circuit_placeholder():
-  from qsimcirq import qsim
-  nc = qsim.NoisyCircuit()
-  assert qsim.count_gates(nc) == 0
+class NoiseTrigger(cirq.SingleQubitGate):
+  """A no-op gate with no _unitary_ method defined.
+  
+  Appending this gate to a circuit will force it to use qtrajectory, but the
+  new circuit will otherwise behave identically to the original.
+  """
+  def _mixture_(self):
+    return ((1.0, np.asarray([1, 0, 0, 1], dtype=np.complex64)),)
 
-  a, b, c = cirq.LineQubit.range(3)
-  gate_to_add = cirq.X(a)
 
-  gkind = qsim.kX
-  time = 0
-  qubits = [0]
-  params = {}
-  qsim.add_gate_channel(gkind, time, qubits, params, nc)
-  assert qsim.count_gates(nc) == 1
-
-  time = 1
-  qubits = [0, 1]
-  angles = [0.25, 0.5, 0.75]
-  qsim.add_diagonal_gate_channel(time, qubits, angles, nc)
-  assert qsim.count_gates(nc) == 2
-
-  time = 2
-  qubits = [2]
-  matrix = [0, 1, 1, 0]
-  qsim.add_matrix_gate_channel(time, qubits, matrix, nc)
-  assert qsim.count_gates(nc) == 3
-
-  control_qubits = [0]
-  control_values = [1]
-  qsim.control_last_gate_channel(control_qubits, control_values, nc)
-  assert qsim.count_gates(nc) == 3
-
+# TODO: add explicit testing for noisy circuits (channels + mixtures)
 
 def test_cirq_too_big_gate():
   # Pick qubits.
@@ -78,7 +51,8 @@ def test_cirq_too_big_gate():
     qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
 
 
-def test_cirq_qsim_simulate():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_cirq_qsim_simulate(mode: str):
   # Pick qubits.
   a, b, c, d = [
       cirq.GridQubit(0, 0),
@@ -95,13 +69,17 @@ def test_cirq_qsim_simulate():
       cirq.CZ(a, d)  # ControlZ.
   )
 
+  if mode == 'noisy':
+    cirq_circuit.append(NoiseTrigger().on(a))
+
   qsimSim = qsimcirq.QSimSimulator()
   result = qsimSim.compute_amplitudes(
       cirq_circuit, bitstrings=[0b0100, 0b1011])
   assert np.allclose(result, [0.5j, 0j])
 
 
-def test_cirq_qsim_simulate_fullstate():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_cirq_qsim_simulate_fullstate(mode: str):
   # Pick qubits.
   a, b, c, d = [
       cirq.GridQubit(0, 0),
@@ -129,6 +107,9 @@ def test_cirq_qsim_simulate_fullstate():
       ])
   )
 
+  if mode == 'noisy':
+    cirq_circuit.append(NoiseTrigger().on(a))
+
   qsimSim = qsimcirq.QSimSimulator()
   result = qsimSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
   assert result.state_vector().shape == (16,)
@@ -140,7 +121,8 @@ def test_cirq_qsim_simulate_fullstate():
       result.state_vector(), cirq_result.state_vector())
 
 
-def test_cirq_qsim_simulate_sweep():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_cirq_qsim_simulate_sweep(mode: str):
   # Pick qubits.
   a, b = [
       cirq.GridQubit(0, 0),
@@ -158,6 +140,9 @@ def test_cirq_qsim_simulate_sweep():
           cirq.CX(a, b),   # ControlX.
       ]),
   )
+
+  if mode == 'noisy':
+    cirq_circuit.append(NoiseTrigger().on(a))
 
   params = [{x: 0.25}, {x: 0.5}, {x: 0.75}]
   qsimSim = qsimcirq.QSimSimulator()
@@ -527,7 +512,8 @@ def test_multi_qubit_fusion():
       result_2q_fusion.state_vector(), result_4q_fusion.state_vector())
 
 
-def test_cirq_qsim_simulate_random_unitary():
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_cirq_qsim_simulate_random_unitary(mode: str):
 
   q0, q1 = cirq.LineQubit.range(2)
   qsimSim = qsimcirq.QSimSimulator(qsim_options={'t': 16, 'v': 0})
@@ -539,6 +525,8 @@ def test_cirq_qsim_simulate_random_unitary():
 
       cirq.ConvertToCzAndSingleGates().optimize_circuit(random_circuit) # cannot work with params
       cirq.ExpandComposite().optimize_circuit(random_circuit)
+      if mode == 'noisy':
+        random_circuit.append(NoiseTrigger().on(q0))
 
       result = qsimSim.simulate(random_circuit, qubit_order=[q0, q1])
       assert result.state_vector().shape == (4,)
