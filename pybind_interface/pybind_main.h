@@ -70,6 +70,12 @@ void control_last_gate_channel(
     const std::vector<unsigned>& qubits, const std::vector<unsigned>& values,
     qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
 
+void add_mixture(const unsigned time,
+                 const std::vector<unsigned>& qubits,
+                 const std::vector<std::tuple<float, std::vector<float>, bool>>&
+                     prob_matrix_unitary_triples,
+                 qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
 // Methods for simulating noiseless circuits.
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
@@ -200,6 +206,9 @@ PYBIND11_MODULE(qsim, m) {
         "Adds a matrix-defined gate to the given noisy circuit.");
   m.def("control_last_gate_channel", &control_last_gate_channel,
         "Applies controls to the final channel of a noisy circuit.");
+
+  m.def("add_mixture", &add_mixture,
+        "Adds a mixture to the given noisy circuit.");
 }
 
 #endif

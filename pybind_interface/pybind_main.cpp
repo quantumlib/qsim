@@ -319,7 +319,32 @@ void control_last_gate_channel(const std::vector<unsigned>& qubits,
   }
 }
 
-// TODO: need methods for creating Kraus ops and channels
+void add_mixture(const unsigned time,
+                 const std::vector<unsigned>& qubits,
+                 const std::vector<std::tuple<float, std::vector<float>, bool>>&
+                     prob_matrix_unitary_triples,
+                 NoisyCircuit<Cirq::GateCirq<float>>* ncircuit) {
+  // Adds a Cirq mixture to the noisy circuit. Cirq mixtures are probabilistic
+  // combinations of matrix gates, which may or may not be unitary.
+  using Gate = Cirq::GateCirq<float>;
+  Channel<Gate> channel;
+  // prob_matrix_unitary_triples contains triples with these elements:
+  //   0. The probability of applying the matrix.
+  //   1. The matrix to be applied.
+  //   2. Whether the matrix is unitary.
+  for (const auto &triple : prob_matrix_unitary_triples) {
+    const float prob = std::get<0>(triple);
+    const std::vector<float>& mat = std::get<1>(triple);
+    bool is_unitary = std::get<2>(triple);
+    Gate gate = create_matrix_gate(time, qubits, mat);
+    channel.emplace_back(KrausOperator<Gate>{
+      KrausOperator<Gate>::kNormal, is_unitary, prob, {gate}
+    });
+  }
+  ncircuit->push_back(channel);
+}
+
+// TODO: need methods for adding channels.
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
