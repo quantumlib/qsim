@@ -154,12 +154,17 @@ class QuantumTrajectorySimulator {
     std::vector<const Gate*> gates;
     gates.reserve(4 * std::size_t(clast - cfirst));
 
-    State state = StateSpace(1).Null();
-    State scratch = StateSpace(1).Null();
+    StateSpace state_space(param.num_threads);
+    State state = state_space.Null();
+    State scratch = state_space.Null();
 
     std::vector<uint64_t> stat;
 
     for (uint64_t r = r0; r < r1; ++r) {
+      if (!state_space.IsNull(state)) {
+        state_space.SetStateZero(state);
+      }
+
       if (!RunIteration(r, param, num_qubits,
                         cfirst, clast, gates, scratch, state, stat)) {
         return false;
@@ -241,9 +246,9 @@ class QuantumTrajectorySimulator {
       if (state_space.IsNull(state)) {
         return false;
       }
-    }
 
-    state_space.SetStateZero(state);
+      state_space.SetStateZero(state);
+    }
 
     gates.resize(0);
     stat.resize(0);
