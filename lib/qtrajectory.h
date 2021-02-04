@@ -238,12 +238,11 @@ class QuantumTrajectorySimulator {
 
     if (state_space.IsNull(state)) {
       state = CreateState(num_qubits, state_space);
+      state_space.SetStateZero(state);
       if (state_space.IsNull(state)) {
         return false;
       }
     }
-
-    state_space.SetStateZero(state);
 
     gates.resize(0);
     stat.resize(0);
