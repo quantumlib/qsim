@@ -572,6 +572,42 @@ TEST(QTrajectoryTest, CleanCircuit) {
   }
 }
 
+// Test that QTSimulator::Run does not overwrite initial states.
+TEST(QTrajectoryTest, InitialState) {
+  unsigned num_qubits = 3;
+
+  types::NoisyCircuit ncircuit;
+  ncircuit.reserve(2);
+
+  using fp_type = types::Gate::fp_type;
+  auto normal = KrausOperator<types::Gate>::kNormal;
+
+  ncircuit.push_back({{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 0)}}});
+  ncircuit.push_back({{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 1)}}});
+  ncircuit.push_back({{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 2)}}});
+
+  types::StateSpace state_space(1);
+
+  types::State scratch = state_space.Null();
+  types::State state = state_space.Create(num_qubits);
+  EXPECT_FALSE(state_space.IsNull(state));
+
+  types::QTSimulator::Parameter param;
+  std::vector<uint64_t> stat;
+
+  for (unsigned i = 0; i < 8; ++i) {
+    state_space.SetAmpl(state, i, 1 + i, 0);
+  }
+
+  EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit, 0,
+                                      scratch, state, stat));
+
+  // Expect reversed order of amplitudes.
+  for (unsigned i = 0; i < 8; ++i) {
+    EXPECT_FLOAT_EQ(std::real(state_space.GetAmpl(state, i)), 8 - i);
+  }
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {
