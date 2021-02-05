@@ -508,6 +508,42 @@ def test_complicated_decomposition():
       result.state_vector(), cirq_result.state_vector())
 
 
+def test_mixture_simulation():
+  q0, q1 = cirq.LineQubit.range(2)
+  cirq_circuit = cirq.Circuit(
+    cirq.H(q0),
+    cirq.phase_flip(p=0.4).on(q0),
+    cirq.bit_flip(p=0.6).on(q1),
+    cirq.H(q0),
+  )
+
+  possible_circuits = [
+    cirq.Circuit(cirq.H(q0), pf, bf, cirq.H(q0))
+    for pf in [cirq.I(q0), cirq.Z(q0)]
+    for bf in [cirq.I(q1), cirq.X(q1)]
+  ]
+  possible_states = [
+    cirq.Simulator().simulate(pc).state_vector()
+    for pc in possible_circuits
+  ]
+
+  # Minimize flaky tests with a fixed seed.
+  qsimSim = qsimcirq.QSimSimulator(seed=1)
+  result_hist = [0] * len(possible_states)
+  run_count = 100
+  for _ in range(run_count):
+    result = qsimSim.simulate(cirq_circuit, qubit_order=[q0, q1])
+    for i, ps in enumerate(possible_states):
+      if cirq.allclose_up_to_global_phase(result.state_vector(), ps):
+        result_hist[i] += 1
+        break
+  
+  # Each observed result should match one of the possible_results.
+  assert sum(result_hist) == run_count
+  # Over 100 runs, it's reasonable to expect all four outcomes.
+  assert all(result_count > 0 for result_count in result_hist)
+
+
 def test_multi_qubit_fusion():
   q0, q1, q2, q3 = cirq.LineQubit.range(4)
   qubits = [q0, q1, q2, q3]

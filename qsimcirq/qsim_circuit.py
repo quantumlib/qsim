@@ -351,8 +351,10 @@ class QSimCircuit(cirq.Circuit):
         for mixture in ops_by_mix:
           mixdata = []
           for prob, mat in cirq.mixture(mixture):
-            square_mat = np.reshape(mat, (int(np.sqrt(len(mat))), -1))
+            square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
             unitary = cirq.is_unitary(square_mat)
+            # Package matrix into a qsim-friendly format.
+            mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
             mixdata.append((prob, mat.view(np.float32), unitary))
           qubits = [qubit_to_index_dict[q] for q in mixture.qubits]
           qsim.add_mixture(time_offset, qubits, mixdata, qsim_ncircuit)
