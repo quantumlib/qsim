@@ -48,7 +48,7 @@ void EUnitaryEQ(UnitarySpace& us, Unitary& u, int n, float* expected) {
       std::complex<float> e_val =
           std::complex<float>(expected[ind], expected[ind + 1]);
       EXPECT_EQ(out, e_val) << "Mismatch in unitary at: " << i << "," << j
-                            << "Expected: " << e_val << " Got: " << out;
+                            << " Expected: " << e_val << " Got: " << out;
     }
   }
 }

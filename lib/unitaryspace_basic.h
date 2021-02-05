@@ -62,27 +62,28 @@ struct UnitarySpaceBasic
       }
       data[2 * i * dim + 2 * i] = 1;
     };
+
     Base::for_.Run(Base::Size(), f, state, Base::Size());
   }
 
   std::complex<fp_type> GetEntry(const Unitary& state, uint64_t i, uint64_t j) {
     uint64_t dim = Base::Size();
-    return std::complex<fp_type>(state.get()[2 * i * dim + 2 * j],
-                                 state.get()[2 * i * dim + 2 * j + 1]);
+    return std::complex<fp_type>(state.get()[2 * j * dim + 2 * i],
+                                 state.get()[2 * j * dim + 2 * i + 1]);
   }
 
   void SetEntry(const Unitary& state, uint64_t i, uint64_t j,
                 const std::complex<fp_type>& ampl) {
     uint64_t dim = Base::Size();
-    state.get()[2 * i * dim + 2 * j] = std::real(ampl);
-    state.get()[2 * i * dim + 2 * j + 1] = std::imag(ampl);
+    state.get()[2 * j * dim + 2 * i] = std::real(ampl);
+    state.get()[2 * j * dim + 2 * i + 1] = std::imag(ampl);
   }
 
   void SetEntry(const Unitary& state, uint64_t i, uint64_t j, fp_type re,
                 fp_type im) {
     uint64_t dim = Base::Size();
-    state.get()[2 * i * dim + 2 * j] = re;
-    state.get()[2 * i * dim + 2 * j + 1] = im;
+    state.get()[2 * j * dim + 2 * i] = re;
+    state.get()[2 * j * dim + 2 * i + 1] = im;
   }
 };
 
