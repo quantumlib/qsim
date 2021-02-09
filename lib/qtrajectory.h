@@ -18,7 +18,6 @@
 #include <cmath>
 #include <cstdint>
 #include <random>
-#include <utility>
 #include <vector>
 
 #include "gate.h"
@@ -263,6 +262,8 @@ class QuantumTrajectorySimulator {
     for (; it != clast; ++it) {
       const auto& channel = *it;
 
+      if (channel.size() == 0) continue;
+
       if (channel[0].kind == gate::kMeasurement) {
         // Measurement channel.
 
@@ -321,26 +322,26 @@ class QuantumTrajectorySimulator {
         }
       }
 
+      state_space.Copy(state, scratch);
+
       // Perform sampling of Kraus operators using norms of updated states.
       for (std::size_t i = 0; i < channel.size(); ++i) {
         const auto& kop = channel[i];
 
         if (kop.unitary) continue;
 
-        state_space.Copy(state, scratch);
-
         // Apply the Kraus operator.
         if (kop.ops.size() == 1) {
-          ApplyGate(simulator, kop.ops[0], scratch);
+          ApplyGate(simulator, kop.ops[0], state);
         } else {
           DeferOps(kop.ops, gates);
 
-          if (!ApplyDeferredOps(param, num_qubits, simulator, gates, scratch)) {
+          if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
             return false;
           }
         }
 
-        double n2 = state_space.Norm(scratch);
+        double n2 = state_space.Norm(state);
 
         cp += n2 - kop.prob;
 
@@ -354,9 +355,10 @@ class QuantumTrajectorySimulator {
 
           unitary = false;
 
-          std::swap(state, scratch);
           break;
         }
+
+        state_space.Copy(scratch, state);
       }
     }
 
