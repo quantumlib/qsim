@@ -509,23 +509,48 @@ def test_complicated_decomposition():
       result.state_vector(), cirq_result.state_vector())
 
 
+# Helper class for noisy circuit tests.
+class NoiseStep(cirq.Gate):
+  def __init__(self, matrix, num_qubits=1):
+    self._matrix = matrix
+    self._num_qubits = num_qubits
+
+  def _num_qubits_(self):
+    return self._num_qubits
+
+  def _unitary_(self):
+    # Not necessarily a unitary.
+    return self._matrix
+
+  def __str__(self):
+    return f'NoiseStep({self._matrix})'
+
+  def __repr__(self):
+    return str(self)
+
+
 def test_mixture_simulation():
   q0, q1 = cirq.LineQubit.range(2)
+  pflip = cirq.phase_flip(p=0.4)
+  bflip = cirq.bit_flip(p=0.6)
   cirq_circuit = cirq.Circuit(
     cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5,
-    cirq.phase_flip(p=0.4).on(q0),
-    cirq.bit_flip(p=0.6).on(q1),
+    pflip.on(q0),
+    bflip.on(q1),
   )
 
   possible_circuits = [
     cirq.Circuit(cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5, pf, bf)
-    for pf in [cirq.I(q0), cirq.Z(q0)]
-    for bf in [cirq.I(q1), cirq.X(q1)]
+    # Extract the operators from the mixtures to construct trajectories.
+    for pf in [NoiseStep(m).on(q0) for m in cirq.channel(pflip)]
+    for bf in [NoiseStep(m).on(q1) for m in cirq.channel(bflip)]
   ]
   possible_states = [
     cirq.Simulator().simulate(pc).state_vector()
     for pc in possible_circuits
   ]
+  # Since some "gates" were non-unitary, we must normalize.
+  possible_states = [ps / np.linalg.norm(ps) for ps in possible_states]
 
   # Minimize flaky tests with a fixed seed.
   qsimSim = qsimcirq.QSimSimulator(seed=1)
@@ -555,18 +580,11 @@ def test_channel_simulation():
     amp_damp.on(q0), gen_amp_damp.on(q1),
   )
 
-  class DampingStep(cirq.SingleQubitGate):
-    def __init__(self, matrix):
-      self._matrix = matrix
-    
-    def _unitary_(self):
-      # Not actually a unitary.
-      return self._matrix
-
   possible_circuits = [
     cirq.Circuit(cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5, ad, gad)
-    for ad in [DampingStep(m).on(q0) for m in cirq.channel(amp_damp)]
-    for gad in [DampingStep(m).on(q1) for m in cirq.channel(gen_amp_damp)]
+    # Extract the operators from the channels to construct trajectories.
+    for ad in [NoiseStep(m).on(q0) for m in cirq.channel(amp_damp)]
+    for gad in [NoiseStep(m).on(q1) for m in cirq.channel(gen_amp_damp)]
   ]
   possible_states = [
     cirq.Simulator().simulate(pc).state_vector()
@@ -592,7 +610,110 @@ def test_channel_simulation():
   assert all(result_count > 0 for result_count in result_hist)
 
 
-# TODO: multi-qubit channels / mixtures would be good to cover
+# Helper class for multi-qubit noisy circuit tests.
+class NoiseChannel(cirq.Gate):
+  def __init__(self, *prob_mat_pairs, num_qubits=1):
+    self._prob_op_pairs = [
+      (prob, NoiseStep(m, num_qubits)) for prob, m in prob_mat_pairs
+    ]
+    self._num_qubits = num_qubits
+
+  def _num_qubits_(self):
+    return self._num_qubits
+
+  def _channel_(self):
+    return [cirq.unitary(op) for _, op, in self._prob_op_pairs]
+
+  def steps(self):
+    return [m for _, m in self._prob_op_pairs]
+
+  def __str__(self):
+    return f'NoiseChannel({self._ops})'
+
+  def __repr__(self):
+    return str(self)
+
+# Helper class for multi-qubit noisy circuit tests.
+class NoiseMixture(NoiseChannel):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+
+  def _mixture_(self):
+    return [(prob, cirq.unitary(op)) for prob, op, in self._prob_op_pairs]
+
+
+@pytest.mark.parametrize('cx_qubits', [
+  [cirq.LineQubit(0), cirq.LineQubit(1)],
+  [cirq.LineQubit(0), cirq.LineQubit(2)],
+  [cirq.LineQubit(1), cirq.LineQubit(0)],
+  [cirq.LineQubit(1), cirq.LineQubit(2)],
+  [cirq.LineQubit(2), cirq.LineQubit(0)],
+  [cirq.LineQubit(2), cirq.LineQubit(1)],
+])
+@pytest.mark.parametrize('noise_type', [NoiseMixture, NoiseChannel])
+def test_multi_qubit_noise(cx_qubits, noise_type):
+  # Tests that noise across multiple qubits works correctly.
+  qs = cirq.LineQubit.range(3)
+  for q in qs:
+    if q not in cx_qubits:
+      q_no_cx = q
+      break
+
+  ambiguous_cx = noise_type(
+    # CX(*cx_qubits)
+    (
+      0.5,  # prob
+      np.asarray([
+        1, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 1,
+        0, 0, 0, 0,
+      ]) / np.sqrt(2),
+    ),
+    # CX(*cx_qubits)
+    (
+      0.5,  # prob
+      np.asarray([
+        0, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 1, 0,
+      ]) / np.sqrt(2),
+    ),
+    num_qubits=2,
+  )
+  cirq_circuit = cirq.Circuit(
+    cirq.X(cx_qubits[0]) ** 0.5, cirq.X(q_no_cx),
+    ambiguous_cx.on(*cx_qubits),
+  )
+
+  possible_circuits = [
+    cirq.Circuit(cirq.X(cx_qubits[0]) ** 0.5, cirq.X(q_no_cx), cx)
+    # Extract the operators from the mixture to construct trajectories.
+    for cx in [step.on(*cx_qubits) for step in ambiguous_cx.steps()]
+  ]
+  possible_states = [
+    cirq.Simulator().simulate(pc).state_vector()
+    for pc in possible_circuits
+  ]
+  # Since some "gates" were non-unitary, we must normalize.
+  possible_states = [ps / np.linalg.norm(ps) for ps in possible_states]
+
+  # Minimize flaky tests with a fixed seed.
+  qsimSim = qsimcirq.QSimSimulator(seed=1)
+  result_hist = [0] * len(possible_states)
+  run_count = 20
+  for _ in range(run_count):
+    result = qsimSim.simulate(cirq_circuit, qubit_order=qs)
+    for i, ps in enumerate(possible_states):
+      if cirq.allclose_up_to_global_phase(result.state_vector(), ps):
+        result_hist[i] += 1
+        break
+
+  # Each observed result should match one of the possible_results.
+  assert sum(result_hist) == run_count
+  # Over 20 runs, it's reasonable to expect both outcomes.
+  assert all(result_count > 0 for result_count in result_hist)
 
 
 def test_multi_qubit_fusion():
