@@ -204,6 +204,8 @@ void RunOnceRepeatedly(const types::NoisyCircuit& ncircuit,
   types::State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
 
+  auto state_pointer = state.get();
+
   std::vector<uint64_t> stat;
 
   std::vector<unsigned> histogram(1 << num_qubits, 0);
@@ -216,6 +218,8 @@ void RunOnceRepeatedly(const types::NoisyCircuit& ncircuit,
 
     EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit, i,
                                         scratch, state, stat));
+
+    EXPECT_EQ(state_pointer, state.get());
 
     ASSERT_EQ(stat.size(), 1);
     ++histogram[stat[0]];
