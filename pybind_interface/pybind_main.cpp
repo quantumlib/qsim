@@ -319,17 +319,16 @@ void control_last_gate_channel(const std::vector<unsigned>& qubits,
   }
 }
 
-void add_mixture(const unsigned time,
+void add_channel(const unsigned time,
                  const std::vector<unsigned>& qubits,
                  const std::vector<std::tuple<float, std::vector<float>, bool>>&
                      prob_matrix_unitary_triples,
                  NoisyCircuit<Cirq::GateCirq<float>>* ncircuit) {
-  // Adds a Cirq mixture to the noisy circuit. Cirq mixtures are probabilistic
-  // combinations of matrix gates, which may or may not be unitary.
+  // Adds a channel to the noisy circuit.
   using Gate = Cirq::GateCirq<float>;
   Channel<Gate> channel;
   // prob_matrix_unitary_triples contains triples with these elements:
-  //   0. The probability of applying the matrix.
+  //   0. The lower-bound probability of applying the matrix.
   //   1. The matrix to be applied.
   //   2. Whether the matrix is unitary.
   for (const auto &triple : prob_matrix_unitary_triples) {
@@ -421,7 +420,6 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
-    // TODO: check with Sergei (move from method argument?)
     seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
@@ -583,7 +581,6 @@ py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
-    // TODO: check with Sergei (move from method argument?)
     seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
@@ -644,7 +641,6 @@ py::array_t<float> qtrajectory_simulate_fullstate(
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
-    // TODO: check with Sergei (move from method argument?)
     seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
@@ -763,7 +759,6 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
-    // TODO: check with Sergei (move from method argument?)
     seed = parseOptions<unsigned>(options, "s\0");
     param.collect_mea_stat = true;
   } catch (const std::invalid_argument &exp) {

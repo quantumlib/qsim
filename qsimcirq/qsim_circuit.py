@@ -316,30 +316,29 @@ class QSimCircuit(cirq.Circuit):
       moment_length = 0
       ops_by_gate = []
       ops_by_mix = []
+      ops_by_channel = []
+      # Capture ops of each type in the appropriate list.
       for qsim_op in moment:
-        # Parameters must be resolved at this point.
         if cirq.has_unitary(qsim_op) or cirq.is_measurement(qsim_op):
-          # Produces ops
           oplist = cirq.decompose(
             qsim_op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
           ops_by_gate.append(oplist)
           moment_length = max(moment_length, len(oplist))
           pass
         elif cirq.has_mixture(qsim_op):
-          # Produces mixtures
           ops_by_mix.append(qsim_op)
           moment_length = max(moment_length, 1)
           pass
         elif cirq.has_channel(qsim_op):
-          # TODO: Treat as a channel (list of competing ops)
-          # Produces ???
+          ops_by_channel.append(qsim_op)
+          moment_length = max(moment_length, 1)
           pass
         else:
           raise ValueError(f'Encountered unparseable op: {qsim_op}')
 
       # Gates must be added in time order.
       for gi in range(moment_length):
-        # Handle gate output
+        # Handle gate output.
         for gate_ops in ops_by_gate:
           if gi >= len(gate_ops):
             continue
@@ -347,7 +346,7 @@ class QSimCircuit(cirq.Circuit):
           time = time_offset + gi
           gate_kind = _cirq_gate_kind(qsim_op.gate)
           add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_ncircuit)
-        # Handle mixture output
+        # Handle mixture output.
         for mixture in ops_by_mix:
           mixdata = []
           for prob, mat in cirq.mixture(mixture):
@@ -357,8 +356,20 @@ class QSimCircuit(cirq.Circuit):
             mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
             mixdata.append((prob, mat.view(np.float32), unitary))
           qubits = [qubit_to_index_dict[q] for q in mixture.qubits]
-          qsim.add_mixture(time_offset, qubits, mixdata, qsim_ncircuit)
-        # TODO: Handle channel output
+          qsim.add_channel(time_offset, qubits, mixdata, qsim_ncircuit)
+        # Handle channel output.
+        for channel in ops_by_channel:
+          chdata = []
+          for i, mat in enumerate(cirq.channel(channel)):
+            square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
+            unitary = cirq.is_unitary(square_mat)
+            singular_vals = np.linalg.svd(square_mat)[1]
+            lower_bound_prob = min(singular_vals) ** 2
+            # Package matrix into a qsim-friendly format.
+            mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
+            chdata.append((lower_bound_prob, mat.view(np.float32), unitary))
+          qubits = [qubit_to_index_dict[q] for q in channel.qubits]
+          qsim.add_channel(time_offset, qubits, chdata, qsim_ncircuit)
       time_offset += moment_length
 
     return qsim_ncircuit

@@ -25,11 +25,12 @@ class NoiseTrigger(cirq.SingleQubitGate):
   Appending this gate to a circuit will force it to use qtrajectory, but the
   new circuit will otherwise behave identically to the original.
   """
-  def _mixture_(self):
-    return ((1.0, np.asarray([1, 0, 0, 1], dtype=np.complex64)),)
+  # def _mixture_(self):
+  #   return ((1.0, np.asarray([1, 0, 0, 1])),)
 
+  def _channel_(self):
+    return (np.asarray([1, 0, 0, 1]),)
 
-# TODO: add explicit testing for noisy circuits (channels + mixtures)
 
 def test_cirq_too_big_gate():
   # Pick qubits.
@@ -511,14 +512,13 @@ def test_complicated_decomposition():
 def test_mixture_simulation():
   q0, q1 = cirq.LineQubit.range(2)
   cirq_circuit = cirq.Circuit(
-    cirq.H(q0),
+    cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5,
     cirq.phase_flip(p=0.4).on(q0),
     cirq.bit_flip(p=0.6).on(q1),
-    cirq.H(q0),
   )
 
   possible_circuits = [
-    cirq.Circuit(cirq.H(q0), pf, bf, cirq.H(q0))
+    cirq.Circuit(cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5, pf, bf)
     for pf in [cirq.I(q0), cirq.Z(q0)]
     for bf in [cirq.I(q1), cirq.X(q1)]
   ]
@@ -537,11 +537,62 @@ def test_mixture_simulation():
       if cirq.allclose_up_to_global_phase(result.state_vector(), ps):
         result_hist[i] += 1
         break
-  
+
   # Each observed result should match one of the possible_results.
   assert sum(result_hist) == run_count
   # Over 100 runs, it's reasonable to expect all four outcomes.
   assert all(result_count > 0 for result_count in result_hist)
+
+
+def test_channel_simulation():
+  q0, q1 = cirq.LineQubit.range(2)
+  # These probabilities are set unreasonably high in order to reduce the number
+  # of runs required to observe every possible operator.
+  amp_damp = cirq.amplitude_damp(gamma=0.5)
+  gen_amp_damp = cirq.generalized_amplitude_damp(p=0.4, gamma=0.6)
+  cirq_circuit = cirq.Circuit(
+    cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5,
+    amp_damp.on(q0), gen_amp_damp.on(q1),
+  )
+
+  class DampingStep(cirq.SingleQubitGate):
+    def __init__(self, matrix):
+      self._matrix = matrix
+    
+    def _unitary_(self):
+      # Not actually a unitary.
+      return self._matrix
+
+  possible_circuits = [
+    cirq.Circuit(cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5, ad, gad)
+    for ad in [DampingStep(m).on(q0) for m in cirq.channel(amp_damp)]
+    for gad in [DampingStep(m).on(q1) for m in cirq.channel(gen_amp_damp)]
+  ]
+  possible_states = [
+    cirq.Simulator().simulate(pc).state_vector()
+    for pc in possible_circuits
+  ]
+  # Since some "gates" were non-unitary, we must normalize.
+  possible_states = [ps / np.linalg.norm(ps) for ps in possible_states]
+
+  # Minimize flaky tests with a fixed seed.
+  qsimSim = qsimcirq.QSimSimulator(seed=1)
+  result_hist = [0] * len(possible_states)
+  run_count = 200
+  for _ in range(run_count):
+    result = qsimSim.simulate(cirq_circuit, qubit_order=[q0, q1])
+    for i, ps in enumerate(possible_states):
+      if cirq.allclose_up_to_global_phase(result.state_vector(), ps):
+        result_hist[i] += 1
+        break
+
+  # Each observed result should match one of the possible_results.
+  assert sum(result_hist) == run_count
+  # Over 200 runs, it's reasonable to expect all eight outcomes.
+  assert all(result_count > 0 for result_count in result_hist)
+
+
+# TODO: multi-qubit channels / mixtures would be good to cover
 
 
 def test_multi_qubit_fusion():
