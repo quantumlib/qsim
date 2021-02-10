@@ -395,7 +395,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
   std::vector<Bitstring> bitstrings;
   try {
     ncircuit = getNoisyCircuit(options);
-    num_qubits = qsim::count_qubits(ncircuit);
+    num_qubits = parseOptions<unsigned>(options, "n\0");
     bitstrings = getBitstrings(options, num_qubits);
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
@@ -562,7 +562,7 @@ py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
   unsigned num_qubits;
   try {
     ncircuit = getNoisyCircuit(options);
-    num_qubits = qsim::count_qubits(ncircuit);
+    num_qubits = parseOptions<unsigned>(options, "n\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -622,7 +622,7 @@ py::array_t<float> qtrajectory_simulate_fullstate(
   unsigned num_qubits;
   try {
     ncircuit = getNoisyCircuit(options);
-    num_qubits = qsim::count_qubits(ncircuit);
+    num_qubits = parseOptions<unsigned>(options, "n\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};
@@ -740,7 +740,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   unsigned num_qubits;
   try {
     ncircuit = getNoisyCircuit(options);
-    num_qubits = qsim::count_qubits(ncircuit);
+    num_qubits = parseOptions<unsigned>(options, "n\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
     return {};

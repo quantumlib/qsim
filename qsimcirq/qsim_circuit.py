@@ -173,38 +173,36 @@ def add_op_to_circuit(
 
   if (gate_kind == qsim.kTwoQubitDiagonalGate or
       gate_kind == qsim.kThreeQubitDiagonalGate):
-    op = (
-      qsim.add_diagonal_gate if isinstance(circuit, qsim.Circuit)
-      else qsim.add_diagonal_gate_channel
-    )
-    op(time, qsim_qubits, qsim_gate._diag_angles_radians, circuit)
+    if isinstance(circuit, qsim.Circuit):
+      qsim.add_diagonal_gate(
+        time, qsim_qubits, qsim_gate._diag_angles_radians, circuit)
+    else:
+      qsim.add_diagonal_gate_channel(
+        time, qsim_qubits, qsim_gate._diag_angles_radians, circuit)
   elif gate_kind == qsim.kMatrixGate:
-    op = (
-      qsim.add_matrix_gate if isinstance(circuit, qsim.Circuit)
-      else qsim.add_matrix_gate_channel
-    )
     m = [
       val for i in list(cirq.unitary(qsim_gate).flat)
       for val in [i.real, i.imag]
     ]
-    op(time, qsim_qubits, m, circuit)
+    if isinstance(circuit, qsim.Circuit):
+      qsim.add_matrix_gate(time, qsim_qubits, m, circuit)
+    else:
+      qsim.add_matrix_gate_channel(time, qsim_qubits, m, circuit)
   else:
     params = {
       p.strip('_'): val for p, val in vars(qsim_gate).items()
       if isinstance(val, float) or isinstance(val, int)
     }
-    op = (
-      qsim.add_gate if isinstance(circuit, qsim.Circuit)
-      else qsim.add_gate_channel
-    )
-    op(gate_kind, time, qsim_qubits, params, circuit)
+    if isinstance(circuit, qsim.Circuit):
+      qsim.add_gate(gate_kind, time, qsim_qubits, params, circuit)
+    else:
+      qsim.add_gate_channel(gate_kind, time, qsim_qubits, params, circuit)
 
   if is_controlled:
-    op = (
-      qsim.control_last_gate if isinstance(circuit, qsim.Circuit)
-      else qsim.control_last_gate_channel
-    )
-    op(control_qubits, control_values, circuit)
+    if isinstance(circuit, qsim.Circuit):
+      qsim.control_last_gate(control_qubits, control_values, circuit)
+    else:
+      qsim.control_last_gate_channel(control_qubits, control_values, circuit)
 
 
 class QSimCircuit(cirq.Circuit):
