@@ -57,6 +57,11 @@ class VectorSpace {
       return ptr_.get();
     }
 
+    fp_type* release() {
+      num_qubits_ = 0;
+      return ptr_.release();
+    }
+
     unsigned num_qubits() const {
       return num_qubits_;
     }
@@ -96,6 +101,16 @@ class VectorSpace {
 
   static bool IsNull(const Vector& vec) {
     return vec.get() == nullptr;
+  }
+
+  static void Free(fp_type* ptr) {
+    if (ptr != nullptr) {
+    #ifdef _WIN32
+      _aligned_free(ptr);
+    #else
+      free(ptr);
+    #endif
+    }
   }
 
   bool Copy(const Vector& src, Vector& dest) const {
