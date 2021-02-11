@@ -28,7 +28,15 @@ namespace qsim {
 
 namespace detail {
 
-inline void do_not_free(void*) noexcept {}
+inline void do_not_free(void*) {}
+
+inline void free(void* ptr) {
+#ifdef _WIN32
+  _aligned_free(ptr);
+#else
+  ::free(ptr);
+#endif
+}
 
 }  // namespace detail
 
@@ -77,12 +85,12 @@ class VectorSpace {
   static Vector Create(unsigned num_qubits) {
     auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
     #ifdef _WIN32
-      Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &_aligned_free};
+      Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &detail::free};
       return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
     #else
       void* p = nullptr;
       if (posix_memalign(&p, 64, size) == 0) {
-        return Vector{Pointer{(fp_type*) p, &free}, num_qubits};
+        return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
       } else {
         return Null();
       }
@@ -96,7 +104,7 @@ class VectorSpace {
   }
 
   static Vector Null() {
-    return Vector{Pointer{nullptr, &free}, 0};
+    return Vector{Pointer{nullptr, &detail::free}, 0};
   }
 
   static bool IsNull(const Vector& vec) {
@@ -104,13 +112,7 @@ class VectorSpace {
   }
 
   static void Free(fp_type* ptr) {
-    if (ptr != nullptr) {
-    #ifdef _WIN32
-      _aligned_free(ptr);
-    #else
-      free(ptr);
-    #endif
-    }
+    detail::free(ptr);
   }
 
   bool Copy(const Vector& src, Vector& dest) const {
