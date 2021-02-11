@@ -28,9 +28,9 @@ namespace qsim {
 
 namespace detail {
 
-inline void do_not_free(void*) {}
+inline void do_not_free(void*) noexcept {}
 
-inline void free(void* ptr) {
+inline void free(void* ptr) noexcept {
 #ifdef _WIN32
   _aligned_free(ptr);
 #else
