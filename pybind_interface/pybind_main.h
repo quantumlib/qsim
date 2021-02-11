@@ -19,13 +19,18 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 namespace py = pybind11;
 
 #include <vector>
 
 #include "../lib/circuit.h"
 #include "../lib/gates_cirq.h"
+#include "../lib/qtrajectory.h"
 
+PYBIND11_MAKE_OPAQUE(qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>);
+
+// Methods for mutating noiseless circuits.
 void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::vector<unsigned>& qubits,
               const std::map<std::string, float>& params,
@@ -43,6 +48,35 @@ void control_last_gate(const std::vector<unsigned>& qubits,
                        const std::vector<unsigned>& values,
                        qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
 
+// Methods for mutating noisy circuits.
+void add_gate_channel(
+    const qsim::Cirq::GateKind gate_kind,
+    const unsigned time,
+    const std::vector<unsigned>& qubits,
+    const std::map<std::string, float>& params,
+    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
+void add_diagonal_gate_channel(
+    const unsigned time, const std::vector<unsigned>& qubits,
+    const std::vector<float>& angles,
+    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
+void add_matrix_gate_channel(
+    const unsigned time, const std::vector<unsigned>& qubits,
+    const std::vector<float>& matrix,
+    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
+void control_last_gate_channel(
+    const std::vector<unsigned>& qubits, const std::vector<unsigned>& values,
+    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
+void add_channel(const unsigned time,
+                 const std::vector<unsigned>& qubits,
+                 const std::vector<std::tuple<float, std::vector<float>, bool>>&
+                     prob_matrix_unitary_triples,
+                 qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
+// Methods for simulating noiseless circuits.
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
 
 py::array_t<float> qsim_simulate_fullstate(
@@ -52,6 +86,17 @@ py::array_t<float> qsim_simulate_fullstate(
 
 std::vector<unsigned> qsim_sample(const py::dict &options);
 
+// Methods for simulating noisy circuits.
+std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options);
+
+py::array_t<float> qtrajectory_simulate_fullstate(
+      const py::dict &options, uint64_t input_state);
+py::array_t<float> qtrajectory_simulate_fullstate(
+      const py::dict &options, const py::array_t<float> &input_vector);
+
+std::vector<unsigned> qtrajectory_sample(const py::dict &options);
+
+// Hybrid simulator.
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
 
 PYBIND11_MODULE(qsim, m) {
@@ -68,16 +113,34 @@ PYBIND11_MODULE(qsim, m) {
             &qsim_simulate_fullstate),
         "Call the qsim simulator for full state vector simulation");
   m.def("qsim_sample", &qsim_sample, "Call the qsim sampler");
+
+  m.def("qtrajectory_simulate", &qtrajectory_simulate,
+        "Call the qtrajectory simulator");
+  m.def("qtrajectory_simulate_fullstate",
+        static_cast<py::array_t<float>(*)(const py::dict&, uint64_t)>(
+            &qtrajectory_simulate_fullstate),
+        "Call the qtrajectory simulator for full state vector simulation");
+  m.def("qtrajectory_simulate_fullstate",
+        static_cast<py::array_t<float>(*)(const py::dict&,
+                                          const py::array_t<float>&)>(
+            &qtrajectory_simulate_fullstate),
+        "Call the qtrajectory simulator for full state vector simulation");
+  m.def("qtrajectory_sample", &qtrajectory_sample,
+        "Call the qtrajectory sampler");
+
   m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");
 
   using GateCirq = qsim::Cirq::GateCirq<float>;
   using GateKind = qsim::Cirq::GateKind;
   using Circuit = qsim::Circuit<GateCirq>;
+  using NoisyCircuit = qsim::NoisyCircuit<GateCirq>;
 
   py::class_<Circuit>(m, "Circuit")
     .def(py::init<>())
     .def_readwrite("num_qubits", &Circuit::num_qubits)
     .def_readwrite("gates", &Circuit::gates);
+
+  py::bind_vector<NoisyCircuit>(m, "NoisyCircuit");
 
   py::enum_<GateKind>(m, "GateKind")
     .value("kI1", GateKind::kI1)
@@ -134,6 +197,18 @@ PYBIND11_MODULE(qsim, m) {
         "Adds a matrix-defined gate to the given circuit.");
   m.def("control_last_gate", &control_last_gate,
         "Applies controls to the final gate of a circuit.");
+
+  m.def("add_gate_channel", &add_gate_channel,
+        "Adds a gate to the given noisy circuit.");
+  m.def("add_diagonal_gate_channel", &add_diagonal_gate_channel,
+        "Adds a two- or three-qubit diagonal gate to the given noisy circuit.");
+  m.def("add_matrix_gate_channel", &add_matrix_gate_channel,
+        "Adds a matrix-defined gate to the given noisy circuit.");
+  m.def("control_last_gate_channel", &control_last_gate_channel,
+        "Applies controls to the final channel of a noisy circuit.");
+
+  m.def("add_channel", &add_channel,
+        "Adds a channel to the given noisy circuit.");
 }
 
 #endif
