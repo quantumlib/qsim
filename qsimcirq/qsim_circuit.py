@@ -242,9 +242,10 @@ class QSimCircuit(cirq.Circuit):
         """
 
     qsim_circuit = qsim.Circuit()
-    qsim_circuit.num_qubits = len(self.all_qubits())
+    qubits = self.all_qubits()
+    qsim_circuit.num_qubits = len(qubits)
     ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-        self.all_qubits())
+      qubits)
 
     # qsim numbers qubits in reverse order from cirq
     ordered_qubits = list(reversed(ordered_qubits))

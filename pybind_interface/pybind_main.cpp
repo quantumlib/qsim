@@ -471,16 +471,7 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
   }
 
   StateSpace state_space(param.num_threads);
-
-  float *fsv;
-  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
-  const uint64_t buff_size = state_space.MinSize(circuit.num_qubits);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
-
-  State state = state_space.Create(fsv, circuit.num_qubits);
+  State state = state_space.Create(circuit.num_qubits);
   state_space.SetAllZeros(state);
   state_space.SetAmpl(state, input_state, 1, 0);
 
@@ -491,6 +482,8 @@ py::array_t<float> qsim_simulate_fullstate(const py::dict &options,
 
   state_space.InternalToNormalOrder(state);
 
+  uint64_t fsv_size = 2 * (uint64_t{1} << circuit.num_qubits);
+  float* fsv = state.release();
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
@@ -525,23 +518,13 @@ py::array_t<float> qsim_simulate_fullstate(
   }
 
   StateSpace state_space(param.num_threads);
-
-  float *fsv;
-  const uint64_t fsv_size = std::pow(2, circuit.num_qubits + 1);
-  const uint64_t buff_size = state_space.MinSize(circuit.num_qubits);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
+  State state = state_space.Create(circuit.num_qubits);
   const float* ptr = input_vector.data();
   auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
               float* fsv) {
     fsv[i] = ptr[i];
   };
-
-  For(param.num_threads).Run(input_vector.size(), f, ptr, fsv);
-
-  State state = state_space.Create(fsv, circuit.num_qubits);
+  For(param.num_threads).Run(input_vector.size(), f, ptr, state.get());
   state_space.NormalToInternalOrder(state);
 
   if (!Runner::Run(param, circuit, state)) {
@@ -551,6 +534,8 @@ py::array_t<float> qsim_simulate_fullstate(
 
   state_space.InternalToNormalOrder(state);
 
+  uint64_t fsv_size = 2 * (uint64_t{1} << circuit.num_qubits);
+  float* fsv = state.release();
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
@@ -588,16 +573,7 @@ py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
   }
 
   StateSpace state_space(param.num_threads);
-
-  float *fsv;
-  const uint64_t fsv_size = std::pow(2, num_qubits + 1);
-  const uint64_t buff_size = state_space.MinSize(num_qubits);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
-
-  State state = state_space.Create(fsv, num_qubits);
+  State state = state_space.Create(num_qubits);
   state_space.SetAllZeros(state);
   state_space.SetAmpl(state, input_state, 1, 0);
 
@@ -611,6 +587,8 @@ py::array_t<float> qtrajectory_simulate_fullstate(const py::dict &options,
 
   state_space.InternalToNormalOrder(state);
 
+  uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
+  float* fsv = state.release();
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
@@ -648,23 +626,13 @@ py::array_t<float> qtrajectory_simulate_fullstate(
   }
 
   StateSpace state_space(param.num_threads);
-
-  float *fsv;
-  const uint64_t fsv_size = std::pow(2, num_qubits + 1);
-  const uint64_t buff_size = state_space.MinSize(num_qubits);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
+  State state = state_space.Create(num_qubits);
   const float* ptr = input_vector.data();
   auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
               float* fsv) {
     fsv[i] = ptr[i];
   };
-
-  For(param.num_threads).Run(input_vector.size(), f, ptr, fsv);
-
-  State state = state_space.Create(fsv, num_qubits);
+  For(param.num_threads).Run(input_vector.size(), f, ptr, state.get());
   state_space.NormalToInternalOrder(state);
 
   State scratch = StateSpace(1).Null();
@@ -677,6 +645,8 @@ py::array_t<float> qtrajectory_simulate_fullstate(
 
   state_space.InternalToNormalOrder(state);
 
+  uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
+  float* fsv = state.release();
   auto capsule = py::capsule(
       fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
   return py::array_t<float>(fsv_size, fsv, capsule);
@@ -711,15 +681,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
 
   std::vector<MeasurementResult> results;
   StateSpace state_space(param.num_threads);
-
-  float *fsv;
-  const uint64_t buff_size = state_space.MinSize(circuit.num_qubits);
-  if (posix_memalign((void **)&fsv, 32, buff_size * sizeof(float))) {
-    IO::errorf("Memory allocation failed.\n");
-    return {};
-  }
-
-  State state = state_space.Create(fsv, circuit.num_qubits);
+  State state = state_space.Create(circuit.num_qubits);
   state_space.SetStateZero(state);
 
   if (!Runner::Run(param, circuit, state, results)) {
