@@ -30,6 +30,14 @@ namespace detail {
 
 inline void do_not_free(void*) noexcept {}
 
+inline void free(void* ptr) noexcept {
+#ifdef _WIN32
+  _aligned_free(ptr);
+#else
+  ::free(ptr);
+#endif
+}
+
 }  // namespace detail
 
 // Routines for vector manipulations.
@@ -57,6 +65,11 @@ class VectorSpace {
       return ptr_.get();
     }
 
+    fp_type* release() {
+      num_qubits_ = 0;
+      return ptr_.release();
+    }
+
     unsigned num_qubits() const {
       return num_qubits_;
     }
@@ -72,12 +85,12 @@ class VectorSpace {
   static Vector Create(unsigned num_qubits) {
     auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
     #ifdef _WIN32
-      Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &_aligned_free};
+      Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &detail::free};
       return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
     #else
       void* p = nullptr;
       if (posix_memalign(&p, 64, size) == 0) {
-        return Vector{Pointer{(fp_type*) p, &free}, num_qubits};
+        return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
       } else {
         return Null();
       }
@@ -91,11 +104,15 @@ class VectorSpace {
   }
 
   static Vector Null() {
-    return Vector{Pointer{nullptr, &free}, 0};
+    return Vector{Pointer{nullptr, &detail::free}, 0};
   }
 
   static bool IsNull(const Vector& vec) {
     return vec.get() == nullptr;
+  }
+
+  static void Free(fp_type* ptr) {
+    detail::free(ptr);
   }
 
   bool Copy(const Vector& src, Vector& dest) const {
