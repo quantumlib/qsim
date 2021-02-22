@@ -144,6 +144,31 @@ def _control_details(gate: cirq.ops.ControlledGate, qubits):
   return (control_qubits, control_values)
 
 
+def add_op_to_opstring(
+    qsim_op: cirq.GateOperation,
+    qubit_to_index_dict: Dict[cirq.Qid, int],
+    opstring: qsim.OpString,
+):
+  """Adds an operation to an opstring (observable).
+  
+  Raises:
+    ValueError if qsim_op is not a single-qubit Pauli (I, X, Y, or Z).
+  """
+  qsim_gate = qsim_op.gate
+  gate_kind = _cirq_gate_kind(qsim_gate)
+  if gate_kind not in {qsim.kX, qsim.kY, qsim.kZ, qsim.kI1}:
+    raise ValueError(f'OpString should only have Paulis; got {gate_kind}')
+  qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
+  if len(qubits) != 1:
+    raise ValueError(f'OpString ops should have 1 qubit; got {len(qubits)}')
+
+  is_controlled = isinstance(qsim_gate, cirq.ops.ControlledGate)
+  if is_controlled:
+    raise ValueError(f'OpString ops should not be controlled.')
+
+  qsim.add_gate_to_opstring(gate_kind, qubits, opstring)
+
+
 def add_op_to_circuit(
     qsim_op: cirq.GateOperation,
     time: int,

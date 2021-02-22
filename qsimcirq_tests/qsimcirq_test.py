@@ -255,6 +255,45 @@ def test_qsim_run_vs_cirq_run(mode: str):
   assert(qsim_result == cirq_result)
 
 
+# TODO: test against Cirq simulator when Cirq v0.10 is released.
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_expectation_values(mode: str):
+  a, b = [
+    cirq.GridQubit(0, 0),
+    cirq.GridQubit(0, 1),
+  ]
+  x_exp = sympy.Symbol('x_exp')
+  h_exp = sympy.Symbol('h_exp')
+  circuit = cirq.Circuit(
+    cirq.X(a) ** x_exp, cirq.H(b),
+    cirq.H(a) ** h_exp, cirq.H(b) ** h_exp,
+  )
+  params = [
+    {x_exp: 0, h_exp: 0},  # |0+)
+    {x_exp: 1, h_exp: 0},  # |1+)
+    {x_exp: 0, h_exp: 1},  # |+0)
+    {x_exp: 1, h_exp: 1},  # |-0)
+  ]
+  psum1 = cirq.Z(a) + 3 * cirq.X(b)
+  psum2 = cirq.X(a) - 3 * cirq.Z(b)
+
+  if mode == 'noisy':
+    circuit.append(NoiseTrigger().on(a))
+
+  qsim_simulator = qsimcirq.QSimSimulator()
+  with pytest.raises(ValueError, match='terminal measurement checking'):
+    _ = qsim_simulator.simulate_expectation_values_sweep(
+      circuit, [psum1, psum2], params)
+    
+  qsim_result = qsim_simulator.simulate_expectation_values_sweep(
+    circuit, [psum1, psum2], params, permit_terminal_measurements=True)
+  assert len(qsim_result) == 4
+  assert len(qsim_result[0]) == 2
+
+  expected_result = [[4, 0], [2, 0], [0, -2], [0, -4]]
+  assert cirq.approx_eq(qsim_result, expected_result, atol=1e-6)
+
+
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
 def test_intermediate_measure(mode: str):
   # Demonstrate that intermediate measurement is possible.

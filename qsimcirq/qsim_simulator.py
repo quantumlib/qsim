@@ -382,3 +382,124 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       trials_results.append(result)
 
     return trials_results
+
+  def simulate_expectation_values_sweep(
+    self,
+    program: 'cirq.Circuit',
+    observables: Union['cirq.PauliSumLike', List['cirq.PauliSumLike']],
+    params: 'study.Sweepable',
+    qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
+    initial_state: Any = None,
+    permit_terminal_measurements: bool = False,
+  ) -> List[List[float]]:
+    """Simulates the supplied circuit and calculates exact expectation
+    values for the given observables on its final state.
+
+    This method has no perfect analogy in hardware. Instead compare with
+    Sampler.sample_expectation_values, which calculates estimated
+    expectation values by sampling multiple times.
+
+    Args:
+        program: The circuit to simulate.
+        observables: An observable or list of observables.
+        param_resolver: Parameters to run with the program.
+        qubit_order: Determines the canonical ordering of the qubits. This
+            is often used in specifying the initial state, i.e. the
+            ordering of the computational basis states.
+        initial_state: The initial state for the simulation. The form of
+            this state depends on the simulation implementation. See
+            documentation of the implementing class for details.
+        permit_terminal_measurements: If the provided circuit ends with
+            measurement(s), this method will generate an error unless this
+            is set to True. This is meant to prevent measurements from
+            ruining expectation value calculations.
+
+    Returns:
+        A list of expectation values, with the value at index `n`
+        corresponding to `observables[n]` from the input.
+
+    Raises:
+        ValueError if 'program' has terminal measurement(s) and
+        'permit_terminal_measurements' is False. (Note: We cannot test this
+        until Cirq's `are_any_measurements_terminal` is released.)
+    """
+    # TODO: replace with commented check when Cirq v0.10 is released.
+    if not permit_terminal_measurements:
+      raise ValueError(
+        'Automatic terminal measurement checking is not supported in qsim. '
+        'Please check that your circuit has no terminal measurements, then '
+        'set permit_terminal_measurements=True to bypass this error.'
+      )
+    # if not permit_terminal_measurements and program.are_any_measurements_terminal():
+    #   raise ValueError(
+    #     'Provided circuit has terminal measurements, which may '
+    #     'skew expectation values. If this is intentional, set '
+    #     'permit_terminal_measurements=True.'
+    #   )
+    if not isinstance(observables, List):
+      observables = [observables]
+    psumlist = [ops.PauliSum.wrap(pslike) for pslike in observables]
+
+    qubits = program.all_qubits()
+    num_qubits = len(qubits)
+    qubit_map = {
+      qubit: index for index, qubit in enumerate(qubits)
+    }
+
+    opsums_and_qubit_counts = []
+    for psum in psumlist:
+      opsum = []
+      opsum_qubits = set()
+      for pstr in psum:
+        opstring = qsim.OpString()
+        opstring.weight = pstr.coefficient
+        for q, pauli in pstr.items():
+          op = pauli.on(q)
+          opsum_qubits.add(q)
+          qsimc.add_op_to_opstring(op, qubit_map, opstring)
+        opsum.append(opstring)
+      opsums_and_qubit_counts.append((opsum, len(opsum_qubits)))
+
+    if initial_state is None:
+      initial_state = 0
+    if not isinstance(initial_state, (int, np.ndarray)):
+      raise TypeError('initial_state must be an int or state vector.')
+    if not isinstance(program, qsimc.QSimCircuit):
+      program = qsimc.QSimCircuit(program, device=program.device)
+
+    options = {}
+    options.update(self.qsim_options)
+
+    param_resolvers = study.to_resolvers(params)
+    qubits = program.all_qubits()
+    num_qubits = len(qubits)
+    if isinstance(initial_state, np.ndarray):
+      if initial_state.dtype != np.complex64:
+        raise TypeError(f'initial_state vector must have dtype np.complex64.')
+      input_vector = initial_state.view(np.float32)
+      if len(input_vector) != 2**num_qubits * 2:
+        raise ValueError(f'initial_state vector size must match number of qubits.'
+          f'Expected: {2**num_qubits * 2} Received: {len(input_vector)}')
+
+    results = []
+    if _needs_trajectories(program):
+      translator_fn_name = 'translate_cirq_to_qtrajectory'
+      ev_simulator_fn = qsim.qtrajectory_simulate_expectation_values
+    else:
+      translator_fn_name = 'translate_cirq_to_qsim'
+      ev_simulator_fn = qsim.qsim_simulate_expectation_values
+
+    for prs in param_resolvers:
+      solved_circuit = protocols.resolve_parameters(program, prs)
+      translator_fn = getattr(solved_circuit, translator_fn_name)
+      options['c'] = translator_fn(qubit_order)
+      options['s'] = self.get_seed()
+      options['n'] = num_qubits
+
+      if isinstance(initial_state, int):
+        evs = ev_simulator_fn(options, opsums_and_qubit_counts, initial_state)
+      elif isinstance(initial_state, np.ndarray):
+        evs = ev_simulator_fn(options, opsums_and_qubit_counts, input_vector)
+      results.append(evs)
+
+    return results
