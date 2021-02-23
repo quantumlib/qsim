@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "../lib/bitstring.h"
+#include "../lib/expect.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
@@ -343,7 +344,12 @@ void add_channel(const unsigned time,
   ncircuit->push_back(channel);
 }
 
-// TODO: need methods for adding channels.
+void add_gate_to_opstring(const Cirq::GateKind gate_kind,
+                          const std::vector<unsigned>& qubits,
+                          OpString<Cirq::GateCirq<float>>* opstring) {
+  static std::map<std::string, float> params;
+  opstring->ops.push_back(create_gate(gate_kind, 0, qubits, params));
+}
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
@@ -670,6 +676,102 @@ py::array_t<float> qtrajectory_simulate_fullstate(
     const py::dict &options, const py::array_t<float> &input_vector) {
   return state_to_python(
     options, _noisy_sim_from_input_vector(options, input_vector));
+}
+
+// Methods for calculating expectation values.
+
+std::vector<std::complex<double>> state_to_python_expectation_value(
+    const py::dict &options,
+    const std::vector<std::tuple<
+                          std::vector<OpString<Cirq::GateCirq<float>>>,
+                          unsigned>>& opsums_and_qubit_counts,
+    qsim::Simulator<For>::State&& state){
+  unsigned total_qubits;
+  unsigned num_threads;
+  try {
+    total_qubits = parseOptions<unsigned>(options, "n\0");
+    num_threads = parseOptions<unsigned>(options, "t\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+
+  Simulator simulator(num_threads);
+  StateSpace state_space(num_threads);
+  using Fuser = MultiQubitGateFuser<IO, Cirq::GateCirq<float>>;
+
+  State ket = state_space.Null();
+  for (const auto& opsum_qubit_count_pair : opsums_and_qubit_counts) {
+    const unsigned& qubit_count = std::get<1>(opsum_qubit_count_pair);
+    if (qubit_count > 6) {
+      // For more than 6 qubits, scratch space is required.
+      ket = state_space.Create(total_qubits);
+      break;
+    }
+  }
+
+  std::vector<std::complex<double>> results;
+  results.reserve(opsums_and_qubit_counts.size());
+  for (const auto& opsum_qubit_count_pair : opsums_and_qubit_counts) {
+    const auto& opsum = std::get<0>(opsum_qubit_count_pair);
+    const auto& opsum_qubits = std::get<1>(opsum_qubit_count_pair);
+    if (opsum_qubits <= 6) {
+      results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
+    } else {
+      Fuser::Parameter param;
+      results.push_back(ExpectationValue<Fuser>(
+          param, opsum, state_space, simulator, state, ket));
+    }
+  }
+  return results;
+}
+
+std::vector<std::complex<double>> qsim_simulate_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<
+                          std::vector<OpString<Cirq::GateCirq<float>>>,
+                          unsigned>>& opsums_and_qubit_counts,
+    uint64_t input_state) {
+  return state_to_python_expectation_value(
+    options, opsums_and_qubit_counts, 
+    _noiseless_sim_from_input_state(options, input_state));
+}
+
+std::vector<std::complex<double>> qsim_simulate_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<
+                          std::vector<OpString<Cirq::GateCirq<float>>>,
+                          unsigned>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector) {
+  return state_to_python_expectation_value(
+    options, opsums_and_qubit_counts, 
+    _noiseless_sim_from_input_vector(options, input_vector));
+}
+
+std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<
+                          std::vector<OpString<Cirq::GateCirq<float>>>,
+                          unsigned>>& opsums_and_qubit_counts,
+    uint64_t input_state) {
+  return state_to_python_expectation_value(
+    options, opsums_and_qubit_counts, 
+    _noisy_sim_from_input_state(options, input_state));
+}
+
+std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<
+                          std::vector<OpString<Cirq::GateCirq<float>>>,
+                          unsigned>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector) {
+  return state_to_python_expectation_value(
+    options, opsums_and_qubit_counts, 
+    _noisy_sim_from_input_vector(options, input_vector));
 }
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {
