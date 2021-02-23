@@ -440,11 +440,11 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       observables = [observables]
     psumlist = [ops.PauliSum.wrap(pslike) for pslike in observables]
 
-    qubits = program.all_qubits()
-    num_qubits = len(qubits)
-    qubit_map = {
-      qubit: index for index, qubit in enumerate(qubits)
-    }
+    ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+      program.all_qubits())
+    ordered_qubits = list(reversed(ordered_qubits))
+    num_qubits = len(ordered_qubits)
+    qubit_map = {qubit: index for index, qubit in enumerate(ordered_qubits)}
 
     opsums_and_qubit_counts = []
     for psum in psumlist:
