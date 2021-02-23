@@ -158,14 +158,15 @@ def add_op_to_opstring(
   gate_kind = _cirq_gate_kind(qsim_gate)
   if gate_kind not in {qsim.kX, qsim.kY, qsim.kZ, qsim.kI1}:
     raise ValueError(f'OpString should only have Paulis; got {gate_kind}')
-  qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
-  if len(qubits) != 1:
-    raise ValueError(f'OpString ops should have 1 qubit; got {len(qubits)}')
+  if len(qsim_op.qubits) != 1:
+    raise ValueError(
+      f'OpString ops should have 1 qubit; got {len(qsim_op.qubits)}')
 
   is_controlled = isinstance(qsim_gate, cirq.ops.ControlledGate)
   if is_controlled:
     raise ValueError(f'OpString ops should not be controlled.')
 
+  qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
   qsim.add_gate_to_opstring(gate_kind, qubits, opstring)
 
 

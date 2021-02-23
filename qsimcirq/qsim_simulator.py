@@ -471,8 +471,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     options.update(self.qsim_options)
 
     param_resolvers = study.to_resolvers(params)
-    qubits = program.all_qubits()
-    num_qubits = len(qubits)
     if isinstance(initial_state, np.ndarray):
       if initial_state.dtype != np.complex64:
         raise TypeError(f'initial_state vector must have dtype np.complex64.')

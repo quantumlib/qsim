@@ -347,7 +347,7 @@ void add_channel(const unsigned time,
 void add_gate_to_opstring(const Cirq::GateKind gate_kind,
                           const std::vector<unsigned>& qubits,
                           OpString<Cirq::GateCirq<float>>* opstring) {
-  std::map<std::string, float> params;
+  static std::map<std::string, float> params;
   opstring->ops.push_back(create_gate(gate_kind, 0, qubits, params));
 }
 
@@ -720,13 +720,10 @@ std::vector<std::complex<double>> state_to_python_expectation_value(
     const auto& opsum = std::get<0>(opsum_qubit_count_pair);
     const auto& opsum_qubits = std::get<1>(opsum_qubit_count_pair);
     if (opsum_qubits <= 6) {
-      results.push_back(
-        ExpectationValue<IO, Fuser, Simulator, Cirq::GateCirq<float>>(
-          opsum, simulator, state));
+      results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
     } else {
       Fuser::Parameter param;
-      results.push_back(
-        ExpectationValue<Fuser, Simulator, Cirq::GateCirq<float>>(
+      results.push_back(ExpectationValue<Fuser>(
           param, opsum, state_space, simulator, state, ket));
     }
   }
