@@ -88,6 +88,32 @@ R"(5
   EXPECT_EQ(circuit.gates[1].controlled_by.size(), 3);
 }
 
+TEST(CircuitQsimParserTest, ValidTimeOrder) {
+  constexpr char valid_circuit[] =
+R"(4
+0 cz 0 3
+2 cz 1 2
+1 cz 0 3
+3 m 1
+3 h 2
+4 cz 1 2
+6 cz 0 3
+5 cz 1 2
+8 c 1 x 2
+7 cz 0 3
+10 h 0
+9 h 1
+10 h 2
+9 h 3
+)";
+
+  Circuit<GateQSim<float>> circuit;
+  std::stringstream ss(valid_circuit);
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  EXPECT_EQ(circuit.num_qubits, 4);
+  EXPECT_EQ(circuit.gates.size(), 14);
+}
+
 TEST(CircuitQsimParserTest, InvalidGateName) {
   constexpr char invalid_circuit[] =
 R"(2
@@ -422,6 +448,50 @@ R"(4
 0 h 0
 0 h 1
 0 c 0 2 t 3
+)";
+
+  std::stringstream ss(invalid_circuit);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+}
+
+TEST(CircuitQsimParserTest, InvalidTimeOrder1) {
+  constexpr char invalid_circuit[] =
+R"(4
+0 cz 0 1
+2 cz 2 3
+1 cz 1 2
+)";
+
+  std::stringstream ss(invalid_circuit);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+}
+
+TEST(CircuitQsimParserTest, InvalidTimeOrder2) {
+  constexpr char invalid_circuit[] =
+R"(4
+0 cz 0 1
+0 cz 2 3
+2 cz 0 3
+1 m 1 2
+)";
+
+  std::stringstream ss(invalid_circuit);
+  Circuit<GateQSim<float>> circuit;
+
+  EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+}
+
+TEST(CircuitQsimParserTest, InvalidTimeOrder3) {
+  constexpr char invalid_circuit[] =
+R"(4
+0 cz 0 1
+0 cz 2 3
+2 m 0 3
+1 cz 1 2
 )";
 
   std::stringstream ss(invalid_circuit);

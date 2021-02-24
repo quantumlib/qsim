@@ -63,7 +63,8 @@ class CircuitQsimParser final {
     std::string gate_name;
     gate_name.reserve(16);
 
-    unsigned prev_time = 0;
+    unsigned max_time = 0;
+    unsigned prev_mea_time = 0;
 
     std::vector<unsigned> last_times;
 
@@ -98,14 +99,6 @@ class CircuitQsimParser final {
         break;
       }
 
-      if (time < prev_time) {
-        IO::errorf("gate time is out of order in %s in line %u.\n",
-                   provider.c_str(), k);
-        return false;
-      }
-
-      prev_time = time;
-
       if (gate_name == "c") {
         if (!ParseControlledGate<fp_type>(ss, time,
                                           circuit.num_qubits, circuit.gates)) {
@@ -120,11 +113,26 @@ class CircuitQsimParser final {
 
       const auto& gate = circuit.gates.back();
 
-      if (CheckForOverlappingQubits(time, gate.qubits, last_times)
-          || CheckForOverlappingQubits(time, gate.controlled_by, last_times)) {
-        IO::errorf("gates have overlapping qubits at time %i in %s.\n",
-                   time, provider.c_str());
+      if (time < prev_mea_time
+          || (gate.kind == gate::kMeasurement && time < max_time)) {
+        IO::errorf("gate crosses the time boundary set by measurement "
+                   "gates in line %u in %s.\n", k, provider.c_str());
         return false;
+      }
+
+      if (gate.kind == gate::kMeasurement) {
+        prev_mea_time = time;
+      }
+
+      if (GateIsOutOfOrder(time, gate.qubits, last_times)
+          || GateIsOutOfOrder(time, gate.controlled_by, last_times)) {
+        IO::errorf("gate is out of time order in line %u in %s.\n",
+                   k, provider.c_str());
+        return false;
+      }
+
+      if (time > max_time) {
+        max_time = time;
       }
     }
 
@@ -232,11 +240,11 @@ class CircuitQsimParser final {
     return true;
   }
 
-  static bool CheckForOverlappingQubits(unsigned time,
-                                        const std::vector<unsigned>& qubits,
-                                        std::vector<unsigned>& last_times) {
+  static bool GateIsOutOfOrder(unsigned time,
+                               const std::vector<unsigned>& qubits,
+                               std::vector<unsigned>& last_times) {
     for (auto q : qubits) {
-      if (time == last_times[q]) {
+      if (last_times[q] != unsigned(-1) && time <= last_times[q]) {
         return true;
       }
 

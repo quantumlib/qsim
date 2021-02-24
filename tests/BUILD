@@ -70,7 +70,6 @@ cc_test(
         "//lib:circuit_qsim_parser",
         "//lib:fuser_basic",
         "//lib:gates_qsim",
-        "//lib:io",
     ],
 )
 
@@ -87,7 +86,6 @@ cc_test(
         "//lib:fuser_mqubit",
         "//lib:gate",
         "//lib:gate_appl",
-        "//lib:io",
         "//lib:matrix",
         "//lib:simulator",
     ],

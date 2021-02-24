@@ -236,7 +236,10 @@ cc_library(
 cc_library(
     name = "fuser",
     hdrs = ["fuser.h"],
-    deps = [":matrix"],
+    deps = [
+        ":gate",
+        ":matrix",
+    ],
 )
 
 cc_library(
