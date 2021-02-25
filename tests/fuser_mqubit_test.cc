@@ -636,6 +636,7 @@ TEST(FuserMultiQubitTest, SmallCircuits) {
           param, num_qubits, circuit.begin(), circuit.end());
 
       EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+      EXPECT_EQ(fused_gates.size(), 4);
     }
 
     {
@@ -644,6 +645,10 @@ TEST(FuserMultiQubitTest, SmallCircuits) {
           param, num_qubits, circuit.begin(), circuit.end());
 
       EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+
+      // The number of fused gates is not optimal here.
+      // This may change in the future.
+      EXPECT_EQ(fused_gates.size(), 4);
     }
   }
 }
@@ -808,9 +813,9 @@ TEST(FuserMultiQubitTest, ValidTimeOrder) {
     };
 
     param.max_fused_size = 4;
-    std::vector<unsigned> time_boudary = {3};
+    std::vector<unsigned> time_boundary = {3};
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), time_boudary);
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
 
     EXPECT_EQ(fused_gates.size(), 2);
     EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
@@ -886,9 +891,9 @@ TEST(FuserMultiQubitTest, InvalidTimeOrder) {
     };
 
     param.max_fused_size = 2;
-    std::vector<unsigned> time_boudary = {1};
+    std::vector<unsigned> time_boundary = {1};
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), time_boudary);
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
 
     EXPECT_EQ(fused_gates.size(), 0);
   }
@@ -903,9 +908,9 @@ TEST(FuserMultiQubitTest, InvalidTimeOrder) {
     };
 
     param.max_fused_size = 2;
-    std::vector<unsigned> time_boudary = {2};
+    std::vector<unsigned> time_boundary = {2};
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), time_boudary);
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
 
     EXPECT_EQ(fused_gates.size(), 0);
   }

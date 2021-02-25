@@ -31,7 +31,8 @@ namespace qsim {
  * User-defined controlled gates (controlled_by.size() > 0) and gates acting on
  * more than two qubits are not fused.
  * The template parameter Gate can be Gate type or a pointer to Gate type.
- * This class is deprecated.
+ * This class is deprecated. It is recommended to use MultiQubitGateFuser
+ * from fuser_mqubit.h.
  */
 template <typename IO, typename Gate>
 class BasicGateFuser final : public Fuser<IO, Gate> {
@@ -52,7 +53,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates are get fused. Gates fused with this method are not
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * To respect specific time boundaries while fusing gates, use the other
    * version of this method below.
@@ -73,7 +74,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates are get fused. Gates fused with this method are not
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
@@ -97,7 +98,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates are get fused. Gates fused with this method are not
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * To respect specific time boundaries while fusing gates, use the other
    * version of this method below.
@@ -119,7 +120,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates are get fused. Gates fused with this method are not
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.

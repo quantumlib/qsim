@@ -100,16 +100,14 @@ class Fuser {
         }
       }
 
-      if (last < times.size() && gate.time >= times[last]) {
-        while (last < times.size() && times[last] <= gate.time) {
-          unsigned prev = times[last++];
-          epochs.push_back(prev);
-          if (!AddBoundary(prev, max_time, epochs)) {
-            epochs.resize(0);
-            return epochs;
-          }
-          while (last < times.size() && times[last] <= prev) ++last;
+      while (last < times.size() && times[last] <= gate.time) {
+        unsigned prev = times[last++];
+        epochs.push_back(prev);
+        if (!AddBoundary(prev, max_time, epochs)) {
+          epochs.resize(0);
+          return epochs;
         }
+        while (last < times.size() && times[last] <= prev) ++last;
       }
     }
 

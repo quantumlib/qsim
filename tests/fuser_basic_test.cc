@@ -1277,9 +1277,9 @@ TEST(FuserBasicTest, ValidTimeOrder) {
       GateCZ<float>::Create(4, 0, 3),
     };
 
-    std::vector<unsigned> time_boudary = {3};
+    std::vector<unsigned> time_boundary = {3};
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), time_boudary);
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
 
     EXPECT_EQ(fused_gates.size(), 6);
     EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
@@ -1350,9 +1350,9 @@ TEST(FuserBasicTest, InvalidTimeOrder) {
       GateCZ<float>::Create(1, 1, 2),
     };
 
-    std::vector<unsigned> time_boudary = {1};
+    std::vector<unsigned> time_boundary = {1};
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), time_boudary);
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
 
     EXPECT_EQ(fused_gates.size(), 0);
   }
@@ -1366,9 +1366,9 @@ TEST(FuserBasicTest, InvalidTimeOrder) {
       GateCZ<float>::Create(1, 1, 2),
     };
 
-    std::vector<unsigned> time_boudary = {2};
+    std::vector<unsigned> time_boundary = {2};
     auto fused_gates = Fuser::FuseGates(
-        param, num_qubits, circuit.begin(), circuit.end(), time_boudary);
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
 
     EXPECT_EQ(fused_gates.size(), 0);
   }
