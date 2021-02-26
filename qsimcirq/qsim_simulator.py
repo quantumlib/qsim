@@ -80,6 +80,8 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
             applied to all circuits run using this simulator. Accepted keys and
             their behavior are as follows:
                 - 'f': int (> 0). Maximum size of fused gates. Default: 2.
+                - 'r': int (> 0). Number of repetitions for noisy circuits.
+                       Default: 1.
                 - 't': int (> 0). Number of threads to run on. Default: 1.
                 - 'v': int (>= 0). Log verbosity. Default: 0.
             See qsim/docs/usage.md for more details on these options.
@@ -94,7 +96,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
           'used in QSimCircuit instantiation.'
       )
     self._prng = value.parse_random_state(seed)
-    self.qsim_options = {'t': 1, 'f': 2, 'v': 0}
+    self.qsim_options = {'t': 1, 'f': 2, 'v': 0, 'r': 1}
     self.qsim_options.update(qsim_options)
 
   def get_seed(self):
