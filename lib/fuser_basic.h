@@ -31,19 +31,14 @@ namespace qsim {
  * User-defined controlled gates (controlled_by.size() > 0) and gates acting on
  * more than two qubits are not fused.
  * The template parameter Gate can be Gate type or a pointer to Gate type.
+ * This class is deprecated. It is recommended to use MultiQubitGateFuser
+ * from fuser_mqubit.h.
  */
 template <typename IO, typename Gate>
-struct BasicGateFuser final {
+class BasicGateFuser final : public Fuser<IO, Gate> {
  private:
-  using RGate = typename std::remove_pointer<Gate>::type;
-
-  static const RGate& GateToConstRef(const RGate& gate) {
-    return gate;
-  }
-
-  static const RGate& GateToConstRef(const RGate* gate) {
-    return *gate;
-  }
+  using Base = Fuser<IO, Gate>;
+  using RGate = typename Base::RGate;
 
  public:
   using GateFused = qsim::GateFused<RGate>;
@@ -57,15 +52,17 @@ struct BasicGateFuser final {
   };
 
   /**
-   * Stores ordered sets of gates, each acting on two qubits, that can be
-   * applied together. Note that gates fused with this method are not
+   * Stores sets of gates that can be applied together. Only one- and
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * To respect specific time boundaries while fusing gates, use the other
    * version of this method below.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
    * @param gates The gates (or pointers to the gates) to be fused.
-   *   Gate times should be ordered.
+   *   Gate times of the gates that act on the same qubits should be ordered.
+   *   Gates that are out of time order should not cross the time boundaries
+   *   set by measurement gates.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -76,16 +73,18 @@ struct BasicGateFuser final {
   }
 
   /**
-   * Stores ordered sets of gates, each acting on two qubits, that can be
-   * applied together. Note that gates fused with this method are not
+   * Stores sets of gates that can be applied together. Only one- and
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
    * @param gates The gates (or pointers to the gates) to be fused.
-   *   Gate times should be ordered.
-   * @param times_to_split_at Ordered list of time steps at which to separate
-   *   fused gates. Each element of the output will contain gates from a single
-   *   'window' in this list.
+   *   Gate times of the gates that act on the same qubits should be ordered.
+   *   Gates that are out of time order should not cross the time boundaries
+   *   set by `times_to_split_at` or by measurment gates.
+   * @param times_to_split_at Ordered list of time steps (boundaries) at which
+   *   to separate fused gates. Each element of the output will contain gates
+   *   from a single 'window' in this list.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -98,15 +97,17 @@ struct BasicGateFuser final {
   }
 
   /**
-   * Stores ordered sets of gates, each acting on two qubits, that can be
-   * applied together. Note that gates fused with this method are not
+   * Stores sets of gates that can be applied together. Only one- and
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * To respect specific time boundaries while fusing gates, use the other
    * version of this method below.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
-   *   (or pointers to gates) in. Gate times should be ordered.
+   *   (or pointers to gates) in. Gate times of the gates that act on the same
+   *   qubits should be ordered. Gates that are out of time order should not
+   *   cross the time boundaries set by measurement gates.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -118,16 +119,19 @@ struct BasicGateFuser final {
   }
 
   /**
-   * Stores ordered sets of gates, each acting on two qubits, that can be
-   * applied together. Note that gates fused with this method are not
+   * Stores sets of gates that can be applied together. Only one- and
+   * two-qubit gates will get fused. Gates fused with this method are not
    * multiplied together until ApplyFusedGate is called on the output.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
-   *   (or pointers to gates) in. Gate times should be ordered.
-   * @param times_to_split_at Ordered list of time steps at which to separate
-   *   fused gates. Each element of the output will contain gates from a single
-   *   'window' in this list.
+   *   (or pointers to gates) in. Gate times of the gates that act on the same
+   *   qubits should be ordered. Gates that are out of time order should not
+   *   cross the time boundaries set by `times_to_split_at` or by measurment
+   *   gates.
+   * @param times_to_split_at Ordered list of time steps (boundaries) at which
+   *   to separate fused gates. Each element of the output will contain gates
+   *   from a single 'window' in this list.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -145,7 +149,8 @@ struct BasicGateFuser final {
     gates_fused.reserve(num_gates);
 
     // Merge with measurement gate times to separate fused gates at.
-    auto times = MergeWithMeasurementTimes(gfirst, glast, times_to_split_at);
+    auto times =
+        Base::MergeWithMeasurementTimes(gfirst, glast, times_to_split_at);
 
     // Map to keep track of measurement gates with equal times.
     std::map<unsigned, std::vector<const RGate*>> measurement_gates;
@@ -168,23 +173,18 @@ struct BasicGateFuser final {
         gates_lat[k].reserve(128);
       }
 
-      auto prev_time = GateToConstRef(*gate_it).time;
-
       // Fill gates_seq and gates_lat in.
       for (; gate_it < glast; ++gate_it) {
-        const auto& gate = GateToConstRef(*gate_it);
+        const auto& gate = Base::GateToConstRef(*gate_it);
 
         if (gate.time > times[l]) break;
 
-        if (gate.time < prev_time) {
-          // This function assumes that gate times are ordered.
-          // Just stop silently if this is not the case.
-          IO::errorf("gate times should be ordered.\n");
+        if (GateIsOutOfOrder(gate.time, gate.qubits, gates_lat)
+            || GateIsOutOfOrder(gate.time, gate.controlled_by, gates_lat)) {
+          IO::errorf("gate is out of time order.\n");
           gates_fused.resize(0);
           return gates_fused;
         }
-
-        prev_time = gate.time;
 
         if (gate.kind == gate::kMeasurement) {
           auto& mea_gates_at_time = measurement_gates[gate.time];
@@ -291,12 +291,14 @@ struct BasicGateFuser final {
         const auto& mea_gates_at_time = measurement_gates[pgate->time];
 
         GateFused gate_f = {pgate->kind, pgate->time, {}, pgate, {}};
+        gate_f.gates.reserve(mea_gates_at_time.size());
 
         // Fuse measurement gates with equal times.
 
         for (const auto* pgate : mea_gates_at_time) {
           gate_f.qubits.insert(gate_f.qubits.end(),
                                pgate->qubits.begin(), pgate->qubits.end());
+          gate_f.gates.push_back(pgate);
         }
 
         gates_fused.push_back(std::move(gate_f));
@@ -309,41 +311,6 @@ struct BasicGateFuser final {
   }
 
  private:
-  static std::vector<unsigned> MergeWithMeasurementTimes(
-      typename std::vector<Gate>::const_iterator gfirst,
-      typename std::vector<Gate>::const_iterator glast,
-      const std::vector<unsigned>& times) {
-    std::vector<unsigned> times2;
-    times2.reserve(glast - gfirst + times.size());
-
-    std::size_t last = 0;
-
-    for (auto gate_it = gfirst; gate_it < glast; ++gate_it) {
-      const auto& gate = GateToConstRef(*gate_it);
-
-      if (gate.kind == gate::kMeasurement
-          && (times2.size() == 0 || times2.back() < gate.time)) {
-        times2.push_back(gate.time);
-      }
-
-      if (last < times.size() && gate.time > times[last]) {
-        while (last < times.size() && times[last] <= gate.time) {
-          unsigned prev = times[last++];
-          times2.push_back(prev);
-          while (last < times.size() && times[last] <= prev) ++last;
-        }
-      }
-    }
-
-    const auto& back = *(glast - 1);
-
-    if (times2.size() == 0 || times2.back() < GateToConstRef(back).time) {
-      times2.push_back(GateToConstRef(back).time);
-    }
-
-    return times2;
-  }
-
   static unsigned Advance(unsigned k, const std::vector<const RGate*>& wl,
                           std::vector<const RGate*>& gates) {
     while (k < wl.size() && wl[k]->qubits.size() == 1
@@ -379,6 +346,19 @@ struct BasicGateFuser final {
     gates_fused.push_back(std::move(gate_f));
 
     return k;
+  }
+
+  template <typename GatesLat>
+  static bool GateIsOutOfOrder(unsigned time,
+                               const std::vector<unsigned>& qubits,
+                               const GatesLat& gates_lat) {
+    for (unsigned q : qubits) {
+      if (!gates_lat[q].empty() && time <= gates_lat[q].back()->time) {
+        return true;
+      }
+    }
+
+    return false;
   }
 };
 

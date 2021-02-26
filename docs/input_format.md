@@ -44,5 +44,6 @@ Identity (2-qubit)                                                | time id2 qub
 Measurement (n-qubit)                                             | time m qubit1 qubit2 ...        | 9 m 0 1 2 3
 Controlled Gate                                                   | time c control_qubit1 control_qubit2 ... gate | 10 c 0 1 rx 4 0.5
 
-Gate times should be ordered. Measurement gates with equal times get fused
-together.
+Gate times of the gates that act on the same qubits should be ordered. Gates
+that are out of time order should not cross the time boundaries set by
+measurement gates. Measurement gates with equal times get fused together.

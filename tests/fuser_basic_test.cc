@@ -20,9 +20,13 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
-#include "../lib/io.h"
 
 namespace qsim {
+
+struct IO {
+  static void errorf(const char* format, ...) {}
+  static void messagef(const char* format, ...) {}
+};
 
 constexpr char provider[] = "fuser_basic_test";
 
@@ -872,7 +876,7 @@ TEST(FuserBasicTest, MeasurementGate) {
   EXPECT_EQ(fused_gates[3].qubits.size(), 2);
   EXPECT_EQ(fused_gates[3].qubits[0], 2);
   EXPECT_EQ(fused_gates[3].qubits[1], 3);
-  EXPECT_EQ(fused_gates[3].gates.size(), 0);
+  EXPECT_EQ(fused_gates[3].gates.size(), 2);
 
   EXPECT_EQ(fused_gates[4].kind, kGateIS);
   EXPECT_EQ(fused_gates[4].time, 2);
@@ -911,7 +915,7 @@ TEST(FuserBasicTest, MeasurementGate) {
   EXPECT_EQ(fused_gates[6].qubits.size(), 2);
   EXPECT_EQ(fused_gates[6].qubits[0], 2);
   EXPECT_EQ(fused_gates[6].qubits[1], 3);
-  EXPECT_EQ(fused_gates[6].gates.size(), 0);
+  EXPECT_EQ(fused_gates[6].gates.size(), 1);
 
   EXPECT_EQ(fused_gates[7].kind, kGateIS);
   EXPECT_EQ(fused_gates[7].time, 4);
@@ -952,7 +956,7 @@ TEST(FuserBasicTest, MeasurementGate) {
   EXPECT_EQ(fused_gates[10].qubits[1], 3);
   EXPECT_EQ(fused_gates[10].qubits[2], 0);
   EXPECT_EQ(fused_gates[10].qubits[3], 1);
-  EXPECT_EQ(fused_gates[10].gates.size(), 0);
+  EXPECT_EQ(fused_gates[10].gates.size(), 2);
 }
 
 constexpr char circuit_string4[] =
@@ -1102,6 +1106,336 @@ TEST(FuserBasicTest, ControlledGate) {
   EXPECT_EQ(fused_gates[7].gates[0]->time, 3);
   EXPECT_EQ(fused_gates[7].gates[0]->qubits.size(), 1);
   EXPECT_EQ(fused_gates[7].gates[0]->qubits[0], 4);
+}
+
+namespace {
+
+template <typename Gate, typename FusedGate>
+bool TestFusedGates(unsigned num_qubits,
+                    const std::vector<Gate>& gates,
+                    const std::vector<FusedGate>& fused_gates) {
+  std::vector<unsigned> times(num_qubits, 0);
+  std::vector<unsigned> gate_map(gates.size(), 0);
+
+  // Test if gate times are ordered correctly.
+  for (auto g : fused_gates) {
+    if (g.parent->controlled_by.size() > 0 && g.gates.size() > 1) {
+      return false;
+    }
+
+    for (auto p : g.gates) {
+      auto k = (std::size_t(p) - std::size_t(gates.data())) / sizeof(*p);
+
+      if (k >= gate_map.size()) {
+        return false;
+      }
+
+      ++gate_map[k];
+
+      if (p->kind == gate::kMeasurement) {
+        if (g.parent->kind != gate::kMeasurement || g.parent->time != p->time) {
+          return false;
+        }
+      }
+
+      for (auto q : p->qubits) {
+        if (p->time < times[q]) {
+          return false;
+        }
+        times[q] = p->time;
+      }
+
+      for (auto q : p->controlled_by) {
+        if (p->time < times[q]) {
+          return false;
+        }
+        times[q] = p->time;
+      }
+    }
+  }
+
+  // Test if all gates are present only once.
+  for (auto m : gate_map) {
+    if (m != 1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+}  // namespace
+
+TEST(FuserBasicTest, ValidTimeOrder) {
+  using Gate = GateQSim<float>;
+  using Fuser = BasicGateFuser<IO, Gate>;
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  {
+    unsigned num_qubits = 8;
+    auto gate1 = GateZ<float>::Create(1, 2);
+    auto gate2 = GateZ<float>::Create(2, 5);
+
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      MakeControlledGate({1}, gate1),
+      GateCZ<float>::Create(0, 4, 5),
+      GateCZ<float>::Create(2, 0, 1),
+      GateCZ<float>::Create(1, 3, 4),
+      GateCZ<float>::Create(2, 2, 3),
+      GateCZ<float>::Create(3, 1, 2),
+      MakeControlledGate({4}, gate2),
+      GateCZ<float>::Create(3, 3, 4),
+      GateCZ<float>::Create(5, 0, 1),
+      GateCZ<float>::Create(4, 2, 3),
+      GateCZ<float>::Create(5, 4, 5),
+      GateCZ<float>::Create(4, 6, 7),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 14);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+
+  {
+    unsigned num_qubits = 6;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(1, 1, 2),
+      GateCZ<float>::Create(0, 4, 5),
+      GateCZ<float>::Create(1, 3, 4),
+      gate::Measurement<Gate>::Create(2, {0, 1, 2}),
+      gate::Measurement<Gate>::Create(2, {4, 5}),
+      GateCZ<float>::Create(3, 0, 1),
+      GateCZ<float>::Create(3, 2, 3),
+      GateCZ<float>::Create(4, 1, 2),
+      GateCZ<float>::Create(3, 4, 5),
+      GateCZ<float>::Create(4, 3, 4),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 11);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+
+  {
+    unsigned num_qubits = 6;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(1, 1, 2),
+      GateCZ<float>::Create(0, 4, 5),
+      GateCZ<float>::Create(1, 3, 4),
+      GateCZ<float>::Create(1, 5, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 6);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+
+  {
+    unsigned num_qubits = 8;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(0, 4, 5),
+      GateCZ<float>::Create(1, 1, 2),
+      GateCZ<float>::Create(1, 3, 4),
+      GateCZ<float>::Create(0, 6, 7),
+      GateCZ<float>::Create(1, 5, 6),
+      GateCZ<float>::Create(1, 7, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 8);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 1, 2),
+      GateCZ<float>::Create(1, 0, 3),
+      GateCZ<float>::Create(3, 1, 2),
+      GateCZ<float>::Create(3, 0, 3),
+      GateCZ<float>::Create(5, 1, 2),
+      GateCZ<float>::Create(4, 0, 3),
+    };
+
+    std::vector<unsigned> time_boundary = {3};
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
+
+    EXPECT_EQ(fused_gates.size(), 6);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 1, 2),
+      GateCZ<float>::Create(1, 0, 3),
+      gate::Measurement<Gate>::Create(3, {1, 2}),
+      GateCZ<float>::Create(3, 0, 3),
+      GateCZ<float>::Create(5, 1, 2),
+      GateCZ<float>::Create(4, 0, 3),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 7);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+}
+
+TEST(FuserBasicTest, InvalidTimeOrder) {
+  using Gate = GateQSim<float>;
+  using Fuser = BasicGateFuser<IO, Gate>;
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  {
+    unsigned num_qubits = 3;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 1, 2),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 1, 2),
+      GateCZ<float>::Create(1, 0, 2),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 0, 3),
+      GateCZ<float>::Create(1, 1, 2),
+    };
+
+    std::vector<unsigned> time_boundary = {1};
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 0, 3),
+      GateCZ<float>::Create(1, 1, 2),
+    };
+
+    std::vector<unsigned> time_boundary = {2};
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), time_boundary);
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      gate::Measurement<Gate>::Create(2, {0, 3}),
+      GateCZ<float>::Create(1, 1, 2),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 0, 3),
+      gate::Measurement<Gate>::Create(1, {1, 2}),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    auto gate = GateZ<float>::Create(1, 1);
+
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      GateCZ<float>::Create(2, 0, 3),
+      MakeControlledGate({3}, gate),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 4;
+    auto gate = GateZ<float>::Create(2, 1);
+
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateCZ<float>::Create(0, 2, 3),
+      MakeControlledGate({3}, gate),
+      GateCZ<float>::Create(1, 0, 3),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
 }
 
 }  // namespace qsim

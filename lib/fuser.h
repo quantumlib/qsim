@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "gate.h"
 #include "matrix.h"
 
 namespace qsim {
@@ -49,6 +50,85 @@ struct GateFused {
    * Ordered list of component gates.
    */
   std::vector<const Gate*> gates;
+};
+
+/**
+ * A base class for fuser classes with some common functions.
+ */
+template <typename IO, typename Gate>
+class Fuser {
+ protected:
+  using RGate = typename std::remove_pointer<Gate>::type;
+
+  static const RGate& GateToConstRef(const RGate& gate) {
+    return gate;
+  }
+
+  static const RGate& GateToConstRef(const RGate* gate) {
+    return *gate;
+  }
+
+  static std::vector<unsigned> MergeWithMeasurementTimes(
+      typename std::vector<Gate>::const_iterator gfirst,
+      typename std::vector<Gate>::const_iterator glast,
+      const std::vector<unsigned>& times) {
+    std::vector<unsigned> epochs;
+    epochs.reserve(glast - gfirst + times.size());
+
+    std::size_t last = 0;
+    unsigned max_time = 0;
+
+    for (auto gate_it = gfirst; gate_it < glast; ++gate_it) {
+      const auto& gate = GateToConstRef(*gate_it);
+
+      if (gate.time > max_time) {
+        max_time = gate.time;
+      }
+
+      if (epochs.size() > 0 && gate.time < epochs.back()) {
+        IO::errorf("gate crosses the time boundary.\n");
+        epochs.resize(0);
+        return epochs;
+      }
+
+      if (gate.kind == gate::kMeasurement) {
+        if (epochs.size() == 0 || epochs.back() < gate.time) {
+          if (!AddBoundary(gate.time, max_time, epochs)) {
+            epochs.resize(0);
+            return epochs;
+          }
+        }
+      }
+
+      while (last < times.size() && times[last] <= gate.time) {
+        unsigned prev = times[last++];
+        epochs.push_back(prev);
+        if (!AddBoundary(prev, max_time, epochs)) {
+          epochs.resize(0);
+          return epochs;
+        }
+        while (last < times.size() && times[last] <= prev) ++last;
+      }
+    }
+
+    if (epochs.size() == 0 || epochs.back() < max_time) {
+      epochs.push_back(max_time);
+    }
+
+    return epochs;
+  }
+
+ private:
+  static bool AddBoundary(unsigned time, unsigned max_time,
+                          std::vector<unsigned>& boundaries) {
+    if (max_time > time) {
+      IO::errorf("gate crosses the time boundary.\n");
+      return false;
+    }
+
+    boundaries.push_back(time);
+    return true;
+  }
 };
 
 /**

@@ -42,7 +42,8 @@ using NoisyCircuit = NoisyCircuit<Gate>;
 
 }  // namespace types
 
-void AddBitFlipNoise(unsigned time, double p, types::NoisyCircuit& ncircuit) {
+void AddBitFlipNoise1(
+    unsigned time, unsigned q, double p, types::NoisyCircuit& ncircuit) {
   using fp_type = types::Gate::fp_type;
 
   double p1 = 1 - p;
@@ -50,13 +51,58 @@ void AddBitFlipNoise(unsigned time, double p, types::NoisyCircuit& ncircuit) {
 
   auto normal = KrausOperator<types::Gate>::kNormal;
 
-  ncircuit.push_back({{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, 0)}},
-                      {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 0)}}});
-  ncircuit.push_back({{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, 1)}},
-                      {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 1)}}});
+  ncircuit.push_back({{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, q)}},
+                      {normal, 1, p2, {Cirq::X<fp_type>::Create(time, q)}}});
 }
 
-void AddPhaseDumpNoise(unsigned time, double g, types::NoisyCircuit& ncircuit) {
+void AddBitFlipNoise2(unsigned time, double p, types::NoisyCircuit& ncircuit) {
+  using fp_type = types::Gate::fp_type;
+
+  double p1 = 1 - p;
+  double p2 = p;
+
+  auto normal = KrausOperator<types::Gate>::kNormal;
+
+  ncircuit.push_back({
+    {normal, 1, p1 * p1, {Cirq::I1<fp_type>::Create(time, 0),
+                          Cirq::I1<fp_type>::Create(time, 1)}},
+    {normal, 1, p1 * p2, {Cirq::I1<fp_type>::Create(time, 0),
+                          Cirq::X<fp_type>::Create(time, 1)}},
+    {normal, 1, p2 * p1, {Cirq::X<fp_type>::Create(time, 0),
+                          Cirq::I1<fp_type>::Create(time, 1)}},
+    {normal, 1, p2 * p2, {Cirq::X<fp_type>::Create(time, 0),
+                          Cirq::X<fp_type>::Create(time, 1)}},
+  });
+
+//  This can also be imnplemented as the following.
+//
+//  ncircuit.push_back({{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, 0)}},
+//                      {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 0)}}});
+//  ncircuit.push_back({{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, 1)}},
+//                      {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 1)}}});
+}
+
+void AddPhaseDumpNoise1(
+    unsigned time, unsigned q, double g, types::NoisyCircuit& ncircuit) {
+  using fp_type = types::Gate::fp_type;
+
+  double p1 = 1 - g;
+  double p2 = 0;
+
+  fp_type r = std::sqrt(p1);
+  fp_type s = std::sqrt(g);
+
+  auto normal = KrausOperator<types::Gate>::kNormal;
+
+  using M = Cirq::MatrixGate1<fp_type>;
+
+  ncircuit.push_back(
+      {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
+       {normal, 0, p2, {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})}}});
+}
+
+void AddPhaseDumpNoise2(
+    unsigned time, double g, types::NoisyCircuit& ncircuit) {
   using fp_type = types::Gate::fp_type;
 
   double p1 = 1 - g;
@@ -77,7 +123,26 @@ void AddPhaseDumpNoise(unsigned time, double g, types::NoisyCircuit& ncircuit) {
        {normal, 0, p2, {M::Create(time, 1, {0, 0, 0, 0, 0, 0, s, 0})}}});
 }
 
-void AddAmplDumpNoise(unsigned time, double g, types::NoisyCircuit& ncircuit) {
+void AddAmplDumpNoise1(
+    unsigned time, unsigned q, double g, types::NoisyCircuit& ncircuit) {
+  using fp_type = types::Gate::fp_type;
+
+  double p1 = 1 - g;
+  double p2 = 0;
+
+  fp_type r = std::sqrt(p1);
+  fp_type s = std::sqrt(g);
+
+  auto normal = KrausOperator<types::Gate>::kNormal;
+
+  using M = Cirq::MatrixGate1<fp_type>;
+
+  ncircuit.push_back(
+      {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
+       {normal, 0, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})}}});
+}
+
+void AddAmplDumpNoise2(unsigned time, double g, types::NoisyCircuit& ncircuit) {
   using fp_type = types::Gate::fp_type;
 
   double p1 = 1 - g;
@@ -98,7 +163,36 @@ void AddAmplDumpNoise(unsigned time, double g, types::NoisyCircuit& ncircuit) {
        {normal, 0, p2, {M::Create(time, 1, {0, 0, s, 0, 0, 0, 0, 0})}}});
 }
 
-void AddGenAmplDumpNoise(
+void AddGenAmplDumpNoise1(
+    unsigned time, unsigned q, double g, types::NoisyCircuit& ncircuit) {
+  using fp_type = types::Gate::fp_type;
+
+  // Probability of exchanging energy with the environment.
+  double p = 0.5;
+
+  double p1 = p * (1 - g);
+  double p2 = (1 - p) * (1 - g);
+  double p3 = 0;
+
+  fp_type t1 = std::sqrt(p);
+  fp_type r1 = std::sqrt(p * (1 - g));
+  fp_type s1 = std::sqrt(p * g);
+  fp_type t2 = std::sqrt(1 - p);
+  fp_type r2 = std::sqrt((1 - p) * (1 - g));
+  fp_type s2 = std::sqrt((1 - p) * g);
+
+  auto normal = KrausOperator<types::Gate>::kNormal;
+
+  using M = Cirq::MatrixGate1<fp_type>;
+
+  ncircuit.push_back(
+      {{normal, 0, p1, {M::Create(time, q, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+       {normal, 0, p2, {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+       {normal, 0, p3, {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})}},
+       {normal, 0, p3, {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+}
+
+void AddGenAmplDumpNoise2(
     unsigned time, double g, types::NoisyCircuit& ncircuit) {
   using fp_type = types::Gate::fp_type;
 
@@ -132,8 +226,9 @@ void AddGenAmplDumpNoise(
        {normal, 0, p3, {M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}}});
 }
 
-template <typename AddNoise>
-types::NoisyCircuit GenerateNoisyCircuit(double p, AddNoise&& add_noise) {
+template <typename AddNoise1, typename AddNoise2>
+types::NoisyCircuit GenerateNoisyCircuit(
+    double p, AddNoise1&& add_noise1, AddNoise2&& add_noise2) {
   using fp_type = types::Gate::fp_type;
 
   types::NoisyCircuit ncircuit;
@@ -147,23 +242,26 @@ types::NoisyCircuit GenerateNoisyCircuit(double p, AddNoise&& add_noise) {
   auto normal = KrausOperator<types::Gate>::kNormal;
 
   ncircuit.push_back({{normal, 1, 1.0, {Hd::Create(0, 0)}}});
+  add_noise1(1, 0, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {Hd::Create(0, 1)}}});
-  add_noise(1, p, ncircuit);
+  add_noise1(1, 1, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {IS::Create(2, 0, 1)}}});
-  add_noise(3, p, ncircuit);
+  add_noise2(3, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {Rx::Create(4, 0, 0.7)}}});
+  add_noise1(5, 0, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {Ry::Create(4, 1, 0.1)}}});
-  add_noise(5, p, ncircuit);
+  add_noise1(5, 1, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {IS::Create(6, 0, 1)}}});
-  add_noise(7, p, ncircuit);
+  add_noise2(7, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {Ry::Create(8, 0, 0.4)}}});
+  add_noise1(9, 0, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {Rx::Create(8, 1, 0.7)}}});
-  add_noise(9, p, ncircuit);
+  add_noise1(9, 1, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {IS::Create(10, 0, 1)}}});
-  add_noise(11, p, ncircuit);
+  add_noise2(11, p, ncircuit);
   ncircuit.push_back({{KrausOperator<types::Gate>::kMeasurement, 1, 1.0,
                        {gate::Measurement<types::Gate>::Create(12, {0, 1})}}});
-  add_noise(13, p, ncircuit);
+  add_noise2(13, p, ncircuit);
 
   return ncircuit;
 }
@@ -171,7 +269,7 @@ types::NoisyCircuit GenerateNoisyCircuit(double p, AddNoise&& add_noise) {
 void RunBatch(const types::NoisyCircuit& ncircuit,
           const std::vector<double>& expected_results) {
   unsigned num_qubits = 2;
-  unsigned num_reps = 20000;
+  unsigned num_reps = 25000;
 
   auto measure = [](uint64_t r, const types::State& state,
                     const std::vector<uint64_t>& stat,
@@ -196,7 +294,7 @@ void RunBatch(const types::NoisyCircuit& ncircuit,
 void RunOnceRepeatedly(const types::NoisyCircuit& ncircuit,
           const std::vector<double>& expected_results) {
   unsigned num_qubits = 2;
-  unsigned num_reps = 20000;
+  unsigned num_reps = 25000;
 
   types::StateSpace state_space(1);
 
@@ -268,7 +366,8 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.389352, 0.242790, 0.081009, 0.286850,
   };
 
-  auto ncircuit1 = GenerateNoisyCircuit(0.01, AddBitFlipNoise);
+  auto ncircuit1 = GenerateNoisyCircuit(0.01, AddBitFlipNoise1,
+                                        AddBitFlipNoise2);
   RunBatch(ncircuit1, expected_results);
 }
 
@@ -322,7 +421,8 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.412300, 0.230500, 0.057219, 0.299982,
   };
 
-  auto ncircuit = GenerateNoisyCircuit(0.02, AddPhaseDumpNoise);
+  auto ncircuit = GenerateNoisyCircuit(0.02, AddPhaseDumpNoise1,
+                                       AddPhaseDumpNoise2);
   RunOnceRepeatedly(ncircuit, expected_results);
 }
 
@@ -376,7 +476,8 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.500494, 0.235273, 0.090879, 0.173354,
   };
 
-  auto ncircuit = GenerateNoisyCircuit(0.05, AddAmplDumpNoise);
+  auto ncircuit = GenerateNoisyCircuit(0.05, AddAmplDumpNoise1,
+                                       AddAmplDumpNoise2);
   RunBatch(ncircuit, expected_results);
 }
 
@@ -430,7 +531,8 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.318501, 0.260538, 0.164616, 0.256345,
   };
 
-  auto ncircuit = GenerateNoisyCircuit(0.1, AddGenAmplDumpNoise);
+  auto ncircuit = GenerateNoisyCircuit(0.1, AddGenAmplDumpNoise1,
+                                       AddGenAmplDumpNoise2);
   RunOnceRepeatedly(ncircuit, expected_results);
 }
 
