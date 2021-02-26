@@ -588,12 +588,11 @@ bool _noisy_sim_from_input_state(
   return true;
 }
 
-qsim::Simulator<For>::State _noisy_sim_from_input_vector(
-    const py::dict &options, const py::array_t<float> &input_vector) {
-  using Simulator = qsim::Simulator<For>;
-  using StateSpace = Simulator::StateSpace;
-  using State = StateSpace::State;
-
+template <typename Runner, typename StateSpace, typename State>
+bool _noisy_sim_from_input_vector(
+    const py::dict &options, const py::array_t<float> &input_vector,
+    uint64_t seed, const StateSpace& state_space,
+    State& state, State& scratch) {
   NoisyCircuit<Cirq::GateCirq<float>> ncircuit;
   unsigned num_qubits;
   try {
@@ -601,26 +600,19 @@ qsim::Simulator<For>::State _noisy_sim_from_input_vector(
     num_qubits = parseOptions<unsigned>(options, "n\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
-    return StateSpace::Null();
+    return false;
   }
 
-  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
-                                                  MultiQubitGateFuser,
-                                                  Simulator>;
-  Runner::Parameter param;
-  uint64_t seed;
+  typename Runner::Parameter param;
   try {
     param.num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
-    seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
     IO::errorf(exp.what());
-    return StateSpace::Null();
+    return false;
   }
 
-  StateSpace state_space(param.num_threads);
-  State state = state_space.Create(num_qubits);
   const float* ptr = input_vector.data();
   auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
               float* fsv) {
@@ -629,15 +621,13 @@ qsim::Simulator<For>::State _noisy_sim_from_input_vector(
   For(param.num_threads).Run(input_vector.size(), f, ptr, state.get());
   state_space.NormalToInternalOrder(state);
 
-  State scratch = StateSpace(1).Null();
   std::vector<uint64_t> stat;
-  // TODO: run multiple, aggregate state
   if (!Runner::Run(param, num_qubits, ncircuit, seed, scratch, state, stat)) {
     IO::errorf(
       "qtrajectory full state simulation of the circuit errored out.\n");
-    return StateSpace::Null();
+    return false;
   }
-  return state;
+  return true;
 }
 
 py::array_t<float> state_to_python(
@@ -711,14 +701,47 @@ py::array_t<float> qtrajectory_simulate_fullstate(
     }
     state_space.Add(state, aggregate_state);
   }
-  state_space.Multiply(1 / num_reps, aggregate_state);
+  state_space.Multiply(1.0 / num_reps, aggregate_state);
   return state_to_python(options, std::move(aggregate_state));
 }
 
 py::array_t<float> qtrajectory_simulate_fullstate(
     const py::dict &options, const py::array_t<float> &input_vector) {
-  return state_to_python(
-    options, _noisy_sim_from_input_vector(options, input_vector));
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
+                                                  MultiQubitGateFuser,
+                                                  Simulator>;
+  unsigned num_threads;
+  unsigned num_qubits;
+  unsigned num_reps;
+  uint64_t seed;
+  try {
+    num_threads = parseOptions<unsigned>(options, "t\0");
+    num_qubits = parseOptions<unsigned>(options, "n\0");
+    num_reps = parseOptions<unsigned>(options, "r\0");
+    seed = parseOptions<uint64_t>(options, "s\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  StateSpace state_space(num_threads);
+  State aggregate_state = state_space.Create(num_qubits);
+  state_space.SetAllZeros(aggregate_state);
+
+  State state = state_space.Create(num_qubits);
+  State scratch = StateSpace(1).Null();
+  for (uint64_t rep = 0; rep < num_reps; ++rep) {
+    if (!_noisy_sim_from_input_vector<Runner>(
+            options, input_vector, seed + rep, state_space, state, scratch)) {
+      return {};
+    }
+    state_space.Add(state, aggregate_state);
+  }
+  state_space.Multiply(1.0 / num_reps, aggregate_state);
+  return state_to_python(options, std::move(aggregate_state));
 }
 
 // Methods for calculating expectation values.
@@ -860,9 +883,57 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
                           std::vector<OpString<Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
-  return state_to_expectation_value(
-    options, opsums_and_qubit_counts, 
-    _noisy_sim_from_input_vector(options, input_vector));
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
+                                                  MultiQubitGateFuser,
+                                                  Simulator>;
+  unsigned num_threads;
+  unsigned num_qubits;
+  unsigned num_reps;
+  uint64_t seed;
+  try {
+    num_threads = parseOptions<unsigned>(options, "t\0");
+    num_qubits = parseOptions<unsigned>(options, "n\0");
+    num_reps = parseOptions<unsigned>(options, "r\0");
+    seed = parseOptions<uint64_t>(options, "s\0");
+  } catch (const std::invalid_argument &exp) {
+    IO::errorf(exp.what());
+    return {};
+  }
+
+  StateSpace state_space(num_threads);
+  std::vector<std::complex<double>> aggr_evs(opsums_and_qubit_counts.size(), 0);
+
+  State state = state_space.Create(num_qubits);
+  State scratch = StateSpace(1).Null();
+  For aggregator(num_threads);
+  auto add_evs = [](unsigned n, unsigned m, uint64_t i,
+                    const std::vector<std::complex<double>>& evs,
+                    std::vector<std::complex<double>>& aggr_evs) {
+    aggr_evs[i] += evs.at(i);
+  };
+  for (uint64_t rep = 0; rep < num_reps; ++rep) {
+    if (!_noisy_sim_from_input_vector<Runner>(
+            options, input_vector, seed + rep, state_space, state, scratch)) {
+      return {};
+    }
+    std::vector<std::complex<double>> evs = state_to_expectation_value(
+      options, opsums_and_qubit_counts, state);
+    if (evs.empty()) {
+      return {};
+    }
+
+    aggregator.Run(evs.size(), add_evs, evs, aggr_evs);
+  }
+
+  auto avg_evs = [](unsigned n, unsigned m, uint64_t i, unsigned num_reps,
+                    std::vector<std::complex<double>>& aggr_evs) {
+    aggr_evs[i] /= num_reps;
+  };
+  aggregator.Run(aggr_evs.size(), avg_evs, num_reps, aggr_evs);
+  return aggr_evs;
 }
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {

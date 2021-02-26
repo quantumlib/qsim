@@ -73,7 +73,8 @@ def test_cirq_qsim_simulate(mode: str):
   if mode == 'noisy':
     cirq_circuit.append(NoiseTrigger().on(a))
 
-  qsimSim = qsimcirq.QSimSimulator()
+  # Test average-over-reps for noisy simulator.
+  qsimSim = qsimcirq.QSimSimulator(qsim_options={"r": 2})
   result = qsimSim.compute_amplitudes(
       cirq_circuit, bitstrings=[0b0100, 0b1011])
   assert np.allclose(result, [0.5j, 0j])
@@ -111,7 +112,8 @@ def test_cirq_qsim_simulate_fullstate(mode: str):
   if mode == 'noisy':
     cirq_circuit.append(NoiseTrigger().on(a))
 
-  qsimSim = qsimcirq.QSimSimulator()
+  # Test average-over-reps for noisy simulator.
+  qsimSim = qsimcirq.QSimSimulator(qsim_options={"r": 2})
   result = qsimSim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
   assert result.state_vector().shape == (16,)
   cirqSim = cirq.Simulator()
@@ -146,12 +148,16 @@ def test_cirq_qsim_simulate_sweep(mode: str):
     cirq_circuit.append(NoiseTrigger().on(a))
 
   params = [{x: 0.25}, {x: 0.5}, {x: 0.75}]
-  qsimSim = qsimcirq.QSimSimulator()
+  # Test average-over-reps for noisy simulator.
+  qsimSim = qsimcirq.QSimSimulator(qsim_options={"r": 2})
   qsim_result = qsimSim.simulate_sweep(cirq_circuit, params)
   cirqSim = cirq.Simulator()
   cirq_result = cirqSim.simulate_sweep(cirq_circuit, params)
 
   for i in range(len(qsim_result)):
+    print(qsim_result[i].state_vector())
+    print()
+    print(cirq_result[i].state_vector())
     assert cirq.linalg.allclose_up_to_global_phase(
       qsim_result[i].state_vector(), cirq_result[i].state_vector())
 
@@ -280,7 +286,8 @@ def test_expectation_values(mode: str):
   if mode == 'noisy':
     circuit.append(NoiseTrigger().on(a))
 
-  qsim_simulator = qsimcirq.QSimSimulator()
+  # Test average-over-reps for noisy simulator.
+  qsim_simulator = qsimcirq.QSimSimulator(qsim_options={"r": 2})
   with pytest.raises(ValueError, match='terminal measurement checking'):
     _ = qsim_simulator.simulate_expectation_values_sweep(
       circuit, [psum1, psum2], params)
