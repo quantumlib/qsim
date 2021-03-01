@@ -366,6 +366,7 @@ cc_library(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:bits",
         "//lib:fuser",
         "//lib:gate_appl",
         "//lib:gates_cirq",
