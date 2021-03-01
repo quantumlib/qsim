@@ -43,6 +43,16 @@ TEST(UnitaryCalculatorTest, ApplyFusedGate) {
   TestApplyFusedGate<UnitaryCalculatorBasic<For, float>>();
 }
 
+TEST(UnitaryCalculatorTest, ApplyGates) {
+  TestApplyGates<UnitaryCalculatorBasic<For, float>>(false);
+  TestApplyGates<UnitaryCalculatorBasic<For, double>>(true);
+}
+
+TEST(UnitaryCalculatorTest, ApplyControlledGates) {
+  TestApplyControlledGates<UnitaryCalculatorBasic<For, float>>(false);
+  TestApplyControlledGates<UnitaryCalculatorBasic<For, double>>(true);
+}
+
 }  // namespace
 }  // namespace unitary
 }  // namespace qsim
