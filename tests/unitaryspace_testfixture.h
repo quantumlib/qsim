@@ -23,68 +23,68 @@ namespace qsim {
 
 namespace unitary {
 
-constexpr char provider[] = "statespace_test";
-
-
-template <typename US>
+template <typename UnitarySpace>
 void TestSetZeros() {
-  using Unitary = typename US::Unitary;
+  using Unitary = typename UnitarySpace::Unitary;
 
-  for(int size = 1; size <= 5; size++){
-    US us = US(size, 1);
-    Unitary u = us.CreateUnitary();
+  for (unsigned nq = 1; nq <= 5; ++nq) {
+    UnitarySpace us(1);
+    Unitary u = us.CreateUnitary(nq);
+
     us.SetAllZeros(u);
 
-    for(int i =0;i<(1 << size);i++){
-      for(int j =0;j<(1 << size);j++) {
-        EXPECT_EQ(
-          us.GetEntry(u, i, j), std::complex<float>(0, 0));
+    unsigned size = 1 << nq;
+    for (unsigned i = 0; i < size; ++i) {
+      for (unsigned j = 0; j < size; ++j) {
+        EXPECT_EQ(us.GetEntry(u, i, j), std::complex<float>(0, 0));
       }
     }
   }
 }
 
-template <typename US>
+template <typename UnitarySpace>
 void TestSetIdentity() {
-  using Unitary = typename US::Unitary;
+  using Unitary = typename UnitarySpace::Unitary;
 
-  for(int size = 1; size <= 5; size++){
-    US us = US(size, 1);
-    Unitary u = us.CreateUnitary();
+  for (unsigned nq = 1; nq <= 5; ++nq) {
+    UnitarySpace us(1);
+    Unitary u = us.CreateUnitary(nq);
+
     us.SetIdentity(u);
 
-    for(int i =0;i<(1 << size);i++){
-      for(int j =0;j<(1 << size);j++) {
-        if (i == j){
-          EXPECT_EQ(
-            us.GetEntry(u, i, j), std::complex<float>(1, 0));
+    unsigned size = 1 << nq;
+    for (unsigned i = 0; i < size; ++i) {
+      for (unsigned j = 0; j < size; ++j) {
+        if (i == j) {
+          EXPECT_EQ(us.GetEntry(u, i, j), std::complex<float>(1, 0));
         } else {
-          EXPECT_EQ(
-            us.GetEntry(u, i, j), std::complex<float>(0, 0));
+          EXPECT_EQ(us.GetEntry(u, i, j), std::complex<float>(0, 0));
         }
       }
     }
   }
 }
 
-template <typename US>
+template <typename UnitarySpace>
 void TestSetEntry() {
-  using Unitary = typename US::Unitary;
+  using Unitary = typename UnitarySpace::Unitary;
 
-  for(int size = 1; size <= 5; size++){
-    US us = US(size, 1);
-    Unitary u = us.CreateUnitary();
+  for (unsigned nq = 1; nq <= 5; ++nq) {
+    UnitarySpace us(1);
+    Unitary u = us.CreateUnitary(nq);
 
-    for(int i =0;i<(1 << size);i++){
-      for(int j =0;j<(1 << size);j++) {
-        int val = i * (1 << size) + j;
+    unsigned size = 1 << nq;
+
+    for (unsigned i = 0; i < size; ++i) {
+      for (unsigned j = 0; j < size; ++j) {
+        unsigned val = i * size + j;
         us.SetEntry(u, i, j, 2 * val, 2 * val + 1);
       }
     }
 
-    for(int i =0;i<(1 << size);i++){
-      for(int j =0;j<(1 << size);j++) {
-        int val = i * (1 << size) + j;
+    for (unsigned i = 0; i < size; ++i) {
+      for (unsigned j = 0; j < size; ++j) {
+        unsigned val = i * size + j;
         EXPECT_EQ(
           us.GetEntry(u, i, j), std::complex<float>(2 * val, 2 * val + 1));
       }
