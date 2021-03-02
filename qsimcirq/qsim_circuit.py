@@ -217,7 +217,7 @@ def add_op_to_circuit(
   else:
     params = {
       p.strip('_'): val for p, val in vars(qsim_gate).items()
-      if isinstance(val, float) or isinstance(val, int)
+      if isinstance(val, (int, float, np.integer, np.floating))
     }
     if isinstance(circuit, qsim.Circuit):
       qsim.add_gate(gate_kind, time, qsim_qubits, params, circuit)

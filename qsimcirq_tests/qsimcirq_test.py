@@ -174,6 +174,7 @@ def test_cirq_qsim_simulate_sweep(mode: str):
     assert cirq.linalg.allclose_up_to_global_phase(
       qsim_result[i].state_vector(), cirq_result[i].state_vector())
 
+
 def test_input_vector_validation():
   cirq_circuit = cirq.Circuit(
     cirq.X(cirq.LineQubit(0)), cirq.X(cirq.LineQubit(1))
@@ -190,6 +191,16 @@ def test_input_vector_validation():
     initial_state = np.asarray([0.5]*4)
     qsim_result = qsimSim.simulate_sweep(
       cirq_circuit, params, initial_state=initial_state)
+
+
+def test_numpy_params():
+  q0 = cirq.LineQubit(0)
+  x, y = sympy.Symbol('x'), sympy.Symbol('y')
+  circuit = cirq.Circuit(cirq.X(q0) ** x, cirq.H(q0) ** y)
+  prs = [{x: np.int64(0), y: np.int64(1)}, {x: np.int64(1), y: np.int64(0)}]
+
+  qsim_simulator = qsimcirq.QSimSimulator()
+  qsim_result = qsim_simulator.simulate_sweep(circuit, params=prs)
 
 
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
