@@ -203,6 +203,18 @@ def test_numpy_params():
   qsim_result = qsim_simulator.simulate_sweep(circuit, params=prs)
 
 
+def test_invalid_params():
+  # Parameters must have numeric values.
+  q0 = cirq.LineQubit(0)
+  x, y = sympy.Symbol('x'), sympy.Symbol('y')
+  circuit = cirq.Circuit(cirq.X(q0) ** x, cirq.H(q0) ** y)
+  prs = [{x: np.int64(0), y: np.int64(1)}, {x: np.int64(1), y: 'z'}]
+
+  qsim_simulator = qsimcirq.QSimSimulator()
+  with pytest.raises(ValueError, match='Parameters must be numeric'):
+    _ = qsim_simulator.simulate_sweep(circuit, params=prs)
+
+
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
 def test_cirq_qsim_run(mode: str):
   # Pick qubits.

@@ -20,6 +20,14 @@ from qsimcirq import qsim
 from typing import Dict, Union
 
 
+# List of parameter names that appear in valid Cirq protos.
+GATE_PARAMS = [
+  'exponent', 'phase_exponent', 'global_shift',
+  'x_exponent', 'z_exponent', 'axis_phase_exponent',
+  'phi', 'theta'
+]
+
+
 def _cirq_gate_kind(gate: cirq.ops.Gate):
   if isinstance(gate, cirq.ops.ControlledGate):
     return _cirq_gate_kind(gate.sub_gate)
@@ -215,10 +223,15 @@ def add_op_to_circuit(
     else:
       qsim.add_matrix_gate_channel(time, qsim_qubits, m, circuit)
   else:
-    params = {
-      p.strip('_'): val for p, val in vars(qsim_gate).items()
-      if isinstance(val, (int, float, np.integer, np.floating))
-    }
+    params = {}
+    for p, val in vars(qsim_gate).items():
+      key = p.strip('_')
+      if key not in GATE_PARAMS:
+        continue
+      if isinstance(val, (int, float, np.integer, np.floating)):
+        params[key] = val
+      else:
+        raise ValueError('Parameters must be numeric.')
     if isinstance(circuit, qsim.Circuit):
       qsim.add_gate(gate_kind, time, qsim_qubits, params, circuit)
     else:
