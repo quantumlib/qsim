@@ -40,8 +40,7 @@ class UnitaryCalculatorBasic final {
   using State = Unitary;
 
   template <typename... ForArgs>
-  explicit UnitaryCalculatorBasic(unsigned num_qubits, ForArgs&&... args)
-      : for_(args...), num_qubits_(num_qubits) {}
+  explicit UnitaryCalculatorBasic(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using non-vectorized instructions.
@@ -128,7 +127,7 @@ class UnitaryCalculatorBasic final {
 
     xs[0] = uint64_t{1} << (qs[0] + 1);
     ms[0] = (uint64_t{1} << qs[0]) - 1;
-    ms[1] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[0] - 1);
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
 
     uint64_t xss[2];
     for (unsigned i = 0; i < 2; ++i) {
@@ -143,15 +142,15 @@ class UnitaryCalculatorBasic final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
-                uint64_t col_size, uint64_t row_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[2], is[2];
 
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]);
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 2; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -181,11 +180,12 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 1;
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
-    for_.Run(size * size2, f, matrix, ms, xss, size, size2, rstate);
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
   void ApplyGate2H(const std::vector<unsigned>& qs,
@@ -199,7 +199,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[2] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[1] - 1);
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
 
     uint64_t xss[4];
     for (unsigned i = 0; i < 4; ++i) {
@@ -214,15 +214,15 @@ class UnitaryCalculatorBasic final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
-                uint64_t col_size, uint64_t row_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[4], is[4];
 
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2]);
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 4; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -252,11 +252,12 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 2;
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
-    for_.Run(size * size2, f, matrix, ms, xss, size, size2, rstate);
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
   void ApplyGate3H(const std::vector<unsigned>& qs,
@@ -270,7 +271,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[3] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[2] - 1);
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
 
     uint64_t xss[8];
     for (unsigned i = 0; i < 8; ++i) {
@@ -285,16 +286,16 @@ class UnitaryCalculatorBasic final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
-                uint64_t col_size, uint64_t row_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[8], is[8];
 
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
           | (8 * ii & ms[3]);
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 8; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -324,11 +325,12 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 3;
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
-    for_.Run(size * size2, f, matrix, ms, xss, size, size2, rstate);
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
   void ApplyGate4H(const std::vector<unsigned>& qs,
@@ -342,7 +344,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[4] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[3] - 1);
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
 
     uint64_t xss[16];
     for (unsigned i = 0; i < 16; ++i) {
@@ -357,16 +359,16 @@ class UnitaryCalculatorBasic final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
-                uint64_t col_size, uint64_t row_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[16], is[16];
 
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
           | (8 * ii & ms[3]) | (16 * ii & ms[4]);
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 16; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -396,11 +398,12 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 4;
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
-    for_.Run(size * size2, f, matrix, ms, xss, size, size2, rstate);
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
   void ApplyGate5H(const std::vector<unsigned>& qs,
@@ -414,7 +417,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[5] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[4] - 1);
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
 
     uint64_t xss[32];
     for (unsigned i = 0; i < 32; ++i) {
@@ -429,16 +432,16 @@ class UnitaryCalculatorBasic final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
-                uint64_t col_size, uint64_t row_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[32], is[32];
 
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
           | (8 * ii & ms[3]) | (16 * ii & ms[4]) | (32 * ii & ms[5]);
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 32; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -468,11 +471,12 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 5;
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
-    for_.Run(size * size2, f, matrix, ms, xss, size, size2, rstate);
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
   void ApplyGate6H(const std::vector<unsigned>& qs,
@@ -486,7 +490,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[6] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[5] - 1);
+    ms[6] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[5] - 1);
 
     uint64_t xss[64];
     for (unsigned i = 0; i < 64; ++i) {
@@ -501,17 +505,17 @@ class UnitaryCalculatorBasic final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
-                uint64_t col_size, uint64_t row_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[64], is[64];
 
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
           | (8 * ii & ms[3]) | (16 * ii & ms[4]) | (32 * ii & ms[5])
           | (64 * ii & ms[6]);
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 64; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -541,11 +545,12 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 6;
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
-    for_.Run(size * size2, f, matrix, ms, xss, size, size2, rstate);
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
   void ApplyControlledGate1H(const std::vector<unsigned>& qs,
@@ -557,7 +562,7 @@ class UnitaryCalculatorBasic final {
 
     xs[0] = uint64_t{1} << (qs[0] + 1);
     ms[0] = (uint64_t{1} << qs[0]) - 1;
-    ms[1] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[0] - 1);
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
 
     uint64_t xss[2];
     for (unsigned i = 0; i < 2; ++i) {
@@ -576,7 +581,7 @@ class UnitaryCalculatorBasic final {
       emaskh |= uint64_t{1} << q;
     }
 
-    uint64_t cmaskh = bits::ExpandBits(cmask, num_qubits_, emaskh);
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
 
     for (auto q : qs) {
       emaskh |= uint64_t{1} << q;
@@ -587,17 +592,15 @@ class UnitaryCalculatorBasic final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                uint64_t col_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[2], is[2];
 
-      uint64_t row_size = uint64_t{1} << num_qubits;
-
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 2; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -627,12 +630,13 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 1 + cqs.size();
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
     for_.Run(size * size2, f, matrix, ms, xss,
-             num_qubits_, cmaskh, emaskh, size, rstate);
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
   }
 
   void ApplyControlledGate2H(const std::vector<unsigned>& qs,
@@ -648,7 +652,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[2] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[1] - 1);
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
 
     uint64_t xss[4];
     for (unsigned i = 0; i < 4; ++i) {
@@ -667,7 +671,7 @@ class UnitaryCalculatorBasic final {
       emaskh |= uint64_t{1} << q;
     }
 
-    uint64_t cmaskh = bits::ExpandBits(cmask, num_qubits_, emaskh);
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
 
     for (auto q : qs) {
       emaskh |= uint64_t{1} << q;
@@ -678,17 +682,15 @@ class UnitaryCalculatorBasic final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                uint64_t col_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[4], is[4];
 
-      uint64_t row_size = uint64_t{1} << num_qubits;
-
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 4; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -718,12 +720,13 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 2 + cqs.size();
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
     for_.Run(size * size2, f, matrix, ms, xss,
-             num_qubits_, cmaskh, emaskh, size, rstate);
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
   }
 
   void ApplyControlledGate3H(const std::vector<unsigned>& qs,
@@ -739,7 +742,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[3] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[2] - 1);
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
 
     uint64_t xss[8];
     for (unsigned i = 0; i < 8; ++i) {
@@ -758,7 +761,7 @@ class UnitaryCalculatorBasic final {
       emaskh |= uint64_t{1} << q;
     }
 
-    uint64_t cmaskh = bits::ExpandBits(cmask, num_qubits_, emaskh);
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
 
     for (auto q : qs) {
       emaskh |= uint64_t{1} << q;
@@ -769,17 +772,15 @@ class UnitaryCalculatorBasic final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                uint64_t col_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[8], is[8];
 
-      uint64_t row_size = uint64_t{1} << num_qubits;
-
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 8; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -809,12 +810,13 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 3 + cqs.size();
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
     for_.Run(size * size2, f, matrix, ms, xss,
-             num_qubits_, cmaskh, emaskh, size, rstate);
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
   }
 
   void ApplyControlledGate4H(const std::vector<unsigned>& qs,
@@ -830,7 +832,7 @@ class UnitaryCalculatorBasic final {
       xs[i] = uint64_t{1} << (qs[i + 0] + 1);
       ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
     }
-    ms[4] = ((uint64_t{1} << num_qubits_) - 1) ^ (xs[3] - 1);
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
 
     uint64_t xss[16];
     for (unsigned i = 0; i < 16; ++i) {
@@ -849,7 +851,7 @@ class UnitaryCalculatorBasic final {
       emaskh |= uint64_t{1} << q;
     }
 
-    uint64_t cmaskh = bits::ExpandBits(cmask, num_qubits_, emaskh);
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
 
     for (auto q : qs) {
       emaskh |= uint64_t{1} << q;
@@ -860,17 +862,15 @@ class UnitaryCalculatorBasic final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                uint64_t col_size, fp_type* rstate) {
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
       fp_type rn, in;
       fp_type rs[16], is[16];
 
-      uint64_t row_size = uint64_t{1} << num_qubits;
-
-      uint64_t ii = i % col_size;
-      uint64_t r = i / col_size;
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
       uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
 
-      auto p0 = rstate + 2 * row_size * r + 2 * c;
+      auto p0 = rstate + row_size * r + 2 * c;
 
       for (unsigned l = 0; l < 16; ++l) {
         rs[l] = *(p0 + xss[l]);
@@ -900,16 +900,16 @@ class UnitaryCalculatorBasic final {
     fp_type* rstate = state.get();
 
     unsigned k = 4 + cqs.size();
-    unsigned n = num_qubits_ > k ? num_qubits_ - k : 0;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
-    uint64_t size2 = uint64_t{1} << num_qubits_;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
 
     for_.Run(size * size2, f, matrix, ms, xss,
-             num_qubits_, cmaskh, emaskh, size, rstate);
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
   }
 
   For for_;
-  unsigned num_qubits_;
 };
 
 }  // namespace unitary
