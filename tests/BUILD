@@ -405,6 +405,22 @@ cc_library(
 )
 
 cc_test(
+    name = "unitary_calculator_avx_test",
+    srcs = ["unitary_calculator_avx_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": avx_copts,
+    }),
+    deps = [
+        ":unitary_calculator_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:formux",
+        "//lib:unitaryspace_avx",
+        "//lib:unitary_calculator_avx",
+    ],
+)
+
+cc_test(
     name = "unitary_calculator_basic_test",
     srcs = ["unitary_calculator_basic_test.cc"],
     copts = select({
@@ -417,6 +433,22 @@ cc_test(
         "//lib:formux",
         "//lib:unitaryspace_basic",
         "//lib:unitary_calculator_basic",
+    ],
+)
+
+cc_test(
+    name = "unitary_calculator_sse_test",
+    srcs = ["unitary_calculator_sse_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": sse_copts,
+    }),
+    deps = [
+        ":unitary_calculator_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:formux",
+        "//lib:unitaryspace_sse",
+        "//lib:unitary_calculator_sse",
     ],
 )
 

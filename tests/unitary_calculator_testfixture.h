@@ -15,8 +15,10 @@
 #ifndef UNITARY_CALCULTOR_TESTFIXTURE_H_
 #define UNITARY_CALCULTOR_TESTFIXTURE_H_
 
+#include <algorithm>
 #include <complex>
 #include <cmath>
+#include <vector>
 
 #include "../lib/bits.h"
 #include "../lib/fuser.h"
@@ -448,7 +450,7 @@ void TestApplyGates(bool test_double) {
   using UnitarySpace = typename UnitaryCalculator::UnitarySpace;
   using fp_type = typename UnitaryCalculator::fp_type;
 
-  unsigned max_minq = 1 + std::log2(UnitaryCalculator::SIMDRegisterSize());
+  unsigned max_minq = std::log2(UnitaryCalculator::SIMDRegisterSize());
   unsigned max_gate_qubits = 6;
   unsigned num_qubits = max_gate_qubits + max_minq;
 
@@ -476,7 +478,7 @@ void TestApplyGates(bool test_double) {
       matrix.push_back(i + 1);
     }
 
-    // k is the first target gate qubit.
+    // k is the first gate qubit.
     for (unsigned k = 0; k <= max_minq; ++k) {
       qubits.resize(0);
 
@@ -528,7 +530,7 @@ void TestApplyControlledGates(bool test_double) {
   using UnitarySpace = typename UnitaryCalculator::UnitarySpace;
   using fp_type = typename UnitaryCalculator::fp_type;
 
-  unsigned max_minq = 1 + std::log2(UnitaryCalculator::SIMDRegisterSize());
+  unsigned max_minq = std::log2(UnitaryCalculator::SIMDRegisterSize());
   unsigned max_gate_qubits = 4;
   unsigned max_controlled_qubits = 2;
   unsigned num_qubits = max_gate_qubits + max_controlled_qubits + max_minq;
@@ -630,6 +632,82 @@ void TestApplyControlledGates(bool test_double) {
               EXPECT_NEAR(std::real(a), expected_real, 1e-6);
               EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
             }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <typename UnitaryCalculator>
+void TestSmallCircuits() {
+  using UnitarySpace = typename UnitaryCalculator::UnitarySpace;
+  using fp_type = typename UnitaryCalculator::fp_type;
+
+  unsigned max_num_qubits = 5;
+
+  UnitarySpace unitary_space(1);
+  UnitaryCalculator simulator(1);
+
+  std::vector<fp_type> matrix;
+  matrix.reserve(1 << (2 * max_num_qubits + 1));
+
+  std::vector<unsigned> qubits;
+  qubits.reserve(max_num_qubits);
+
+  for (unsigned num_qubits = 1; num_qubits <= max_num_qubits; ++num_qubits) {
+    auto unitary = unitary_space.CreateUnitary(num_qubits);
+
+    unsigned maxq = std::min(num_qubits, 3U);
+    uint64_t size = 1 << num_qubits;
+
+    for (unsigned q = 1; q <= maxq; ++q) {
+      unsigned max_minq = num_qubits - q;
+
+      uint64_t size1 = 1 << q;
+      uint64_t size2 = size1 * size1;
+
+      matrix.resize(0);
+
+      for (unsigned i = 0; i < 2 * size2; ++i) {
+        matrix.push_back(i + 1);
+      }
+
+      // k is the first gate qubit.
+      for (unsigned k = 0; k <= max_minq; ++k) {
+        qubits.resize(0);
+
+        // Gate qbuits are consecuitive from k to k + q - 1.
+        for (unsigned i = 0; i < q; ++i) {
+          qubits.push_back(i + k);
+        }
+
+        uint64_t delta = 42;  // Some random value.
+        uint64_t mask = ((size - 1) ^ (((1 << q) - 1) << k));
+
+        FillMatrix2(unitary_space, unitary, size, delta);
+        simulator.ApplyGate(qubits, matrix.data(), unitary);
+
+        for (uint64_t i = 0; i < size; ++i) {
+          uint64_t a0 = 2 * i * delta;
+
+          for (uint64_t j = 0; j < size; ++j) {
+            uint64_t s = j & mask;
+            uint64_t l = (j ^ s) >> k;
+
+            // Expected results are calculated analytically.
+            fp_type expected_real =
+                -fp_type(2 * size2 * l + size1 * (2 * s + a0 + 2)
+                         + (1 + (1 << k)) * (size2 - size1));
+            fp_type expected_imag = -expected_real - size1
+                + 2 * (size1 * (1 << k) * (size1 - 1)
+                             * (1 + 2 * size1 * (2 + 3 * l))
+                       + 3 * size2 * (1 + 2 * l) * (a0 + 2 * s)) / 3;
+
+            auto a = unitary_space.GetEntry(unitary, i, j);
+
+            EXPECT_NEAR(std::real(a), expected_real, 1e-6);
+            EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
           }
         }
       }
