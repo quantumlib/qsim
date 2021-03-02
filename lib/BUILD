@@ -41,7 +41,9 @@ cc_library(
         "unitaryspace_avx.h",
         "unitaryspace_basic.h",
         "unitaryspace_sse.h",
+        "unitary_calculator_avx.h",
         "unitary_calculator_basic.h",
+        "unitary_calculator_sse.h",
         "util.h",
         "vectorspace.h",
     ],
@@ -81,7 +83,9 @@ cc_library(
         "unitaryspace_avx.h",
         "unitaryspace_basic.h",
         "unitaryspace_sse.h",
+        "unitary_calculator_avx.h",
         "unitary_calculator_basic.h",
+        "unitary_calculator_sse.h",
         "util.h",
         "vectorspace.h",
     ],
@@ -428,8 +432,26 @@ cc_library(
 ### Unitary calculator libraries ###
 
 cc_library(
+    name = "unitary_calculator_avx",
+    hdrs = ["unitary_calculator_avx.h"],
+    deps = [
+        ":bits",
+        ":unitaryspace_basic"
+    ],
+)
+
+cc_library(
     name = "unitary_calculator_basic",
     hdrs = ["unitary_calculator_basic.h"],
+    deps = [
+        ":bits",
+        ":unitaryspace_basic"
+    ],
+)
+
+cc_library(
+    name = "unitary_calculator_sse",
+    hdrs = ["unitary_calculator_sse.h"],
     deps = [
         ":bits",
         ":unitaryspace_basic"
@@ -441,5 +463,9 @@ cc_library(
 cc_library(
     name = "umux",
     hdrs = ["umux.h"],
-    deps = [":unitary_calculator_basic"]
+    deps = [
+        ":unitary_calculator_avx",
+        ":unitary_calculator_basic",
+        ":unitary_calculator_sse",
+    ],
 )

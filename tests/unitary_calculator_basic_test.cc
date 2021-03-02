@@ -12,45 +12,49 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../lib/unitary_calculator_basic.h"
+#include "unitary_calculator_testfixture.h"
+
+#include "gtest/gtest.h"
 
 #include "../lib/formux.h"
-#include "../lib/unitaryspace_basic.h"
-#include "gtest/gtest.h"
-#include "unitary_calculator_testfixture.h"
+#include "../lib/unitary_calculator_basic.h"
 
 namespace qsim {
 namespace unitary {
 namespace {
 
-TEST(UnitaryCalculatorTest, ApplyGate1) {
+TEST(UnitaryCalculatorBasicTest, ApplyGate1) {
   TestApplyGate1<UnitaryCalculatorBasic<For, float>>();
 }
 
-TEST(UnitaryCalculatorTest, ApplyControlledGate1) {
+TEST(UnitaryCalculatorBasicTest, ApplyControlledGate1) {
   TestApplyControlledGate1<UnitaryCalculatorBasic<For, float>>();
 }
 
-TEST(UnitaryCalculatorTest, ApplyGate2) {
+TEST(UnitaryCalculatorBasicTest, ApplyGate2) {
   TestApplyGate2<UnitaryCalculatorBasic<For, float>>();
 }
 
-TEST(UnitaryCalculatorTest, ApplyControlledGate2) {
+TEST(UnitaryCalculatorBasicTest, ApplyControlledGate2) {
   TestApplyControlledGate2<UnitaryCalculatorBasic<For, float>>();
 }
 
-TEST(UnitaryCalculatorTest, ApplyFusedGate) {
+TEST(UnitaryCalculatorBasicTest, ApplyFusedGate) {
   TestApplyFusedGate<UnitaryCalculatorBasic<For, float>>();
 }
 
-TEST(UnitaryCalculatorTest, ApplyGates) {
+TEST(UnitaryCalculatorBasicTest, ApplyGates) {
   TestApplyGates<UnitaryCalculatorBasic<For, float>>(false);
   TestApplyGates<UnitaryCalculatorBasic<For, double>>(true);
 }
 
-TEST(UnitaryCalculatorTest, ApplyControlledGates) {
+TEST(UnitaryCalculatorBasicTest, ApplyControlledGates) {
   TestApplyControlledGates<UnitaryCalculatorBasic<For, float>>(false);
   TestApplyControlledGates<UnitaryCalculatorBasic<For, double>>(true);
+}
+
+TEST(UnitaryCalculatorBasicTest, SmallCircuits) {
+  TestSmallCircuits<UnitaryCalculatorBasic<For, float>>();
 }
 
 }  // namespace
