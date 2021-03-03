@@ -463,10 +463,9 @@ struct SimulatorHelper {
   static py::array_t<float> simulate_fullstate(
       const py::dict &options, bool is_noisy, StateType input_state) {
     auto helper = SimulatorHelper::from_options(options, is_noisy);
-    if (!helper.is_valid) {
+    if (!helper.is_valid || !helper.simulate(input_state)) {
       return {};
     }
-    helper.simulate(input_state);
     return helper.release_state_to_python();
   }
 
@@ -478,10 +477,9 @@ struct SimulatorHelper {
                             unsigned>>& opsums_and_qubit_counts,
       bool is_noisy, StateType input_state) {
     auto helper = SimulatorHelper::from_options(options, is_noisy);
-    if (!helper.is_valid) {
+    if (!helper.is_valid || !helper.simulate(input_state)) {
       return {};
     }
-    helper.simulate(input_state);
     return helper.get_expectation_value(opsums_and_qubit_counts);
   }
 
