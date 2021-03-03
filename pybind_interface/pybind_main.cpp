@@ -459,12 +459,39 @@ struct SimulatorHelper {
   using NoisyRunner = qsim::QuantumTrajectorySimulator<
       IO, Gate, MultiQubitGateFuser, Simulator>;
 
+  template <typename StateType>
+  static py::array_t<float> simulate_fullstate(
+      const py::dict &options, bool is_noisy, StateType input_state) {
+    auto helper = SimulatorHelper::from_options(options, is_noisy);
+    if (!helper.is_valid) {
+      return {};
+    }
+    helper.simulate(input_state);
+    return helper.release_state_to_python();
+  }
+
+  template <typename StateType>
+  static std::vector<std::complex<double>> simulate_expectation_values(
+      const py::dict &options,
+      const std::vector<std::tuple<
+                            std::vector<OpString<Cirq::GateCirq<float>>>,
+                            unsigned>>& opsums_and_qubit_counts,
+      bool is_noisy, StateType input_state) {
+    auto helper = SimulatorHelper::from_options(options, is_noisy);
+    if (!helper.is_valid) {
+      return {};
+    }
+    helper.simulate(input_state);
+    return helper.get_expectation_value(opsums_and_qubit_counts);
+  }
+
   static SimulatorHelper from_options(
       const py::dict &options, bool is_noisy) {
     SimulatorHelper helper{
       .state_space = StateSpace(1),
       .state = StateSpace::Null(),
-      .scratch = StateSpace::Null()
+      .scratch = StateSpace::Null(),
+      .is_valid = false
     };
 
     helper.is_noisy = is_noisy;
@@ -487,6 +514,7 @@ struct SimulatorHelper {
 
     helper.state_space = StateSpace(helper.num_threads);
     helper.state = helper.state_space.Create(helper.num_qubits);
+    helper.is_valid = true;
     return helper;
   }
 
@@ -578,36 +606,31 @@ struct SimulatorHelper {
   unsigned max_fused_size;
   unsigned verbosity;
   unsigned seed;
+
+  // Only set once initialization is complete.
+  bool is_valid;
 };
 
 // Methods for simulating full state vectors.
 
 py::array_t<float> qsim_simulate_fullstate(
     const py::dict &options, uint64_t input_state) {
-  auto helper = SimulatorHelper::from_options(options, false);
-  helper.simulate(input_state);
-  return helper.release_state_to_python();
+  return SimulatorHelper::simulate_fullstate(options, false, input_state);
 }
 
 py::array_t<float> qsim_simulate_fullstate(
     const py::dict &options, const py::array_t<float> &input_vector) {
-  auto helper = SimulatorHelper::from_options(options, false);
-  helper.simulate(input_vector);
-  return helper.release_state_to_python();
+  return SimulatorHelper::simulate_fullstate(options, false, input_vector);
 }
 
 py::array_t<float> qtrajectory_simulate_fullstate(
     const py::dict &options, uint64_t input_state) {
-  auto helper = SimulatorHelper::from_options(options, true);
-  helper.simulate(input_state);
-  return helper.release_state_to_python();
+  return SimulatorHelper::simulate_fullstate(options, true, input_state);
 }
 
 py::array_t<float> qtrajectory_simulate_fullstate(
     const py::dict &options, const py::array_t<float> &input_vector) {
-  auto helper = SimulatorHelper::from_options(options, true);
-  helper.simulate(input_vector);
-  return helper.release_state_to_python();
+  return SimulatorHelper::simulate_fullstate(options, true, input_vector);
 }
 
 // Methods for calculating expectation values.
@@ -618,9 +641,8 @@ std::vector<std::complex<double>> qsim_simulate_expectation_values(
                           std::vector<OpString<Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
     uint64_t input_state) {
-  auto helper = SimulatorHelper::from_options(options, false);
-  helper.simulate(input_state);
-  return helper.get_expectation_value(opsums_and_qubit_counts);
+  return SimulatorHelper::simulate_expectation_values(
+    options, opsums_and_qubit_counts, false, input_state);
 }
 
 std::vector<std::complex<double>> qsim_simulate_expectation_values(
@@ -629,9 +651,8 @@ std::vector<std::complex<double>> qsim_simulate_expectation_values(
                           std::vector<OpString<Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
-  auto helper = SimulatorHelper::from_options(options, false);
-  helper.simulate(input_vector);
-  return helper.get_expectation_value(opsums_and_qubit_counts);
+  return SimulatorHelper::simulate_expectation_values(
+    options, opsums_and_qubit_counts, false, input_vector);
 }
 
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
@@ -640,9 +661,8 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
                           std::vector<OpString<Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
     uint64_t input_state) {
-  auto helper = SimulatorHelper::from_options(options, true);
-  helper.simulate(input_state);
-  return helper.get_expectation_value(opsums_and_qubit_counts);
+  return SimulatorHelper::simulate_expectation_values(
+    options, opsums_and_qubit_counts, true, input_state);
 }
 
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
@@ -651,9 +671,8 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
                           std::vector<OpString<Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
-  auto helper = SimulatorHelper::from_options(options, true);
-  helper.simulate(input_vector);
-  return helper.get_expectation_value(opsums_and_qubit_counts);
+  return SimulatorHelper::simulate_expectation_values(
+    options, opsums_and_qubit_counts, true, input_vector);
 }
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {
