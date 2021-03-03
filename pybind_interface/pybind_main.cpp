@@ -522,17 +522,9 @@ struct SimulatorHelper {
     return params;
   }
 
-  bool simulate(uint64_t input_state) {
+  template <typename StateType>
+  bool simulate(StateType input_state) {
     init_state(input_state);
-    return simulate_no_init();
-  }
-
-  bool simulate(const py::array_t<float> &input_vector) {
-    init_state(input_vector);
-    return simulate_no_init();
-  }
-
-  bool simulate_no_init() {
     if (is_noisy) {
       std::vector<uint64_t> stat;
       return NoisyRunner::Run(
@@ -551,11 +543,10 @@ struct SimulatorHelper {
   }
 
   std::vector<std::complex<double>> get_expectation_value(
-      const std::vector<std::tuple<
-                            std::vector<OpString<Cirq::GateCirq<float>>>,
-                            unsigned>>& opsums_and_qubit_counts){
+      const std::vector<std::tuple<std::vector<OpString<Gate>>,
+                                   unsigned>>& opsums_and_qubit_counts){
     Simulator simulator(num_threads);
-    using Fuser = MultiQubitGateFuser<IO, Cirq::GateCirq<float>>;
+    using Fuser = MultiQubitGateFuser<IO, Gate>;
 
     std::vector<std::complex<double>> results;
     results.reserve(opsums_and_qubit_counts.size());
