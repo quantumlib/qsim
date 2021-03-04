@@ -495,23 +495,19 @@ class SimulatorHelper {
     // Aggregate expectation values for noisy circuits.
     std::vector<std::complex<double>> results(
       opsums_and_qubit_counts.size(), 0);
-    For aggregator(helper.num_threads);
-    auto add_evs = [&results](unsigned n, unsigned m, uint64_t i,
-                              const std::vector<std::complex<double>>& evs) {
-      results[i] += evs.at(i);
-    };
     for (unsigned rep = 0; rep < helper.noisy_reps; ++rep) {
       if (!helper.simulate(input_state)) {
         return {};
       }
       auto evs = helper.get_expectation_value(opsums_and_qubit_counts);
-      aggregator.Run(evs.size(), add_evs, evs);
+      for (unsigned i = 0; i < evs.size(); ++i) {
+        results[i] += evs[i];
+      }
     }
-    auto avg_evs = [&results](unsigned n, unsigned m, uint64_t i,
-                              unsigned num_reps) {
-      results[i] /= num_reps;
-    };
-    aggregator.Run(results.size(), avg_evs, helper.noisy_reps);
+    double inverse_num_reps = 1.0 / helper.noisy_reps;
+    for (unsigned i = 0; i < results.size(); ++i) {
+      results[i] *= inverse_num_reps;
+    }
     return results;
   }
 
