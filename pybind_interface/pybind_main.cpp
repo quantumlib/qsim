@@ -351,6 +351,8 @@ void add_gate_to_opstring(const Cirq::GateKind gate_kind,
   opstring->ops.push_back(create_gate(gate_kind, 0, qubits, params));
 }
 
+// Methods for simulating amplitudes.
+
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
   std::vector<Bitstring> bitstrings;
@@ -449,7 +451,8 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 }
 
 // Helper class for simulating circuits of all types.
-struct SimulatorHelper {
+class SimulatorHelper {
+ public:
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
@@ -459,10 +462,12 @@ struct SimulatorHelper {
   using NoisyRunner = qsim::QuantumTrajectorySimulator<
       IO, Gate, MultiQubitGateFuser, Simulator>;
 
+  SimulatorHelper() = delete;
+
   template <typename StateType>
   static py::array_t<float> simulate_fullstate(
-      const py::dict &options, bool is_noisy, StateType input_state) {
-    auto helper = SimulatorHelper::from_options(options, is_noisy);
+      const py::dict &options, bool is_noisy, const StateType& input_state) {
+    auto helper = SimulatorHelper(options, is_noisy);
     if (!helper.is_valid || !helper.simulate(input_state)) {
       return {};
     }
@@ -475,45 +480,40 @@ struct SimulatorHelper {
       const std::vector<std::tuple<
                             std::vector<OpString<Cirq::GateCirq<float>>>,
                             unsigned>>& opsums_and_qubit_counts,
-      bool is_noisy, StateType input_state) {
-    auto helper = SimulatorHelper::from_options(options, is_noisy);
+      bool is_noisy, const StateType& input_state) {
+    auto helper = SimulatorHelper(options, is_noisy);
     if (!helper.is_valid || !helper.simulate(input_state)) {
       return {};
     }
     return helper.get_expectation_value(opsums_and_qubit_counts);
   }
 
-  static SimulatorHelper from_options(
-      const py::dict &options, bool is_noisy) {
-    SimulatorHelper helper{
-      .state_space = StateSpace(1),
-      .state = StateSpace::Null(),
-      .scratch = StateSpace::Null(),
-      .is_valid = false
-    };
-
-    helper.is_noisy = is_noisy;
+ private:
+  SimulatorHelper(const py::dict &options, bool noisy)
+      : state_space(StateSpace(1)), state(StateSpace::Null()),
+        scratch(StateSpace::Null()) {
+    is_valid = false;
+    is_noisy = noisy;
     try {
       if (is_noisy) {
-        helper.ncircuit = getNoisyCircuit(options);
-        helper.num_qubits = parseOptions<unsigned>(options, "n\0");
+        ncircuit = getNoisyCircuit(options);
+        num_qubits = parseOptions<unsigned>(options, "n\0");
       } else {
-        helper.circuit = getCircuit(options);
-        helper.num_qubits = helper.circuit.num_qubits;
+        circuit = getCircuit(options);
+        num_qubits = circuit.num_qubits;
       }
-      helper.num_threads = parseOptions<unsigned>(options, "t\0");
-      helper.max_fused_size = parseOptions<unsigned>(options, "f\0");
-      helper.verbosity = parseOptions<unsigned>(options, "v\0");
-      helper.seed = parseOptions<unsigned>(options, "s\0");
-    } catch (const std::invalid_argument &exp) {
-      IO::errorf(exp.what());
-      return helper;
-    }
+      num_threads = parseOptions<unsigned>(options, "t\0");
+      max_fused_size = parseOptions<unsigned>(options, "f\0");
+      verbosity = parseOptions<unsigned>(options, "v\0");
+      seed = parseOptions<unsigned>(options, "s\0");
 
-    helper.state_space = StateSpace(helper.num_threads);
-    helper.state = helper.state_space.Create(helper.num_qubits);
-    helper.is_valid = true;
-    return helper;
+      state_space = StateSpace(num_threads);
+      state = state_space.Create(num_qubits);
+      is_valid = true;
+    } catch (const std::invalid_argument &exp) {
+      // If this triggers, is_valid is false.
+      IO::errorf(exp.what());
+    }
   }
 
   void init_state(uint64_t input_state) {
@@ -531,7 +531,7 @@ struct SimulatorHelper {
     state_space.NormalToInternalOrder(state);
   }
 
-  Runner::Parameter get_params() {
+  Runner::Parameter get_params() const {
     Runner::Parameter params;
     params.num_threads = num_threads;
     params.max_fused_size = max_fused_size;
@@ -540,7 +540,7 @@ struct SimulatorHelper {
     return params;
   }
 
-  NoisyRunner::Parameter get_noisy_params() {
+  NoisyRunner::Parameter get_noisy_params() const {
     NoisyRunner::Parameter params;
     params.num_threads = num_threads;
     params.max_fused_size = max_fused_size;
@@ -549,7 +549,7 @@ struct SimulatorHelper {
   }
 
   template <typename StateType>
-  bool simulate(StateType input_state) {
+  bool simulate(const StateType& input_state) {
     init_state(input_state);
     if (is_noisy) {
       std::vector<uint64_t> stat;
@@ -570,7 +570,7 @@ struct SimulatorHelper {
 
   std::vector<std::complex<double>> get_expectation_value(
       const std::vector<std::tuple<std::vector<OpString<Gate>>,
-                                   unsigned>>& opsums_and_qubit_counts){
+                                   unsigned>>& opsums_and_qubit_counts) {
     Simulator simulator(num_threads);
     using Fuser = MultiQubitGateFuser<IO, Gate>;
 
@@ -605,7 +605,7 @@ struct SimulatorHelper {
   unsigned verbosity;
   unsigned seed;
 
-  // Only set once initialization is complete.
+  // Only set to "true" once initialization is complete.
   bool is_valid;
 };
 
@@ -672,6 +672,8 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
   return SimulatorHelper::simulate_expectation_values(
     options, opsums_and_qubit_counts, true, input_vector);
 }
+
+// Methods for sampling.
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
@@ -786,6 +788,8 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   }
   return result_bits;
 }
+
+// Method for running the hybrid simulator.
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   using Simulator = qsim::Simulator<For>;
