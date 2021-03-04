@@ -30,38 +30,30 @@ namespace qsim {
 
 namespace {
 
-namespace types {
-
-using StateSpace = Simulator<For>::StateSpace;
-using State = StateSpace::State;
-using fp_type = StateSpace::fp_type;
-using Gate = Cirq::GateCirq<fp_type>;
-using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
+using State = Simulator<For>::State;
+using fp_type = Simulator<For>::fp_type;
+using GateCirq = Cirq::GateCirq<fp_type>;
+using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
+                                               MultiQubitGateFuser,
                                                Simulator<For>>;
-using NoisyCircuit = NoisyCircuit<Gate>;
-
-}  // namespace types
 
 void AddBitFlipNoise1(
-    unsigned time, unsigned q, double p, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
+    unsigned time, unsigned q, double p, NoisyCircuit<GateCirq>& ncircuit) {
   double p1 = 1 - p;
   double p2 = p;
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   ncircuit.push_back({{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, q)}},
                       {normal, 1, p2, {Cirq::X<fp_type>::Create(time, q)}}});
 }
 
-void AddBitFlipNoise2(unsigned time, double p, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
+void AddBitFlipNoise2(unsigned time, double p,
+                      NoisyCircuit<GateCirq>& ncircuit) {
   double p1 = 1 - p;
   double p2 = p;
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   ncircuit.push_back({
     {normal, 1, p1 * p1, {Cirq::I1<fp_type>::Create(time, 0),
@@ -82,91 +74,8 @@ void AddBitFlipNoise2(unsigned time, double p, types::NoisyCircuit& ncircuit) {
 //                      {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 1)}}});
 }
 
-void AddPhaseDumpNoise1(
-    unsigned time, unsigned q, double g, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
-  double p1 = 1 - g;
-  double p2 = 0;
-
-  fp_type r = std::sqrt(p1);
-  fp_type s = std::sqrt(g);
-
-  auto normal = KrausOperator<types::Gate>::kNormal;
-
-  using M = Cirq::MatrixGate1<fp_type>;
-
-  ncircuit.push_back(
-      {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})}}});
-}
-
-void AddPhaseDumpNoise2(
-    unsigned time, double g, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
-  double p1 = 1 - g;
-  double p2 = 0;
-
-  fp_type r = std::sqrt(p1);
-  fp_type s = std::sqrt(g);
-
-  auto normal = KrausOperator<types::Gate>::kNormal;
-
-  using M = Cirq::MatrixGate1<fp_type>;
-
-  ncircuit.push_back(
-      {{normal, 0, p1, {M::Create(time, 0, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, 0, {0, 0, 0, 0, 0, 0, s, 0})}}});
-  ncircuit.push_back(
-      {{normal, 0, p1, {M::Create(time, 1, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, 1, {0, 0, 0, 0, 0, 0, s, 0})}}});
-}
-
-void AddAmplDumpNoise1(
-    unsigned time, unsigned q, double g, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
-  double p1 = 1 - g;
-  double p2 = 0;
-
-  fp_type r = std::sqrt(p1);
-  fp_type s = std::sqrt(g);
-
-  auto normal = KrausOperator<types::Gate>::kNormal;
-
-  using M = Cirq::MatrixGate1<fp_type>;
-
-  ncircuit.push_back(
-      {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})}}});
-}
-
-void AddAmplDumpNoise2(unsigned time, double g, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
-  double p1 = 1 - g;
-  double p2 = 0;
-
-  fp_type r = std::sqrt(p1);
-  fp_type s = std::sqrt(g);
-
-  auto normal = KrausOperator<types::Gate>::kNormal;
-
-  using M = Cirq::MatrixGate1<fp_type>;
-
-  ncircuit.push_back(
-      {{normal, 0, p1, {M::Create(time, 0, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, 0, {0, 0, s, 0, 0, 0, 0, 0})}}});
-  ncircuit.push_back(
-      {{normal, 0, p1, {M::Create(time, 1, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, 1, {0, 0, s, 0, 0, 0, 0, 0})}}});
-}
-
 void AddGenAmplDumpNoise1(
-    unsigned time, unsigned q, double g, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
+    unsigned time, unsigned q, double g, NoisyCircuit<GateCirq>& ncircuit) {
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -181,7 +90,7 @@ void AddGenAmplDumpNoise1(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   using M = Cirq::MatrixGate1<fp_type>;
 
@@ -193,9 +102,7 @@ void AddGenAmplDumpNoise1(
 }
 
 void AddGenAmplDumpNoise2(
-    unsigned time, double g, types::NoisyCircuit& ncircuit) {
-  using fp_type = types::Gate::fp_type;
-
+    unsigned time, double g, NoisyCircuit<GateCirq>& ncircuit) {
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -210,7 +117,7 @@ void AddGenAmplDumpNoise2(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   using M = Cirq::MatrixGate1<fp_type>;
 
@@ -227,11 +134,9 @@ void AddGenAmplDumpNoise2(
 }
 
 template <typename AddNoise1, typename AddNoise2>
-types::NoisyCircuit GenerateNoisyCircuit(
+NoisyCircuit<GateCirq> GenerateNoisyCircuit(
     double p, AddNoise1&& add_noise1, AddNoise2&& add_noise2) {
-  using fp_type = types::Gate::fp_type;
-
-  types::NoisyCircuit ncircuit;
+  NoisyCircuit<GateCirq> ncircuit;
   ncircuit.reserve(24);
 
   using Hd = Cirq::H<fp_type>;
@@ -239,7 +144,7 @@ types::NoisyCircuit GenerateNoisyCircuit(
   using Rx = Cirq::rx<fp_type>;
   using Ry = Cirq::ry<fp_type>;
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   ncircuit.push_back({{normal, 1, 1.0, {Hd::Create(0, 0)}}});
   add_noise1(1, 0, p, ncircuit);
@@ -259,19 +164,19 @@ types::NoisyCircuit GenerateNoisyCircuit(
   add_noise1(9, 1, p, ncircuit);
   ncircuit.push_back({{normal, 1, 1.0, {IS::Create(10, 0, 1)}}});
   add_noise2(11, p, ncircuit);
-  ncircuit.push_back({{KrausOperator<types::Gate>::kMeasurement, 1, 1.0,
-                       {gate::Measurement<types::Gate>::Create(12, {0, 1})}}});
+  ncircuit.push_back({{KrausOperator<GateCirq>::kMeasurement, 1, 1.0,
+                       {gate::Measurement<GateCirq>::Create(12, {0, 1})}}});
   add_noise2(13, p, ncircuit);
 
   return ncircuit;
 }
 
-void RunBatch(const types::NoisyCircuit& ncircuit,
-          const std::vector<double>& expected_results) {
+void RunBatch(const NoisyCircuit<GateCirq>& ncircuit,
+              const std::vector<double>& expected_results) {
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
 
-  auto measure = [](uint64_t r, const types::State& state,
+  auto measure = [](uint64_t r, const State& state,
                     const std::vector<uint64_t>& stat,
                     std::vector<unsigned>& histogram) {
     ASSERT_EQ(stat.size(), 1);
@@ -280,26 +185,26 @@ void RunBatch(const types::NoisyCircuit& ncircuit,
 
   std::vector<unsigned> histogram(1 << num_qubits, 0);
 
-  types::QTSimulator::Parameter param;
+  QTSimulator::Parameter param;
   param.collect_mea_stat = true;
 
-  EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit,
-                                      0, num_reps, measure, histogram));
+  EXPECT_TRUE(QTSimulator::Run(
+      param, num_qubits, ncircuit, 0, num_reps, measure, histogram));
 
   for (std::size_t i = 0; i < histogram.size(); ++i) {
     EXPECT_NEAR(double(histogram[i]) / num_reps, expected_results[i], 0.005);
   }
 }
 
-void RunOnceRepeatedly(const types::NoisyCircuit& ncircuit,
-          const std::vector<double>& expected_results) {
+void RunOnceRepeatedly(const NoisyCircuit<GateCirq>& ncircuit,
+                       const std::vector<double>& expected_results) {
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
 
-  types::StateSpace state_space(1);
+  Simulator<For>::StateSpace state_space(1);
 
-  types::State scratch = state_space.Null();
-  types::State state = state_space.Create(num_qubits);
+  State scratch = state_space.Null();
+  State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
 
   auto state_pointer = state.get();
@@ -308,14 +213,14 @@ void RunOnceRepeatedly(const types::NoisyCircuit& ncircuit,
 
   std::vector<unsigned> histogram(1 << num_qubits, 0);
 
-  types::QTSimulator::Parameter param;
+  QTSimulator::Parameter param;
   param.collect_mea_stat = true;
 
   for (unsigned i = 0; i < num_reps; ++i) {
     state_space.SetStateZero(state);
 
-    EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit, i,
-                                        scratch, state, stat));
+    EXPECT_TRUE(QTSimulator::Run(
+        param, num_qubits, ncircuit, i, scratch, state, stat));
 
     EXPECT_EQ(state_pointer, state.get());
 
@@ -369,116 +274,6 @@ for key, val in sorted(res.histogram(key='m').items()):
   auto ncircuit1 = GenerateNoisyCircuit(0.01, AddBitFlipNoise1,
                                         AddBitFlipNoise2);
   RunBatch(ncircuit1, expected_results);
-}
-
-TEST(QTrajectoryTest, PhaseDump) {
-/* The expected results are obtained with the following Cirq code.
-
-import cirq
-
-qs = cirq.LineQubit.range(2)
-
-channel = cirq.phase_damp(0.02)
-
-ncircuit = cirq.Circuit(
-  cirq.H(qs[0]),
-  cirq.H(qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ISWAP(qs[0], qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.rx(0.7)(qs[0]),
-  cirq.ry(0.1)(qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ISWAP(qs[0], qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ry(0.4)(qs[0]),
-  cirq.rx(0.7)(qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ISWAP(qs[0], qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.measure(*[qs[0], qs[1]], key='m'),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-)
-
-reps = 10000000
-
-sim = cirq.Simulator()
-res = sim.run(ncircuit, repetitions=reps)
-
-for key, val in sorted(res.histogram(key='m').items()):
-  print(f'{key} {float(val) / reps}')
-
-*/
-
-  std::vector<double> expected_results = {
-    0.412300, 0.230500, 0.057219, 0.299982,
-  };
-
-  auto ncircuit = GenerateNoisyCircuit(0.02, AddPhaseDumpNoise1,
-                                       AddPhaseDumpNoise2);
-  RunOnceRepeatedly(ncircuit, expected_results);
-}
-
-TEST(QTrajectoryTest, AmplDump) {
-/* The expected results are obtained with the following Cirq code.
-
-import cirq
-
-qs = cirq.LineQubit.range(2)
-
-channel = cirq.amplitude_damp(0.05)
-
-ncircuit = cirq.Circuit(
-  cirq.H(qs[0]),
-  cirq.H(qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ISWAP(qs[0], qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.rx(0.7)(qs[0]),
-  cirq.ry(0.1)(qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ISWAP(qs[0], qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ry(0.4)(qs[0]),
-  cirq.rx(0.7)(qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.ISWAP(qs[0], qs[1]),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-  cirq.measure(*[qs[0], qs[1]], key='m'),
-  channel.on(qs[0]),
-  channel.on(qs[1]),
-)
-
-reps = 10000000
-
-sim = cirq.Simulator()
-res = sim.run(ncircuit, repetitions=reps)
-
-for key, val in sorted(res.histogram(key='m').items()):
-  print(f'{key} {float(val) / reps}')
-
-*/
-
-  std::vector<double> expected_results = {
-    0.500494, 0.235273, 0.090879, 0.173354,
-  };
-
-  auto ncircuit = GenerateNoisyCircuit(0.05, AddAmplDumpNoise1,
-                                       AddAmplDumpNoise2);
-  RunBatch(ncircuit, expected_results);
 }
 
 TEST(QTrajectoryTest, GenDump) {
@@ -544,14 +339,13 @@ TEST(QTrajectoryTest, CollectKopStat) {
   double p1 = 1 - p;
   double p2 = p;
 
-  using fp_type = types::Gate::fp_type;
   using Hd = Cirq::H<fp_type>;
   using I = Cirq::I1<fp_type>;
   using X = Cirq::X<fp_type>;
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
-  types::NoisyCircuit ncircuit;
+  NoisyCircuit<GateCirq> ncircuit;
   ncircuit.reserve(8);
 
   ncircuit.push_back({{normal, 1, 1.0, {Hd::Create(0, 0)}}});
@@ -569,7 +363,7 @@ TEST(QTrajectoryTest, CollectKopStat) {
   ncircuit.push_back({{normal, 1, p1, {I::Create(1, 3)}},
                       {normal, 1, p2, {X::Create(1, 3)}}});
 
-  auto measure = [](uint64_t r, const types::State& state,
+  auto measure = [](uint64_t r, const State& state,
                     const std::vector<uint64_t>& stat,
                     std::vector<std::vector<unsigned>>& histogram) {
     ASSERT_EQ(stat.size(), histogram.size());
@@ -580,11 +374,11 @@ TEST(QTrajectoryTest, CollectKopStat) {
 
   std::vector<std::vector<unsigned>> histogram(8, std::vector<unsigned>(2, 0));
 
-  types::QTSimulator::Parameter param;
+  QTSimulator::Parameter param;
   param.collect_kop_stat = true;
 
-  EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit,
-                                      0, num_reps, measure, histogram));
+  EXPECT_TRUE(QTSimulator::Run(
+      param, num_qubits, ncircuit, 0, num_reps, measure, histogram));
 
   for (std::size_t i = 0; i < 4; ++i) {
     EXPECT_EQ(histogram[i][0], num_reps);
@@ -601,10 +395,8 @@ TEST(QTrajectoryTest, CleanCircuit) {
   unsigned num_qubits = 4;
   auto size = uint64_t{1} << num_qubits;
 
-  std::vector<types::Gate> circuit;
+  std::vector<GateCirq> circuit;
   circuit.reserve(16);
-
-  using fp_type = types::Gate::fp_type;
 
   circuit.push_back(Cirq::H<fp_type>::Create(0, 0));
   circuit.push_back(Cirq::H<fp_type>::Create(0, 1));
@@ -632,19 +424,19 @@ TEST(QTrajectoryTest, CleanCircuit) {
   circuit.push_back(Cirq::YPowGate<fp_type>::Create(5, 2, 0.9, 0.4));
   circuit.push_back(Cirq::ZPowGate<fp_type>::Create(5, 3, 1.0, 0.5));
 
-  types::NoisyCircuit ncircuit;
+  NoisyCircuit<GateCirq> ncircuit;
   ncircuit.reserve(16);
 
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   for (std::size_t i = 0; i < circuit.size(); ++i) {
     ncircuit.push_back({{normal, 1, 1.0, {circuit[i]}}});
   }
 
   Simulator<For> simulator(1);
-  types::StateSpace state_space(1);
+  Simulator<For>::StateSpace state_space(1);
 
-  types::State state = state_space.Create(num_qubits);
+  State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
 
   state_space.SetStateZero(state);
@@ -654,19 +446,19 @@ TEST(QTrajectoryTest, CleanCircuit) {
     ApplyGate(simulator, gate, state);
   }
 
-  types::State scratch = state_space.Null();
-  types::State nstate = state_space.Create(num_qubits);
+  State scratch = state_space.Null();
+  State nstate = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(nstate));
 
   std::vector<uint64_t> stat;
 
-  types::QTSimulator::Parameter param;
+  QTSimulator::Parameter param;
 
   state_space.SetStateZero(nstate);
 
   // Run quantum trajectory simulator.
-  EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit, 0,
-                                      scratch, nstate, stat));
+  EXPECT_TRUE(QTSimulator::Run(
+      param, num_qubits, ncircuit, 0, scratch, nstate, stat));
 
   EXPECT_EQ(stat.size(), 0);
 
@@ -682,31 +474,30 @@ TEST(QTrajectoryTest, CleanCircuit) {
 TEST(QTrajectoryTest, InitialState) {
   unsigned num_qubits = 3;
 
-  types::NoisyCircuit ncircuit;
+  NoisyCircuit<GateCirq> ncircuit;
   ncircuit.reserve(2);
 
-  using fp_type = types::Gate::fp_type;
-  auto normal = KrausOperator<types::Gate>::kNormal;
+  auto normal = KrausOperator<GateCirq>::kNormal;
 
   ncircuit.push_back({{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 0)}}});
   ncircuit.push_back({{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 1)}}});
   ncircuit.push_back({{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 2)}}});
 
-  types::StateSpace state_space(1);
+  Simulator<For>::StateSpace state_space(1);
 
-  types::State scratch = state_space.Null();
-  types::State state = state_space.Create(num_qubits);
+  State scratch = state_space.Null();
+  State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
 
-  types::QTSimulator::Parameter param;
+  QTSimulator::Parameter param;
   std::vector<uint64_t> stat;
 
   for (unsigned i = 0; i < 8; ++i) {
     state_space.SetAmpl(state, i, 1 + i, 0);
   }
 
-  EXPECT_TRUE(types::QTSimulator::Run(param, num_qubits, ncircuit, 0,
-                                      scratch, state, stat));
+  EXPECT_TRUE(QTSimulator::Run(
+      param, num_qubits, ncircuit, 0, scratch, state, stat));
 
   // Expect reversed order of amplitudes.
   for (unsigned i = 0; i < 8; ++i) {

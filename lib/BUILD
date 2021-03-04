@@ -8,6 +8,9 @@ cc_library(
     hdrs = [
         "bits.h",
         "bitstring.h",
+        "channel.h",
+        "channels_cirq.h",
+        "circuit_noisy.h",
         "circuit_qsim_parser.h",
         "circuit.h",
         "expect.h",
@@ -395,12 +398,42 @@ cc_library(
     ],
 )
 
+### Channel and noisy circuit libraries ###
+
+cc_library(
+    name = "channel",
+    hdrs = ["channel.h"],
+    deps = [":gate"],
+)
+
+cc_library(
+    name = "circuit_noisy",
+    hdrs = ["circuit_noisy.h"],
+    deps = [
+        ":channel",
+        ":circuit",
+    ],
+)
+
+cc_library(
+    name = "channels_cirq",
+    hdrs = ["channels_cirq.h"],
+    deps = [
+        ":channel",
+        ":gates_cirq",
+    ],
+)
+
 ### Quantum trajectory simulator ###
 
 cc_library(
     name = "qtrajectory",
     hdrs = ["qtrajectory.h"],
-    deps = [":gate"],
+    deps = [
+        ":circuit_noisy",
+        ":gate",
+        ":gate_appl",
+    ],
 )
 
 ### UnitarySpace libraries ###

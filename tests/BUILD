@@ -26,6 +26,26 @@ cc_test(
 )
 
 cc_test(
+    name = "channels_cirq_test",
+    srcs = ["channels_cirq_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:channels_cirq",
+        "//lib:circuit",
+        "//lib:formux",
+        "//lib:fuser_mqubit",
+        "//lib:gates_cirq",
+        "//lib:io",
+        "//lib:qtrajectory",
+        "//lib:simulator",
+    ],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+)
+
+cc_test(
     name = "circuit_qsim_parser_test",
     srcs = ["circuit_qsim_parser_test.cc"],
     copts = select({
