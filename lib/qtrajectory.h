@@ -20,53 +20,11 @@
 #include <random>
 #include <vector>
 
+#include "circuit_noisy.h"
 #include "gate.h"
+#include "gate_appl.h"
 
 namespace qsim {
-
-/**
- * Kraus operator.
- */
-template <typename Gate>
-struct KrausOperator {
-  enum Kind {
-    kNormal = 0,
-    kMeasurement = gate::kMeasurement,
-  };
-
-  /**
-   * Kraus operator type;
-   */
-  Kind kind;
-
-  /**
-   * If true, the Kraus operator is a unitary operator times a constant.
-   */
-  bool unitary;
-
-  /**
-   * Lower bound on Kraus operator probability.
-   */
-  double prob;
-
-  /**
-   * Sequence of operations that represent the Kraus operator. This can be just
-   * one operation.
-   */
-  std::vector<Gate> ops;
-};
-
-/**
- * Quantum channel.
- */
-template <typename Gate>
-using Channel = std::vector<KrausOperator<Gate>>;
-
-/**
- * Noisy circuit.
- */
-template <typename Gate>
-using NoisyCircuit = std::vector<Channel<Gate>>;
 
 /**
  * Quantum trajectory simulator.

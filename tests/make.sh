@@ -21,6 +21,7 @@ path_to_include=googletest/googletest/include
 path_to_lib=googletest/lib
 
 g++ -O3 -I$path_to_include -L$path_to_lib -o bitstring_test.x bitstring_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o channels_cirq_test.x channels_cirq_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o circuit_qsim_parser_test.x circuit_qsim_parser_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o expect_test.x expect_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_basic_test.x fuser_basic_test.cc -lgtest -lpthread
