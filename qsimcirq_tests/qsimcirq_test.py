@@ -778,6 +778,33 @@ def test_multi_qubit_noise(cx_qubits, noise_type):
   assert all(result_count > 0 for result_count in result_hist)
 
 
+def test_noise_aggregation():
+  q0 = cirq.LineQubit(0)
+  # damp_prob is set high to minimize test variance.
+  # Even with this setting, estimation of states and expectation values from
+  # noisy circuits is highly variable, so this test uses wide tolerances.
+  damp_prob = 0.4
+  circuit = cirq.Circuit(
+    cirq.X(q0), cirq.amplitude_damp(gamma=damp_prob).on(q0),
+  )
+  psum1 = cirq.Z(q0)
+  psum2 = cirq.X(q0)
+
+  # Test expectation value aggregation over repetitions of a noisy circuit.
+  # Repetitions are handled in C++, so overhead costs are minimal.
+  qsim_simulator = qsimcirq.QSimSimulator(qsim_options={"r": 10000}, seed=1)
+  qsim_evs = qsim_simulator.simulate_expectation_values_sweep(
+    circuit, [psum1, psum2], params={}, permit_terminal_measurements=True)
+  assert len(qsim_evs) == 1
+  assert len(qsim_evs[0]) == 2
+
+  # <Z> = (-1) * (probability of |1>) + 1 * (probability of |0>)
+  # For damp_prob = 0.4, <Z> == -0.2
+  damped_zval = damp_prob - (1 - damp_prob)
+  expected_evs = [[damped_zval, 0]]
+  assert cirq.approx_eq(qsim_evs, expected_evs, atol=0.05)
+
+
 def test_multi_qubit_fusion():
   q0, q1, q2, q3 = cirq.LineQubit.range(4)
   qubits = [q0, q1, q2, q3]

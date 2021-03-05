@@ -482,10 +482,33 @@ class SimulatorHelper {
                             unsigned>>& opsums_and_qubit_counts,
       bool is_noisy, const StateType& input_state) {
     auto helper = SimulatorHelper(options, is_noisy);
-    if (!helper.is_valid || !helper.simulate(input_state)) {
+    if (!helper.is_valid) {
       return {};
     }
-    return helper.get_expectation_value(opsums_and_qubit_counts);
+    if (!is_noisy) {
+      if (!helper.simulate(input_state)) {
+        return {};
+      }
+      return helper.get_expectation_value(opsums_and_qubit_counts);
+    }
+
+    // Aggregate expectation values for noisy circuits.
+    std::vector<std::complex<double>> results(
+      opsums_and_qubit_counts.size(), 0);
+    for (unsigned rep = 0; rep < helper.noisy_reps; ++rep) {
+      if (!helper.simulate(input_state)) {
+        return {};
+      }
+      auto evs = helper.get_expectation_value(opsums_and_qubit_counts);
+      for (unsigned i = 0; i < evs.size(); ++i) {
+        results[i] += evs[i];
+      }
+    }
+    double inverse_num_reps = 1.0 / helper.noisy_reps;
+    for (unsigned i = 0; i < results.size(); ++i) {
+      results[i] *= inverse_num_reps;
+    }
+    return results;
   }
 
  private:
@@ -498,6 +521,7 @@ class SimulatorHelper {
       if (is_noisy) {
         ncircuit = getNoisyCircuit(options);
         num_qubits = parseOptions<unsigned>(options, "n\0");
+        noisy_reps = parseOptions<unsigned>(options, "r\0");
       } else {
         circuit = getCircuit(options);
         num_qubits = circuit.num_qubits;
@@ -551,12 +575,16 @@ class SimulatorHelper {
   template <typename StateType>
   bool simulate(const StateType& input_state) {
     init_state(input_state);
+    bool result = false;
     if (is_noisy) {
       std::vector<uint64_t> stat;
-      return NoisyRunner::Run(
+      result = NoisyRunner::Run(
         get_noisy_params(), num_qubits, ncircuit, seed, scratch, state, stat);
+    } else {
+      result = Runner::Run(get_params(), circuit, state);
     }
-    return Runner::Run(get_params(), circuit, state);
+    seed += 1;
+    return result;
   }
 
   py::array_t<float> release_state_to_python() {
@@ -601,6 +629,7 @@ class SimulatorHelper {
 
   unsigned num_qubits;
   unsigned num_threads;
+  unsigned noisy_reps;
   unsigned max_fused_size;
   unsigned verbosity;
   unsigned seed;
