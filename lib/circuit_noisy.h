@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #ifndef CIRCUIT_NOISY_H_
-#define CIRCUIT_NOISY_H__
+#define CIRCUIT_NOISY_H_
 
 #include <vector>
 
