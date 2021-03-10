@@ -172,6 +172,8 @@ cc_test(
     srcs = ["qtrajectory_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:channels_cirq",
+        "//lib:circuit_noisy",
         "//lib:formux",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",

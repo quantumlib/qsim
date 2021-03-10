@@ -18,6 +18,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../lib/channels_cirq.h"
+#include "../lib/circuit_noisy.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gate_appl.h"
@@ -502,6 +504,72 @@ TEST(QTrajectoryTest, InitialState) {
   // Expect reversed order of amplitudes.
   for (unsigned i = 0; i < 8; ++i) {
     EXPECT_FLOAT_EQ(std::real(state_space.GetAmpl(state, i)), 8 - i);
+  }
+}
+
+TEST(QTrajectoryTest, UncomputeFinalState) {
+  unsigned num_qubits = 4;
+
+  std::vector<GateCirq> circuit = {
+    Cirq::H<fp_type>::Create(0, 0),
+    Cirq::H<fp_type>::Create(0, 1),
+    Cirq::H<fp_type>::Create(0, 2),
+    Cirq::H<fp_type>::Create(0, 3),
+    Cirq::ISWAP<fp_type>::Create(1, 0, 1),
+    Cirq::ISWAP<fp_type>::Create(1, 2, 3),
+    Cirq::rx<fp_type>::Create(2, 0, 0.1),
+    Cirq::ry<fp_type>::Create(2, 1, 0.2),
+    Cirq::rz<fp_type>::Create(2, 2, 0.3),
+    Cirq::rx<fp_type>::Create(2, 3, 0.4),
+    Cirq::ISWAP<fp_type>::Create(3, 0, 3),
+    Cirq::ISWAP<fp_type>::Create(3, 1, 2),
+    Cirq::ry<fp_type>::Create(4, 0, 0.5),
+    Cirq::rz<fp_type>::Create(4, 1, 0.6),
+    Cirq::rx<fp_type>::Create(4, 2, 0.7),
+    Cirq::ry<fp_type>::Create(4, 3, 0.8),
+  };
+
+  // Works only with mixtures.
+  auto channel = Cirq::bit_flip<float>(0.3);
+  auto ncircuit = MakeNoisy(num_qubits, circuit, channel);
+
+  Simulator<For>::StateSpace state_space(1);
+
+  State scratch = state_space.Null();
+
+  State state = state_space.Create(num_qubits);
+  EXPECT_FALSE(state_space.IsNull(state));
+
+  state_space.SetStateZero(state);
+
+  QTSimulator::Parameter param;
+  param.collect_kop_stat = true;
+
+  std::vector<uint64_t> stat;
+
+  // Run one trajectory.
+  EXPECT_TRUE(QTSimulator::Run(
+      param, num_qubits, ncircuit, 0, scratch, state, stat));
+
+  EXPECT_EQ(ncircuit.size(), stat.size());
+
+  // Uncompute the final state back to |0000> (up to round-off errors).
+  for (std::size_t i = 0; i < ncircuit.size(); ++i) {
+    auto k = ncircuit.size() - 1 - i;
+
+    const auto& ops = ncircuit[k][stat[k]].ops;
+
+    for (auto it = ops.rbegin(); it != ops.rend(); ++it) {
+      ApplyGateDagger(Simulator<For>(1), *it, state);
+    }
+  }
+
+  unsigned size = 1 << num_qubits;
+
+  for (unsigned i = 0; i < size; ++i) {
+    auto a = state_space.GetAmpl(state, i);
+    EXPECT_NEAR(std::real(a), i == 0 ? 1 : 0, 1e-6);
+    EXPECT_NEAR(std::imag(a), 0, 1e-7);
   }
 }
 
