@@ -158,7 +158,7 @@ def add_op_to_opstring(
     opstring: qsim.OpString,
 ):
   """Adds an operation to an opstring (observable).
-  
+
   Raises:
     ValueError if qsim_op is not a single-qubit Pauli (I, X, Y, or Z).
   """
@@ -296,7 +296,7 @@ class QSimCircuit(cirq.Circuit):
       mat = cirq.protocols.unitary(op.gate, None)
       if mat is None:
           return NotImplemented
-      
+
       return cirq.ops.MatrixGate(mat).on(*op.qubits)
 
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
@@ -338,6 +338,8 @@ class QSimCircuit(cirq.Circuit):
     # qsim numbers qubits in reverse order from cirq
     ordered_qubits = list(reversed(ordered_qubits))
 
+    qsim_ncircuit.num_qubits = len(ordered_qubits)
+
     def has_qsim_kind(op: cirq.ops.GateOperation):
       return _cirq_gate_kind(op.gate) != None
 
@@ -345,7 +347,7 @@ class QSimCircuit(cirq.Circuit):
       mat = cirq.unitary(op.gate, None)
       if mat is None:
           return NotImplemented
-      
+
       return cirq.ops.MatrixGate(mat).on(*op.qubits)
 
     qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}

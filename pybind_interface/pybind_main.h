@@ -216,7 +216,10 @@ PYBIND11_MODULE(qsim, m) {
     .def_readwrite("num_qubits", &Circuit::num_qubits)
     .def_readwrite("gates", &Circuit::gates);
 
-  py::bind_vector<NoisyCircuit>(m, "NoisyCircuit");
+  py::class_<NoisyCircuit>(m, "NoisyCircuit")
+    .def(py::init<>())
+    .def_readwrite("num_qubits", &NoisyCircuit::num_qubits)
+    .def_readwrite("channels", &NoisyCircuit::channels);
 
   py::class_<OpString>(m, "OpString")
     .def(py::init<>())
