@@ -29,8 +29,6 @@ namespace py = pybind11;
 #include "../lib/gates_cirq.h"
 #include "../lib/qtrajectory.h"
 
-PYBIND11_MAKE_OPAQUE(qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>);
-
 // Methods for mutating noiseless circuits.
 void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::vector<unsigned>& qubits,

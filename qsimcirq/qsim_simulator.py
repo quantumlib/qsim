@@ -90,7 +90,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         seed: A random state or seed object, as defined in cirq.value.
 
     Raises:
-        ValueError if internal keys 'c', 'i' or 's'are included in 'qsim_options'.
+        ValueError if internal keys 'c', 'i' or 's' are included in 'qsim_options'.
     """
     if any(k in qsim_options for k in ('c', 'i', 's')):
       raise ValueError(
