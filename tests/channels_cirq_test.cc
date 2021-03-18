@@ -65,6 +65,7 @@ void RunBatch(const NoisyCircuit<Gate>& ncircuit,
               const std::vector<double>& expected_results,
               unsigned num_reps = 25000) {
   unsigned num_qubits = 2;
+  unsigned num_threads = 1;
 
   auto measure = [](uint64_t r, const State& state,
                     const std::vector<uint64_t>& stat,
@@ -78,8 +79,11 @@ void RunBatch(const NoisyCircuit<Gate>& ncircuit,
   QTSimulator::Parameter param;
   param.collect_mea_stat = true;
 
-  EXPECT_TRUE(QTSimulator::Run(param, num_qubits, ncircuit,
-                                      0, num_reps, measure, histogram));
+  Simulator<For> simulator(num_threads);
+  Simulator<For>::StateSpace state_space(num_threads);
+
+  EXPECT_TRUE(QTSimulator::RunBatch(param, ncircuit, 0, num_reps, state_space,
+                                    simulator, measure, histogram));
 
   for (std::size_t i = 0; i < histogram.size(); ++i) {
     EXPECT_NEAR(double(histogram[i]) / num_reps, expected_results[i], 0.005);
@@ -90,17 +94,20 @@ template <typename ChannelFactory>
 inline NoisyCircuit<Gate> MakeNoisy2(
     const std::vector<Gate>& gates, const ChannelFactory& channel_factory) {
   NoisyCircuit<Gate> ncircuit;
-  ncircuit.reserve(2 * gates.size());
+
+  ncircuit.num_qubits = 2;
+  ncircuit.channels.reserve(2 * gates.size());
 
   unsigned prev_time = 0;
 
   for (const auto& gate : gates) {
     if (gate.time > prev_time) {
-      ncircuit.push_back(channel_factory.Create(2 * prev_time + 1, {0, 1}));
+      ncircuit.channels.push_back(
+          channel_factory.Create(2 * prev_time + 1, {0, 1}));
       prev_time = gate.time;
     }
 
-    ncircuit.push_back(MakeChannelFromGate(2 * gate.time, gate));
+    ncircuit.channels.push_back(MakeChannelFromGate(2 * gate.time, gate));
   }
 
   return ncircuit;

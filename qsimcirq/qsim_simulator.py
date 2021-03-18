@@ -74,7 +74,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
   def __init__(self, qsim_options: dict = {},
                seed: value.RANDOM_STATE_OR_SEED_LIKE = None):
     """Creates a new QSimSimulator using the given options and seed.
-    
+
     Args:
         qsim_options: A map of circuit options for the simulator. These will be
             applied to all circuits run using this simulator. Accepted keys and
@@ -88,13 +88,13 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
             over when calculating expectation values for a noisy circuit.
             Note that this does not apply to other simulation types.
         seed: A random state or seed object, as defined in cirq.value.
-    
+
     Raises:
-        ValueError if internal keys 'c' or 'i' are included in 'qsim_options'.
+        ValueError if internal keys 'c', 'i' or 's' are included in 'qsim_options'.
     """
-    if any(k in qsim_options for k in ('c', 'i', 'n')):
+    if any(k in qsim_options for k in ('c', 'i', 's')):
       raise ValueError(
-          'Keys {"c", "i", "n"} are reserved for internal use and cannot be '
+          'Keys {"c", "i", "s"} are reserved for internal use and cannot be '
           'used in QSimCircuit instantiation.'
       )
     self._prng = value.parse_random_state(seed)
@@ -214,7 +214,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         )
       options['c'] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
       options['s'] = self.get_seed()
-      options['n'] = num_qubits
       final_state = qsim.qsim_simulate_fullstate(options, 0)
       full_results = sim.sample_state_vector(
         final_state.view(np.complex64), range(num_qubits),
@@ -230,7 +229,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       options['c'] = translator_fn(ops.QubitOrder.DEFAULT)
       for i in range(repetitions):
         options['s'] = self.get_seed()
-        options['n'] = num_qubits
         measurements = sampler_fn(options)
         for key, bound in bounds.items():
           for j in range(bound[1]-bound[0]):
@@ -290,7 +288,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       translator_fn = getattr(solved_circuit, translator_fn_name)
       options['c'] = translator_fn(qubit_order)
       options['s'] = self.get_seed()
-      options['n'] = num_qubits
       amplitudes = simulator_fn(options)
       trials_results.append(amplitudes)
 
@@ -361,7 +358,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       translator_fn = getattr(solved_circuit, translator_fn_name)
       options['c'] = translator_fn(qubit_order)
       options['s'] = self.get_seed()
-      options['n'] = num_qubits
       ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
         qubits)
       # qsim numbers qubits in reverse order from cirq
@@ -496,7 +492,6 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       translator_fn = getattr(solved_circuit, translator_fn_name)
       options['c'] = translator_fn(qubit_order)
       options['s'] = self.get_seed()
-      options['n'] = num_qubits
 
       if isinstance(initial_state, int):
         evs = ev_simulator_fn(options, opsums_and_qubit_counts, initial_state)
