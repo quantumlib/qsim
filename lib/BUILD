@@ -469,8 +469,7 @@ cc_library(
     hdrs = ["unitary_calculator_avx.h"],
     deps = [
         ":bits",
-        ":unitaryspace_avx",
-        ":unitaryspace_basic"
+        ":unitaryspace_avx"
     ],
 )
 
@@ -488,7 +487,6 @@ cc_library(
     hdrs = ["unitary_calculator_sse.h"],
     deps = [
         ":bits",
-        ":unitaryspace_basic",
         ":unitaryspace_sse"
     ],
 )
