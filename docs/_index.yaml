@@ -59,7 +59,7 @@ landing_page:
         import cirq
         import qsimcirq
 
-        # Pick up to ~25 qubits to simulate (requires ~128MB of RAM)
+        # Pick up to ~25 qubits to simulate (requires ~256MB of RAM)
         qubits = [cirq.GridQubit(i,j) for i in range(5) for j in range(5)]
 
         # Define a circuit to run
