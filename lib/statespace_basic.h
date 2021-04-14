@@ -291,4 +291,4 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
 
 }  // namespace qsim
 
-#endif  // STATESPACE_BASIC_H_f
+#endif  // STATESPACE_BASIC_H_

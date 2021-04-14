@@ -151,7 +151,7 @@ class SimulatorBasic final {
   /**
    * @return The size of SIMD register if applicable.
    */
-  unsigned SIMDRegisterSize() {
+  static unsigned SIMDRegisterSize() {
     return 1;
   }
 
@@ -187,8 +187,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 2; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -255,8 +255,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 4; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -324,8 +324,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 8; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -393,8 +393,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 16; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -462,8 +462,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 32; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -532,8 +532,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 64; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -566,9 +566,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate1H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[1];
     uint64_t ms[2];
 
@@ -612,8 +612,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 2; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -647,9 +647,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate2H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[2];
     uint64_t ms[3];
 
@@ -697,8 +697,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 4; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -732,9 +732,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate3H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[3];
     uint64_t ms[4];
 
@@ -782,8 +782,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 8; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -817,9 +817,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate4H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[4];
     uint64_t ms[5];
 
@@ -867,8 +867,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 16; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -933,8 +933,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 2; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       double re = 0;
@@ -1008,8 +1008,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 4; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       double re = 0;
@@ -1084,8 +1084,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 8; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       double re = 0;
@@ -1160,8 +1160,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 16; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       double re = 0;
@@ -1236,8 +1236,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 32; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       double re = 0;
@@ -1313,8 +1313,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 64; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       double re = 0;
