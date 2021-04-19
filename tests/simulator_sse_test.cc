@@ -52,16 +52,20 @@ TYPED_TEST(SimulatorSSETest, ApplyGate5) {
   TestApplyGate5<SimulatorSSE<TypeParam>>();
 }
 
-TYPED_TEST(SimulatorSSETest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorSSE<TypeParam>>();
+TYPED_TEST(SimulatorSSETest, CircuitWithControlledGates) {
+  TestCircuitWithControlledGates<SimulatorSSE<TypeParam>>();
 }
 
-TYPED_TEST(SimulatorSSETest, ApplyControlGateDagger) {
-  TestApplyControlGateDagger<SimulatorSSE<TypeParam>>();
+TYPED_TEST(SimulatorSSETest, CircuitWithControlledGatesDagger) {
+  TestCircuitWithControlledGatesDagger<SimulatorSSE<TypeParam>>();
 }
 
 TYPED_TEST(SimulatorSSETest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorSSE<TypeParam>>();
+}
+
+TYPED_TEST(SimulatorSSETest, ControlledGates) {
+  TestControlledGates<SimulatorSSE<TypeParam>>(false);
 }
 
 TYPED_TEST(SimulatorSSETest, ExpectationValue1) {
