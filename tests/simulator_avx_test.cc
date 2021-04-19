@@ -52,16 +52,20 @@ TYPED_TEST(SimulatorAVXTest, ApplyGate5) {
   TestApplyGate5<SimulatorAVX<TypeParam>>();
 }
 
-TYPED_TEST(SimulatorAVXTest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorAVX<TypeParam>>();
+TYPED_TEST(SimulatorAVXTest, CircuitWithControlledGates) {
+  TestCircuitWithControlledGates<SimulatorAVX<TypeParam>>();
 }
 
-TYPED_TEST(SimulatorAVXTest, ApplyControlGateDagger) {
-  TestApplyControlGateDagger<SimulatorAVX<TypeParam>>();
+TYPED_TEST(SimulatorAVXTest, CircuitWithControlledGatesDagger) {
+  TestCircuitWithControlledGatesDagger<SimulatorAVX<TypeParam>>();
 }
 
 TYPED_TEST(SimulatorAVXTest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorAVX<TypeParam>>();
+}
+
+TYPED_TEST(SimulatorAVXTest, ControlledGates) {
+  TestControlledGates<SimulatorAVX<TypeParam>>(false);
 }
 
 TYPED_TEST(SimulatorAVXTest, ExpectationValue1) {

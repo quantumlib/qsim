@@ -52,16 +52,20 @@ TYPED_TEST(SimulatorBasicTest, ApplyGate5) {
   TestApplyGate5<SimulatorBasic<TypeParam, double>>();
 }
 
-TYPED_TEST(SimulatorBasicTest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorBasic<TypeParam, double>>();
+TYPED_TEST(SimulatorBasicTest, CircuitWithControlledGates) {
+  TestCircuitWithControlledGates<SimulatorBasic<TypeParam, double>>();
 }
 
-TYPED_TEST(SimulatorBasicTest, ApplyControlGateDagger) {
-  TestApplyControlGateDagger<SimulatorBasic<TypeParam, double>>();
+TYPED_TEST(SimulatorBasicTest, CircuitWithControlledGatesDagger) {
+  TestCircuitWithControlledGatesDagger<SimulatorBasic<TypeParam, double>>();
 }
 
 TYPED_TEST(SimulatorBasicTest, MultiQubitGates) {
   TestMultiQubitGates<SimulatorBasic<TypeParam, double>>();
+}
+
+TYPED_TEST(SimulatorBasicTest, ControlledGates) {
+  TestControlledGates<SimulatorBasic<TypeParam, double>>(true);
 }
 
 TYPED_TEST(SimulatorBasicTest, ExpectationValue1) {
