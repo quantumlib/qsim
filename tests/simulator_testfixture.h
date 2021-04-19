@@ -420,7 +420,6 @@ void TestCircuitWithControlledGates() {
   gates.push_back(GateRY<fp_type>::Create(16, 3, 4.6));
   gates.push_back(GateRZ<fp_type>::Create(16, 4, 4.7));
   gates.push_back(GateRX<fp_type>::Create(16, 5, 4.8));
-  // FIXME
   gates.push_back(GateCNot<fp_type>::Create(17, 5, 4).ControlledBy({3}, {0}));
   gates.push_back(GateRZ<fp_type>::Create(18, 0, 4.9));
   gates.push_back(GateRX<fp_type>::Create(18, 1, 5.0));
