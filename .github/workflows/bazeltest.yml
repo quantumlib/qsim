@@ -56,7 +56,7 @@ jobs:
           sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
       - name: Run C++ tests
         run: |
-          bazel test --config=avx --config=openmp \
+          bazel test --config=avx512 --config=openmp \
           --config=${{ matrix.sanitizer_opt }} tests:all
 
   test-mem:
@@ -75,5 +75,5 @@ jobs:
         run: sudo apt-get install libgoogle-perftools-dev
       - name: Run C++ tests
         run: |
-          bazel test --config=avx --config=openmp \
+          bazel test --config=avx512 --config=openmp \
           --config=tcmalloc tests:all
