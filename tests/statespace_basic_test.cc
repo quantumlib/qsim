@@ -73,6 +73,10 @@ TYPED_TEST(StateSpaceBasicTest, MeasurementLarge) {
   TestMeasurementLarge<SimulatorBasic<TypeParam, float>>();
 }
 
+TYPED_TEST(StateSpaceBasicTest, Collapse) {
+  TestCollapse<StateSpaceBasic<TypeParam, float>>();
+}
+
 TYPED_TEST(StateSpaceBasicTest, InvalidStateSize) {
   TestInvalidStateSize<StateSpaceBasic<TypeParam, float>>();
 }

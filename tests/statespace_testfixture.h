@@ -359,13 +359,16 @@ void TestAdd() {
 
   constexpr unsigned num_qubits = 2;
   StateSpace state_space(1);
+
   State state1 = state_space.Create(num_qubits);
+  state_space.SetAllZeros(state1);
   state_space.SetAmpl(state1, 0, 1, 2);
   state_space.SetAmpl(state1, 1, 3, 4);
   state_space.SetAmpl(state1, 2, 5, 6);
   state_space.SetAmpl(state1, 3, 7, 8);
 
   State state2 = state_space.Create(num_qubits);
+  state_space.SetAllZeros(state2);
   state_space.SetAmpl(state2, 0, 1, 2);
   state_space.SetAmpl(state2, 1, 3, 4);
   state_space.SetAmpl(state2, 2, 5, 6);
@@ -528,6 +531,8 @@ void TestSamplingSmall() {
 
   EXPECT_FALSE(state_space.IsNull(state));
 
+  state_space.SetAllZeros(state);
+
   std::array<float, size> ps = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
 
   for (uint64_t i = 0; i < size; ++i) {
@@ -597,31 +602,33 @@ void TestOrdering() {
   using fp_type = typename StateSpace::fp_type;
   using State = typename StateSpace::State;
 
-  for (unsigned num_qubits : {1, 2, 5}) {
+  for (unsigned num_qubits : {1, 2, 3, 4, 5, 6, 7, 8, 9}) {
     uint64_t size = uint64_t{1} << num_qubits;
 
     StateSpace state_space(1);
-    uint64_t raw_size = state_space.MinSize(num_qubits);
-    std::vector<fp_type> vec(raw_size, 0);
-    State state = state_space.Create(vec.data(), num_qubits);
+    State state = state_space.Create(num_qubits);
+
+    state_space.SetAllZeros(state);
 
     for (uint64_t i = 0; i < size; ++i) {
-      state_space.SetAmpl(state, i, std::complex<fp_type>(i, size + i));
+      state_space.SetAmpl(state, i, std::complex<fp_type>(i + 1, size + i + 1));
     }
 
     state_space.InternalToNormalOrder(state);
 
+    const fp_type* vec = state.get();
+
     for (uint64_t i = 0; i < size; ++i) {
-      EXPECT_NEAR(vec[2 * i], fp_type(i), 1e-8);
-      EXPECT_NEAR(vec[2 * i + 1], fp_type(size + i), 1e-8);
+      EXPECT_NEAR(vec[2 * i], fp_type(i + 1), 1e-8);
+      EXPECT_NEAR(vec[2 * i + 1], fp_type(size + i + 1), 1e-8);
     }
 
     state_space.NormalToInternalOrder(state);
 
     for (uint64_t i = 0; i < size; ++i) {
       auto a = state_space.GetAmpl(state, i);
-      EXPECT_NEAR(std::real(a), fp_type(i), 1e-8);
-      EXPECT_NEAR(std::imag(a), fp_type(size + i), 1e-8);
+      EXPECT_NEAR(std::real(a), fp_type(i + 1), 1e-8);
+      EXPECT_NEAR(std::imag(a), fp_type(size + i + 1), 1e-8);
     }
   }
 }
@@ -716,6 +723,12 @@ void TestMeasurementSmall() {
   MeasureSmall<S>(num_measurements, 1, 3, {2}, ps3, rgen);
   MeasureSmall<S>(num_measurements, 1, 3, {0, 1, 2}, ps3, rgen);
 
+  std::vector<float> ps4 = {
+    0.06, 0.10, 0.07, 0.06, 0.09, 0.08, 0.03, 0.03,
+    0.03, 0.07, 0.11, 0.04, 0.05, 0.06, 0.07, 0.05
+  };
+  MeasureSmall<S>(num_measurements, 1, 4, {0, 3}, ps4, rgen);
+
   std::vector<float> ps5 = {
     0.041, 0.043, 0.028, 0.042, 0.002, 0.008, 0.039, 0.020,
     0.017, 0.030, 0.020, 0.048, 0.020, 0.044, 0.032, 0.048,
@@ -789,6 +802,53 @@ void TestMeasurementLarge() {
 }
 
 template <typename StateSpace>
+void TestCollapse() {
+  using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
+  using MeasurementResult = typename StateSpace::MeasurementResult;
+
+  MeasurementResult mr;
+  StateSpace state_space(1);
+
+  for (unsigned num_qubits = 2; num_qubits <= 6; ++num_qubits) {
+    State state = state_space.Create(num_qubits);
+
+    unsigned size = 1 << num_qubits;
+
+    for (unsigned mask = 1; mask < size; ++mask) {
+      for (unsigned bits = 0; bits < size; ++bits) {
+        if ((mask | bits) != mask) continue;
+
+        mr.mask = mask;
+        mr.bits = bits;
+
+        unsigned num_measured_qubits = 0;
+        for (unsigned i = 0; i < num_qubits; ++i) {
+          if (((mask >> i) & 1) == 1) {
+            ++num_measured_qubits;
+          }
+        }
+
+        fp_type r = 1.0 / std::sqrt(1 << (num_qubits - num_measured_qubits));
+
+        state_space.SetStateUniform(state);
+        state_space.Collapse(mr, state);
+
+        EXPECT_NEAR(state_space.Norm(state), 1.0, 1e-6);
+
+        for (unsigned i = 0; i < size; ++i) {
+          if ((i & mask) != bits) {
+            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+          } else {
+            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(r, 0));
+          }
+        }
+      }
+    }
+  }
+}
+
+template <typename StateSpace>
 void TestInvalidStateSize() {
   using State = typename StateSpace::State;
 
@@ -812,123 +872,69 @@ void TestInvalidStateSize() {
 template <typename StateSpace>
 void TestBulkSetAmplitude() {
   using State = typename StateSpace::State;
-  unsigned num_qubits = 3;
 
   StateSpace state_space(1);
 
-  State state = state_space.Create(num_qubits);
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
-  }
-  state_space.BulkSetAmpl(state, 1, 0, 0, 0, false);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
+  for (unsigned num_qubits = 2; num_qubits <= 6; ++num_qubits) {
+    State state = state_space.Create(num_qubits);
+    state_space.SetAllZeros(state);
 
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
-  }
-  state_space.BulkSetAmpl(state, 2, 0, 0, 0, false);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
+    unsigned size = 1 << num_qubits;
 
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
-  }
-  state_space.BulkSetAmpl(state, 4, 0, 0, 0, false);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
+    for (unsigned mask = 1; mask < size; ++mask) {
+      for (unsigned bits = 0; bits < size; ++bits) {
+        if ((mask | bits) != mask) continue;
 
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
+        for (unsigned i = 0; i < size; ++i) {
+          state_space.SetAmpl(state, i, 1, 1);
+        }
+
+        state_space.BulkSetAmpl(state, mask, bits, 0, 0, false);
+
+        for (unsigned i = 0; i < size; ++i) {
+          if ((i & mask) == bits) {
+            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+          } else {
+            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(1, 1));
+          }
+        }
+      }
+    }
   }
-  state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0, false);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
 }
 
 template <typename StateSpace>
 void TestBulkSetAmplitudeExclusion() {
   using State = typename StateSpace::State;
-  unsigned num_qubits = 3;
 
   StateSpace state_space(1);
 
-  State state = state_space.Create(num_qubits);
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
-  }
-  state_space.BulkSetAmpl(state, 1, 0, 0, 0, true);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
+  for (unsigned num_qubits = 2; num_qubits <= 6; ++num_qubits) {
+    State state = state_space.Create(num_qubits);
+    state_space.SetAllZeros(state);
 
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
-  }
-  state_space.BulkSetAmpl(state, 2, 0, 0, 0, true);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
+    unsigned size = 1 << num_qubits;
 
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
-  }
-  state_space.BulkSetAmpl(state, 4, 0, 0, 0, true);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
+    for (unsigned mask = 1; mask < size; ++mask) {
+      for (unsigned bits = 0; bits < size; ++bits) {
+        if ((mask | bits) != mask) continue;
 
-  for(int i = 0; i < 8; i++) {
-    state_space.SetAmpl(state, i, 1, 1);
+        for (unsigned i = 0; i < size; ++i) {
+          state_space.SetAmpl(state, i, 1, 1);
+        }
+
+        state_space.BulkSetAmpl(state, mask, bits, 0, 0, true);
+
+        for (unsigned i = 0; i < size; ++i) {
+          if ((i & mask) != bits) {
+            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+          } else {
+            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(1, 1));
+          }
+        }
+      }
+    }
   }
-  state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0, true);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(0, 0));
 }
 
 template <typename StateSpace>
@@ -939,7 +945,9 @@ void TestBulkSetAmplitudeDefault() {
   StateSpace state_space(1);
 
   State state = state_space.Create(num_qubits);
-  for(int i = 0; i < 8; i++) {
+  state_space.SetAllZeros(state);
+
+  for (unsigned i = 0; i < 8; ++i) {
     state_space.SetAmpl(state, i, 1, 1);
   }
   state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0);
@@ -957,13 +965,17 @@ template <typename StateSpace>
 void TestThreadThrashing() {
   using State = typename StateSpace::State;
   StateSpace state_space(1024);
-  unsigned n_qubits = 13;
-  State state = state_space.Create(n_qubits);  // must be larger than MIN_SIZE.
-  for (int i = 0; i < 100; i++) {
+  unsigned num_qubits = 13;
+
+  State state = state_space.Create(num_qubits);  // must be larger than MIN_SIZE.
+  for (unsigned i = 0; i < 100; ++i) {
     state_space.SetStateZero(state);
   }
+
   EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 0));
-  for (int i = 1; i < (1 << n_qubits); i++) {
+
+  unsigned size = 1 << num_qubits;
+  for (unsigned i = 1; i < size; ++i) {
     EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
   }
 }

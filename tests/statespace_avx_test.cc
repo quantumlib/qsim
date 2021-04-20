@@ -73,6 +73,10 @@ TYPED_TEST(StateSpaceAVXTest, MeasurementLarge) {
   TestMeasurementLarge<SimulatorAVX<TypeParam>>();
 }
 
+TYPED_TEST(StateSpaceAVXTest, Collapse) {
+  TestCollapse<StateSpaceAVX<TypeParam>>();
+}
+
 TYPED_TEST(StateSpaceAVXTest, InvalidStateSize) {
   TestInvalidStateSize<StateSpaceAVX<TypeParam>>();
 }
