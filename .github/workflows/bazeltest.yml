@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         # Hardware optimizers.
-        hardware_opt: [avx,sse,basic]
+        hardware_opt: [avx,avx512,sse,basic]
         # Optimizers for parallelism.
         parallel_opt: [openmp,nopenmp]
 
@@ -58,7 +58,7 @@ jobs:
         run: |
           bazel test --config=avx --config=openmp \
           --config=${{ matrix.sanitizer_opt }} tests:all
-  
+
   test-mem:
     name: Test with tcmalloc
     runs-on: ubuntu-16.04

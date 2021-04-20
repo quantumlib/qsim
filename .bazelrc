@@ -29,6 +29,10 @@ build:avx --copt -O3
 build:avx --copt -mavx2
 build:avx --copt -mfma
 
+# Build with AVX512
+build:avx512 --copt -O3
+build:avx512 --copt -mavx512f
+
 # Build with SSE
 build:sse --copt -O3
 build:sse --copt -msse4
