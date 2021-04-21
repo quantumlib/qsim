@@ -231,7 +231,7 @@ def test_iterable_qubit_order():
 
   assert (
     qsim_simulator.simulate(circuit, qubit_order=reversed([q1, q0])) ==
-    qsim_simulator.simulate(circuit, qubit_order=reversed([q1, q0]))
+    qsim_simulator.simulate(circuit)
   )
 
   assert qsim_simulator.simulate_expectation_values_sweep(
