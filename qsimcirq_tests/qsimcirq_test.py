@@ -215,6 +215,39 @@ def test_invalid_params():
     _ = qsim_simulator.simulate_sweep(circuit, params=prs)
 
 
+def test_iterable_qubit_order():
+  # Check to confirm that iterable qubit_order works in all cases.
+  q0, q1 = cirq.LineQubit.range(2)
+  circuit = cirq.Circuit(
+    cirq.H(q0), cirq.H(q1),
+  )
+  qsim_simulator = qsimcirq.QSimSimulator()
+
+  assert qsim_simulator.compute_amplitudes(
+    circuit,
+    bitstrings=[0b00, 0b01],
+    qubit_order=reversed([q1, q0]),
+  ) == qsim_simulator.compute_amplitudes(circuit, bitstrings=[0b00, 0b01])
+
+  assert (
+    qsim_simulator.simulate(circuit, qubit_order=reversed([q1, q0])) ==
+    qsim_simulator.simulate(circuit, qubit_order=reversed([q1, q0]))
+  )
+
+  assert qsim_simulator.simulate_expectation_values_sweep(
+    circuit,
+    observables=[cirq.X(q0) * cirq.Z(q1)],
+    params={},
+    qubit_order=reversed([q1, q0]),
+    permit_terminal_measurements=True,
+  ) == qsim_simulator.simulate_expectation_values_sweep(
+    circuit,
+    observables=[cirq.X(q0) * cirq.Z(q1)],
+    params={},
+    permit_terminal_measurements=True,
+  )
+
+
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
 def test_cirq_qsim_run(mode: str):
   # Pick qubits.
