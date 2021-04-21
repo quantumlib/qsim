@@ -1,15 +1,9 @@
 # Options for testing different simulator types.
 avx_copts = ['-mavx2', '-mfma']
-avx512_copts = ['-mavx512f']
 sse_copts = ['-msse4']
 
 windows_copts = [
     "/arch:AVX",
-    "/std:c++14",
-]
-
-windows_avx512_copts = [
-    "/arch:AVX512",
     "/std:c++14",
 ]
 
@@ -257,22 +251,6 @@ cc_test(
 )
 
 cc_test(
-    name = "simulator_avx512_test",
-    srcs = ["simulator_avx512_test.cc"],
-    deps = [
-        ":simulator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_avx512",
-    ],
-    copts = select({
-        ":windows": windows_avx512_copts,
-        "//conditions:default": avx512_copts,
-    }),
-)
-
-cc_test(
     name = "simulator_basic_test",
     srcs = ["simulator_basic_test.cc"],
     deps = [
@@ -340,23 +318,6 @@ cc_test(
 )
 
 cc_test(
-    name = "statespace_avx512_test",
-    srcs = ["statespace_avx512_test.cc"],
-    deps = [
-        ":statespace_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_avx512",
-        "//lib:statespace_avx512",
-    ],
-    copts = select({
-        ":windows": windows_avx512_copts,
-        "//conditions:default": avx512_copts,
-    }),
-)
-
-cc_test(
     name = "statespace_basic_test",
     srcs = ["statespace_basic_test.cc"],
     deps = [
@@ -419,21 +380,6 @@ cc_test(
 )
 
 cc_test(
-    name = "unitaryspace_avx512_test",
-    srcs = ["unitaryspace_avx512_test.cc"],
-    copts = select({
-        ":windows": windows_avx512_copts,
-        "//conditions:default": avx512_copts,
-    }),
-    deps = [
-        ":unitaryspace_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:formux",
-        "//lib:unitaryspace_avx512"
-    ],
-)
-
-cc_test(
     name = "unitaryspace_basic_test",
     srcs = ["unitaryspace_basic_test.cc"],
     copts = select({
@@ -492,22 +438,6 @@ cc_test(
         "//lib:formux",
         "//lib:unitaryspace_avx",
         "//lib:unitary_calculator_avx",
-    ],
-)
-
-cc_test(
-    name = "unitary_calculator_avx512_test",
-    srcs = ["unitary_calculator_avx512_test.cc"],
-    copts = select({
-        ":windows": windows_avx512_copts,
-        "//conditions:default": avx512_copts,
-    }),
-    deps = [
-        ":unitary_calculator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:formux",
-        "//lib:unitaryspace_avx512",
-        "//lib:unitary_calculator_avx512",
     ],
 )
 
