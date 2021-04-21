@@ -1,4 +1,4 @@
-TARGETS = $(shell find . -maxdepth 1 -name '*_test.cc')
+TARGETS = $(shell find . -maxdepth 1 -name '*_test.cc' ! -name '*512*')
 TARGETS := $(TARGETS:%.cc=%.x)
 
 GTEST_DIR = $(CURDIR)/googletest/googletest
