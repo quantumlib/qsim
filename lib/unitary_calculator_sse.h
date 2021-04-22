@@ -301,7 +301,7 @@ class UnitaryCalculatorSSE final {
                    const fp_type* matrix, Unitary& state) const {
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(3);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -483,7 +483,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(5);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -570,7 +570,7 @@ class UnitaryCalculatorSSE final {
                     const fp_type* matrix, Unitary& state) const {
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(4);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -758,7 +758,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -863,7 +863,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1054,7 +1054,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1164,7 +1164,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1355,7 +1355,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(11);
+    auto s = UnitarySpace::Create(6);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1465,7 +1465,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1658,7 +1658,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(13);
+    auto s = UnitarySpace::Create(7);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1768,7 +1768,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(12);
+    auto s = UnitarySpace::Create(6);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1993,7 +1993,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(4);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2095,7 +2095,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(3);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2209,7 +2209,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(3);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2442,7 +2442,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2562,7 +2562,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(5);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2695,7 +2695,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(5);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2803,7 +2803,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(4);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2918,7 +2918,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(4);
+    auto s = UnitarySpace::Create(2);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3152,7 +3152,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3276,7 +3276,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3413,7 +3413,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3539,7 +3539,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3673,7 +3673,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3908,7 +3908,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4032,7 +4032,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4169,7 +4169,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4299,7 +4299,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4437,7 +4437,7 @@ class UnitaryCalculatorSSE final {
 
     unsigned p[4];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m128* w = (__m128*) s.get();
     fp_type* wf = (fp_type*) w;
 

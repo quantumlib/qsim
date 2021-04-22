@@ -334,7 +334,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(5);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -527,7 +527,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -625,7 +625,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -823,7 +823,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -939,7 +939,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1037,7 +1037,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1235,7 +1235,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(11);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1356,7 +1356,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1472,7 +1472,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1570,7 +1570,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[15];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1768,7 +1768,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(13);
+    auto s = UnitarySpace::Create(7);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -1889,7 +1889,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(12);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2010,7 +2010,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(11);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2126,7 +2126,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[15];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2328,7 +2328,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(15);
+    auto s = UnitarySpace::Create(8);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2449,7 +2449,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(14);
+    auto s = UnitarySpace::Create(7);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2570,7 +2570,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(13);
+    auto s = UnitarySpace::Create(7);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2691,7 +2691,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[15];
 
-    auto s = UnitarySpace::Create(12);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -2924,7 +2924,7 @@ class UnitaryCalculatorAVX512 final {
 
     unsigned p[16];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3027,7 +3027,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(5);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3152,7 +3152,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(5);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3395,7 +3395,7 @@ class UnitaryCalculatorAVX512 final {
 
     unsigned p[16];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3516,7 +3516,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3660,7 +3660,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3779,7 +3779,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -3904,7 +3904,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(6);
+    auto s = UnitarySpace::Create(3);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4147,7 +4147,7 @@ class UnitaryCalculatorAVX512 final {
 
     unsigned p[16];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4272,7 +4272,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4420,7 +4420,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4557,7 +4557,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4701,7 +4701,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4820,7 +4820,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -4945,7 +4945,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(7);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -5188,7 +5188,7 @@ class UnitaryCalculatorAVX512 final {
 
     unsigned p[16];
 
-    auto s = UnitarySpace::Create(12);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -5313,7 +5313,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(11);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -5461,7 +5461,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[1];
 
-    auto s = UnitarySpace::Create(11);
+    auto s = UnitarySpace::Create(6);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -5602,7 +5602,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -5750,7 +5750,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[3];
 
-    auto s = UnitarySpace::Create(10);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -5887,7 +5887,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -6031,7 +6031,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[7];
 
-    auto s = UnitarySpace::Create(9);
+    auto s = UnitarySpace::Create(5);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -6150,7 +6150,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[15];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
@@ -6275,7 +6275,7 @@ class UnitaryCalculatorAVX512 final {
     unsigned p[16];
     __m512i idx[15];
 
-    auto s = UnitarySpace::Create(8);
+    auto s = UnitarySpace::Create(4);
     __m512* w = (__m512*) s.get();
     fp_type* wf = (fp_type*) w;
 
