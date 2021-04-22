@@ -81,7 +81,7 @@ setup(
     version=__version__,
     author='Vamsi Krishna Devabathini',
     author_email='devabathini92@gmail.com',
-    python_requires=('>=3.3.0'),
+    python_requires='>=3.3.0',
     install_requires=requirements,
     license='Apache 2',
     description=description,
@@ -90,4 +90,6 @@ setup(
     ext_modules=[CMakeExtension('qsimcirq/qsim')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    packages=['qsimcirq'])
+    packages=['qsimcirq'],
+    package_data={'qsimcirq': ['py.typed']},
+)
