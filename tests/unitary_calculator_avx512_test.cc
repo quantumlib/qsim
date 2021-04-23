@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "unitary_calculator_testfixture.h"
+#include "cpuinfo.h"
 
 #include "gtest/gtest.h"
 
@@ -23,35 +24,44 @@ namespace qsim {
 namespace unitary {
 namespace {
 
-TEST(UnitaryCalculatorAVX512Test, ApplyGate1) {
+class UnitaryCalculatorAVX512Test : public testing::Test {
+ protected:
+  void SetUp() override {
+    if (!HaveAVX512()) {
+      GTEST_SKIP() << "Skipping all AVX512 tests.";
+    }
+  }
+};
+
+TEST_F(UnitaryCalculatorAVX512Test, ApplyGate1) {
   TestApplyGate1<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST(UnitaryCalculatorAVX512Test, ApplyControlledGate1) {
+TEST_F(UnitaryCalculatorAVX512Test, ApplyControlledGate1) {
   TestApplyControlledGate1<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST(UnitaryCalculatorAVX512Test, ApplyGate2) {
+TEST_F(UnitaryCalculatorAVX512Test, ApplyGate2) {
   TestApplyGate2<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST(UnitaryCalculatorAVX512Test, ApplyControlledGate2) {
+TEST_F(UnitaryCalculatorAVX512Test, ApplyControlledGate2) {
   TestApplyControlledGate2<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST(UnitaryCalculatorAVX512Test, ApplyFusedGate) {
+TEST_F(UnitaryCalculatorAVX512Test, ApplyFusedGate) {
   TestApplyFusedGate<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST(UnitaryCalculatorAVX512Test, ApplyGates) {
+TEST_F(UnitaryCalculatorAVX512Test, ApplyGates) {
   TestApplyGates<UnitaryCalculatorAVX512<For>>(false);
 }
 
-TEST(UnitaryCalculatorAVX512Test, ApplyControlledGates) {
+TEST_F(UnitaryCalculatorAVX512Test, ApplyControlledGates) {
   TestApplyControlledGates<UnitaryCalculatorAVX512<For>>(false);
 }
 
-TEST(UnitaryCalculatorAVX512Test, SmallCircuits) {
+TEST_F(UnitaryCalculatorAVX512Test, SmallCircuits) {
   TestSmallCircuits<UnitaryCalculatorAVX512<For>>();
 }
 

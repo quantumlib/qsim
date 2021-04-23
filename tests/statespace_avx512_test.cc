@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "statespace_testfixture.h"
+#include "cpuinfo.h"
 
 #include "gtest/gtest.h"
 
@@ -26,7 +27,14 @@
 namespace qsim {
 
 template <class T>
-class StateSpaceAVX512Test : public testing::Test {};
+class StateSpaceAVX512Test : public testing::Test {
+ protected:
+  void SetUp() override {
+    if (!HaveAVX512()) {
+      GTEST_SKIP() << "Skipping all AVX512 tests.";
+    }
+  }
+};
 
 using ::testing::Types;
 #ifdef _OPENMP

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "simulator_testfixture.h"
+#include "cpuinfo.h"
 
 #include "gtest/gtest.h"
 
@@ -25,7 +26,14 @@
 namespace qsim {
 
 template <class T>
-class SimulatorAVX512Test : public testing::Test {};
+class SimulatorAVX512Test : public testing::Test {
+ protected:
+  void SetUp() override {
+    if (!HaveAVX512()) {
+      GTEST_SKIP() << "Skipping all AVX512 tests.";
+    }
+  }
+};
 
 using ::testing::Types;
 #ifdef _OPENMP
