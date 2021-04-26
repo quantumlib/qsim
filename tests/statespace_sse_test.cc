@@ -73,6 +73,10 @@ TYPED_TEST(StateSpaceSSETest, MeasurementLarge) {
   TestMeasurementLarge<SimulatorSSE<TypeParam>>();
 }
 
+TYPED_TEST(StateSpaceSSETest, Collapse) {
+  TestCollapse<StateSpaceSSE<TypeParam>>();
+}
+
 TYPED_TEST(StateSpaceSSETest, InvalidStateSize) {
   TestInvalidStateSize<StateSpaceSSE<TypeParam>>();
 }

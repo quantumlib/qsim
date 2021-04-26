@@ -33,18 +33,22 @@ cc_library(
         "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
+        "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
         "statespace_avx.h",
+        "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
         "statespace.h",
         "umux.h",
         "unitaryspace.h",
         "unitaryspace_avx.h",
+        "unitaryspace_avx512.h",
         "unitaryspace_basic.h",
         "unitaryspace_sse.h",
         "unitary_calculator_avx.h",
+        "unitary_calculator_avx512.h",
         "unitary_calculator_basic.h",
         "unitary_calculator_sse.h",
         "util.h",
@@ -75,10 +79,12 @@ cc_library(
         "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
+        "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
+        "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
         "umux.h",
@@ -118,10 +124,12 @@ cc_library(
         "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
+        "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
+        "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
         "util.h",
@@ -331,6 +339,15 @@ cc_library(
 )
 
 cc_library(
+    name = "statespace_avx512",
+    hdrs = ["statespace_avx512.h"],
+    deps = [
+        ":statespace",
+        ":util",
+    ],
+)
+
+cc_library(
     name = "statespace_basic",
     hdrs = ["statespace_basic.h"],
     deps = [
@@ -360,6 +377,15 @@ cc_library(
 )
 
 cc_library(
+    name = "simulator_avx512",
+    hdrs = ["simulator_avx512.h"],
+    deps = [
+        ":bits",
+        ":statespace_avx512",
+    ],
+)
+
+cc_library(
     name = "simulator_basic",
     hdrs = ["simulator_basic.h"],
     deps = [
@@ -383,6 +409,7 @@ cc_library(
     hdrs = ["simmux.h"],
     deps = [
         ":simulator_avx",
+        ":simulator_avx512",
         ":simulator_basic",
         ":simulator_sse",
     ],
@@ -451,6 +478,12 @@ cc_library(
 )
 
 cc_library(
+    name = "unitaryspace_avx512",
+    hdrs = ["unitaryspace_avx512.h"],
+    deps = [":unitaryspace"],
+)
+
+cc_library(
     name = "unitaryspace_basic",
     hdrs = ["unitaryspace_basic.h"],
     deps = [":unitaryspace"],
@@ -470,6 +503,15 @@ cc_library(
     deps = [
         ":bits",
         ":unitaryspace_avx"
+    ],
+)
+
+cc_library(
+    name = "unitary_calculator_avx512",
+    hdrs = ["unitary_calculator_avx512.h"],
+    deps = [
+        ":bits",
+        ":unitaryspace_avx512"
     ],
 )
 
@@ -498,6 +540,7 @@ cc_library(
     hdrs = ["umux.h"],
     deps = [
         ":unitary_calculator_avx",
+        ":unitary_calculator_avx512",
         ":unitary_calculator_basic",
         ":unitary_calculator_sse",
     ],

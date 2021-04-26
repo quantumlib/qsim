@@ -20,7 +20,6 @@
 #include <cmath>
 #include <vector>
 
-#include "../lib/bits.h"
 #include "../lib/fuser.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_cirq.h"
@@ -530,7 +529,7 @@ void TestApplyControlledGates(bool test_double) {
   using UnitarySpace = typename UnitaryCalculator::UnitarySpace;
   using fp_type = typename UnitaryCalculator::fp_type;
 
-  unsigned max_qubits = 4 + std::log2(UnitaryCalculator::SIMDRegisterSize());
+  unsigned max_qubits = 3 + std::log2(UnitaryCalculator::SIMDRegisterSize());
   unsigned max_target_qubits = 3;
   unsigned max_control_qubits = 2;
 

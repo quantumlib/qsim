@@ -15,7 +15,13 @@
 #ifndef SIMMUX_H_
 #define SIMMUX_H_
 
-#ifdef __AVX2__
+#ifdef __AVX512F__
+# include "simulator_avx512.h"
+  namespace qsim {
+    template <typename For>
+    using Simulator = SimulatorAVX512<For>;
+  }
+#elif __AVX2__
 # include "simulator_avx.h"
   namespace qsim {
     template <typename For>
