@@ -267,6 +267,8 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
 
     num_qubits = len(program.all_qubits())
     # qsim numbers qubits in reverse order from cirq
+    cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+      program.all_qubits())
     bitstrings = [format(bitstring, 'b').zfill(num_qubits)[::-1]
                   for bitstring in bitstrings]
 
@@ -286,7 +288,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     for prs in param_resolvers:
       solved_circuit = protocols.resolve_parameters(program, prs)
       translator_fn = getattr(solved_circuit, translator_fn_name)
-      options['c'] = translator_fn(qubit_order)
+      options['c'] = translator_fn(cirq_order)
       options['s'] = self.get_seed()
       amplitudes = simulator_fn(options)
       trials_results.append(amplitudes)
@@ -337,6 +339,10 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     param_resolvers = study.to_resolvers(params)
     qubits = program.all_qubits()
     num_qubits = len(qubits)
+    # qsim numbers qubits in reverse order from cirq
+    cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+      qubits)
+    qsim_order = list(reversed(cirq_order))
     if isinstance(initial_state, np.ndarray):
       if initial_state.dtype != np.complex64:
         raise TypeError(f'initial_state vector must have dtype np.complex64.')
@@ -356,15 +362,10 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     for prs in param_resolvers:
       solved_circuit = protocols.resolve_parameters(program, prs)
       translator_fn = getattr(solved_circuit, translator_fn_name)
-      options['c'] = translator_fn(qubit_order)
+      options['c'] = translator_fn(cirq_order)
       options['s'] = self.get_seed()
-      ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-        qubits)
-      # qsim numbers qubits in reverse order from cirq
-      ordered_qubits = list(reversed(ordered_qubits))
-
       qubit_map = {
-        qubit: index for index, qubit in enumerate(ordered_qubits)
+        qubit: index for index, qubit in enumerate(qsim_order)
       }
 
       if isinstance(initial_state, int):
@@ -440,11 +441,11 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
       observables = [observables]
     psumlist = [ops.PauliSum.wrap(pslike) for pslike in observables]
 
-    ordered_qubits = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+    cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
       program.all_qubits())
-    ordered_qubits = list(reversed(ordered_qubits))
-    num_qubits = len(ordered_qubits)
-    qubit_map = {qubit: index for index, qubit in enumerate(ordered_qubits)}
+    qsim_order = list(reversed(cirq_order))
+    num_qubits = len(qsim_order)
+    qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
 
     opsums_and_qubit_counts = []
     for psum in psumlist:
@@ -490,7 +491,7 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
     for prs in param_resolvers:
       solved_circuit = protocols.resolve_parameters(program, prs)
       translator_fn = getattr(solved_circuit, translator_fn_name)
-      options['c'] = translator_fn(qubit_order)
+      options['c'] = translator_fn(cirq_order)
       options['s'] = self.get_seed()
 
       if isinstance(initial_state, int):
