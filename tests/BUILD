@@ -1,6 +1,6 @@
 # Options for testing different simulator types.
 avx_copts = ['-mavx2', '-mfma']
-avx512_copts = ['-mavx512f']
+avx512_copts = ['-march=native']
 sse_copts = ['-msse4']
 
 windows_copts = [
@@ -260,7 +260,6 @@ cc_test(
     name = "simulator_avx512_test",
     srcs = ["simulator_avx512_test.cc"],
     deps = [
-        ":cpuinfo",
         ":simulator_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:parfor",
@@ -344,7 +343,6 @@ cc_test(
     name = "statespace_avx512_test",
     srcs = ["statespace_avx512_test.cc"],
     deps = [
-        ":cpuinfo",
         ":statespace_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:parfor",
@@ -428,7 +426,6 @@ cc_test(
         "//conditions:default": avx512_copts,
     }),
     deps = [
-        ":cpuinfo",
         ":unitaryspace_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:formux",
@@ -506,7 +503,6 @@ cc_test(
         "//conditions:default": avx512_copts,
     }),
     deps = [
-        ":cpuinfo",
         ":unitary_calculator_testfixture",
         "@com_google_googletest//:gtest_main",
         "//lib:formux",
@@ -559,9 +555,4 @@ cc_test(
         "//lib:formux",
         "//lib:vectorspace",
     ],
-)
-
-cc_library(
-    name = "cpuinfo",
-    hdrs = ["cpuinfo.h"],
 )

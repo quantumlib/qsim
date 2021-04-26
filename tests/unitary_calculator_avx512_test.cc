@@ -13,9 +13,10 @@
 // limitations under the License.
 
 #include "unitary_calculator_testfixture.h"
-#include "cpuinfo.h"
 
 #include "gtest/gtest.h"
+
+#ifdef __AVX512F__
 
 #include "../lib/formux.h"
 #include "../lib/unitary_calculator_avx512.h"
@@ -24,50 +25,43 @@ namespace qsim {
 namespace unitary {
 namespace {
 
-class UnitaryCalculatorAVX512Test : public testing::Test {
- protected:
-  void SetUp() override {
-    if (!HaveAVX512()) {
-      GTEST_SKIP() << "Skipping all AVX512 tests.";
-    }
-  }
-};
-
-TEST_F(UnitaryCalculatorAVX512Test, ApplyGate1) {
+TEST(UnitaryCalculatorAVX512Test, ApplyGate1) {
   TestApplyGate1<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, ApplyControlledGate1) {
+TEST(UnitaryCalculatorAVX512Test, ApplyControlledGate1) {
   TestApplyControlledGate1<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, ApplyGate2) {
+TEST(UnitaryCalculatorAVX512Test, ApplyGate2) {
   TestApplyGate2<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, ApplyControlledGate2) {
+TEST(UnitaryCalculatorAVX512Test, ApplyControlledGate2) {
   TestApplyControlledGate2<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, ApplyFusedGate) {
+TEST(UnitaryCalculatorAVX512Test, ApplyFusedGate) {
   TestApplyFusedGate<UnitaryCalculatorAVX512<For>>();
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, ApplyGates) {
+TEST(UnitaryCalculatorAVX512Test, ApplyGates) {
   TestApplyGates<UnitaryCalculatorAVX512<For>>(false);
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, ApplyControlledGates) {
+TEST(UnitaryCalculatorAVX512Test, ApplyControlledGates) {
   TestApplyControlledGates<UnitaryCalculatorAVX512<For>>(false);
 }
 
-TEST_F(UnitaryCalculatorAVX512Test, SmallCircuits) {
+TEST(UnitaryCalculatorAVX512Test, SmallCircuits) {
   TestSmallCircuits<UnitaryCalculatorAVX512<For>>();
 }
 
 }  // namespace
 }  // namespace unitary
 }  // namespace qsim
+
+#endif  // __AVX512F__
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

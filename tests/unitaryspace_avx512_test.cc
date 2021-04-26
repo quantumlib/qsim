@@ -13,9 +13,10 @@
 // limitations under the License.
 
 #include "unitaryspace_testfixture.h"
-#include "cpuinfo.h"
 
 #include "gtest/gtest.h"
+
+#ifdef __AVX512F__
 
 #include "../lib/formux.h"
 #include "../lib/unitaryspace_avx512.h"
@@ -24,30 +25,23 @@ namespace qsim {
 namespace unitary {
 namespace {
 
-class UnitarySpaceAVX512Test : public testing::Test {
- protected:
-  void SetUp() override {
-    if (!HaveAVX512()) {
-      GTEST_SKIP() << "Skipping all AVX512 tests.";
-    }
-  }
-};
-
-TEST_F(UnitarySpaceAVX512Test, SetZero) {
+TEST(UnitarySpaceAVX512Test, SetZero) {
   TestSetZeros<UnitarySpaceAVX512<For>>();
 }
 
-TEST_F(UnitarySpaceAVX512Test, SetIdentity) {
+TEST(UnitarySpaceAVX512Test, SetIdentity) {
   TestSetIdentity<UnitarySpaceAVX512<For>>();
 }
 
-TEST_F(UnitarySpaceAVX512Test, GetEntry) {
+TEST(UnitarySpaceAVX512Test, GetEntry) {
   TestSetEntry<UnitarySpaceAVX512<For>>();
 }
 
 }  // namspace
 }  // namespace unitary
 }  // namespace qsim
+
+#endif  // __AVX512F__
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -13,9 +13,10 @@
 // limitations under the License.
 
 #include "statespace_testfixture.h"
-#include "cpuinfo.h"
 
 #include "gtest/gtest.h"
+
+#ifdef __AVX512F__
 
 #ifdef _OPENMP
 #include "../lib/parfor.h"
@@ -27,14 +28,7 @@
 namespace qsim {
 
 template <class T>
-class StateSpaceAVX512Test : public testing::Test {
- protected:
-  void SetUp() override {
-    if (!HaveAVX512()) {
-      GTEST_SKIP() << "Skipping all AVX512 tests.";
-    }
-  }
-};
+class StateSpaceAVX512Test : public testing::Test {};
 
 using ::testing::Types;
 #ifdef _OPENMP
@@ -106,6 +100,8 @@ TYPED_TEST(StateSpaceAVX512Test, ThreadThrashing) {
 }
 
 }  // namespace qsim
+
+#endif  // __AVX512F__
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
