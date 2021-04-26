@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#ifdef __AVX512F__
+#if defined(__AVX512F__) && !defined(_WIN32)
 
 #include "../lib/formux.h"
 #include "../lib/unitaryspace_avx512.h"
@@ -41,7 +41,7 @@ TEST(UnitarySpaceAVX512Test, GetEntry) {
 }  // namespace unitary
 }  // namespace qsim
 
-#endif  // __AVX512F__
+#endif  // __AVX512F__ && !_WIN32
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
