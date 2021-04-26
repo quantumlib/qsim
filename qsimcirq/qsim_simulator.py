@@ -26,6 +26,8 @@ from cirq import (
   SimulatesFinalState,
   SimulatesSamples,
 )
+# TODO: import from cirq directly when fix is released
+from cirq.sim.simulator import SimulatesExpectationValues
 
 import numpy as np
 
@@ -69,7 +71,12 @@ def _needs_trajectories(circuit: circuits.Circuit) -> bool:
   return False
 
 
-class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
+class QSimSimulator(
+  SimulatesSamples,
+  SimulatesAmplitudes,
+  SimulatesFinalState,
+  SimulatesExpectationValues,
+):
 
   def __init__(self, qsim_options: dict = {},
                seed: value.RANDOM_STATE_OR_SEED_LIKE = None):
@@ -424,19 +431,12 @@ class QSimSimulator(SimulatesSamples, SimulatesAmplitudes, SimulatesFinalState):
         'permit_terminal_measurements' is False. (Note: We cannot test this
         until Cirq's `are_any_measurements_terminal` is released.)
     """
-    # TODO: replace with commented check when Cirq v0.10 is released.
-    if not permit_terminal_measurements:
+    if not permit_terminal_measurements and program.are_any_measurements_terminal():
       raise ValueError(
-        'Automatic terminal measurement checking is not supported in qsim. '
-        'Please check that your circuit has no terminal measurements, then '
-        'set permit_terminal_measurements=True to bypass this error.'
+        'Provided circuit has terminal measurements, which may '
+        'skew expectation values. If this is intentional, set '
+        'permit_terminal_measurements=True.'
       )
-    # if not permit_terminal_measurements and program.are_any_measurements_terminal():
-    #   raise ValueError(
-    #     'Provided circuit has terminal measurements, which may '
-    #     'skew expectation values. If this is intentional, set '
-    #     'permit_terminal_measurements=True.'
-    #   )
     if not isinstance(observables, List):
       observables = [observables]
     psumlist = [ops.PauliSum.wrap(pslike) for pslike in observables]
