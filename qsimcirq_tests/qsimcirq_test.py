@@ -311,7 +311,6 @@ def test_qsim_run_vs_cirq_run(mode: str):
   assert(qsim_result == cirq_result)
 
 
-# TODO: test against Cirq simulator when Cirq v0.10 is released.
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
 def test_expectation_values(mode: str):
   a, b = [
@@ -337,17 +336,34 @@ def test_expectation_values(mode: str):
     circuit.append(NoiseTrigger().on(a))
 
   qsim_simulator = qsimcirq.QSimSimulator()
-  with pytest.raises(ValueError, match='terminal measurement checking'):
-    _ = qsim_simulator.simulate_expectation_values_sweep(
-      circuit, [psum1, psum2], params)
-    
   qsim_result = qsim_simulator.simulate_expectation_values_sweep(
-    circuit, [psum1, psum2], params, permit_terminal_measurements=True)
-  assert len(qsim_result) == 4
-  assert len(qsim_result[0]) == 2
+    circuit, [psum1, psum2], params)
 
-  expected_result = [[4, 0], [2, 0], [0, -2], [0, -4]]
-  assert cirq.approx_eq(qsim_result, expected_result, atol=1e-6)
+  cirq_simulator = cirq.Simulator()
+  cirq_result = cirq_simulator.simulate_expectation_values_sweep(
+    circuit, [psum1, psum2], params)
+
+  assert cirq.approx_eq(qsim_result, cirq_result, atol=1e-6)
+
+
+def test_expectation_values_terminal_measurement_check():
+  a, b = [
+    cirq.GridQubit(0, 0),
+    cirq.GridQubit(0, 1),
+  ]
+  circuit = cirq.Circuit(
+    cirq.X(a), cirq.H(b),
+    cirq.measure(a, b, key='m')
+  )
+  psum = cirq.Z(a) + 3 * cirq.X(b)
+
+  qsim_simulator = qsimcirq.QSimSimulator()
+  with pytest.raises(ValueError, match='Provided circuit has terminal measurements'):
+    _ = qsim_simulator.simulate_expectation_values(circuit, [psum])
+
+  # permit_terminal_measurements disables the error.
+  qsim_simulator.simulate_expectation_values(
+    circuit, [psum], permit_terminal_measurements=True)
 
 
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
@@ -826,15 +842,13 @@ def test_noise_aggregation():
   # Test expectation value aggregation over repetitions of a noisy circuit.
   # Repetitions are handled in C++, so overhead costs are minimal.
   qsim_simulator = qsimcirq.QSimSimulator(qsim_options={"r": 10000}, seed=1)
-  qsim_evs = qsim_simulator.simulate_expectation_values_sweep(
-    circuit, [psum1, psum2], params={}, permit_terminal_measurements=True)
-  assert len(qsim_evs) == 1
-  assert len(qsim_evs[0]) == 2
+  qsim_evs = qsim_simulator.simulate_expectation_values(circuit, [psum1, psum2])
+  assert len(qsim_evs) == 2
 
   # <Z> = (-1) * (probability of |1>) + 1 * (probability of |0>)
   # For damp_prob = 0.4, <Z> == -0.2
   damped_zval = damp_prob - (1 - damp_prob)
-  expected_evs = [[damped_zval, 0]]
+  expected_evs = [damped_zval, 0]
   assert cirq.approx_eq(qsim_evs, expected_evs, atol=0.05)
 
 
