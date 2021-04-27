@@ -32,16 +32,8 @@ def _cirq_gate_kind(gate: cirq.ops.Gate):
   if isinstance(gate, cirq.ops.ControlledGate):
     return _cirq_gate_kind(gate.sub_gate)
   if isinstance(gate, cirq.ops.identity.IdentityGate):
-    if gate.num_qubits() == 1:
-      return qsim.kI1
-    if gate.num_qubits() == 2:
-      return qsim.kI2
-    if gate.num_qubits() <= 6:
-      return qsim.kI
-    warnings.warn(
-      f'Identities on 7+ qubits are converted to no-ops. Source: {gate}',
-      RuntimeWarning,
-    )
+    # Identity gates will decompose to no-ops.
+    pass
   if isinstance(gate, cirq.ops.XPowGate):
     # cirq.rx also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:

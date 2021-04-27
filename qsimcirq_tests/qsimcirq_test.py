@@ -67,7 +67,7 @@ def test_cirq_too_big_gate():
     qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
 
 
-def test_cirq_too_big_identity():
+def test_cirq_giant_identity():
   # Pick qubits.
   a, b, c, d, e, f, g, h = [
       cirq.GridQubit(0, 0),
@@ -86,9 +86,13 @@ def test_cirq_too_big_identity():
     cirq.X(h),
   )
 
+  no_id_circuit = cirq.Circuit(cirq.X(h))
   qsimSim = qsimcirq.QSimSimulator()
-  with pytest.warns(RuntimeWarning, match='Identities on 7\+ qubits'):
-    qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
+
+  assert (
+    qsimSim.simulate(cirq_circuit) ==
+    qsimSim.simulate(no_id_circuit, qubit_order=[a,b,c,d,e,f,g,h])
+  )
 
 
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
