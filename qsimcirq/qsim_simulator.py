@@ -272,10 +272,10 @@ class QSimSimulator(
     if not isinstance(program, qsimc.QSimCircuit):
       program = qsimc.QSimCircuit(program, device=program.device)
 
-    num_qubits = len(program.all_qubits())
     # qsim numbers qubits in reverse order from cirq
     cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
       program.all_qubits())
+    num_qubits = len(cirq_order)
     bitstrings = [format(bitstring, 'b').zfill(num_qubits)[::-1]
                   for bitstring in bitstrings]
 
@@ -344,12 +344,11 @@ class QSimSimulator(
     options.update(self.qsim_options)
 
     param_resolvers = study.to_resolvers(params)
-    qubits = program.all_qubits()
-    num_qubits = len(qubits)
     # qsim numbers qubits in reverse order from cirq
     cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-      qubits)
+      program.all_qubits())
     qsim_order = list(reversed(cirq_order))
+    num_qubits = len(qsim_order)
     if isinstance(initial_state, np.ndarray):
       if initial_state.dtype != np.complex64:
         raise TypeError(f'initial_state vector must have dtype np.complex64.')

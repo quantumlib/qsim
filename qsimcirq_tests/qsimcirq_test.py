@@ -32,6 +32,11 @@ class NoiseTrigger(cirq.SingleQubitGate):
     return (np.asarray([1, 0, 0, 1]),)
 
 
+def test_empty_circuit():
+  result = qsimcirq.QSimSimulator().simulate(cirq.Circuit())
+  assert result.final_state_vector.shape == (1,)
+
+
 def test_cirq_too_big_gate():
   # Pick qubits.
   a, b, c, d, e, f, g = [
@@ -44,12 +49,50 @@ def test_cirq_too_big_gate():
       cirq.GridQubit(2, 0),
   ]
 
+  class BigGate(cirq.Gate):
+    def _num_qubits_(self):
+      return 7
+
+    def _qid_shape_(self):
+      return (2,) * 7
+
+    def _unitary_(self):
+      return np.eye(128)
+
   # Create a circuit with a gate larger than 6 qubits.
-  cirq_circuit = cirq.Circuit(cirq.IdentityGate(7).on(a, b, c, d, e, f, g))
+  cirq_circuit = cirq.Circuit(BigGate().on(a, b, c, d, e, f, g))
 
   qsimSim = qsimcirq.QSimSimulator()
   with pytest.raises(NotImplementedError):
     qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
+
+
+def test_cirq_giant_identity():
+  # Pick qubits.
+  a, b, c, d, e, f, g, h = [
+      cirq.GridQubit(0, 0),
+      cirq.GridQubit(0, 1),
+      cirq.GridQubit(0, 2),
+      cirq.GridQubit(1, 0),
+      cirq.GridQubit(1, 1),
+      cirq.GridQubit(1, 2),
+      cirq.GridQubit(2, 0),
+      cirq.GridQubit(2, 1),
+  ]
+
+  # Create a circuit with a gate larger than 6 qubits.
+  cirq_circuit = cirq.Circuit(
+    cirq.IdentityGate(7).on(a, b, c, d, e, f, g),
+    cirq.X(h),
+  )
+
+  no_id_circuit = cirq.Circuit(cirq.X(h))
+  qsimSim = qsimcirq.QSimSimulator()
+
+  assert (
+    qsimSim.simulate(cirq_circuit) ==
+    qsimSim.simulate(no_id_circuit, qubit_order=[a,b,c,d,e,f,g,h])
+  )
 
 
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
@@ -246,6 +289,22 @@ def test_iterable_qubit_order():
     params={},
     permit_terminal_measurements=True,
   )
+
+
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_preserve_qubits(mode: str):
+  # Check to confirm that qubits in qubit_order appear in the result.
+  q = cirq.LineQubit.range(2)
+  circuit = cirq.Circuit(cirq.X(q[0]))
+  if mode == 'noisy':
+    circuit.append(NoiseTrigger().on(q[0]))
+  circuit_with_id = circuit + cirq.I(q[1])
+  qsim_simulator = qsimcirq.QSimSimulator()
+  order_result = qsim_simulator.simulate(circuit, qubit_order=q)
+  id_result = qsim_simulator.simulate(circuit_with_id)
+
+  assert order_result == id_result
+  assert order_result.final_state_vector.shape == (4,)
 
 
 @pytest.mark.parametrize('mode', ['noiseless', 'noisy'])

@@ -32,15 +32,8 @@ def _cirq_gate_kind(gate: cirq.ops.Gate):
   if isinstance(gate, cirq.ops.ControlledGate):
     return _cirq_gate_kind(gate.sub_gate)
   if isinstance(gate, cirq.ops.identity.IdentityGate):
-    if gate.num_qubits() == 1:
-      return qsim.kI1
-    if gate.num_qubits() == 2:
-      return qsim.kI2
-    if gate.num_qubits() <= 6:
-      return qsim.kI
-    raise NotImplementedError(
-      f'Received identity on {gate.num_qubits()} qubits; '
-      + 'only up to 6-qubit gates are supported.')
+    # Identity gates will decompose to no-ops.
+    pass
   if isinstance(gate, cirq.ops.XPowGate):
     # cirq.rx also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:
@@ -287,10 +280,10 @@ class QSimCircuit(cirq.Circuit):
         """
 
     qsim_circuit = qsim.Circuit()
-    qubits = self.all_qubits()
-    qsim_circuit.num_qubits = len(qubits)
     ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-      qubits)
+      self.all_qubits()
+    )
+    qsim_circuit.num_qubits = len(ordered_qubits)
 
     # qsim numbers qubits in reverse order from cirq
     ordered_qubits = list(reversed(ordered_qubits))
