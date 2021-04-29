@@ -305,7 +305,7 @@ class QSimCircuit(cirq.Circuit):
         cirq.decompose(op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
         for op in moment
       ]
-      moment_length = max([0] + [len(gate_ops) for gate_ops in ops_by_gate])
+      moment_length = max((len(gate_ops) for gate_ops in ops_by_gate), default=0)
 
       # Gates must be added in time order.
       for gi in range(moment_length):
