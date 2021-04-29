@@ -37,6 +37,22 @@ def test_empty_circuit():
   assert result.final_state_vector.shape == (1,)
 
 
+@pytest.mark.parametrize('mode', ['noiseless', 'noisy'])
+def test_empty_moment(mode: str):
+  qs = cirq.LineQubit.range(2)
+  circuit = cirq.Circuit(
+    cirq.X(qs[0])**0.5,
+    cirq.Moment(),
+    cirq.X(qs[1])**0.5,
+  )
+
+  if mode == 'noisy':
+    circuit.append(NoiseTrigger().on(qs[0]))
+
+  result = qsimcirq.QSimSimulator().simulate(circuit)
+  assert result.final_state_vector.shape == (4,)
+
+
 def test_cirq_too_big_gate():
   # Pick qubits.
   a, b, c, d, e, f, g = [
