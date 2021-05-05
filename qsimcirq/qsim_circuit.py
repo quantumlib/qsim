@@ -277,145 +277,147 @@ class QSimCircuit(cirq.Circuit):
             device=self.device,
         )
 
-    def translate_cirq_to_qsim(
-        self, qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
-    ) -> qsim.Circuit:
-        """
-        Translates this Cirq circuit to the qsim representation.
-        :qubit_order: Ordering of qubits
-        :return: a C++ qsim Circuit object
-        """
 
-        qsim_circuit = qsim.Circuit()
-        ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-            self.all_qubits()
-        )
-        qsim_circuit.num_qubits = len(ordered_qubits)
+def translate_cirq_to_qsim(
+    self, qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
+) -> qsim.Circuit:
+    """
+    Translates this Cirq circuit to the qsim representation.
+    :qubit_order: Ordering of qubits
+    :return: a C++ qsim Circuit object
+    """
 
-        # qsim numbers qubits in reverse order from cirq
-        ordered_qubits = list(reversed(ordered_qubits))
+    qsim_circuit = qsim.Circuit()
+    ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+        self.all_qubits()
+    )
+    qsim_circuit.num_qubits = len(ordered_qubits)
 
-        def has_qsim_kind(op: cirq.ops.GateOperation):
-            return _cirq_gate_kind(op.gate) != None
+    # qsim numbers qubits in reverse order from cirq
+    ordered_qubits = list(reversed(ordered_qubits))
 
-        def to_matrix(op: cirq.ops.GateOperation):
-            mat = cirq.protocols.unitary(op.gate, None)
-            if mat is None:
-                return NotImplemented
+    def has_qsim_kind(op: cirq.ops.GateOperation):
+        return _cirq_gate_kind(op.gate) != None
 
-            return cirq.ops.MatrixGate(mat).on(*op.qubits)
+    def to_matrix(op: cirq.ops.GateOperation):
+        mat = cirq.protocols.unitary(op.gate, None)
+        if mat is None:
+            return NotImplemented
 
-        qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
-        time_offset = 0
-        for moment in self:
-            ops_by_gate = [
-                cirq.decompose(op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
-                for op in moment
-            ]
-            moment_length = max(len(gate_ops) for gate_ops in ops_by_gate)
+        return cirq.ops.MatrixGate(mat).on(*op.qubits)
 
-            # Gates must be added in time order.
-            for gi in range(moment_length):
-                for gate_ops in ops_by_gate:
-                    if gi >= len(gate_ops):
-                        continue
-                    qsim_op = gate_ops[gi]
-                    time = time_offset + gi
-                    gate_kind = _cirq_gate_kind(qsim_op.gate)
-                    add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_circuit)
-            time_offset += moment_length
+    qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
+    time_offset = 0
+    for moment in self:
+        ops_by_gate = [
+            cirq.decompose(op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
+            for op in moment
+        ]
+        moment_length = max((len(gate_ops) for gate_ops in ops_by_gate), default=0)
 
-        return qsim_circuit
+        # Gates must be added in time order.
+        for gi in range(moment_length):
+            for gate_ops in ops_by_gate:
+                if gi >= len(gate_ops):
+                    continue
+                qsim_op = gate_ops[gi]
+                time = time_offset + gi
+                gate_kind = _cirq_gate_kind(qsim_op.gate)
+                add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_circuit)
+        time_offset += moment_length
 
-    def translate_cirq_to_qtrajectory(
-        self, qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
-    ) -> qsim.NoisyCircuit:
-        """
-        Translates this noisy Cirq circuit to the qsim representation.
-        :qubit_order: Ordering of qubits
-        :return: a C++ qsim NoisyCircuit object
-        """
-        qsim_ncircuit = qsim.NoisyCircuit()
-        ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-            self.all_qubits()
-        )
+    return qsim_circuit
 
-        # qsim numbers qubits in reverse order from cirq
-        ordered_qubits = list(reversed(ordered_qubits))
 
-        qsim_ncircuit.num_qubits = len(ordered_qubits)
+def translate_cirq_to_qtrajectory(
+    self, qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
+) -> qsim.NoisyCircuit:
+    """
+    Translates this noisy Cirq circuit to the qsim representation.
+    :qubit_order: Ordering of qubits
+    :return: a C++ qsim NoisyCircuit object
+    """
+    qsim_ncircuit = qsim.NoisyCircuit()
+    ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
+        self.all_qubits()
+    )
 
-        def has_qsim_kind(op: cirq.ops.GateOperation):
-            return _cirq_gate_kind(op.gate) != None
+    # qsim numbers qubits in reverse order from cirq
+    ordered_qubits = list(reversed(ordered_qubits))
 
-        def to_matrix(op: cirq.ops.GateOperation):
-            mat = cirq.unitary(op.gate, None)
-            if mat is None:
-                return NotImplemented
+    qsim_ncircuit.num_qubits = len(ordered_qubits)
 
-            return cirq.ops.MatrixGate(mat).on(*op.qubits)
+    def has_qsim_kind(op: cirq.ops.GateOperation):
+        return _cirq_gate_kind(op.gate) != None
 
-        qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
-        time_offset = 0
-        for moment in self:
-            moment_length = 0
-            ops_by_gate = []
-            ops_by_mix = []
-            ops_by_channel = []
-            # Capture ops of each type in the appropriate list.
-            for qsim_op in moment:
-                if cirq.has_unitary(qsim_op) or cirq.is_measurement(qsim_op):
-                    oplist = cirq.decompose(
-                        qsim_op, fallback_decomposer=to_matrix, keep=has_qsim_kind
-                    )
-                    ops_by_gate.append(oplist)
-                    moment_length = max(moment_length, len(oplist))
-                    pass
-                elif cirq.has_mixture(qsim_op):
-                    ops_by_mix.append(qsim_op)
-                    moment_length = max(moment_length, 1)
-                    pass
-                elif cirq.has_channel(qsim_op):
-                    ops_by_channel.append(qsim_op)
-                    moment_length = max(moment_length, 1)
-                    pass
-                else:
-                    raise ValueError(f"Encountered unparseable op: {qsim_op}")
+    def to_matrix(op: cirq.ops.GateOperation):
+        mat = cirq.unitary(op.gate, None)
+        if mat is None:
+            return NotImplemented
 
-            # Gates must be added in time order.
-            for gi in range(moment_length):
-                # Handle gate output.
-                for gate_ops in ops_by_gate:
-                    if gi >= len(gate_ops):
-                        continue
-                    qsim_op = gate_ops[gi]
-                    time = time_offset + gi
-                    gate_kind = _cirq_gate_kind(qsim_op.gate)
-                    add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_ncircuit)
-                # Handle mixture output.
-                for mixture in ops_by_mix:
-                    mixdata = []
-                    for prob, mat in cirq.mixture(mixture):
-                        square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
-                        unitary = cirq.is_unitary(square_mat)
-                        # Package matrix into a qsim-friendly format.
-                        mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
-                        mixdata.append((prob, mat.view(np.float32), unitary))
-                    qubits = [qubit_to_index_dict[q] for q in mixture.qubits]
-                    qsim.add_channel(time_offset, qubits, mixdata, qsim_ncircuit)
-                # Handle channel output.
-                for channel in ops_by_channel:
-                    chdata = []
-                    for i, mat in enumerate(cirq.channel(channel)):
-                        square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
-                        unitary = cirq.is_unitary(square_mat)
-                        singular_vals = np.linalg.svd(square_mat)[1]
-                        lower_bound_prob = min(singular_vals) ** 2
-                        # Package matrix into a qsim-friendly format.
-                        mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
-                        chdata.append((lower_bound_prob, mat.view(np.float32), unitary))
-                    qubits = [qubit_to_index_dict[q] for q in channel.qubits]
-                    qsim.add_channel(time_offset, qubits, chdata, qsim_ncircuit)
-            time_offset += moment_length
+        return cirq.ops.MatrixGate(mat).on(*op.qubits)
 
-        return qsim_ncircuit
+    qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
+    time_offset = 0
+    for moment in self:
+        moment_length = 0
+        ops_by_gate = []
+        ops_by_mix = []
+        ops_by_channel = []
+        # Capture ops of each type in the appropriate list.
+        for qsim_op in moment:
+            if cirq.has_unitary(qsim_op) or cirq.is_measurement(qsim_op):
+                oplist = cirq.decompose(
+                    qsim_op, fallback_decomposer=to_matrix, keep=has_qsim_kind
+                )
+                ops_by_gate.append(oplist)
+                moment_length = max(moment_length, len(oplist))
+                pass
+            elif cirq.has_mixture(qsim_op):
+                ops_by_mix.append(qsim_op)
+                moment_length = max(moment_length, 1)
+                pass
+            elif cirq.has_channel(qsim_op):
+                ops_by_channel.append(qsim_op)
+                moment_length = max(moment_length, 1)
+                pass
+            else:
+                raise ValueError(f"Encountered unparseable op: {qsim_op}")
+
+        # Gates must be added in time order.
+        for gi in range(moment_length):
+            # Handle gate output.
+            for gate_ops in ops_by_gate:
+                if gi >= len(gate_ops):
+                    continue
+                qsim_op = gate_ops[gi]
+                time = time_offset + gi
+                gate_kind = _cirq_gate_kind(qsim_op.gate)
+                add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_ncircuit)
+            # Handle mixture output.
+            for mixture in ops_by_mix:
+                mixdata = []
+                for prob, mat in cirq.mixture(mixture):
+                    square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
+                    unitary = cirq.is_unitary(square_mat)
+                    # Package matrix into a qsim-friendly format.
+                    mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
+                    mixdata.append((prob, mat.view(np.float32), unitary))
+                qubits = [qubit_to_index_dict[q] for q in mixture.qubits]
+                qsim.add_channel(time_offset, qubits, mixdata, qsim_ncircuit)
+            # Handle channel output.
+            for channel in ops_by_channel:
+                chdata = []
+                for i, mat in enumerate(cirq.channel(channel)):
+                    square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
+                    unitary = cirq.is_unitary(square_mat)
+                    singular_vals = np.linalg.svd(square_mat)[1]
+                    lower_bound_prob = min(singular_vals) ** 2
+                    # Package matrix into a qsim-friendly format.
+                    mat = np.reshape(mat, (-1,)).astype(np.complex64, copy=False)
+                    chdata.append((lower_bound_prob, mat.view(np.float32), unitary))
+                qubits = [qubit_to_index_dict[q] for q in channel.qubits]
+                qsim.add_channel(time_offset, qubits, chdata, qsim_ncircuit)
+        time_offset += moment_length
+
+    return qsim_ncircuit
