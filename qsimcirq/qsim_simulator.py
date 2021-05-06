@@ -37,9 +37,9 @@ import qsimcirq.qsim_circuit as qsimc
 
 
 class QSimSimulatorState(sim.StateVectorSimulatorState):
-    def __init__(self, qsim_data: np.ndarray, qubit_map: Dict[ops.Qid, int]):
-        state_vector = qsim_data.view(np.complex64)
-        super().__init__(state_vector=state_vector, qubit_map=qubit_map)
+  def __init__(self, qsim_data: np.ndarray, qubit_map: Dict[ops.Qid, int]):
+    state_vector = qsim_data.view(np.complex64)
+    super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
 class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
