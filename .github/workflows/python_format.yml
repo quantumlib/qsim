@@ -1,5 +1,13 @@
 on:
   push:
+    branches:
+      # Only check pushes to master
+      - master
+    paths:
+      # Only check formatting when python files are changed.
+      - '**/*.py'
+  pull_request:
+    # Check PRs for all branches
     paths:
       # Only check formatting when python files are changed.
       - '**/*.py'
