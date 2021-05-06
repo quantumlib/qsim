@@ -162,7 +162,7 @@ inline Gate CreateGate(unsigned time, Qubits&& qubits, M&& matrix = {},
                std::move(params), std::forward<M>(matrix), false, false};
 
   if (GateDef::kind != gate::kMeasurement) {
-    switch (qubits.size()) {
+    switch (gate.qubits.size()) {
     case 1:
       break;
     case 2:
