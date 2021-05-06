@@ -686,7 +686,9 @@ def test_control_limits():
     # Uncontrolled gates may have up to 6 qubits.
     qubits = cirq.LineQubit.range(6)
     CCCCCH = cirq.H(qubits[0]).controlled_by(*qubits[1:])
-    HHHHH = cirq.MatrixGate(cirq.unitary(cirq.Circuit(cirq.H.on_each(*qubits[1:]))))
+    HHHHH = cirq.MatrixGate(cirq.unitary(cirq.Circuit(cirq.H.on_each(*qubits[1:])))).on(
+        *qubits[1:]
+    )
     CHHHHH = HHHHH.controlled_by(qubits[0])
 
     qsimSim = qsimcirq.QSimSimulator()
@@ -695,8 +697,10 @@ def test_control_limits():
 
     result = qsimSim.simulate(cirq.Circuit(HHHHH), qubit_order=qubits)
     assert result.state_vector().shape == (64,)
-    
-    with pytest.raises(NotImplementedError, match="Received control gate on 5 target qubits"):
+
+    with pytest.raises(
+        NotImplementedError, match="Received control gate on 5 target qubits"
+    ):
         _ = qsimSim.simulate(cirq.Circuit(CHHHHH), qubit_order=qubits)
 
 

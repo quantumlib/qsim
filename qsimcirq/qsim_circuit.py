@@ -195,9 +195,10 @@ def add_op_to_circuit(
             # This gate has no valid control, and will be omitted.
             return
 
-        if qsim_gate.num_qubits() - qsim_gate.num_controls() > 4:
+        num_targets = qsim_gate.num_qubits() - qsim_gate.num_controls()
+        if num_targets > 4:
             raise NotImplementedError(
-                f"Received control gate on {gate.num_qubits()} target qubits; "
+                f"Received control gate on {num_targets} target qubits; "
                 + "only up to 4-qubit gates are supported."
             )
 
