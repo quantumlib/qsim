@@ -681,6 +681,25 @@ def test_control_values():
     assert result.state_vector()[0] == 1
 
 
+def test_control_limits():
+    # qsim allows any number of controls, but at most 4 target qubits.
+    # Uncontrolled gates may have up to 6 qubits.
+    qubits = cirq.LineQubit.range(6)
+    CCCCCH = cirq.H(qubits[0]).controlled_by(*qubits[1:])
+    HHHHH = cirq.MatrixGate(cirq.unitary(cirq.Circuit(cirq.H.on_each(*qubits[1:]))))
+    CHHHHH = HHHHH.controlled_by(qubits[0])
+
+    qsimSim = qsimcirq.QSimSimulator()
+    result = qsimSim.simulate(cirq.Circuit(CCCCCH), qubit_order=qubits)
+    assert result.state_vector().shape == (64,)
+
+    result = qsimSim.simulate(cirq.Circuit(HHHHH), qubit_order=qubits)
+    assert result.state_vector().shape == (64,)
+    
+    with pytest.raises(NotImplementedError, match="Received control gate on 5 target qubits"):
+        _ = qsimSim.simulate(cirq.Circuit(CHHHHH), qubit_order=qubits)
+
+
 def test_decomposable_gate():
     qubits = cirq.LineQubit.range(4)
 
