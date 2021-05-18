@@ -14,6 +14,6 @@ module "htcondor" {
   project="quantum-htcondor"
   max_replicas=20
   min_replicas=1
-  service_account="htcondor@quantum-htcondor.iam.gserviceaccount.com"
+  service_account="htcondor2@quantum-htcondor.iam.gserviceaccount.com"
   use_preemptibles=true
 }

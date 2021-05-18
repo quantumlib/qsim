@@ -54,7 +54,7 @@ variable "metric_target_queue" {
 }
 variable "compute_instance_type" {
   type = string
-  default = "n2-standard-80"
+  default = "n2-standard-16"
 }
 variable "instance_type" {
   type = string
@@ -87,13 +87,13 @@ locals{
       "condorversion" = var.condorversion, 
       "admin_email" = var.admin_email
     })
-  master_startup = templatefile(
+  manager_startup = templatefile(
     "${path.module}/startup-centos.sh", 
     {
       "bucket_name" = var.bucket_name,
       "project" = var.project,
       "cluster_name" = var.cluster_name,
-      "htserver_type" = "master", 
+      "htserver_type" = "manager", 
       "osversion" = var.osversion, 
       "condorversion" = var.condorversion, 
       "admin_email" = var.admin_email
@@ -103,7 +103,7 @@ data "google_compute_image" "startimage" {
   family  = var.osimage
   project = var.osproject
 }
-resource "google_compute_instance" "condor-master" {
+resource "google_compute_instance" "condor-manager" {
   boot_disk {
     auto_delete = "true"
     device_name = "boot"
@@ -122,8 +122,8 @@ resource "google_compute_instance" "condor-master" {
   enable_display      = "false"
 
   machine_type            = var.instance_type
-  metadata_startup_script = local.master_startup
-  name                    = "${var.cluster_name}-master"
+  metadata_startup_script = local.manager_startup
+  name                    = "${var.cluster_name}-manager"
   network_interface {
     access_config {
       network_tier = "PREMIUM"
@@ -154,7 +154,7 @@ resource "google_compute_instance" "condor-master" {
     enable_vtpm                 = "true"
   }
 
-  tags = ["${var.cluster_name}-master"]
+  tags = ["${var.cluster_name}-manager"]
   zone = var.zone
 }
 
@@ -257,9 +257,8 @@ resource "google_compute_instance_template" "condor-compute" {
   }
 
   service_account {
-      email = var.service_account
-  #  email  = "default"
-    scopes = ["https://www.googleapis.com/auth/monitoring.write", "https://www.googleapis.com/auth/trace.append", "https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/devstorage.full_control"]
+    email = var.service_account
+    scopes = ["cloud-platform"]
   }
 
   tags = ["${var.cluster_name}-compute"]

@@ -47,7 +47,7 @@ cd /tmp
 cat <<EOF > condor_config.local
 DISCARD_SESSION_KEYRING_ON_STARTUP=False
 CONDOR_ADMIN=${admin_email}
-CONDOR_HOST=${cluster_name}-master
+CONDOR_HOST=${cluster_name}-manager
 EOF
 
 # Case for compute
@@ -71,8 +71,8 @@ HasDocker = True
 EOF1
 fi
 
-# Case for master
-if [ "$SERVER_TYPE" == "master" ]; then
+# Case for manager
+if [ "$SERVER_TYPE" == "manager" ]; then
 cat <<EOF2 >> condor_config.local
 DAEMON_LIST = MASTER, COLLECTOR, NEGOTIATOR
 ALLOW_WRITE = *

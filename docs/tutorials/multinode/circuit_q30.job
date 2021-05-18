@@ -1,0 +1,11 @@
+universe                = docker
+docker_image            = gcr.io/quantum-builds/github.com/quantumlib/qsim
+arguments               = -c circuit_q30
+transfer_input_files    = ../../../circuits/circuit_q30
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+output                  = out/out.$(Process)
+error                   = out/err.$(Process)
+log                     = out/log.$(Process)
+request_memory          = 340GB
+queue 1

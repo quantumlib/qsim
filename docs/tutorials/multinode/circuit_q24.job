@@ -1,7 +1,7 @@
 universe                = docker
 docker_image            = gcr.io/quantum-builds/github.com/quantumlib/qsim
 arguments               = -c circuit_q24
-transfer_input_files    = https://raw.githubusercontent.com/quantumlib/qsim/master/circuits/circuit_q24
+transfer_input_files    = ../../../circuits/circuit_q24
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
 output                  = out/out.$(Process)
