@@ -4,8 +4,8 @@ arguments               = -c circuit_q24
 transfer_input_files    = ../../../circuits/circuit_q24
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
-output                  = out/out.$(Process)
-error                   = out/err.$(Process)
-log                     = out/log.$(Process)
-request_memory          = 30GB
+output                  = out/out.$(Cluster)-$(Process)
+error                   = out/err.$(Cluster)-$(Process)
+log                     = out/log.$(Cluster)-$(Process)
+request_memory          = 1GB
 queue 1

@@ -1,3 +1,9 @@
+variable "project" {
+  type=string
+}
+variable "zone" {
+  type=string
+}
 variable "cluster_name" {
   type = string
   default = "c"
@@ -8,12 +14,11 @@ variable "cluster_name" {
 module "htcondor" {
   source = "./htcondor/"
   cluster_name = var.cluster_name
+  project = var.project
+  zone = var.zone
   osversion = "7"
-  bucket_name = "quantum-hcondor-save"
-  zone="us-east4-c"
-  project="quantum-htcondor"
   max_replicas=20
   min_replicas=1
-  service_account="htcondor2@quantum-htcondor.iam.gserviceaccount.com"
-  use_preemptibles=true
+  service_account="htcondor@quantum-htcondor.iam.gserviceaccount.com"
+  use_preemptibles=false
 }

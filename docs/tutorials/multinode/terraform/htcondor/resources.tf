@@ -1,7 +1,3 @@
-variable "bucket_name" {
-    type = string
-    default = ""
-}
 variable "cluster_name" {
     type = string
     default = "condor"
@@ -68,7 +64,6 @@ locals{
   compute_startup = templatefile(
     "${path.module}/startup-centos.sh", 
     {
-      "bucket_name" = var.bucket_name,
       "project" = var.project,
       "cluster_name" = var.cluster_name,
       "htserver_type" = "compute", 
@@ -79,7 +74,6 @@ locals{
   submit_startup = templatefile(
     "${path.module}/startup-centos.sh", 
     {
-      "bucket_name" = var.bucket_name,
       "project" = var.project,
       "cluster_name" = var.cluster_name,
       "htserver_type" = "submit", 
@@ -90,7 +84,6 @@ locals{
   manager_startup = templatefile(
     "${path.module}/startup-centos.sh", 
     {
-      "bucket_name" = var.bucket_name,
       "project" = var.project,
       "cluster_name" = var.cluster_name,
       "htserver_type" = "manager", 
@@ -291,28 +284,33 @@ resource "google_compute_instance_group_manager" "condor-compute-igm" {
   zone = var.zone
 }
 resource "google_compute_autoscaler" "condor-compute-as" {
-  autoscaling_policy {
-    cooldown_period = "60"
-    max_replicas    = var.max_replicas
-
-    metric {
-      name   = "custom.googleapis.com/q0"
-      target = var.metric_target_queue
-      type   = "GAUGE"
-    }
-    metric {
-      name   = "custom.googleapis.com/la0"
-      target = var.metric_target_loadavg
-      type   = "GAUGE"
-    }
-
-    min_replicas = var.min_replicas
-  }
-
   name    = "${var.cluster_name}-compute-as"
   project = var.project
   target  = google_compute_instance_group_manager.condor-compute-igm.self_link
   zone    = var.zone
+
+  autoscaling_policy {
+    cooldown_period = "60"
+    max_replicas    = var.max_replicas
+    min_replicas = var.min_replicas
+
+    cpu_utilization {
+      target = 0.2
+    }
+
+    # metric {
+    #   name   = "custom.googleapis.com/q0"
+    #   target = var.metric_target_queue
+    #   type   = "GAUGE"
+    # }
+    # metric {
+    #   name   = "custom.googleapis.com/la0"
+    #   target = var.metric_target_loadavg
+    #   type   = "GAUGE"
+    # }
+
+  }
+
   timeouts {
     create = "60m"
     delete = "2h"
