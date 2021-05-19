@@ -39,7 +39,6 @@ module "htcondor" {
   cluster_name = var.cluster_name
   osimage = "lsst"
   osversion = "7"
-  bucket_name = "[[GCS_FUSE_BUCKET]]"
   zone="[[YOUR_ZONE]]"
   project="[[PROJECT_ID]]"
   max_replicas=20
