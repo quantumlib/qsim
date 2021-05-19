@@ -208,7 +208,7 @@ struct StateSpaceAVX512 : public StateSpace<StateSpaceAVX512<For>, For, float> {
     __m512 re_reg = _mm512_set1_ps(re);
     __m512 im_reg = _mm512_set1_ps(im);
 
-    __mmask16 exclude_n(-exclude);
+    __mmask16 exclude_n = exclude ? 0xffff : 0;
 
     auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
                 uint64_t bitsv, __m512 re_n, __m512 im_n, __mmask16 exclude_n,
@@ -230,7 +230,7 @@ struct StateSpaceAVX512 : public StateSpace<StateSpaceAVX512<For>, For, float> {
                    re_reg, im_reg, exclude_n, state.get());
   }
 
-// Does the equivalent of dest += src elementwise.
+  // Does the equivalent of dest += src elementwise.
   bool Add(const State& src, State& dest) const {
     if (src.num_qubits() != dest.num_qubits()) {
       return false;
