@@ -19,6 +19,6 @@ module "htcondor" {
   osversion = "7"
   max_replicas=20
   min_replicas=1
-  service_account="htcondor@quantum-htcondor.iam.gserviceaccount.com"
+  service_account="htcondor@${var.project}.iam.gserviceaccount.com"
   use_preemptibles=false
 }
