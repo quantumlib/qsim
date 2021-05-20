@@ -1,5 +1,4 @@
-# To run a multinode quantum simulation
-s
+# Run a multinode quantum simulation
 ## Objectives
 
 * Use Terraform to deploy a HTCondor cluster
