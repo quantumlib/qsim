@@ -22,7 +22,7 @@ CONDOR_REPO_URL=https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable
 sleep 2 #Give it some time to setup yum
 cd /tmp
 yum update -y
-yum install -y wget curl net-tools vim gcc python3 
+yum install -y wget curl net-tools vim gcc python3 git
 wget https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
 rpm --import RPM-GPG-KEY-HTCondor
 cd /etc/yum.repos.d && wget $CONDOR_REPO_URL

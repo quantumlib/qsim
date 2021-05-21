@@ -21,4 +21,6 @@ module "htcondor" {
   min_replicas=1
   service_account="htcondor@${var.project}.iam.gserviceaccount.com"
   use_preemptibles=false
+  osproject ="centos-cloud"
+  osimage ="centos-7"
 }

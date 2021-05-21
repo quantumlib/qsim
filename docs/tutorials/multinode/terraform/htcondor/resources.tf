@@ -16,7 +16,7 @@ variable "osimage" {
 }
 variable "osproject" {
   type = string
-  default = "click-to-deploy-images"
+  default = "cloud-hpc-image-public"
 }
 variable "condorversion" {
     type = string
