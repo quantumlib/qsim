@@ -313,7 +313,7 @@ class SimulatorAVX final {
   /**
    * @return The size of SIMD register if applicable.
    */
-  unsigned SIMDRegisterSize() {
+  static unsigned SIMDRegisterSize() {
     return 8;
   }
 
@@ -429,7 +429,7 @@ class SimulatorAVX final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -612,7 +612,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -702,7 +702,7 @@ class SimulatorAVX final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -890,7 +890,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -999,7 +999,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -1089,7 +1089,7 @@ class SimulatorAVX final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -1277,7 +1277,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -1391,7 +1391,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -1500,7 +1500,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -1690,7 +1690,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -1804,7 +1804,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -1918,7 +1918,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -2109,7 +2109,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -2223,7 +2223,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -2337,7 +2337,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -2657,7 +2657,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -2775,7 +2775,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -3121,7 +3121,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3258,7 +3258,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3367,7 +3367,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3485,7 +3485,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -3835,7 +3835,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -3976,7 +3976,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4104,7 +4104,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4241,7 +4241,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4350,7 +4350,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4468,7 +4468,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -4818,7 +4818,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -4959,7 +4959,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5091,7 +5091,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5232,7 +5232,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5360,7 +5360,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5497,7 +5497,7 @@ class SimulatorAVX final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                const __m256i* idx,fp_type* rstate) {
+                const __m256i* idx, fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -5670,7 +5670,7 @@ class SimulatorAVX final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[2], is[2];
 
@@ -5873,7 +5873,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -5975,7 +5975,7 @@ class SimulatorAVX final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[4], is[4];
 
@@ -6183,7 +6183,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -6304,7 +6304,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -6406,7 +6406,7 @@ class SimulatorAVX final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[8], is[8];
 
@@ -6614,7 +6614,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -6740,7 +6740,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -6861,7 +6861,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[16], is[16];
 
@@ -7073,7 +7073,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -7199,7 +7199,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -7325,7 +7325,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[32], is[32];
 
@@ -7538,7 +7538,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -7664,7 +7664,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 
@@ -7790,7 +7790,7 @@ class SimulatorAVX final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m256* w,
                 const uint64_t* ms, const uint64_t* xss,
-                const __m256i* idx,const fp_type* rstate) {
+                const __m256i* idx, const fp_type* rstate) {
       __m256 rn, in;
       __m256 rs[64], is[64];
 

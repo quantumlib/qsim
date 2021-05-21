@@ -1,4 +1,11 @@
-TARGETS = $(shell find . -maxdepth 1 -name '*_test.cc')
+HAVE_AVX512 = $(shell grep avx512f /proc/cpuinfo)
+TARGETS = $(shell\
+  if [ -z "$(HAVE_AVX512)" ] ; then\
+    find . -maxdepth 1 -name "*_test.cc" ! -name "*512*";\
+  else\
+    find . -maxdepth 1 -name "*_test.cc";\
+  fi\
+)
 TARGETS := $(TARGETS:%.cc=%.x)
 
 GTEST_DIR = $(CURDIR)/googletest/googletest

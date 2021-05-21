@@ -127,13 +127,13 @@ class SimulatorSSE final {
     switch (qs.size()) {
     case 1:
       if (qs[0] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate1H_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate1H_L(qs, cqs, cmask, matrix, state);
         }
       } else {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate1L_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate1L_L(qs, cqs, cmask, matrix, state);
@@ -142,19 +142,19 @@ class SimulatorSSE final {
       break;
     case 2:
       if (qs[0] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate2HH_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate2HH_L(qs, cqs, cmask, matrix, state);
         }
       } else if (qs[1] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate2HL_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate2HL_L(qs, cqs, cmask, matrix, state);
         }
       } else {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate2LL_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate2LL_L(qs, cqs, cmask, matrix, state);
@@ -163,19 +163,19 @@ class SimulatorSSE final {
       break;
     case 3:
       if (qs[0] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate3HHH_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate3HHH_L(qs, cqs, cmask, matrix, state);
         }
       } else if (qs[1] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate3HHL_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate3HHL_L(qs, cqs, cmask, matrix, state);
         }
       } else {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate3HLL_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate3HLL_L(qs, cqs, cmask, matrix, state);
@@ -184,19 +184,19 @@ class SimulatorSSE final {
       break;
     case 4:
       if (qs[0] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate4HHHH_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate4HHHH_L(qs, cqs, cmask, matrix, state);
         }
       } else if (qs[1] > 1) {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate4HHHL_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate4HHHL_L(qs, cqs, cmask, matrix, state);
         }
       } else {
-        if (cqs[0] > 2) {
+        if (cqs[0] > 1) {
           ApplyControlledGate4HHLL_H(qs, cqs, cmask, matrix, state);
         } else {
           ApplyControlledGate4HHLL_L(qs, cqs, cmask, matrix, state);
@@ -285,7 +285,7 @@ class SimulatorSSE final {
   /**
    * @return The size of SIMD register if applicable.
    */
-  unsigned SIMDRegisterSize() {
+  static unsigned SIMDRegisterSize() {
     return 4;
   }
 
@@ -392,7 +392,7 @@ class SimulatorSSE final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[2], is[2];
 
@@ -566,7 +566,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[4], is[4];
 
@@ -828,7 +828,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[8], is[8];
 
@@ -1111,7 +1111,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[16], is[16];
 
@@ -1399,7 +1399,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[32], is[32];
 
@@ -1689,7 +1689,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[64], is[64];
 
@@ -2107,7 +2107,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[2], is[2];
 
@@ -2216,7 +2216,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[2], is[2];
 
@@ -2553,7 +2553,7 @@ class SimulatorSSE final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[4], is[4];
 
@@ -2681,7 +2681,7 @@ class SimulatorSSE final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[4], is[4];
 
@@ -3235,7 +3235,7 @@ class SimulatorSSE final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[8], is[8];
 
@@ -3367,7 +3367,7 @@ class SimulatorSSE final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[8], is[8];
 
@@ -3959,7 +3959,7 @@ class SimulatorSSE final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[16], is[16];
 
@@ -4091,7 +4091,7 @@ class SimulatorSSE final {
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
-                 unsigned q0,fp_type* rstate) {
+                unsigned q0, fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[16], is[16];
 
@@ -4514,7 +4514,7 @@ class SimulatorSSE final {
     }
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
-                 unsigned q0,const fp_type* rstate) {
+                unsigned q0, const fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[2], is[2];
 
@@ -4708,7 +4708,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,const fp_type* rstate) {
+                unsigned q0, const fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[4], is[4];
 
@@ -5002,7 +5002,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,const fp_type* rstate) {
+                unsigned q0, const fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[8], is[8];
 
@@ -5319,7 +5319,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,const fp_type* rstate) {
+                unsigned q0, const fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[16], is[16];
 
@@ -5641,7 +5641,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,const fp_type* rstate) {
+                unsigned q0, const fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[32], is[32];
 
@@ -5965,7 +5965,7 @@ class SimulatorSSE final {
 
     auto f = [](unsigned n, unsigned m, uint64_t i, const __m128* w,
                 const uint64_t* ms, const uint64_t* xss,
-                 unsigned q0,const fp_type* rstate) {
+                unsigned q0, const fp_type* rstate) {
       __m128 rn, in;
       __m128 rs[64], is[64];
 

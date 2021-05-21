@@ -15,6 +15,7 @@
 #ifndef SIMULATOR_TESTFIXTURE_H_
 #define SIMULATOR_TESTFIXTURE_H_
 
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <vector>
@@ -347,7 +348,7 @@ void TestApplyGate5() {
 }
 
 template <typename Simulator>
-void TestApplyControlGate() {
+void TestCircuitWithControlledGates() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
   using Gate = GateQSim<fp_type>;
@@ -722,7 +723,7 @@ if __name__ == '__main__':
 }
 
 template <typename Simulator>
-void TestApplyControlGateDagger() {
+void TestCircuitWithControlledGatesDagger() {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
   using Gate = GateQSim<fp_type>;
@@ -1155,6 +1156,140 @@ void TestMultiQubitGates() {
 
         EXPECT_NEAR(std::real(a), expected_real, 1e-6);
         EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+      }
+    }
+  }
+}
+
+template <typename Simulator>
+void TestControlledGates(bool test_double) {
+  using StateSpace = typename Simulator::StateSpace;
+  using fp_type = typename Simulator::fp_type;
+
+  unsigned max_qubits = 5 + std::log2(Simulator::SIMDRegisterSize());
+  unsigned max_target_qubits = 4;
+  unsigned max_control_qubits = 3;
+
+  StateSpace state_space(1);
+  Simulator simulator(1);
+
+  auto state = state_space.Create(max_qubits);
+
+  std::vector<unsigned> qubits;
+  qubits.reserve(max_qubits);
+
+  std::vector<unsigned> cqubits;
+  cqubits.reserve(max_qubits);
+
+  std::vector<fp_type> matrix;
+  matrix.reserve(1 << (2 * max_target_qubits + 1));
+
+  // Iterate over circuit size.
+  for (unsigned num_qubits = 2; num_qubits <= max_qubits; ++num_qubits) {
+    unsigned size = 1 << num_qubits;
+    unsigned nmask = size - 1;
+
+    // Iterate over control qubits (as a binary mask).
+    for (unsigned cmask = 0; cmask <= nmask; ++cmask) {
+      cqubits.resize(0);
+
+      for (unsigned q = 0; q < num_qubits; ++q) {
+        if (((cmask >> q) & 1) != 0) {
+          cqubits.push_back(q);
+        }
+      }
+
+      if (cqubits.size() == 0
+          || cqubits.size() > std::min(max_control_qubits, num_qubits - 1)) {
+        continue;
+      }
+
+      // Iterate over target qubits (as a binary mask).
+      for (unsigned mask = 0; mask <= nmask; ++mask) {
+        unsigned qmask = mask & (cmask ^ nmask);
+
+        qubits.resize(0);
+
+        for (unsigned q = 0; q < num_qubits; ++q) {
+          if (((qmask >> q) & 1) > 0) {
+            qubits.push_back(q);
+          }
+        }
+
+        if (cmask != (mask & cmask)) continue;
+
+        unsigned num_available = num_qubits - cqubits.size();
+        if (qubits.size() == 0
+            || qubits.size() > std::min(max_target_qubits, num_available)) {
+          continue;
+        }
+
+        // Target qubits are consecuitive.
+        std::size_t i = 1;
+        for (; i < qubits.size(); ++i) {
+          if (qubits[i - 1] + 1 != qubits[i]) break;
+        }
+        if (i < qubits.size()) continue;
+
+        unsigned k = qubits[0];
+
+        unsigned size1 = 1 << qubits.size();
+        unsigned size2 = size1 * size1;
+
+        matrix.resize(0);
+        // Non-unitary gate matrix.
+        for (unsigned i = 0; i < 2 * size2; ++i) {
+          matrix.push_back(i + 1);
+        }
+
+        unsigned zmask = nmask ^ qmask;
+
+        // Iterate over control values (all zeros or all ones).
+        std::vector<unsigned> cvals = {0, (1U << cqubits.size()) - 1};
+        for (unsigned cval : cvals) {
+          unsigned cvmask = cval == 0 ? 0 : cmask;
+
+          // Starting state.
+          for (unsigned j = 0; j < size; ++j) {
+            auto val = 2 * j;
+            state_space.SetAmpl(state, j, val, val + 1);
+          }
+
+          simulator.ApplyControlledGate(
+              qubits, cqubits, cval, matrix.data(), state);
+
+          // Test results.
+          for (unsigned j = 0; j < size; ++j) {
+            auto a = state_space.GetAmpl(state, j);
+
+            if ((j & cmask) == cvmask) {
+              // The target matrix is applied.
+
+              unsigned s = j & zmask;
+              unsigned l = (j ^ s) >> k;
+
+              // Expected results are calculated analytically.
+              fp_type expected_real =
+                  -fp_type(2 * size2 * l + size1 * (2 * s + 2)
+                           + (1 + (1 << k)) * (size2 - size1));
+              fp_type expected_imag = -expected_real - size1
+                  + 2 * (size1 * (1 << k) * (size1 - 1)
+                               * (1 + 2 * size1 * (2 + 3 * l))
+                         + 6 * size2 * (1 + 2 * l) * s) / 3;
+
+              EXPECT_NEAR(std::real(a), expected_real, 1e-6);
+              EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+            } else {
+              // The target matrix is not applied. Unmodified entries.
+
+              fp_type expected_real = 2 * j;
+              fp_type expected_imag = expected_real + 1;
+
+              EXPECT_NEAR(std::real(a), expected_real, 1e-6);
+              EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+            }
+          }
+        }
       }
     }
   }
