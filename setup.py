@@ -46,7 +46,9 @@ class CMakeBuild(build_ext):
         build_args = ["--config", cfg]
 
         if platform.system() == "Windows":
-            cmake_args += [f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}"]
+            cmake_args += [
+                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir)
+            ]
             if sys.maxsize > 2 ** 32:
                 cmake_args += ["-A", "x64"]
             build_args += ["--", "/m"]
@@ -75,14 +77,14 @@ description = "Schrödinger and Schrödinger-Feynman simulators for quantum circ
 # README file as long_description.
 long_description = open("README.md", encoding="utf-8").read()
 
-__version__ = "0.9.4"
+__version__ = "0.9.5"
 
 setup(
     name="qsimcirq",
     version=__version__,
     author="Vamsi Krishna Devabathini",
     author_email="devabathini92@gmail.com",
-    python_requires=">=3.6.0",
+    python_requires=">=3.3.0",
     install_requires=requirements,
     license="Apache 2",
     description=description,
