@@ -601,7 +601,7 @@ class SimulatorHelper {
     uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
     float* fsv = state.release();
     auto capsule = py::capsule(
-        fsv, [](void *data) { delete reinterpret_cast<float *>(data); });
+        fsv, [](void *data) { detail::free(data); });
     return py::array_t<float>(fsv_size, fsv, capsule);
   }
 
