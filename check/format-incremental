@@ -113,7 +113,8 @@ if (( only_print == 1 )); then
     flynt_args+=("--dry-run")
 fi
 
-flynt ${format_files} "${flynt_args[@]}"
+# Exclude setup.py due to issues in release pipeline (#351).
+flynt ${format_files} "${flynt_args[@]}" -e setup\.py
 FLYNTSTATUS=$?
 
 echo "Running the black formatter..."
