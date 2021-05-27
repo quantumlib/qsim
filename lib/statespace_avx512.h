@@ -80,7 +80,7 @@ template <typename For>
 class StateSpaceAVX512 :
     public StateSpace<StateSpaceAVX512<For>, VectorSpace, For, float> {
  private:
-  using Base = StateSpace<StateSpaceAVX512<For>, VectorSpace, For, float>;
+  using Base = StateSpace<StateSpaceAVX512<For>, qsim::VectorSpace, For, float>;
 
  public:
   using State = typename Base::State;

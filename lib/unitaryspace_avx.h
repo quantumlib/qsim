@@ -39,7 +39,8 @@ template <typename For>
 struct UnitarySpaceAVX :
     public UnitarySpace<UnitarySpaceAVX<For>, VectorSpace, For, float> {
  private:
-  using Base = UnitarySpace<UnitarySpaceAVX<For>, VectorSpace, For, float>;
+  using Base = UnitarySpace<UnitarySpaceAVX<For>,
+                            qsim::VectorSpace, For, float>;
 
  public:
   using Unitary = typename Base::Unitary;
