@@ -65,7 +65,7 @@ template <typename For>
 class StateSpaceSSE :
     public StateSpace<StateSpaceSSE<For>, VectorSpace, For, float> {
  private:
-  using Base = StateSpace<StateSpaceSSE<For>, VectorSpace, For, float>;
+  using Base = StateSpace<StateSpaceSSE<For>, qsim::VectorSpace, For, float>;
 
  public:
   using State = typename Base::State;

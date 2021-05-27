@@ -39,7 +39,8 @@ template <typename For>
 struct UnitarySpaceSSE :
     public UnitarySpace<UnitarySpaceSSE<For>, VectorSpace, For, float> {
  private:
-  using Base = UnitarySpace<UnitarySpaceSSE<For>, VectorSpace, For, float>;
+  using Base = UnitarySpace<UnitarySpaceSSE<For>,
+                            qsim::VectorSpace, For, float>;
 
  public:
   using Unitary = typename Base::Unitary;

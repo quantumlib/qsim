@@ -35,7 +35,7 @@ template <typename For, typename FP>
 class StateSpaceBasic :
     public StateSpace<StateSpaceBasic<For, FP>, VectorSpace, For, FP> {
  private:
-  using Base = StateSpace<StateSpaceBasic<For, FP>, VectorSpace, For, FP>;
+  using Base = StateSpace<StateSpaceBasic<For, FP>, qsim::VectorSpace, For, FP>;
 
  public:
   using State = typename Base::State;
