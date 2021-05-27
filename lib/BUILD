@@ -323,10 +323,7 @@ cc_library(
 cc_library(
     name = "statespace",
     hdrs = ["statespace.h"],
-    deps = [
-        ":util",
-        ":vectorspace",
-    ],
+    deps = [":util"],
 )
 
 cc_library(
@@ -335,6 +332,7 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
     ],
 )
 
@@ -344,6 +342,7 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
     ],
 )
 
@@ -353,6 +352,7 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
     ],
 )
 
@@ -362,6 +362,7 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
     ],
 )
 
@@ -468,31 +469,42 @@ cc_library(
 cc_library(
     name = "unitaryspace",
     hdrs = ["unitaryspace.h"],
-    deps = [":vectorspace"],
 )
 
 cc_library(
     name = "unitaryspace_avx",
     hdrs = ["unitaryspace_avx.h"],
-    deps = [":unitaryspace"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
+    ],
 )
 
 cc_library(
     name = "unitaryspace_avx512",
     hdrs = ["unitaryspace_avx512.h"],
-    deps = [":unitaryspace"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
+    ],
 )
 
 cc_library(
     name = "unitaryspace_basic",
     hdrs = ["unitaryspace_basic.h"],
-    deps = [":unitaryspace"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
+    ],
 )
 
 cc_library(
     name = "unitaryspace_sse",
     hdrs = ["unitaryspace_sse.h"],
-    deps = [":unitaryspace"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
+    ],
 )
 
 ### Unitary calculator libraries ###
@@ -502,7 +514,7 @@ cc_library(
     hdrs = ["unitary_calculator_avx.h"],
     deps = [
         ":bits",
-        ":unitaryspace_avx"
+        ":unitaryspace_avx",
     ],
 )
 
@@ -511,7 +523,7 @@ cc_library(
     hdrs = ["unitary_calculator_avx512.h"],
     deps = [
         ":bits",
-        ":unitaryspace_avx512"
+        ":unitaryspace_avx512",
     ],
 )
 
@@ -520,7 +532,7 @@ cc_library(
     hdrs = ["unitary_calculator_basic.h"],
     deps = [
         ":bits",
-        ":unitaryspace_basic"
+        ":unitaryspace_basic",
     ],
 )
 
@@ -529,7 +541,7 @@ cc_library(
     hdrs = ["unitary_calculator_sse.h"],
     deps = [
         ":bits",
-        ":unitaryspace_sse"
+        ":unitaryspace_sse",
     ],
 )
 
