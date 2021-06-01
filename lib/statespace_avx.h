@@ -68,8 +68,8 @@ template <typename For>
 class StateSpaceAVX :
     public StateSpace<StateSpaceAVX<For>, VectorSpace, For, float> {
  private:
-  // Test should now pass Windows kokoro.
-  using Base = StateSpace<StateSpaceAVX<For>, qsim::VectorSpace, For, float>;
+  // Test should now fail Windows kokoro.
+  using Base = StateSpace<StateSpaceAVX<For>, VectorSpace, For, float>;
 
  public:
   using State = typename Base::State;
