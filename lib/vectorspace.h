@@ -28,9 +28,9 @@ namespace qsim {
 
 namespace detail {
 
-inline void do_not_free(void*) noexcept {}
+inline void do_not_free(void*) {}
 
-inline void free(void* ptr) noexcept {
+inline void free(void* ptr) {
 #ifdef _WIN32
   _aligned_free(ptr);
 #else
@@ -47,7 +47,7 @@ class VectorSpace {
   using fp_type = FP;
 
  private:
-  using Pointer = std::unique_ptr<fp_type, decltype(&free)>;
+  using Pointer = std::unique_ptr<fp_type, decltype(&detail::free)>;
 
  public:
   class Vector {

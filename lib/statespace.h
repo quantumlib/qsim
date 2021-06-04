@@ -21,18 +21,19 @@
 #include <vector>
 
 #include "util.h"
-#include "vectorspace.h"
 
 namespace qsim {
 
 /**
  * Abstract class containing context and routines for general state-vector
- * manipulations. "AVX", "Basic", and "SSE" implementations are provided.
+ * manipulations. "AVX", "AVX512", "Basic", and "SSE" implementations are
+ * provided.
  */
-template <typename Impl, typename For, typename FP>
-class StateSpace : public VectorSpace<Impl, For, FP> {
+template <typename Impl,
+          template<typename...> class VectorSpace, typename... VSTypeParams>
+class StateSpace : public VectorSpace<Impl, VSTypeParams...> {
  private:
-  using Base = VectorSpace<Impl, For, FP>;
+  using Base = VectorSpace<Impl, VSTypeParams...>;
 
  public:
   using fp_type = typename Base::fp_type;
@@ -66,8 +67,8 @@ class StateSpace : public VectorSpace<Impl, For, FP> {
     bool valid;
   };
 
-  template <typename... ForArgs>
-  StateSpace(ForArgs&&... args) : Base(args...) {}
+  template <typename... Args>
+  StateSpace(Args&&... args) : Base(args...) {}
 
   double Norm(const State& state) const {
     auto partial_norms = static_cast<const Impl&>(*this).PartialNorms(state);
