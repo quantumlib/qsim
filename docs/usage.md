@@ -2,23 +2,26 @@
 
 qsim and qsimh are designed to be extensible to a variety of different
 applications. The base versions of each are `qsim_base` and `qsimh_base`;
-sample extensions are provided in [apps](/apps). To compile the codes, just run
-`make qsim`. Binaries of the form `qsim(h)_*.x` will be added to the `apps`
-directory.
+sample extensions are provided in
+[apps](https://github.com/quantumlib/qsim/blob/master/apps). To compile the
+code, just run `make qsim`. Binaries of the form `qsim(h)_*.x` will be added
+to the `apps` directory.
 
-Sample circuits are provided in [circuits](/circuits).
+Sample circuits are provided in
+[circuits](https://github.com/quantumlib/qsim/blob/master/circuits).
 
 ## qsim_base usage
 
 ```
-./qsim_base.x -c circuit_file -d maxtime -t num_threads -v verbosity
+./qsim_base.x -c circuit_file -d maxtime -t num_threads -f max_fused_size -v verbosity
 ```
 
-| Flag | Description | 
+| Flag | Description |
 |-------|------------|
-|`-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run|
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
+|`-f max_fused_size` | maximum fused gate size|
 |`-v verbosity` | verbosity level (0,1,>1)|
 
 qsim_base computes all the amplitudes and just prints the first eight of them
@@ -32,15 +35,16 @@ Example:
 ## qsim_von_neumann usage
 
 ```
-./qsim_von_neumann.x -c circuit_file -d maxtime -t num_threads -v verbosity
+./qsim_von_neumann.x -c circuit_file -d maxtime -t num_threads -f max_fused_size -v verbosity
 ```
 
 
-| Flag | Description | 
+| Flag | Description |
 |-------|------------|
-|`-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run|
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
+|`-f max_fused_size` | maximum fused gate size|
 |`-v verbosity` | verbosity level (0,1,>1)|
 
 qsim_von_neumann computes all the amplitudes and calculates the von Neumann
@@ -58,17 +62,19 @@ Example:
 ./qsim_amplitudes.x -c circuit_file \
                     -d times_to_save_results \
                     -i input_files \
-                    -o output_files \  
+                    -o output_files \
+                    -f max_fused_size \
                     -t num_threads -v verbosity
 ```
 
-| Flag | Description | 
+| Flag | Description |
 |-------|------------|
-|`-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run|
 |`-d times_to_save_results`  | comma-separated list of circuit times to save results at|
 |`-i input_files` | comma-separated list of bitstring input files|
 |`-o output_files` | comma-separated list of amplitude output files|
 |`-t num_threads` | number of threads to use|
+|`-f max_fused_size` | maximum fused gate size|
 |`-v verbosity` | verbosity level (0,1,>1)|
 
 qsim_amplitudes reads input files of bitstrings, computes the corresponding
@@ -94,9 +100,9 @@ Example:
                -t num_threads -v verbosity
 ```
 
-| Flag | Description | 
+| Flag | Description |
 |-------|------------|
-|`-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run|
 |`-d maxtime` | maximum time |
 |`-k part1_qubits` |  comma-separated list of qubit indices for part 1 |
 |`-w prefix`| prefix value |
@@ -173,9 +179,9 @@ maximum "time".
                      -t num_threads -v verbosity
 ```
 
-| Flag | Description | 
+| Flag | Description |
 |-------|------------|
-|`-c circuit_file` | circuit file to run| 
+|`-c circuit_file` | circuit file to run|
 |`-d maxtime` | maximum time |
 |`-k part1_qubits` |  comma-separated list of qubit indices for part 1 |
 |`-w prefix`| prefix value |
@@ -190,7 +196,7 @@ qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
 amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman
 method is used, see above.
 
-Bitstring files should contain bitstings (one bitstring per line) in text
+Bitstring files should contain bitstrings (one bitstring per line) in text
 format.
 
 Example (do not execute - see below):

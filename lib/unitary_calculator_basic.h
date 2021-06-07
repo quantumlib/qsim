@@ -15,54 +15,16 @@
 #ifndef UNITARY_CALCULATOR_BASIC_H_
 #define UNITARY_CALCULATOR_BASIC_H_
 
-#include <cstdint>
-#include <vector>
 
+#include <algorithm>
+#include <complex>
+#include <cstdint>
+
+#include "bits.h"
 #include "unitaryspace_basic.h"
 
 namespace qsim {
-
 namespace unitary {
-
-namespace {
-
-template <typename FP = float>
-inline const FP dot_one_r(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const int i, const FP* gate) {
-  return m_0i_r * gate[i * 4 + 0] - m_0i_i * gate[i * 4 + 1] +
-         m_1i_r * gate[i * 4 + 2] - m_1i_i * gate[i * 4 + 3];
-}
-
-template <typename FP = float>
-inline const FP dot_one_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const int i, const FP* gate) {
-  return m_0i_r * gate[i * 4 + 1] + m_0i_i * gate[i * 4 + 0] +
-         m_1i_r * gate[i * 4 + 3] + m_1i_i * gate[i * 4 + 2];
-}
-
-template <typename FP = float>
-inline const FP dot_two_r(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const FP m_2i_r, const FP m_2i_i,
-                          const FP m_3i_r, const FP m_3i_i, const int i,
-                          const FP* gate) {
-  return m_0i_r * gate[i * 8 + 0] - m_0i_i * gate[i * 8 + 1] +
-         m_1i_r * gate[i * 8 + 2] - m_1i_i * gate[i * 8 + 3] +
-         m_2i_r * gate[i * 8 + 4] - m_2i_i * gate[i * 8 + 5] +
-         m_3i_r * gate[i * 8 + 6] - m_3i_i * gate[i * 8 + 7];
-}
-
-template <typename FP = float>
-inline const FP dot_two_i(const FP m_0i_r, const FP m_0i_i, const FP m_1i_r,
-                          const FP m_1i_i, const FP m_2i_r, const FP m_2i_i,
-                          const FP m_3i_r, const FP m_3i_i, const int i,
-                          const FP* gate) {
-  return m_0i_r * gate[i * 8 + 1] + m_0i_i * gate[i * 8 + 0] +
-         m_1i_r * gate[i * 8 + 3] + m_1i_i * gate[i * 8 + 2] +
-         m_2i_r * gate[i * 8 + 5] + m_2i_i * gate[i * 8 + 4] +
-         m_3i_r * gate[i * 8 + 7] + m_3i_i * gate[i * 8 + 6];
-}
-
-}  // namespace
 
 /**
  * Quantum circuit unitary calculator without vectorization.
@@ -78,8 +40,7 @@ class UnitaryCalculatorBasic final {
   using State = Unitary;
 
   template <typename... ForArgs>
-  explicit UnitaryCalculatorBasic(unsigned num_qubits, ForArgs&&... args)
-      : for_(args...), num_qubits_(num_qubits) {}
+  explicit UnitaryCalculatorBasic(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using non-vectorized instructions.
@@ -89,17 +50,35 @@ class UnitaryCalculatorBasic final {
    */
   void ApplyGate(const std::vector<unsigned>& qs,
                  const fp_type* matrix, Unitary& state) const {
-    if (qs.size() == 1) {
-       ApplyGate1(qs[0], matrix, state);
-    } else if (qs.size() == 2) {
-      // Assume qs[0] < qs[1].
-      ApplyGate2(qs[0], qs[1], matrix, state);
+    // Assume qs[0] < qs[1] < qs[2] < ... .
+
+    switch (qs.size()) {
+    case 1:
+      ApplyGate1H(qs, matrix, state);
+      break;
+    case 2:
+      ApplyGate2H(qs, matrix, state);
+      break;
+    case 3:
+      ApplyGate3H(qs, matrix, state);
+      break;
+    case 4:
+      ApplyGate4H(qs, matrix, state);
+      break;
+    case 5:
+      ApplyGate5H(qs, matrix, state);
+      break;
+    case 6:
+      ApplyGate6H(qs, matrix, state);
+      break;
+    default:
+      // Not implemented.
+      break;
     }
   }
 
   /**
    * Applies a controlled gate using non-vectorized instructions.
-   * This function is not implemented.
    * @param qs Indices of the qubits affected by this gate.
    * @param cqs Indices of control qubits.
    * @param cmask Bit mask of control qubit values.
@@ -109,301 +88,828 @@ class UnitaryCalculatorBasic final {
   void ApplyControlledGate(const std::vector<unsigned>& qs,
                            const std::vector<unsigned>& cqs, uint64_t cmask,
                            const fp_type* matrix, Unitary& state) const {
-    // Not implemented.
+    if (cqs.size() == 0) {
+      ApplyGate(qs, matrix, state);
+      return;
+    }
+
+    switch (qs.size()) {
+    case 1:
+      ApplyControlledGate1H(qs, cqs, cmask, matrix, state);
+      break;
+    case 2:
+      ApplyControlledGate2H(qs, cqs, cmask, matrix, state);
+      break;
+    case 3:
+      ApplyControlledGate3H(qs, cqs, cmask, matrix, state);
+      break;
+    case 4:
+      ApplyControlledGate4H(qs, cqs, cmask, matrix, state);
+      break;
+    default:
+      // Not implemented.
+      break;
+    }
+  }
+
+  /**
+   * @return The size of SIMD register if applicable.
+   */
+  static unsigned SIMDRegisterSize() {
+    return 1;
   }
 
  private:
-  /**
-   * Applies a single-qubit gate using non-vectorized instructions.
-   * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-   * @param q0 Index of the qubit affected by this gate.
-   * @param matrix Matrix representation of the gate to be applied.
-   * @param state The state of the system, to be updated by this method.
-   */
-  void ApplyGate1(unsigned q0, const fp_type* matrix, Unitary& state) const {
-    const uint64_t sizei = uint64_t(1) << num_qubits_;
-    const uint64_t sizek = uint64_t(1) << q0;
+  void ApplyGate1H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, Unitary& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
 
-    auto data = state.get();
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
 
-    auto f = [](unsigned n, unsigned m, uint64_t l, unsigned num_qubits,
-                uint64_t sizei, uint64_t sizek,
-                const fp_type* matrix, fp_type* data) {
-      uint64_t l1 = l >> (num_qubits - 1);
-      uint64_t k = l1 & (sizek - 1);
-      uint64_t i = 2 * (l1 ^ k);
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
 
-      uint64_t l2 = l & (sizei / 2 - 1);
-      uint64_t kk = l2 & (sizek - 1);
-      uint64_t ii = 2 * (l2 ^ kk);
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[2], is[2];
 
-      uint64_t si = i | k;
-      uint64_t si2 = ii | kk;
-      uint64_t p = si;
-      uint64_t pp = si2;
-      fp_type m00_r = data[2 * p * sizei + 2 * pp];
-      fp_type m00_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m01_r = data[2 * p * sizei + 2 * pp];
-      fp_type m01_i = data[2 * p * sizei + 2 * pp + 1];
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]);
 
-      p = si | sizek;
-      pp = si2;
-      fp_type m10_r = data[2 * p * sizei + 2 * pp];
-      fp_type m10_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m11_r = data[2 * p * sizei + 2 * pp];
-      fp_type m11_i = data[2 * p * sizei + 2 * pp + 1];
+      auto p0 = rstate + row_size * r + 2 * c;
 
-      // End of extraction. Begin computation.
-      p = si;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m00_r, m00_i, m10_r, m10_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m00_r, m00_i, m10_r, m10_i, 0, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m01_r, m01_i, m11_r, m11_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m01_r, m01_i, m11_r, m11_i, 0, matrix);
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
 
-      p = si | sizek;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m00_r, m00_i, m10_r, m10_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m00_r, m00_i, m10_r, m10_i, 1, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_one_r(m01_r, m01_i, m11_r, m11_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_one_i(m01_r, m01_i, m11_r, m11_i, 1, matrix);
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
     };
 
-    for_.Run((sizei / 2) * (sizei / 2), f,
-             num_qubits_, sizei, sizek, matrix, data);
+    fp_type* rstate = state.get();
+
+    unsigned k = 1;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
   }
 
-  /**
-   * Apply a two-qubit gate using non-vectorized instructions.
-   * The inner loop (V_i = \sum_j M_ij V_j) is unrolled by hand.
-   * Note that qubit order is inverted in this operation.
-   * @param q0 Index of the second qubit affected by this gate.
-   * @param q1 Index of the first qubit affected by this gate.
-   * @param matrix Matrix representation of the gate to be applied.
-   * @param state The state of the system, to be updated by this method.
-   */
-  void ApplyGate2(unsigned q0, unsigned q1, const fp_type* matrix,
-                  Unitary& state) const {
-    // Assume q0 < q1.
-    const uint64_t sizei = uint64_t(1) << num_qubits_;
-    const uint64_t sizej = uint64_t(1) << q1;
-    const uint64_t sizek = uint64_t(1) << q0;
+  void ApplyGate2H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, Unitary& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
 
-    auto data = state.get();
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
 
-    auto f = [](unsigned n, unsigned m, uint64_t l, unsigned num_qubits,
-                uint64_t sizei, uint64_t sizej, uint64_t sizek,
-                const fp_type* matrix, fp_type* data) {
-      uint64_t l1 = l >> (num_qubits - 2);
-      uint64_t k = l1 & (sizek - 1);
-      uint64_t t = l1 & (sizej / 2 - 1);
-      uint64_t j = 2 * (t ^ k);
-      uint64_t i = 4 * (l1 ^ t);
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
 
-      uint64_t l2 = l & (sizei / 4 - 1);
-      uint64_t kk = l2 & (sizek - 1);
-      uint64_t tt = l2 & (sizej / 2 - 1);
-      uint64_t jj = 2 * (tt ^ kk);
-      uint64_t ii = 4 * (l2 ^ tt);
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[4], is[4];
 
-      uint64_t si = i | j | k;
-      uint64_t si2 = ii | jj | kk;
-      uint64_t p = si;
-      uint64_t pp = si2;
-      fp_type m00_r = data[2 * p * sizei + 2 * pp];
-      fp_type m00_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m01_r = data[2 * p * sizei + 2 * pp];
-      fp_type m01_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m02_r = data[2 * p * sizei + 2 * pp];
-      fp_type m02_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m03_r = data[2 * p * sizei + 2 * pp];
-      fp_type m03_i = data[2 * p * sizei + 2 * pp + 1];
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2]);
 
-      p = si | sizek;
-      pp = si2;
-      fp_type m10_r = data[2 * p * sizei + 2 * pp];
-      fp_type m10_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m11_r = data[2 * p * sizei + 2 * pp];
-      fp_type m11_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m12_r = data[2 * p * sizei + 2 * pp];
-      fp_type m12_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m13_r = data[2 * p * sizei + 2 * pp];
-      fp_type m13_i = data[2 * p * sizei + 2 * pp + 1];
+      auto p0 = rstate + row_size * r + 2 * c;
 
-      p = si | sizej;
-      pp = si2;
-      fp_type m20_r = data[2 * p * sizei + 2 * pp];
-      fp_type m20_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m21_r = data[2 * p * sizei + 2 * pp];
-      fp_type m21_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m22_r = data[2 * p * sizei + 2 * pp];
-      fp_type m22_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m23_r = data[2 * p * sizei + 2 * pp];
-      fp_type m23_i = data[2 * p * sizei + 2 * pp + 1];
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
 
-      p |= sizek;
-      pp = si2;
-      fp_type m30_r = data[2 * p * sizei + 2 * pp];
-      fp_type m30_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizek;
-      fp_type m31_r = data[2 * p * sizei + 2 * pp];
-      fp_type m31_i = data[2 * p * sizei + 2 * pp + 1];
-      pp = si2 | sizej;
-      fp_type m32_r = data[2 * p * sizei + 2 * pp];
-      fp_type m32_i = data[2 * p * sizei + 2 * pp + 1];
-      pp |= sizek;
-      fp_type m33_r = data[2 * p * sizei + 2 * pp];
-      fp_type m33_i = data[2 * p * sizei + 2 * pp + 1];
+      uint64_t j = 0;
 
-      // End of extraction. Begin computation.
-      p = si;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 0, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 0, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 0, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 0, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 0, matrix);
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
 
-      p = si | sizek;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 1, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 1, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 1, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 1, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 1, matrix);
+        j += 2;
 
-      p = si | sizej;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 2, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 2, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 2, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 2, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 2, matrix);
+        for (unsigned n = 1; n < 4; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
 
-      p |= sizek;
-      pp = si2;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m00_r, m00_i, m10_r, m10_i, m20_r, m20_i, m30_r,
-                    m30_i, 3, matrix);
-      pp = si2 | sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m01_r, m01_i, m11_r, m11_i, m21_r, m21_i, m31_r,
-                    m31_i, 3, matrix);
-      pp = si2 | sizej;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m02_r, m02_i, m12_r, m12_i, m22_r, m22_i, m32_r,
-                    m32_i, 3, matrix);
-      pp |= sizek;
-      data[2 * p * sizei + 2 * pp] =
-          dot_two_r(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 3, matrix);
-      data[2 * p * sizei + 2 * pp + 1] =
-          dot_two_i(m03_r, m03_i, m13_r, m13_i, m23_r, m23_i, m33_r,
-                    m33_i, 3, matrix);
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
     };
 
-    for_.Run((sizei / 4) * (sizei / 4), f,
-             num_qubits_, sizei, sizej, sizek, matrix, data);
+    fp_type* rstate = state.get();
+
+    unsigned k = 2;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
+  }
+
+  void ApplyGate3H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, Unitary& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[8], is[8];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
+          | (8 * ii & ms[3]);
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
+  }
+
+  void ApplyGate4H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, Unitary& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[16], is[16];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
+          | (8 * ii & ms[3]) | (16 * ii & ms[4]);
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
+  }
+
+  void ApplyGate5H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, Unitary& state) const {
+    uint64_t xs[5];
+    uint64_t ms[6];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 5; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
+
+    uint64_t xss[32];
+    for (unsigned i = 0; i < 32; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 5; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[32], is[32];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
+          | (8 * ii & ms[3]) | (16 * ii & ms[4]) | (32 * ii & ms[5]);
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
+  }
+
+  void ApplyGate6H(const std::vector<unsigned>& qs,
+                   const fp_type* matrix, Unitary& state) const {
+    uint64_t xs[6];
+    uint64_t ms[7];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 6; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[6] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[5] - 1);
+
+    uint64_t xss[64];
+    for (unsigned i = 0; i < 64; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 6; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[64], is[64];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = (1 * ii & ms[0]) | (2 * ii & ms[1]) | (4 * ii & ms[2])
+          | (8 * ii & ms[3]) | (16 * ii & ms[4]) | (32 * ii & ms[5])
+          | (64 * ii & ms[6]);
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss, size, raw_size, rstate);
+  }
+
+  void ApplyControlledGate1H(const std::vector<unsigned>& qs,
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             Unitary& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[2], is[2];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 1 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
+  }
+
+  void ApplyControlledGate2H(const std::vector<unsigned>& qs,
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             Unitary& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[4], is[4];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 2 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
+  }
+
+  void ApplyControlledGate3H(const std::vector<unsigned>& qs,
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             Unitary& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[8], is[8];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 3 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
+  }
+
+  void ApplyControlledGate4H(const std::vector<unsigned>& qs,
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             Unitary& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    uint64_t emaskh = 0;
+
+    for (auto q : cqs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    uint64_t cmaskh = bits::ExpandBits(cmask, state.num_qubits(), emaskh);
+
+    for (auto q : qs) {
+      emaskh |= uint64_t{1} << q;
+    }
+
+    emaskh = ~emaskh;
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
+                uint64_t size, uint64_t row_size, fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[16], is[16];
+
+      uint64_t ii = i % size;
+      uint64_t r = i / size;
+      uint64_t c = bits::ExpandBits(ii, num_qubits, emaskh) | cmaskh;
+
+      auto p0 = rstate + row_size * r + 2 * c;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        *(p0 + xss[l]) = rn;
+        *(p0 + xss[l] + 1) = in;
+      }
+    };
+
+    fp_type* rstate = state.get();
+
+    unsigned k = 4 + cqs.size();
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+    uint64_t size2 = uint64_t{1} << state.num_qubits();
+    uint64_t raw_size = UnitarySpace::MinRowSize(state.num_qubits());
+
+    for_.Run(size * size2, f, matrix, ms, xss,
+             state.num_qubits(), cmaskh, emaskh, size, raw_size, rstate);
   }
 
   For for_;
-  unsigned num_qubits_;
 };
 
 }  // namespace unitary

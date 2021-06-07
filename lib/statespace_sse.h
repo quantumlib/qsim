@@ -25,6 +25,7 @@
 
 #include "statespace.h"
 #include "util.h"
+#include "vectorspace.h"
 
 namespace qsim {
 
@@ -46,9 +47,10 @@ inline __m128i GetZeroMaskSSE(uint64_t i, uint64_t mask, uint64_t bits) {
 }
 
 inline double HorizontalSumSSE(__m128 s) {
-  float buf[4];
-  _mm_storeu_ps(buf, s);
-  return buf[0] + buf[1] + buf[2] + buf[3];
+  __m128 ss = _mm_movehdup_ps(s);
+  __m128 s1 = _mm_add_ps(s, ss);
+
+  return _mm_cvtss_f32(_mm_add_ss(s1, _mm_movehl_ps(ss, s1)));
 }
 
 }  // namespace detail
@@ -60,9 +62,10 @@ inline double HorizontalSumSSE(__m128 s) {
  * into an SSE register.
  */
 template <typename For>
-class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
+class StateSpaceSSE :
+    public StateSpace<StateSpaceSSE<For>, VectorSpace, For, float> {
  private:
-  using Base = StateSpace<StateSpaceSSE<For>, For, float>;
+  using Base = StateSpace<StateSpaceSSE<For>, qsim::VectorSpace, For, float>;
 
  public:
   using State = typename Base::State;
@@ -197,6 +200,45 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
     uint64_t p = (8 * (i / 4)) + (i % 4);
     state.get()[p] = re;
     state.get()[p + 4] = im;
+  }
+
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits,
+                   const std::complex<fp_type>& val,
+                   bool exclude = false) const {
+    BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val));
+  }
+
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits, fp_type re,
+                   fp_type im, bool exclude = false) const {
+    __m128 re_reg = _mm_set1_ps(re);
+    __m128 im_reg = _mm_set1_ps(im);
+    __m128i exclude_reg = _mm_setzero_si128();
+    if (exclude) {
+      exclude_reg = _mm_cmpeq_epi32(exclude_reg, exclude_reg);
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
+                uint64_t bitsv, __m128 re_n, __m128 im_n, __m128i exclude_n,
+                fp_type* p) {
+      __m128 ml = _mm_castsi128_ps(_mm_xor_si128(
+          detail::GetZeroMaskSSE(4 * i, maskv, bitsv), exclude_n));
+
+      __m128 re = _mm_load_ps(p + 8 * i);
+      __m128 im = _mm_load_ps(p + 8 * i + 4);
+
+      re = _mm_blendv_ps(re, re_n, ml);
+      im = _mm_blendv_ps(im, im_n, ml);
+
+      _mm_store_ps(p + 8 * i, re);
+      _mm_store_ps(p + 8 * i + 4, im);
+    };
+
+    Base::for_.Run(MinSize(state.num_qubits()) / 8, f, mask, bits, re_reg,
+                   im_reg, exclude_reg, state.get());
   }
 
   // Does the equivalent of dest += src elementwise.
@@ -406,7 +448,8 @@ class StateSpaceSSE : public StateSpace<StateSpaceSSE<For>, For, float> {
       }
     }
 
-    return -1;
+    // Return the last bitstring in the unlikely case of underflow.
+    return (4 * k1 - 1) & mask;
   }
 };
 

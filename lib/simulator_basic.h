@@ -17,6 +17,7 @@
 
 
 #include <algorithm>
+#include <complex>
 #include <cstdint>
 
 #include "bits.h"
@@ -107,6 +108,53 @@ class SimulatorBasic final {
     }
   }
 
+  /**
+   * Computes the expectation value of an operator using non-vectorized
+   * instructions.
+   * @param qs Indices of the qubits the operator acts on.
+   * @param matrix The operator matrix.
+   * @param state The state of the system.
+   * @return The computed expectation value.
+   */
+  std::complex<double> ExpectationValue(const std::vector<unsigned>& qs,
+                                        const fp_type* matrix,
+                                        const State& state) const {
+    // Assume qs[0] < qs[1] < qs[2] < ... .
+
+    switch (qs.size()) {
+    case 1:
+      return ExpectationValue1H(qs, matrix, state);
+      break;
+    case 2:
+      return ExpectationValue2H(qs, matrix, state);
+      break;
+    case 3:
+      return ExpectationValue3H(qs, matrix, state);
+      break;
+    case 4:
+      return ExpectationValue4H(qs, matrix, state);
+      break;
+    case 5:
+      return ExpectationValue5H(qs, matrix, state);
+      break;
+    case 6:
+      return ExpectationValue6H(qs, matrix, state);
+      break;
+    default:
+      // Not implemented.
+      break;
+    }
+
+    return 0;
+  }
+
+  /**
+   * @return The size of SIMD register if applicable.
+   */
+  static unsigned SIMDRegisterSize() {
+    return 1;
+  }
+
  private:
   void ApplyGate1H(const std::vector<unsigned>& qs,
                    const fp_type* matrix, State& state) const {
@@ -128,8 +176,6 @@ class SimulatorBasic final {
       xss[i] = a;
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 fp_type* rstate) {
@@ -141,8 +187,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 2; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -164,6 +210,8 @@ class SimulatorBasic final {
         *(p0 + xss[l] + 1) = in;
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 1;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -196,8 +244,6 @@ class SimulatorBasic final {
       xss[i] = a;
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 fp_type* rstate) {
@@ -209,8 +255,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 4; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -232,6 +278,8 @@ class SimulatorBasic final {
         *(p0 + xss[l] + 1) = in;
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 2;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -264,8 +312,6 @@ class SimulatorBasic final {
       xss[i] = a;
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 fp_type* rstate) {
@@ -278,8 +324,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 8; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -301,6 +347,8 @@ class SimulatorBasic final {
         *(p0 + xss[l] + 1) = in;
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 3;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -333,8 +381,6 @@ class SimulatorBasic final {
       xss[i] = a;
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 fp_type* rstate) {
@@ -347,8 +393,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 16; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -370,6 +416,8 @@ class SimulatorBasic final {
         *(p0 + xss[l] + 1) = in;
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 4;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -402,8 +450,6 @@ class SimulatorBasic final {
       xss[i] = a;
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 fp_type* rstate) {
@@ -416,8 +462,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 32; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -439,6 +485,8 @@ class SimulatorBasic final {
         *(p0 + xss[l] + 1) = in;
       }
     };
+
+    fp_type* rstate = state.get();
 
     unsigned k = 5;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -471,8 +519,6 @@ class SimulatorBasic final {
       xss[i] = a;
     }
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 fp_type* rstate) {
@@ -486,8 +532,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 64; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -510,6 +556,8 @@ class SimulatorBasic final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 6;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -518,9 +566,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate1H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[1];
     uint64_t ms[2];
 
@@ -553,8 +601,6 @@ class SimulatorBasic final {
 
     emaskh = ~emaskh;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -566,8 +612,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 2; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -590,6 +636,8 @@ class SimulatorBasic final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 1 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -599,9 +647,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate2H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[2];
     uint64_t ms[3];
 
@@ -638,8 +686,6 @@ class SimulatorBasic final {
 
     emaskh = ~emaskh;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -651,8 +697,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 4; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -675,6 +721,8 @@ class SimulatorBasic final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 2 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -684,9 +732,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate3H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[3];
     uint64_t ms[4];
 
@@ -723,8 +771,6 @@ class SimulatorBasic final {
 
     emaskh = ~emaskh;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -736,8 +782,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 8; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -760,6 +806,8 @@ class SimulatorBasic final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 3 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
@@ -769,9 +817,9 @@ class SimulatorBasic final {
   }
 
   void ApplyControlledGate4H(const std::vector<unsigned>& qs,
-                               const std::vector<unsigned>& cqs,
-                               uint64_t cmask, const fp_type* matrix,
-                               State& state) const {
+                             const std::vector<unsigned>& cqs,
+                             uint64_t cmask, const fp_type* matrix,
+                             State& state) const {
     uint64_t xs[4];
     uint64_t ms[5];
 
@@ -808,8 +856,6 @@ class SimulatorBasic final {
 
     emaskh = ~emaskh;
 
-    fp_type* rstate = state.get();
-
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss,
                 unsigned num_qubits, uint64_t cmaskh, uint64_t emaskh,
@@ -821,8 +867,8 @@ class SimulatorBasic final {
       auto p0 = rstate + 2 * k;
 
       for (unsigned l = 0; l < 16; ++l) {
-      rs[l] = *(p0 + xss[l]);
-      is[l] = *(p0 + xss[l] + 1);
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
       }
 
       uint64_t j = 0;
@@ -845,12 +891,465 @@ class SimulatorBasic final {
       }
     };
 
+    fp_type* rstate = state.get();
+
     unsigned k = 4 + cqs.size();
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
     uint64_t size = uint64_t{1} << n;
 
     for_.Run(size, f, matrix, ms, xss,
              state.num_qubits(), cmaskh, emaskh, rstate);
+  }
+
+  std::complex<double> ExpectationValue1H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[1];
+    uint64_t ms[2];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    ms[1] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[0] - 1);
+
+    uint64_t xss[2];
+    for (unsigned i = 0; i < 2; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 1; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[2], is[2];
+
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 2; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 2; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        re += rs[l] * rn + is[l] * in;
+        im += rs[l] * in - is[l] * rn;
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 1;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue2H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[2];
+    uint64_t ms[3];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 2; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[2] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[1] - 1);
+
+    uint64_t xss[4];
+    for (unsigned i = 0; i < 4; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 2; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[4], is[4];
+
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 4; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 4; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        re += rs[l] * rn + is[l] * in;
+        im += rs[l] * in - is[l] * rn;
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 2;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue3H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[3];
+    uint64_t ms[4];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 3; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[3] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[2] - 1);
+
+    uint64_t xss[8];
+    for (unsigned i = 0; i < 8; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 3; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[8], is[8];
+
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2])
+          | (8 * i & ms[3]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 8; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 8; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        re += rs[l] * rn + is[l] * in;
+        im += rs[l] * in - is[l] * rn;
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 3;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue4H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[4];
+    uint64_t ms[5];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 4; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[4] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[3] - 1);
+
+    uint64_t xss[16];
+    for (unsigned i = 0; i < 16; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 4; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[16], is[16];
+
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2])
+          | (8 * i & ms[3]) | (16 * i & ms[4]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 16; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 16; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        re += rs[l] * rn + is[l] * in;
+        im += rs[l] * in - is[l] * rn;
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 4;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue5H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[5];
+    uint64_t ms[6];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 5; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[5] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[4] - 1);
+
+    uint64_t xss[32];
+    for (unsigned i = 0; i < 32; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 5; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[32], is[32];
+
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2])
+          | (8 * i & ms[3]) | (16 * i & ms[4]) | (32 * i & ms[5]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 32; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 32; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        re += rs[l] * rn + is[l] * in;
+        im += rs[l] * in - is[l] * rn;
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 5;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
+  }
+
+  std::complex<double> ExpectationValue6H(const std::vector<unsigned>& qs,
+                                          const fp_type* matrix,
+                                          const State& state) const {
+    uint64_t xs[6];
+    uint64_t ms[7];
+
+    xs[0] = uint64_t{1} << (qs[0] + 1);
+    ms[0] = (uint64_t{1} << qs[0]) - 1;
+    for (unsigned i = 1; i < 6; ++i) {
+      xs[i] = uint64_t{1} << (qs[i + 0] + 1);
+      ms[i] = ((uint64_t{1} << qs[i + 0]) - 1) ^ (xs[i - 1] - 1);
+    }
+    ms[6] = ((uint64_t{1} << state.num_qubits()) - 1) ^ (xs[5] - 1);
+
+    uint64_t xss[64];
+    for (unsigned i = 0; i < 64; ++i) {
+      uint64_t a = 0;
+      for (uint64_t k = 0; k < 6; ++k) {
+        if (((i >> k) & 1) == 1) {
+          a += xs[k];
+        }
+      }
+      xss[i] = a;
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
+                const uint64_t* ms, const uint64_t* xss,
+                const fp_type* rstate) {
+      fp_type rn, in;
+      fp_type rs[64], is[64];
+
+      uint64_t k = (1 * i & ms[0]) | (2 * i & ms[1]) | (4 * i & ms[2])
+          | (8 * i & ms[3]) | (16 * i & ms[4]) | (32 * i & ms[5])
+          | (64 * i & ms[6]);
+
+      auto p0 = rstate + 2 * k;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        rs[l] = *(p0 + xss[l]);
+        is[l] = *(p0 + xss[l] + 1);
+      }
+
+      double re = 0;
+      double im = 0;
+
+      uint64_t j = 0;
+
+      for (unsigned l = 0; l < 64; ++l) {
+        rn = rs[0] * v[j] - is[0] * v[j + 1];
+        in = rs[0] * v[j + 1] + is[0] * v[j];
+
+        j += 2;
+
+        for (unsigned n = 1; n < 64; ++n) {
+          rn += rs[n] * v[j] - is[n] * v[j + 1];
+          in += rs[n] * v[j + 1] + is[n] * v[j];
+
+          j += 2;
+        }
+
+        re += rs[l] * rn + is[l] * in;
+        im += rs[l] * in - is[l] * rn;
+      }
+
+      return std::complex<double>{re, im};
+    };
+
+    const fp_type* rstate = state.get();
+
+    unsigned k = 6;
+    unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
+    uint64_t size = uint64_t{1} << n;
+
+    using Op = std::plus<std::complex<double>>;
+    return for_.RunReduce(size, f, Op(), matrix, ms, xss, rstate);
   }
 
   For for_;

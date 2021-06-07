@@ -8,11 +8,16 @@ cc_library(
     hdrs = [
         "bits.h",
         "bitstring.h",
+        "channel.h",
+        "channels_cirq.h",
+        "circuit_noisy.h",
         "circuit_qsim_parser.h",
         "circuit.h",
+        "expect.h",
         "formux.h",
-        "fuser_basic.h",
         "fuser.h",
+        "fuser_basic.h",
+        "fuser_mqubit.h",
         "gate.h",
         "gate_appl.h",
         "gates_cirq.h",
@@ -22,21 +27,30 @@ cc_library(
         "io.h",
         "matrix.h",
         "parfor.h",
+        "qtrajectory.h",
         "run_qsim.h",
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
+        "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
         "statespace_avx.h",
+        "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
         "statespace.h",
         "umux.h",
         "unitaryspace.h",
+        "unitaryspace_avx.h",
+        "unitaryspace_avx512.h",
         "unitaryspace_basic.h",
+        "unitaryspace_sse.h",
+        "unitary_calculator_avx.h",
+        "unitary_calculator_avx512.h",
         "unitary_calculator_basic.h",
+        "unitary_calculator_sse.h",
         "util.h",
         "vectorspace.h",
     ],
@@ -49,9 +63,11 @@ cc_library(
         "bits.h",
         "circuit.h",
         "circuit_qsim_parser.h",
+        "expect.h",
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
+        "fuser_mqubit.h",
         "gate.h",
         "gate_appl.h",
         "gates_qsim.h",
@@ -63,16 +79,22 @@ cc_library(
         "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
+        "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
+        "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
         "umux.h",
         "unitaryspace.h",
+        "unitaryspace_avx.h",
         "unitaryspace_basic.h",
+        "unitaryspace_sse.h",
+        "unitary_calculator_avx.h",
         "unitary_calculator_basic.h",
+        "unitary_calculator_sse.h",
         "util.h",
         "vectorspace.h",
     ],
@@ -85,9 +107,11 @@ cc_library(
         "bits.h",
         "circuit.h",
         "circuit_qsim_parser.h",
+        "expect.h",
         "formux.h",
         "fuser.h",
         "fuser_basic.h",
+        "fuser_mqubit.h",
         "gate.h",
         "gate_appl.h",
         "gates_qsim.h",
@@ -100,10 +124,12 @@ cc_library(
         "seqfor.h",
         "simmux.h",
         "simulator_avx.h",
+        "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
+        "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
         "util.h",
@@ -229,7 +255,10 @@ cc_library(
 cc_library(
     name = "fuser",
     hdrs = ["fuser.h"],
-    deps = [":matrix"],
+    deps = [
+        ":gate",
+        ":matrix",
+    ],
 )
 
 cc_library(
@@ -238,6 +267,26 @@ cc_library(
     deps = [
         ":fuser",
         ":gate",
+    ],
+)
+
+cc_library(
+    name = "fuser_mqubit",
+    hdrs = ["fuser_mqubit.h"],
+    deps = [
+        ":fuser",
+        ":gate",
+    ],
+)
+
+### Expectation value library ###
+
+cc_library(
+    name = "expect",
+    hdrs = ["expect.h"],
+    deps = [
+        ":fuser",
+        ":gate_appl",
     ],
 )
 
@@ -274,10 +323,7 @@ cc_library(
 cc_library(
     name = "statespace",
     hdrs = ["statespace.h"],
-    deps = [
-        ":util",
-        ":vectorspace",
-    ],
+    deps = [":util"],
 )
 
 cc_library(
@@ -286,6 +332,17 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
+    ],
+)
+
+cc_library(
+    name = "statespace_avx512",
+    hdrs = ["statespace_avx512.h"],
+    deps = [
+        ":statespace",
+        ":util",
+        ":vectorspace",
     ],
 )
 
@@ -295,6 +352,7 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
     ],
 )
 
@@ -304,6 +362,7 @@ cc_library(
     deps = [
         ":statespace",
         ":util",
+        ":vectorspace",
     ],
 )
 
@@ -315,6 +374,15 @@ cc_library(
     deps = [
         ":bits",
         ":statespace_avx",
+    ],
+)
+
+cc_library(
+    name = "simulator_avx512",
+    hdrs = ["simulator_avx512.h"],
+    deps = [
+        ":bits",
+        ":statespace_avx512",
     ],
 )
 
@@ -342,6 +410,7 @@ cc_library(
     hdrs = ["simmux.h"],
     deps = [
         ":simulator_avx",
+        ":simulator_avx512",
         ":simulator_basic",
         ":simulator_sse",
     ],
@@ -357,12 +426,67 @@ cc_library(
     ],
 )
 
+### Channel and noisy circuit libraries ###
+
+cc_library(
+    name = "channel",
+    hdrs = ["channel.h"],
+    deps = [":gate"],
+)
+
+cc_library(
+    name = "circuit_noisy",
+    hdrs = ["circuit_noisy.h"],
+    deps = [
+        ":channel",
+        ":circuit",
+    ],
+)
+
+cc_library(
+    name = "channels_cirq",
+    hdrs = ["channels_cirq.h"],
+    deps = [
+        ":channel",
+        ":gates_cirq",
+    ],
+)
+
+### Quantum trajectory simulator ###
+
+cc_library(
+    name = "qtrajectory",
+    hdrs = ["qtrajectory.h"],
+    deps = [
+        ":circuit_noisy",
+        ":gate",
+        ":gate_appl",
+    ],
+)
+
 ### UnitarySpace libraries ###
 
 cc_library(
     name = "unitaryspace",
     hdrs = ["unitaryspace.h"],
-    deps = [":util"],
+)
+
+cc_library(
+    name = "unitaryspace_avx",
+    hdrs = ["unitaryspace_avx.h"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
+    ],
+)
+
+cc_library(
+    name = "unitaryspace_avx512",
+    hdrs = ["unitaryspace_avx512.h"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
+    ],
 )
 
 cc_library(
@@ -370,16 +494,55 @@ cc_library(
     hdrs = ["unitaryspace_basic.h"],
     deps = [
         ":unitaryspace",
-        ":util",
+        ":vectorspace",
+    ],
+)
+
+cc_library(
+    name = "unitaryspace_sse",
+    hdrs = ["unitaryspace_sse.h"],
+    deps = [
+        ":unitaryspace",
+        ":vectorspace",
     ],
 )
 
 ### Unitary calculator libraries ###
 
 cc_library(
+    name = "unitary_calculator_avx",
+    hdrs = ["unitary_calculator_avx.h"],
+    deps = [
+        ":bits",
+        ":unitaryspace_avx",
+    ],
+)
+
+cc_library(
+    name = "unitary_calculator_avx512",
+    hdrs = ["unitary_calculator_avx512.h"],
+    deps = [
+        ":bits",
+        ":unitaryspace_avx512",
+    ],
+)
+
+cc_library(
     name = "unitary_calculator_basic",
     hdrs = ["unitary_calculator_basic.h"],
-    deps = [":unitaryspace_basic"],
+    deps = [
+        ":bits",
+        ":unitaryspace_basic",
+    ],
+)
+
+cc_library(
+    name = "unitary_calculator_sse",
+    hdrs = ["unitary_calculator_sse.h"],
+    deps = [
+        ":bits",
+        ":unitaryspace_sse",
+    ],
 )
 
 ### Unitary mux header ###
@@ -387,5 +550,10 @@ cc_library(
 cc_library(
     name = "umux",
     hdrs = ["umux.h"],
-    deps = [":unitary_calculator_basic"]
+    deps = [
+        ":unitary_calculator_avx",
+        ":unitary_calculator_avx512",
+        ":unitary_calculator_basic",
+        ":unitary_calculator_sse",
+    ],
 )

@@ -16,50 +16,85 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#ifdef _OPENMP
+#include "../lib/parfor.h"
+#endif
+#include "../lib/seqfor.h"
 #include "../lib/simulator_sse.h"
 #include "../lib/statespace_sse.h"
 
 namespace qsim {
 
-TEST(StateSpaceSSETest, Add) {
-  TestAdd<StateSpaceSSE<For>>();
+template <class T>
+class StateSpaceSSETest : public testing::Test {};
+
+using ::testing::Types;
+#ifdef _OPENMP
+typedef Types<ParallelFor, SequentialFor> for_impl;
+#else
+typedef Types<SequentialFor> for_impl;
+#endif
+
+TYPED_TEST_SUITE(StateSpaceSSETest, for_impl);
+
+TYPED_TEST(StateSpaceSSETest, Add) {
+  TestAdd<StateSpaceSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, NormSmall) {
-  TestNormSmall<StateSpaceSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, NormSmall) {
+  TestNormSmall<StateSpaceSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, NormAndInnerProductSmall) {
+  TestNormAndInnerProductSmall<StateSpaceSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, NormAndInnerProduct) {
+  TestNormAndInnerProduct<SimulatorSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, SamplingSmall) {
+  TestSamplingSmall<StateSpaceSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, SamplingCrossEntropyDifference) {
+  TestSamplingCrossEntropyDifference<SimulatorSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, Ordering) {
-  TestOrdering<StateSpaceSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, Ordering) {
+  TestOrdering<StateSpaceSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceSSE<For>, For>();
+TYPED_TEST(StateSpaceSSETest, MeasurementSmall) {
+  TestMeasurementSmall<StateSpaceSSE<TypeParam>, TypeParam>();
 }
 
-TEST(StateSpaceSSETest, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, MeasurementLarge) {
+  TestMeasurementLarge<SimulatorSSE<TypeParam>>();
 }
 
-TEST(StateSpaceSSETest, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceSSE<For>>();
+TYPED_TEST(StateSpaceSSETest, Collapse) {
+  TestCollapse<StateSpaceSSE<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceSSETest, InvalidStateSize) {
+  TestInvalidStateSize<StateSpaceSSE<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceSSETest, BulkSetAmpl) {
+  TestBulkSetAmplitude<StateSpaceSSE<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceSSETest, BulkSetAmplExclude) {
+  TestBulkSetAmplitudeExclusion<StateSpaceSSE<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceSSETest, BulkSetAmplDefault) {
+  TestBulkSetAmplitudeDefault<StateSpaceSSE<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceSSETest, ThreadThrashing) {
+  TestThreadThrashing<StateSpaceSSE<TypeParam>>();
 }
 
 }  // namespace qsim

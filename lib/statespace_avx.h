@@ -25,6 +25,7 @@
 
 #include "statespace.h"
 #include "util.h"
+#include "vectorspace.h"
 
 namespace qsim {
 
@@ -46,9 +47,13 @@ inline __m256i GetZeroMaskAVX(uint64_t i, uint64_t mask, uint64_t bits) {
 }
 
 inline double HorizontalSumAVX(__m256 s) {
-  float buf[8];
-  _mm256_storeu_ps(buf, s);
-  return buf[0] + buf[1] + buf[2] + buf[3] + buf[4] + buf[5] + buf[6] + buf[7];
+  __m128 l = _mm256_castps256_ps128(s);
+  __m128 h = _mm256_extractf128_ps(s, 1);
+  __m128 s1  = _mm_add_ps(h, l);
+  __m128 s1s = _mm_movehdup_ps(s1);
+  __m128 s2 = _mm_add_ps(s1, s1s);
+
+  return _mm_cvtss_f32(_mm_add_ss(s2, _mm_movehl_ps(s1s, s2)));
 }
 
 }  // namespace detail
@@ -60,9 +65,10 @@ inline double HorizontalSumAVX(__m256 s) {
  * into an AVX register.
  */
 template <typename For>
-class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
+class StateSpaceAVX :
+    public StateSpace<StateSpaceAVX<For>, VectorSpace, For, float> {
  private:
-  using Base = StateSpace<StateSpaceAVX<For>, For, float>;
+  using Base = StateSpace<StateSpaceAVX<For>, qsim::VectorSpace, For, float>;
 
  public:
   using State = typename Base::State;
@@ -233,6 +239,46 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
     uint64_t k = (16 * (i / 8)) + (i % 8);
     state.get()[k] = re;
     state.get()[k + 8] = im;
+  }
+
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits,
+                   const std::complex<fp_type>& val,
+                   bool exclude = false) const {
+    BulkSetAmpl(state, mask, bits, std::real(val), std::imag(val), exclude);
+  }
+
+  // Sets state[i] = complex(re, im) where (i & mask) == bits.
+  // if `exclude` is true then the criteria becomes (i & mask) != bits.
+  void BulkSetAmpl(State& state, uint64_t mask, uint64_t bits, fp_type re,
+                   fp_type im, bool exclude = false) const {
+    __m256 re_reg = _mm256_set1_ps(re);
+    __m256 im_reg = _mm256_set1_ps(im);
+
+    __m256i exclude_reg = _mm256_setzero_si256();
+    if (exclude) {
+      exclude_reg = _mm256_cmpeq_epi32(exclude_reg, exclude_reg);
+    }
+
+    auto f = [](unsigned n, unsigned m, uint64_t i, uint64_t maskv,
+                uint64_t bitsv, __m256 re_n, __m256 im_n, __m256i exclude_n,
+                fp_type* p) {
+      __m256 ml = _mm256_castsi256_ps(_mm256_xor_si256(
+          detail::GetZeroMaskAVX(8 * i, maskv, bitsv), exclude_n));
+
+      __m256 re = _mm256_load_ps(p + 16 * i);
+      __m256 im = _mm256_load_ps(p + 16 * i + 8);
+
+      re = _mm256_blendv_ps(re, re_n, ml);
+      im = _mm256_blendv_ps(im, im_n, ml);
+
+      _mm256_store_ps(p + 16 * i, re);
+      _mm256_store_ps(p + 16 * i + 8, im);
+    };
+
+    Base::for_.Run(MinSize(state.num_qubits()) / 16, f, mask, bits, re_reg,
+                   im_reg, exclude_reg, state.get());
   }
 
   // Does the equivalent of dest += src elementwise.
@@ -437,7 +483,8 @@ class StateSpaceAVX : public StateSpace<StateSpaceAVX<For>, For, float> {
       }
     }
 
-    return -1;
+    // Return the last bitstring in the unlikely case of underflow.
+    return (8 * k1 - 1) & mask;
   }
 };
 

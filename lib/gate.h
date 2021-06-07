@@ -45,15 +45,17 @@ inline void SortQubits(Gate& gate) {
 }  // namespace detail
 
 template <typename Qubits = std::vector<unsigned>, typename Gate>
-inline void MakeControlledGate(Qubits&& controlled_by, Gate& gate) {
+inline Gate& MakeControlledGate(Qubits&& controlled_by, Gate& gate) {
   gate.controlled_by = std::forward<Qubits>(controlled_by);
   gate.cmask = (uint64_t{1} << gate.controlled_by.size()) - 1;
 
   std::sort(gate.controlled_by.begin(), gate.controlled_by.end());
+
+  return gate;
 }
 
 template <typename Qubits = std::vector<unsigned>, typename Gate>
-inline void MakeControlledGate(Qubits&& controlled_by,
+inline Gate& MakeControlledGate(Qubits&& controlled_by,
                                const std::vector<unsigned>& control_values,
                                Gate& gate) {
   // Assume controlled_by.size() == control_values.size().
@@ -101,6 +103,8 @@ inline void MakeControlledGate(Qubits&& controlled_by,
       gate.controlled_by.push_back(cpairs[i].q);
     }
   }
+
+  return gate;
 }
 
 namespace gate {
@@ -158,7 +162,7 @@ inline Gate CreateGate(unsigned time, Qubits&& qubits, M&& matrix = {},
                std::move(params), std::forward<M>(matrix), false, false};
 
   if (GateDef::kind != gate::kMeasurement) {
-    switch (qubits.size()) {
+    switch (gate.qubits.size()) {
     case 1:
       break;
     case 2:
@@ -192,7 +196,7 @@ struct Measurement {
   static constexpr char name[] = "m";
   static constexpr bool symmetric = false;
 
-  template <typename Qubits>
+  template <typename Qubits = std::vector<unsigned>>
   static Gate Create(unsigned time, Qubits&& qubits) {
     return CreateGate<Gate, Measurement>(time, std::forward<Qubits>(qubits));
   }

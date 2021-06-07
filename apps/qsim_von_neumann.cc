@@ -23,7 +23,7 @@
 
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
-#include "../lib/fuser_basic.h"
+#include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
 #include "../lib/run_qsim.h"
@@ -34,18 +34,20 @@ struct Options {
   unsigned maxtime = std::numeric_limits<unsigned>::max();
   unsigned seed = 1;
   unsigned num_threads = 1;
+  unsigned max_fused_size = 2;
   unsigned verbosity = 0;
 };
 
 Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_von_neumann -c circuit -d maxtime "
-                           "-s seed -t threads -v verbosity\n";
+                           "-s seed -t threads -f max_fused_size "
+                           "-v verbosity\n";
 
   Options opt;
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:s:t:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -58,6 +60,9 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 't':
         opt.num_threads = std::atoi(optarg);
+        break;
+      case 'f':
+        opt.max_fused_size = std::atoi(optarg);
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
@@ -97,6 +102,8 @@ int main(int argc, char* argv[]) {
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
+  using Fuser = MultiQubitGateFuser<IO, GateQSim<float>>;
+  using Runner = QSimRunner<IO, Fuser, Simulator>;
 
   auto measure = [&opt, &circuit](
       unsigned k, const StateSpace& state_space, const State& state) {
@@ -113,9 +120,8 @@ int main(int argc, char* argv[]) {
     IO::messagef("entropy=%g\n", entropy);
   };
 
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
-
   Runner::Parameter param;
+  param.max_fused_size = opt.max_fused_size;
   param.seed = opt.seed;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;

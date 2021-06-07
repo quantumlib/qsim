@@ -16,33 +16,64 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#ifdef _OPENMP
+#include "../lib/parfor.h"
+#endif
+#include "../lib/seqfor.h"
 #include "../lib/simulator_avx.h"
 
 namespace qsim {
 
-TEST(SimulatorAVXTest, ApplyGate1) {
-  TestApplyGate1<SimulatorAVX<For>>();
+template <class T>
+class SimulatorAVXTest : public testing::Test {};
+
+using ::testing::Types;
+#ifdef _OPENMP
+typedef Types<ParallelFor, SequentialFor> for_impl;
+#else
+typedef Types<SequentialFor> for_impl;
+#endif
+
+TYPED_TEST_SUITE(SimulatorAVXTest, for_impl);
+
+TYPED_TEST(SimulatorAVXTest, ApplyGate1) {
+  TestApplyGate1<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyGate2) {
-  TestApplyGate2<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyGate2) {
+  TestApplyGate2<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyGate3) {
-  TestApplyGate3<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyGate3) {
+  TestApplyGate3<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyGate5) {
-  TestApplyGate5<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, ApplyGate5) {
+  TestApplyGate5<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, ApplyControlGate) {
-  TestApplyControlGate<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, CircuitWithControlledGates) {
+  TestCircuitWithControlledGates<SimulatorAVX<TypeParam>>();
 }
 
-TEST(SimulatorAVXTest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorAVX<For>>();
+TYPED_TEST(SimulatorAVXTest, CircuitWithControlledGatesDagger) {
+  TestCircuitWithControlledGatesDagger<SimulatorAVX<TypeParam>>();
+}
+
+TYPED_TEST(SimulatorAVXTest, MultiQubitGates) {
+  TestMultiQubitGates<SimulatorAVX<TypeParam>>();
+}
+
+TYPED_TEST(SimulatorAVXTest, ControlledGates) {
+  TestControlledGates<SimulatorAVX<TypeParam>>(false);
+}
+
+TYPED_TEST(SimulatorAVXTest, ExpectationValue1) {
+  TestExpectationValue1<SimulatorAVX<TypeParam>>();
+}
+
+TYPED_TEST(SimulatorAVXTest, ExpectationValue2) {
+  TestExpectationValue2<SimulatorAVX<TypeParam>>();
 }
 
 }  // namespace qsim

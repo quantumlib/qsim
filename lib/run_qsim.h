@@ -45,7 +45,6 @@ struct QSimRunner final {
      */
     uint64_t seed;
     unsigned num_threads;
-    unsigned verbosity;
   };
 
   /**

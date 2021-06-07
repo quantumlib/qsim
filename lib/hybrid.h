@@ -125,7 +125,6 @@ struct HybridSimulator final {
      */
     unsigned num_root_gatexs;
     unsigned num_threads;
-    unsigned verbosity = 0;
   };
 
   template <typename... Args>

@@ -16,50 +16,85 @@
 
 #include "gtest/gtest.h"
 
-#include "../lib/formux.h"
+#ifdef _OPENMP
+#include "../lib/parfor.h"
+#endif
+#include "../lib/seqfor.h"
 #include "../lib/simulator_avx.h"
 #include "../lib/statespace_avx.h"
 
 namespace qsim {
 
-TEST(StateSpaceAVXTest, Add) {
-  TestAdd<StateSpaceAVX<For>>();
+template <class T>
+class StateSpaceAVXTest : public testing::Test {};
+
+using ::testing::Types;
+#ifdef _OPENMP
+typedef Types<ParallelFor, SequentialFor> for_impl;
+#else
+typedef Types<SequentialFor> for_impl;
+#endif
+
+TYPED_TEST_SUITE(StateSpaceAVXTest, for_impl);
+
+TYPED_TEST(StateSpaceAVXTest, Add) {
+  TestAdd<StateSpaceAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, NormSmall) {
-  TestNormSmall<StateSpaceAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, NormSmall) {
+  TestNormSmall<StateSpaceAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, NormAndInnerProductSmall) {
+  TestNormAndInnerProductSmall<StateSpaceAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, NormAndInnerProduct) {
+  TestNormAndInnerProduct<SimulatorAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, SamplingSmall) {
+  TestSamplingSmall<StateSpaceAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
+  TestSamplingCrossEntropyDifference<SimulatorAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, Ordering) {
-  TestOrdering<StateSpaceAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, Ordering) {
+  TestOrdering<StateSpaceAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceAVX<For>, For>();
+TYPED_TEST(StateSpaceAVXTest, MeasurementSmall) {
+  TestMeasurementSmall<StateSpaceAVX<TypeParam>, TypeParam>();
 }
 
-TEST(StateSpaceAVXTest, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, MeasurementLarge) {
+  TestMeasurementLarge<SimulatorAVX<TypeParam>>();
 }
 
-TEST(StateSpaceAVXTest, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceAVX<For>>();
+TYPED_TEST(StateSpaceAVXTest, Collapse) {
+  TestCollapse<StateSpaceAVX<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceAVXTest, InvalidStateSize) {
+  TestInvalidStateSize<StateSpaceAVX<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceAVXTest, BulkSetAmpl) {
+  TestBulkSetAmplitude<StateSpaceAVX<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceAVXTest, BulkSetAmplExclude) {
+  TestBulkSetAmplitudeExclusion<StateSpaceAVX<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceAVXTest, BulkSetAmplDefault) {
+  TestBulkSetAmplitudeDefault<StateSpaceAVX<TypeParam>>();
+}
+
+TYPED_TEST(StateSpaceAVXTest, ThreadThrashing) {
+  TestThreadThrashing<StateSpaceAVX<TypeParam>>();
 }
 
 }  // namespace qsim
