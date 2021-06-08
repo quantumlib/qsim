@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.11)
 project(qsim)
 
 set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp")
+set(CMAKE_CXX_STANDARD 11)
+
+if(APPLE)
+    include_directories("/usr/local/include" "/usr/local/opt/llvm/include")
+    link_directories("/usr/local/lib" "/usr/local/opt/llvm/lib")
+endif()
 
 include(FetchContent)
 
