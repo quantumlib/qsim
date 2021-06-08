@@ -13,7 +13,7 @@ jobs:
           - os: macos-10.15
             name: mac
             cibw:
-              build: "cp36* cp37* cp38*"
+              build: "cp36* cp37* cp38* pp36* pp37*"
           - os: macos-10.15
             name: mac-arm
             cibw:
