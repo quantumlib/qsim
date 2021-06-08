@@ -19,7 +19,6 @@ jobs:
             cibw:
               arch: universal2
               build: "cp39*"
-
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_ARCHS_MACOS: "${{ matrix.cibw.arch || 'auto' }}"
