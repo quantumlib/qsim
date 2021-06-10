@@ -58,8 +58,8 @@ class CMakeBuild(build_ext):
 
         if platform.system() == "Darwin":
             cmake_args += [
-                '-DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang',
-                '-DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++',
+                "-DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang",
+                "-DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++",
             ]
 
         env = os.environ.copy()
