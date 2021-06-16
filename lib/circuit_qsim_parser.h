@@ -83,7 +83,7 @@ class CircuitQsimParser final {
           return false;
         }
 
-        last_times.resize(circuit.num_qubits, unsigned{-1});
+        last_times.resize(circuit.num_qubits, unsigned(-1));
 
         continue;
       }
@@ -244,7 +244,7 @@ class CircuitQsimParser final {
                                const std::vector<unsigned>& qubits,
                                std::vector<unsigned>& last_times) {
     for (auto q : qubits) {
-      if (last_times[q] != unsigned{-1} && time <= last_times[q]) {
+      if (last_times[q] != unsigned(-1) && time <= last_times[q]) {
         return true;
       }
 
