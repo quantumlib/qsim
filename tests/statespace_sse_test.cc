@@ -35,62 +35,76 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorSSE<For>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(StateSpaceSSETest, for_impl);
 
 TYPED_TEST(StateSpaceSSETest, Add) {
-  TestAdd<StateSpaceSSE<TypeParam>>();
+  TestAdd(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, NormSmall) {
-  TestNormSmall<StateSpaceSSE<TypeParam>>();
+  TestNormSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceSSE<TypeParam>>();
+  TestNormAndInnerProductSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorSSE<TypeParam>>();
+  TestNormAndInnerProduct(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceSSE<TypeParam>>();
+  TestSamplingSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorSSE<TypeParam>>();
+  TestSamplingCrossEntropyDifference(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, Ordering) {
-  TestOrdering<StateSpaceSSE<TypeParam>>();
+  TestOrdering(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceSSE<TypeParam>, TypeParam>();
+  TestMeasurementSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorSSE<TypeParam>>();
+  TestMeasurementLarge(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, Collapse) {
-  TestCollapse<StateSpaceSSE<TypeParam>>();
+  TestCollapse(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceSSE<TypeParam>>();
+  TestInvalidStateSize(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, BulkSetAmpl) {
-  TestBulkSetAmplitude<StateSpaceSSE<TypeParam>>();
+  TestBulkSetAmplitude(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, BulkSetAmplExclude) {
-  TestBulkSetAmplitudeExclusion<StateSpaceSSE<TypeParam>>();
+  TestBulkSetAmplitudeExclusion(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, BulkSetAmplDefault) {
-  TestBulkSetAmplitudeDefault<StateSpaceSSE<TypeParam>>();
+  TestBulkSetAmplitudeDefault(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceSSETest, ThreadThrashing) {

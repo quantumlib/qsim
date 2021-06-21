@@ -64,6 +64,19 @@ R"(4
 10 h 3
 )";
 
+struct Factory {
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(1);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(1);
+  }
+};
+
 TEST(RunQSimTest, QSimRunner1) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
@@ -72,10 +85,10 @@ TEST(RunQSimTest, QSimRunner1) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Simulator = Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
 
   float entropy = 0;
 
@@ -95,10 +108,9 @@ TEST(RunQSimTest, QSimRunner1) {
 
   Runner::Parameter param;
   param.seed = 1;
-  param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, circuit, measure));
+  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, measure));
 
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
@@ -111,12 +123,12 @@ TEST(RunQSimTest, QSimRunner2) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 27);
 
-  using Simulator = Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
 
-  StateSpace state_space(1);
+  StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(state));
@@ -125,10 +137,9 @@ TEST(RunQSimTest, QSimRunner2) {
 
   Runner::Parameter param;
   param.seed = 1;
-  param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, circuit, state));
+  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, state));
 
   // Calculate entropy.
 
@@ -167,13 +178,13 @@ TEST(RunQSimTest, QSimSampler) {
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 11);
 
-  using Simulator = Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using Result = StateSpace::MeasurementResult;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Simulator>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
 
-  StateSpace state_space(1);
+  StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(state));
@@ -184,10 +195,9 @@ TEST(RunQSimTest, QSimSampler) {
 
   Runner::Parameter param;
   param.seed = 1;
-  param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, circuit, state, results));
+  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, state, results));
 
   // Results should contain (qubit @ time):
   // (1 @ 1) - should be |01)
@@ -207,13 +217,13 @@ TEST(RunQSimTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>(true);
   const auto& expected_results = CirqCircuit1::expected_results1;
 
-  using Simulator = Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
-                            Simulator>;
+                            Factory>;
 
-  StateSpace state_space(1);
+  StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
   auto size = uint64_t{1} << circuit.num_qubits;
@@ -225,10 +235,9 @@ TEST(RunQSimTest, CirqGates) {
 
   Runner::Parameter param;
   param.seed = 1;
-  param.num_threads = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, circuit, state));
+  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, state));
 
   for (uint64_t i = 0; i < size; ++i) {
     auto ampl = state_space.GetAmpl(state, i);

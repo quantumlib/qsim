@@ -37,6 +37,23 @@ using namespace qsim;
 
 namespace {
 
+struct Factory {
+  Factory(unsigned num_threads) : num_threads(num_threads) {}
+
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+
+  StateSpace CreateStateSpace() const {
+    return StateSpace(num_threads);
+  }
+
+  Simulator CreateSimulator() const {
+    return Simulator(num_threads);
+  }
+
+  unsigned num_threads;
+};
+
 template <typename T>
 T parseOptions(const py::dict &options, const char *key) {
   if (!options.contains(key)) {
@@ -364,7 +381,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
@@ -381,11 +398,12 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   };
 
   using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
-                            Simulator>;
+                            Factory>;
 
+  unsigned num_threads;
   Runner::Parameter param;
   try {
-    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
@@ -393,7 +411,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     IO::errorf(exp.what());
     return {};
   }
-  Runner::Run(param, circuit, measure);
+  Runner::Run(param, Factory(num_threads), circuit, measure);
   return amplitudes;
 }
 
@@ -436,8 +454,8 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     return {};
   }
 
-  Simulator simulator(num_threads);
-  StateSpace state_space(num_threads);
+  Simulator simulator = Factory(num_threads).CreateSimulator();
+  StateSpace state_space = Factory(num_threads).CreateStateSpace();
 
   auto measure = [&bitstrings, &ncircuit, &amplitudes, &state_space](
                   unsigned k, const State &state,
@@ -458,12 +476,12 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 // Helper class for simulating circuits of all types.
 class SimulatorHelper {
  public:
-  using Simulator = qsim::Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
   using Gate = Cirq::GateCirq<float>;
-  using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Gate>, Simulator>;
+  using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Gate>, Factory>;
   using NoisyRunner = qsim::QuantumTrajectorySimulator<
       IO, Gate, MultiQubitGateFuser, Simulator>;
 
@@ -518,7 +536,7 @@ class SimulatorHelper {
 
  private:
   SimulatorHelper(const py::dict &options, bool noisy)
-      : state_space(StateSpace(1)), state(StateSpace::Null()),
+      : state_space(Factory(1).CreateStateSpace()), state(StateSpace::Null()),
         scratch(StateSpace::Null()) {
     is_valid = false;
     is_noisy = noisy;
@@ -536,7 +554,7 @@ class SimulatorHelper {
       verbosity = parseOptions<unsigned>(options, "v\0");
       seed = parseOptions<unsigned>(options, "s\0");
 
-      state_space = StateSpace(num_threads);
+      state_space = Factory(num_threads).CreateStateSpace();
       state = state_space.Create(num_qubits);
       is_valid = true;
     } catch (const std::invalid_argument &exp) {
@@ -562,7 +580,6 @@ class SimulatorHelper {
 
   Runner::Parameter get_params() const {
     Runner::Parameter params;
-    params.num_threads = num_threads;
     params.max_fused_size = max_fused_size;
     params.verbosity = verbosity;
     params.seed = seed;
@@ -584,13 +601,13 @@ class SimulatorHelper {
       std::vector<uint64_t> stat;
       auto params = get_noisy_params();
 
-      Simulator simulator(num_threads);
-      StateSpace state_space(num_threads);
+      Simulator simulator = Factory(num_threads).CreateSimulator();
+      StateSpace state_space = Factory(num_threads).CreateStateSpace();
 
       result = NoisyRunner::RunOnce(params, ncircuit, seed, state_space,
                                     simulator, scratch, state, stat);
     } else {
-      result = Runner::Run(get_params(), circuit, state);
+      result = Runner::Run(get_params(), Factory(num_threads), circuit, state);
     }
     seed += 1;
     return result;
@@ -608,7 +625,7 @@ class SimulatorHelper {
   std::vector<std::complex<double>> get_expectation_value(
       const std::vector<std::tuple<std::vector<OpString<Gate>>,
                                    unsigned>>& opsums_and_qubit_counts) {
-    Simulator simulator(num_threads);
+    Simulator simulator = Factory(num_threads).CreateSimulator();
     using Fuser = MultiQubitGateFuser<IO, Gate>;
 
     std::vector<std::complex<double>> results;
@@ -722,16 +739,17 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using MeasurementResult = StateSpace::MeasurementResult;
   using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
-                            Simulator>;
+                            Factory>;
 
+  unsigned num_threads;
   Runner::Parameter param;
   try {
-    param.num_threads = parseOptions<unsigned>(options, "t\0");
+    num_threads = parseOptions<unsigned>(options, "t\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
@@ -741,11 +759,11 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   }
 
   std::vector<MeasurementResult> results;
-  StateSpace state_space(param.num_threads);
+  StateSpace state_space = Factory(num_threads).CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
   state_space.SetStateZero(state);
 
-  if (!Runner::Run(param, circuit, state, results)) {
+  if (!Runner::Run(param, Factory(num_threads), circuit, state, results)) {
     IO::errorf("qsim sampling of the circuit errored out.\n");
     return {};
   }
@@ -767,7 +785,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Runner = qsim::QuantumTrajectorySimulator<IO, Cirq::GateCirq<float>,
@@ -789,8 +807,8 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     return {};
   }
 
-  Simulator simulator(num_threads);
-  StateSpace state_space(num_threads);
+  Simulator simulator = Factory(num_threads).CreateSimulator();
+  StateSpace state_space = Factory(num_threads).CreateStateSpace();
 
   std::vector<std::vector<unsigned>> results;
 
