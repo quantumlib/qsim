@@ -556,3 +556,17 @@ cc_test(
         "//lib:vectorspace",
     ],
 )
+
+cc_test(
+    name = "mps_statespace_test",
+    srcs = ["mps_statespace_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:mps_statespace",
+        "//lib:formux",
+    ],
+)
