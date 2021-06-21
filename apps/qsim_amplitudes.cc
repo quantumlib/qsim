@@ -162,11 +162,28 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  using Simulator = qsim::Simulator<For>;
+  struct Factory {
+    Factory(unsigned num_threads) : num_threads(num_threads) {}
+
+    using Simulator = qsim::Simulator<For>;
+    using StateSpace = Simulator::StateSpace;
+
+    StateSpace CreateStateSpace() const {
+      return StateSpace(num_threads);
+    }
+
+    Simulator CreateSimulator() const {
+      return Simulator(num_threads);
+    }
+
+    unsigned num_threads;
+  };
+
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Fuser = MultiQubitGateFuser<IO, GateQSim<float>>;
-  using Runner = QSimRunner<IO, Fuser, Simulator>;
+  using Runner = QSimRunner<IO, Fuser, Factory>;
 
   auto measure = [&opt, &circuit](
       unsigned k, const StateSpace& state_space, const State& state) {
@@ -181,9 +198,8 @@ int main(int argc, char* argv[]) {
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
   param.seed = opt.seed;
-  param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
-  Runner::Run(param, opt.times, circuit, measure);
+  Runner::Run(param, Factory(opt.num_threads), opt.times, circuit, measure);
 
   IO::messagef("all done.\n");
 

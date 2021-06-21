@@ -35,62 +35,76 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorBasic<For, float>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(StateSpaceBasicTest, for_impl);
 
 TYPED_TEST(StateSpaceBasicTest, Add) {
-  TestAdd<StateSpaceBasic<TypeParam, float>>();
+  TestAdd(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, NormSmall) {
-  TestNormSmall<StateSpaceBasic<TypeParam, float>>();
+  TestNormSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceBasic<TypeParam, float>>();
+  TestNormAndInnerProductSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorBasic<TypeParam, float>>();
+  TestNormAndInnerProduct(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceBasic<TypeParam, float>>();
+  TestSamplingSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorBasic<TypeParam, float>>();
+  TestSamplingCrossEntropyDifference(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, Ordering) {
-  TestOrdering<StateSpaceBasic<TypeParam, float>>();
+  TestOrdering(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceBasic<TypeParam, float>, TypeParam>();
+  TestMeasurementSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorBasic<TypeParam, float>>();
+  TestMeasurementLarge(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, Collapse) {
-  TestCollapse<StateSpaceBasic<TypeParam, float>>();
+  TestCollapse(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceBasic<TypeParam, float>>();
+  TestInvalidStateSize(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, BulkSetAmpl) {
-  TestBulkSetAmplitude<StateSpaceBasic<TypeParam, float>>();
+  TestBulkSetAmplitude(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, BulkSetAmplExclude) {
-  TestBulkSetAmplitudeExclusion<StateSpaceBasic<TypeParam, float>>();
+  TestBulkSetAmplitudeExclusion(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, BulkSetAmplDefault) {
-  TestBulkSetAmplitudeDefault<StateSpaceBasic<TypeParam, float>>();
+  TestBulkSetAmplitudeDefault(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceBasicTest, ThreadThrashing) {

@@ -34,46 +34,60 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorSSE<For>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(SimulatorSSETest, for_impl);
 
 TYPED_TEST(SimulatorSSETest, ApplyGate1) {
-  TestApplyGate1<SimulatorSSE<TypeParam>>();
+  TestApplyGate1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, ApplyGate2) {
-  TestApplyGate2<SimulatorSSE<TypeParam>>();
+  TestApplyGate2(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, ApplyGate3) {
-  TestApplyGate3<SimulatorSSE<TypeParam>>();
+  TestApplyGate3(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, ApplyGate5) {
-  TestApplyGate5<SimulatorSSE<TypeParam>>();
+  TestApplyGate5(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, CircuitWithControlledGates) {
-  TestCircuitWithControlledGates<SimulatorSSE<TypeParam>>();
+  TestCircuitWithControlledGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, CircuitWithControlledGatesDagger) {
-  TestCircuitWithControlledGatesDagger<SimulatorSSE<TypeParam>>();
+  TestCircuitWithControlledGatesDagger(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorSSE<TypeParam>>();
+  TestMultiQubitGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, ControlledGates) {
-  TestControlledGates<SimulatorSSE<TypeParam>>(false);
+  TestControlledGates(Factory<TypeParam>(), false);
 }
 
 TYPED_TEST(SimulatorSSETest, ExpectationValue1) {
-  TestExpectationValue1<SimulatorSSE<TypeParam>>();
+  TestExpectationValue1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorSSETest, ExpectationValue2) {
-  TestExpectationValue2<SimulatorSSE<TypeParam>>();
+  TestExpectationValue2(Factory<TypeParam>());
 }
 
 }  // namespace qsim
