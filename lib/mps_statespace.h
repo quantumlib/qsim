@@ -122,7 +122,7 @@ class MPSStateSpace {
   }
 
   // Copies the state contents of one MPS to another.
-  //  Ignores scratch data.
+  // Ignores scratch data.
   bool CopyMPS(const MPS& src, MPS& dest) const {
     if ((src.num_qubits() != dest.num_qubits()) ||
         src.bond_dim() != dest.bond_dim()) {
