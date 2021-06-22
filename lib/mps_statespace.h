@@ -83,16 +83,16 @@ class MPSStateSpace {
   static MPS CreateMPS(unsigned num_qubits, unsigned bond_dim) {
     auto end_sizes = 2 * 4 * bond_dim;
     auto internal_sizes = 4 * bond_dim * bond_dim * num_qubits;
-    // use two extra "internal style" blocks past the end of the
+    // Use two extra "internal style" blocks past the end of the
     //   working allocation for scratch space. Needed for gate
     //   application.
     auto size = sizeof(fp_type) * (end_sizes + internal_sizes);
 
 #ifdef _WIN32
     Pointer ptr{(fp_type*)_aligned_malloc(size, 64), &detail::free};
-    bool is_null = ptr.get() != nullptr return MPS{std::move(ptr),
-                                                   is_null ? num_qubits : 0,
-                                                   is_null ? bond_dim : 0};
+    bool is_null = ptr.get() != nullptr;
+    return MPS{std::move(ptr), is_null ? num_qubits : 0,
+               is_null ? bond_dim : 0};
 #else
     void* p = nullptr;
     if (posix_memalign(&p, 64, size) == 0) {
@@ -122,7 +122,7 @@ class MPSStateSpace {
   }
 
   // Copies the state contents of one MPS to another.
-  //  ignores scratch data.
+  //  Ignores scratch data.
   bool CopyMPS(const MPS& src, MPS& dest) const {
     if ((src.num_qubits() != dest.num_qubits()) ||
         src.bond_dim() != dest.bond_dim()) {
