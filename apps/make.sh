@@ -28,4 +28,4 @@ nvcc -gencode=arch=compute_60,code=sm_60 \
      -gencode=arch=compute_62,code=sm_62 \
      -gencode=arch=compute_70,code=sm_70 \
      -gencode=arch=compute_75,code=sm_75 \
-     -O3 -x cu -o qsim_base_cuda.x qsim_base_cuda.cc
+     -O3 -x cu -o qsim_base_cuda.x qsim_base_cuda.cu
