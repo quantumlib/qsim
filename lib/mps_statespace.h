@@ -103,18 +103,18 @@ class MPSStateSpace {
 #endif
   }
 
-  unsigned Size(const MPS& state) const {
+  static unsigned Size(const MPS& state) {
     auto end_sizes = 2 * 4 * state.bond_dim();
     auto internal_sizes = 4 * state.bond_dim() * state.bond_dim();
     return end_sizes + internal_sizes * (state.num_qubits() - 2);
   }
 
-  unsigned RawSize(const MPS& state) const {
+  static unsigned RawSize(const MPS& state) {
     return sizeof(fp_type) * Size(state);
   }
 
   // Get the pointer offset to the beginning of an MPS block.
-  unsigned GetBlockOffset(const MPS& state, unsigned i) const {
+  static unsigned GetBlockOffset(const MPS& state, unsigned i) {
     if (i == 0) {
       return 0;
     }
@@ -123,7 +123,7 @@ class MPSStateSpace {
 
   // Copies the state contents of one MPS to another.
   // Ignores scratch data.
-  bool CopyMPS(const MPS& src, MPS& dest) const {
+  static bool CopyMPS(const MPS& src, MPS& dest) {
     if ((src.num_qubits() != dest.num_qubits()) ||
         src.bond_dim() != dest.bond_dim()) {
       return false;
@@ -134,7 +134,7 @@ class MPSStateSpace {
   }
 
   // Set the MPS to the |0> state.
-  void SetMPSZero(MPS& state) const {
+  static void SetMPSZero(MPS& state) {
     auto size = Size(state);
     memset(state.get(), 0, sizeof(fp_type) * size);
     auto block_size = 4 * state.bond_dim() * state.bond_dim();
