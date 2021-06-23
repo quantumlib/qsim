@@ -1165,7 +1165,7 @@ void TestMultiQubitGates(const Factory& factory) {
 }
 
 template <typename Factory>
-void TestControlledGates(const Factory& factory, bool test_double) {
+void TestControlledGates(const Factory& factory, bool high_precision) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
@@ -1281,8 +1281,13 @@ void TestControlledGates(const Factory& factory, bool test_double) {
                                * (1 + 2 * size1 * (2 + 3 * l))
                          + 6 * size2 * (1 + 2 * l) * s) / 3;
 
-              EXPECT_NEAR(std::real(a), expected_real, 1e-6);
-              EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+              if (high_precision) {
+                EXPECT_NEAR(std::real(a), expected_real, 1e-6);
+                EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+              } else {
+                EXPECT_NEAR(std::real(a) / expected_real, 1.0, 1e-6);
+                EXPECT_NEAR(std::imag(a) / expected_imag, 1.0, 1e-6);
+              }
             } else {
               // The target matrix is not applied. Unmodified entries.
 
