@@ -55,11 +55,11 @@ nvcc -gencode=arch=compute_60,code=sm_60 \
      -gencode=arch=compute_62,code=sm_62 \
      -gencode=arch=compute_70,code=sm_70 \
      -gencode=arch=compute_75,code=sm_75 \
-     -O3 -I$path_to_include -L$path_to_lib -x cu -o simulator_cuda_test.x simulator_cuda_test.cc -lgtest -lpthread
+     -O3 -I$path_to_include -L$path_to_lib -x cu -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
 
 nvcc -gencode=arch=compute_60,code=sm_60 \
      -gencode=arch=compute_61,code=sm_61 \
      -gencode=arch=compute_62,code=sm_62 \
      -gencode=arch=compute_70,code=sm_70 \
      -gencode=arch=compute_75,code=sm_75 \
-     -O3 -I$path_to_include -L$path_to_lib -x cu -o statespace_cuda_test.x statespace_cuda_test.cc -lgtest -lpthread
+     -O3 -I$path_to_include -L$path_to_lib -x cu -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread
