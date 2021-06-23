@@ -34,46 +34,60 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorAVX<For>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(SimulatorAVXTest, for_impl);
 
 TYPED_TEST(SimulatorAVXTest, ApplyGate1) {
-  TestApplyGate1<SimulatorAVX<TypeParam>>();
+  TestApplyGate1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, ApplyGate2) {
-  TestApplyGate2<SimulatorAVX<TypeParam>>();
+  TestApplyGate2(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, ApplyGate3) {
-  TestApplyGate3<SimulatorAVX<TypeParam>>();
+  TestApplyGate3(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, ApplyGate5) {
-  TestApplyGate5<SimulatorAVX<TypeParam>>();
+  TestApplyGate5(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, CircuitWithControlledGates) {
-  TestCircuitWithControlledGates<SimulatorAVX<TypeParam>>();
+  TestCircuitWithControlledGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, CircuitWithControlledGatesDagger) {
-  TestCircuitWithControlledGatesDagger<SimulatorAVX<TypeParam>>();
+  TestCircuitWithControlledGatesDagger(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorAVX<TypeParam>>();
+  TestMultiQubitGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, ControlledGates) {
-  TestControlledGates<SimulatorAVX<TypeParam>>(false);
+  TestControlledGates(Factory<TypeParam>(), false);
 }
 
 TYPED_TEST(SimulatorAVXTest, ExpectationValue1) {
-  TestExpectationValue1<SimulatorAVX<TypeParam>>();
+  TestExpectationValue1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVXTest, ExpectationValue2) {
-  TestExpectationValue2<SimulatorAVX<TypeParam>>();
+  TestExpectationValue2(Factory<TypeParam>());
 }
 
 }  // namespace qsim

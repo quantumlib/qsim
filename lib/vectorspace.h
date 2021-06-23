@@ -130,6 +130,19 @@ class VectorSpace {
     return true;
   }
 
+  // It is the client's responsibility to make sure that dest has at least
+  // 2 * 2^src.num_qubits() elements.
+  bool Copy(const Vector& src, fp_type* dest) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* src, fp_type* dest) {
+      dest[i] = src[i];
+    };
+
+    for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest);
+
+    return true;
+  }
+
  protected:
   For for_;
 };
