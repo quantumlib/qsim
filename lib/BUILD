@@ -557,3 +557,11 @@ cc_library(
         ":unitary_calculator_sse",
     ],
 )
+
+### All MPS headers ###
+
+cc_library(
+    name = "mps_statespace",
+    hdrs = ["mps_statespace.h"],
+    deps = [],
+)
