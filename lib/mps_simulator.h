@@ -32,7 +32,7 @@ namespace qsim {
 namespace mps {
 
 /**
- * Quantum circuit simulator without vectorization.
+ *  Truncated Matrix Product State (MPS) circuit simulator w/ vectorization.
  */
 template <typename For, typename fp_type = float>
 class MPSSimulator final {
@@ -88,6 +88,37 @@ class MPSSimulator final {
     }
   }
 
+  /**
+   * Applies a controlled gate using eigen3 operations w/ instructions.
+   * @param qs Indices of the qubits affected by this gate.
+   * @param cqs Indices of control qubits.
+   * @param cmask Bit mask of control qubit values.
+   * @param matrix Matrix representation of the gate to be applied.
+   * @param state The state of the system, to be updated by this method.
+   */
+  void ApplyControlledGate(const std::vector<unsigned>& qs,
+                           const std::vector<unsigned>& cqs, uint64_t cmask,
+                           const fp_type* matrix, MPS& state) const {
+    // TODO.
+  }
+
+  /**
+   * Computes the expectation value of an operator using eigen3 operations
+   * w/ vectorized instructions.
+   * @param qs Indices of the qubits the operator acts on.
+   * @param matrix The operator matrix.
+   * @param state The state of the system.
+   * @return The computed expectation value.
+   */
+  std::complex<double> ExpectationValue(const std::vector<unsigned>& qs,
+                                        const fp_type* matrix,
+                                        const MPS& state) const {
+    // Assume qs[0] < qs[1] < qs[2] < ... .
+    // TODO.
+    return std::complex<double>(-10., -10.);
+  }
+
+ private:
   void ApplyGate1(const std::vector<unsigned>& qs, const fp_type* matrix,
                   MPS& state) const {
     if (qs[0] == state.num_qubits() - 1) {
@@ -129,36 +160,6 @@ class MPSSimulator final {
     MatrixMap C = MatrixMap((std::complex<fp_type>*)(raw_state + end), bd, 2);
     C.noalias() = A * B.transpose();
     memcpy(raw_state + offset, raw_state + end, sizeof(fp_type) * bd * 4);
-  }
-
-  /**
-   * Applies a controlled gate using eigen3 operations w/ instructions.
-   * @param qs Indices of the qubits affected by this gate.
-   * @param cqs Indices of control qubits.
-   * @param cmask Bit mask of control qubit values.
-   * @param matrix Matrix representation of the gate to be applied.
-   * @param state The state of the system, to be updated by this method.
-   */
-  void ApplyControlledGate(const std::vector<unsigned>& qs,
-                           const std::vector<unsigned>& cqs, uint64_t cmask,
-                           const fp_type* matrix, MPS& state) const {
-    // TODO.
-  }
-
-  /**
-   * Computes the expectation value of an operator using eigen3 operations
-   * w/ vectorized instructions.
-   * @param qs Indices of the qubits the operator acts on.
-   * @param matrix The operator matrix.
-   * @param state The state of the system.
-   * @return The computed expectation value.
-   */
-  std::complex<double> ExpectationValue(const std::vector<unsigned>& qs,
-                                        const fp_type* matrix,
-                                        const MPS& state) const {
-    // Assume qs[0] < qs[1] < qs[2] < ... .
-    // TODO.
-    return std::complex<double>(-10., -10.);
   }
 
   For for_;
