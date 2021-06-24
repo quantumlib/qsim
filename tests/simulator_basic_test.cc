@@ -34,46 +34,60 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorBasic<For, double>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(SimulatorBasicTest, for_impl);
 
 TYPED_TEST(SimulatorBasicTest, ApplyGate1) {
-  TestApplyGate1<SimulatorBasic<TypeParam, double>>();
+  TestApplyGate1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, ApplyGate2) {
-  TestApplyGate2<SimulatorBasic<TypeParam, double>>();
+  TestApplyGate2(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, ApplyGate3) {
-  TestApplyGate3<SimulatorBasic<TypeParam, double>>();
+  TestApplyGate3(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, ApplyGate5) {
-  TestApplyGate5<SimulatorBasic<TypeParam, double>>();
+  TestApplyGate5(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, CircuitWithControlledGates) {
-  TestCircuitWithControlledGates<SimulatorBasic<TypeParam, double>>();
+  TestCircuitWithControlledGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, CircuitWithControlledGatesDagger) {
-  TestCircuitWithControlledGatesDagger<SimulatorBasic<TypeParam, double>>();
+  TestCircuitWithControlledGatesDagger(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorBasic<TypeParam, double>>();
+  TestMultiQubitGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, ControlledGates) {
-  TestControlledGates<SimulatorBasic<TypeParam, double>>(true);
+  TestControlledGates(Factory<TypeParam>(), true);
 }
 
 TYPED_TEST(SimulatorBasicTest, ExpectationValue1) {
-  TestExpectationValue1<SimulatorBasic<TypeParam, double>>();
+  TestExpectationValue1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorBasicTest, ExpectationValue2) {
-  TestExpectationValue2<SimulatorBasic<TypeParam, double>>();
+  TestExpectationValue2(Factory<TypeParam>());
 }
 
 }  // namespace qsim
