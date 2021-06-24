@@ -1,3 +1,6 @@
+EIGEN_PREFIX = "d10b27fe37736d2944630ecd7557cefa95cf87c9"
+EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
+
 TARGETS = qsim
 TESTS = run-cxx-tests
 
@@ -13,6 +16,14 @@ ifeq ($(PYBIND11), true)
   TESTS += run-py-tests
 endif
 
+.PHONY: download-eigen
+download-eigen:
+	$(shell\
+		rm -rf eigen;\
+		wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz;\
+		tar -xf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen;\
+		rm eigen-$(EIGEN_PREFIX).tar.gz;)
+
 .PHONY: all
 all: $(TARGETS)
 
@@ -25,12 +36,12 @@ pybind:
 	$(MAKE) -C pybind_interface/ pybind
 
 .PHONY: cxx-tests
-tests:
+tests: download-eigen
 	-git submodule update --init --recursive tests/googletest
 	$(MAKE) -C tests/
 
 .PHONY: run-cxx-tests
-run-cxx-tests: cxx-tests
+run-cxx-tests: download-eigen
 	$(MAKE) -C tests/ run-all
 
 PYTESTS = $(shell find qsimcirq_tests/ -name '*_test.py')
@@ -44,6 +55,7 @@ run-tests: $(TESTS)
 
 .PHONY: clean
 clean:
+	rm -rf eigen;
 	-$(MAKE) -C apps/ clean
 	-$(MAKE) -C tests/ clean
 	-$(MAKE) -C pybind_interface/ clean

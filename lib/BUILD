@@ -607,3 +607,12 @@ cc_library(
     hdrs = ["mps_statespace.h"],
     deps = [],
 )
+
+cc_library(
+    name = "mps_simulator",
+    hdrs = ["mps_simulator.h"],
+    deps = [
+        ":mps_statespace",
+        "@eigen//:eigen3",
+    ],
+)

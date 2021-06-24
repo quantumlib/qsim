@@ -3,7 +3,7 @@ FROM debian
 
 # Install baseline
 RUN apt-get update
-RUN apt-get install -y g++ make
+RUN apt-get install -y g++ make wget
 
 # Copy relevant files for simulation
 COPY ./Makefile /qsim/Makefile

@@ -17,3 +17,20 @@ http_archive(
         "https://github.com/tensorflow/tensorflow/archive/v2.1.0.zip",
     ],
 )
+
+http_archive(
+    name = "eigen",
+    build_file_content = """
+cc_library(
+  name = "eigen3",
+  textual_hdrs = glob(["Eigen/**", "unsupported/**"]),
+  visibility = ["//visibility:public"],
+)
+    """,
+    sha256 = "a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b",  # SHARED_EIGEN_SHA
+        strip_prefix = "eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz",
+            "https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz",
+        ],
+)

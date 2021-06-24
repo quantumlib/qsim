@@ -570,3 +570,18 @@ cc_test(
         "//lib:formux",
     ],
 )
+
+
+cc_test(
+    name = "mps_simulator_test",
+    srcs = ["mps_simulator_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:mps_simulator",
+        "//lib:formux",
+    ],
+)
