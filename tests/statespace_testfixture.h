@@ -357,6 +357,7 @@ template <typename Factory>
 void TestAdd(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
 
   constexpr unsigned num_qubits = 2;
   StateSpace state_space = factory.CreateStateSpace();
@@ -376,15 +377,15 @@ void TestAdd(const Factory& factory) {
   state_space.SetAmpl(state2, 3, 7, 8);
 
   EXPECT_TRUE(state_space.Add(state1, state2));
-  EXPECT_EQ(state_space.GetAmpl(state2, 0), std::complex<float>(2, 4));
-  EXPECT_EQ(state_space.GetAmpl(state2, 1), std::complex<float>(6, 8));
-  EXPECT_EQ(state_space.GetAmpl(state2, 2), std::complex<float>(10, 12));
-  EXPECT_EQ(state_space.GetAmpl(state2, 3), std::complex<float>(14, 16));
+  EXPECT_EQ(state_space.GetAmpl(state2, 0), std::complex<fp_type>(2, 4));
+  EXPECT_EQ(state_space.GetAmpl(state2, 1), std::complex<fp_type>(6, 8));
+  EXPECT_EQ(state_space.GetAmpl(state2, 2), std::complex<fp_type>(10, 12));
+  EXPECT_EQ(state_space.GetAmpl(state2, 3), std::complex<fp_type>(14, 16));
 
-  EXPECT_EQ(state_space.GetAmpl(state1, 0), std::complex<float>(1, 2));
-  EXPECT_EQ(state_space.GetAmpl(state1, 1), std::complex<float>(3, 4));
-  EXPECT_EQ(state_space.GetAmpl(state1, 2), std::complex<float>(5, 6));
-  EXPECT_EQ(state_space.GetAmpl(state1, 3), std::complex<float>(7, 8));
+  EXPECT_EQ(state_space.GetAmpl(state1, 0), std::complex<fp_type>(1, 2));
+  EXPECT_EQ(state_space.GetAmpl(state1, 1), std::complex<fp_type>(3, 4));
+  EXPECT_EQ(state_space.GetAmpl(state1, 2), std::complex<fp_type>(5, 6));
+  EXPECT_EQ(state_space.GetAmpl(state1, 3), std::complex<fp_type>(7, 8));
 }
 
 template <typename Factory>
@@ -510,7 +511,7 @@ void TestNormAndInnerProduct(const Factory& factory) {
 template <typename Factory>
 void TestSamplingSmall(const Factory& factory) {
   uint64_t num_samples = 2000000;
-  constexpr unsigned num_qubits = 3;
+  constexpr unsigned num_qubits = 6;
   constexpr uint64_t size = uint64_t{1} << num_qubits;
 
   using StateSpace = typename Factory::StateSpace;
@@ -523,7 +524,16 @@ void TestSamplingSmall(const Factory& factory) {
 
   state_space.SetAllZeros(state);
 
-  std::array<float, size> ps = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
+  std::vector<float> ps = {
+    0.0046, 0.0100, 0.0136, 0.0239, 0.0310, 0.0263, 0.0054, 0.0028,
+    0.0129, 0.0128, 0.0319, 0.0023, 0.0281, 0.0185, 0.0284, 0.0175,
+    0.0148, 0.0307, 0.0017, 0.0319, 0.0185, 0.0304, 0.0133, 0.0229,
+    0.0190, 0.0213, 0.0197, 0.0028, 0.0288, 0.0084, 0.0052, 0.0147,
+    0.0164, 0.0084, 0.0154, 0.0093, 0.0215, 0.0059, 0.0115, 0.0039,
+    0.0111, 0.0101, 0.0314, 0.0003, 0.0173, 0.0075, 0.0116, 0.0091,
+    0.0289, 0.0005, 0.0027, 0.0293, 0.0063, 0.0181, 0.0043, 0.0063,
+    0.0169, 0.0101, 0.0295, 0.0227, 0.0275, 0.0218, 0.0131, 0.0172,
+  };
 
   for (uint64_t i = 0; i < size; ++i) {
     auto r = std::sqrt(ps[i]);
@@ -533,7 +543,7 @@ void TestSamplingSmall(const Factory& factory) {
   auto samples = state_space.Sample(state, num_samples, 1);
 
   EXPECT_EQ(samples.size(), num_samples);
-  std::array<double, size> bins = {0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<double> bins(size, 0);
 
   for (auto sample : samples) {
     ASSERT_LT(sample, size);
@@ -557,7 +567,8 @@ void TestSamplingCrossEntropyDifference(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using fp_type = typename StateSpace::fp_type;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
 
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
@@ -660,7 +671,9 @@ void MeasureSmall(const Factory& factory,
     auto result = state_space.Measure(qubits_to_measure, rgen, state);
     ASSERT_TRUE(result.valid);
 
-    ASSERT_NEAR(state_space.Norm(state), 1, 1e-6);
+    if (m % 16 == 0) {
+      ASSERT_NEAR(state_space.Norm(state), 1, 1e-6);
+    }
 
     uint64_t bin = 0;
     for (std::size_t k = 0; k < qubits_to_measure.size(); ++k) {
@@ -724,6 +737,18 @@ void TestMeasurementSmall(const Factory& factory) {
   };
   MeasureSmall(factory, num_measurements, 5, {1, 3}, ps5, rgen);
   MeasureSmall(factory, num_measurements, 5, {1, 2, 3, 4}, ps5, rgen);
+
+  std::vector<float> ps6 = {
+    0.0046, 0.0100, 0.0136, 0.0239, 0.0310, 0.0263, 0.0054, 0.0028,
+    0.0129, 0.0128, 0.0319, 0.0023, 0.0281, 0.0185, 0.0284, 0.0175,
+    0.0148, 0.0307, 0.0017, 0.0319, 0.0185, 0.0304, 0.0133, 0.0229,
+    0.0190, 0.0213, 0.0197, 0.0028, 0.0288, 0.0084, 0.0052, 0.0147,
+    0.0164, 0.0084, 0.0154, 0.0093, 0.0215, 0.0059, 0.0115, 0.0039,
+    0.0111, 0.0101, 0.0314, 0.0003, 0.0173, 0.0075, 0.0116, 0.0091,
+    0.0289, 0.0005, 0.0027, 0.0293, 0.0063, 0.0181, 0.0043, 0.0063,
+    0.0169, 0.0101, 0.0295, 0.0227, 0.0275, 0.0218, 0.0131, 0.0172,
+  };
+  MeasureSmall(factory, num_measurements, 6, {2, 4, 5}, ps6, rgen);
 }
 
 template <typename Factory>
@@ -825,10 +850,14 @@ void TestCollapse(const Factory& factory) {
         EXPECT_NEAR(state_space.Norm(state), 1.0, 1e-6);
 
         for (unsigned i = 0; i < size; ++i) {
+          auto a = state_space.GetAmpl(state, i);
+
           if ((i & mask) != bits) {
-            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+            EXPECT_NEAR(std::real(a), 0, 1e-6);
+            EXPECT_NEAR(std::imag(a), 0, 1e-6);
           } else {
-            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(r, 0));
+            EXPECT_NEAR(std::real(a), r, 1e-6);
+            EXPECT_NEAR(std::imag(a), 0, 1e-6);
           }
         }
       }
@@ -862,6 +891,7 @@ template <typename Factory>
 void TestBulkSetAmplitude(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space = factory.CreateStateSpace();
 
@@ -883,9 +913,11 @@ void TestBulkSetAmplitude(const Factory& factory) {
 
         for (unsigned i = 0; i < size; ++i) {
           if ((i & mask) == bits) {
-            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+            EXPECT_EQ(
+                state_space.GetAmpl(state, i), std::complex<fp_type>(0, 0));
           } else {
-            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(1, 1));
+            EXPECT_EQ(
+                state_space.GetAmpl(state, i), std::complex<fp_type>(1, 1));
           }
         }
       }
@@ -897,6 +929,7 @@ template <typename Factory>
 void TestBulkSetAmplitudeExclusion(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space = factory.CreateStateSpace();
 
@@ -918,9 +951,11 @@ void TestBulkSetAmplitudeExclusion(const Factory& factory) {
 
         for (unsigned i = 0; i < size; ++i) {
           if ((i & mask) != bits) {
-            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(0, 0));
+            EXPECT_EQ(state_space.GetAmpl(state, i),
+                      std::complex<fp_type>(0, 0));
           } else {
-            EXPECT_EQ(state_space.GetAmpl(state, i), std::complex<float>(1, 1));
+            EXPECT_EQ(state_space.GetAmpl(state, i),
+                      std::complex<fp_type>(1, 1));
           }
         }
       }
@@ -932,6 +967,7 @@ template <typename Factory>
 void TestBulkSetAmplitudeDefault(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
 
   unsigned num_qubits = 3;
 
@@ -944,14 +980,14 @@ void TestBulkSetAmplitudeDefault(const Factory& factory) {
     state_space.SetAmpl(state, i, 1, 1);
   }
   state_space.BulkSetAmpl(state, 4 | 1, 4, 0, 0);
-  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<float>(1, 1));
-  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<float>(0, 0));
-  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<float>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 0), std::complex<fp_type>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 1), std::complex<fp_type>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 2), std::complex<fp_type>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 3), std::complex<fp_type>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 4), std::complex<fp_type>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 5), std::complex<fp_type>(1, 1));
+  EXPECT_EQ(state_space.GetAmpl(state, 6), std::complex<fp_type>(0, 0));
+  EXPECT_EQ(state_space.GetAmpl(state, 7), std::complex<fp_type>(1, 1));
 }
 
 template <typename StateSpace>

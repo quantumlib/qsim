@@ -49,3 +49,17 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx512f -mfma -fopenmp -o unitaryspa
 g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o unitaryspace_basic_test.x unitaryspace_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o unitaryspace_sse_test.x unitaryspace_sse_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o vectorspace_test.x vectorspace_test.cc -lgtest -lpthread
+
+nvcc -gencode=arch=compute_60,code=sm_60 \
+     -gencode=arch=compute_61,code=sm_61 \
+     -gencode=arch=compute_62,code=sm_62 \
+     -gencode=arch=compute_70,code=sm_70 \
+     -gencode=arch=compute_75,code=sm_75 \
+     -O3 -I$path_to_include -L$path_to_lib -x cu -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
+
+nvcc -gencode=arch=compute_60,code=sm_60 \
+     -gencode=arch=compute_61,code=sm_61 \
+     -gencode=arch=compute_62,code=sm_62 \
+     -gencode=arch=compute_70,code=sm_70 \
+     -gencode=arch=compute_75,code=sm_75 \
+     -O3 -I$path_to_include -L$path_to_lib -x cu -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread

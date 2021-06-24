@@ -36,10 +36,14 @@ cc_library(
         "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_sse.h",
+        "simulator_cuda.h",
+        "simulator_cuda_kernels.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_sse.h",
+        "statespace_cuda.h",
+        "statespace_cuda_kernels.h",
         "statespace.h",
         "umux.h",
         "unitaryspace.h",
@@ -52,7 +56,9 @@ cc_library(
         "unitary_calculator_basic.h",
         "unitary_calculator_sse.h",
         "util.h",
+        "util_cuda.h",
         "vectorspace.h",
+        "vectorspace_cuda.h",
     ],
 )
 
@@ -161,6 +167,11 @@ cc_library(
 cc_library(
     name = "util",
     hdrs = ["util.h"],
+)
+
+cc_library(
+    name = "util_cuda",
+    hdrs = ["util_cuda.h"],
 )
 
 ### Input/output libraries ###
@@ -311,11 +322,16 @@ cc_library(
     ],
 )
 
-### Vectorspace library ###
+### Vectorspace libraries ###
 
 cc_library(
     name = "vectorspace",
     hdrs = ["vectorspace.h"],
+)
+
+cc_library(
+    name = "vectorspace_cuda",
+    hdrs = ["vectorspace_cuda.h"],
 )
 
 ### Statespace libraries ###
@@ -366,6 +382,19 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "statespace_cuda",
+    hdrs = [
+        "statespace_cuda.h",
+        "statespace_cuda_kernels.h",
+    ],
+    deps = [
+        ":statespace",
+        ":util_cuda",
+        ":vectorspace_cuda",
+    ],
+)
+
 ### Simulator libraries ###
 
 cc_library(
@@ -401,6 +430,19 @@ cc_library(
     deps = [
         ":bits",
         ":statespace_sse",
+    ],
+)
+
+cc_library(
+    name = "simulator_cuda",
+    hdrs = [
+        "simulator_cuda.h",
+        "simulator_cuda_kernels.h",
+    ],
+    deps = [
+        ":bits",
+        ":statespace_cuda",
+        ":util_cuda",
     ],
 )
 
