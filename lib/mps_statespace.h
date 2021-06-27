@@ -15,10 +15,16 @@
 #ifndef MPS_STATESPACE_H_
 #define MPS_STATESPACE_H_
 
+// For templates will take care of parallelization.
+#define EIGEN_DONT_PARALLELIZE 1
+
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
+
+#include "../eigen/Eigen/Dense"
 
 namespace detail {
 
@@ -46,6 +52,12 @@ class MPSStateSpace {
  private:
  public:
   using Pointer = std::unique_ptr<fp_type, decltype(&detail::free)>;
+
+  using Complex = std::complex<fp_type>;
+  using Matrix =
+      Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using ConstMatrixMap = Eigen::Map<const Matrix>;
+  using MatrixMap = Eigen::Map<Matrix>;
 
   // Store MPS tensors with the following shape:
   // [2, bond_dim], [bond_dim, 2, bond_dim], ... , [bond_dim, 2].
@@ -142,6 +154,37 @@ class MPSStateSpace {
     for (unsigned i = 4 * state.bond_dim(); i < size; i += block_size) {
       state.get()[i] = 1.0;
     }
+  }
+
+  // Testing only. Convert the MPS to a wavefunction under "normal" ordering.
+  // Requires: wf be allocated beforehand with bd * 2 ^ nq -1 memory.
+  static void ToWaveFunction(MPS& state, fp_type* wf) {
+    const auto bd = state.bond_dim();
+    const auto nq = state.num_qubits();
+    fp_type* raw_state = state.get();
+
+    ConstMatrixMap accum = ConstMatrixMap((Complex*)(raw_state), 2, bd);
+    ConstMatrixMap next_block = ConstMatrixMap(nullptr, 0, 0);
+    MatrixMap result2 = MatrixMap(nullptr, 0, 0);
+    auto offset = 0;
+    auto result2_size = 2;
+
+    for (unsigned i = 1; i < nq - 1; i++) {
+      offset = GetBlockOffset(state, i);
+      // use of new does not trigger any expensive operations.
+      new (&next_block)
+          ConstMatrixMap((Complex*)(raw_state + offset), bd, 2 * bd);
+      new (&result2) MatrixMap((Complex*)(wf), result2_size, 2 * bd);
+
+      // temp variable used since result2 and accum point to same memory.
+      result2 = accum * next_block;
+      result2_size *= 2;
+      new (&accum) ConstMatrixMap((Complex*)(wf), result2_size, bd);
+    }
+    offset = GetBlockOffset(state, nq - 1);
+    new (&next_block) ConstMatrixMap((Complex*)(raw_state + offset), bd, 2);
+    new (&result2) MatrixMap((Complex*)(wf), result2_size, 2);
+    result2 = accum * next_block;
   }
 
  protected:

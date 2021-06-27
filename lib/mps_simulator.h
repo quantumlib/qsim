@@ -40,13 +40,14 @@ class MPSSimulator final {
   using MPSStateSpace_ = MPSStateSpace<For, fp_type>;
   using MPS = typename MPSStateSpace_::MPS;
 
-  using Matrix = Eigen::Matrix<std::complex<fp_type>, Eigen::Dynamic,
+  using Complex = std::complex<fp_type>;
+  using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic,
                                Eigen::Dynamic, Eigen::RowMajor>;
   using ConstMatrixMap = Eigen::Map<const Matrix>;
   using MatrixMap = Eigen::Map<Matrix>;
 
   using OneQBMatrix =
-      Eigen::Matrix<std::complex<fp_type>, 2, 2, Eigen::RowMajor>;
+      Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
   using ConstOneQBMap = Eigen::Map<const OneQBMatrix>;
 
   // Note: ForArgs are currently unused.
@@ -135,14 +136,14 @@ class MPSSimulator final {
     const auto l_offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
     const auto r_offset = MPSStateSpace_::GetBlockOffset(state, qs[0] + 1);
     const auto end = MPSStateSpace_::Size(state);
-    ConstOneQBMap B = ConstOneQBMap((std::complex<fp_type>*)matrix);
-    MatrixMap C = MatrixMap((std::complex<fp_type>*)(raw_state + end), 2, bd);
+    ConstOneQBMap B = ConstOneQBMap((Complex*)matrix);
+    MatrixMap C = MatrixMap((Complex*)(raw_state + end), 2, bd);
 
     for (unsigned block_sep = l_offset; block_sep < r_offset;
          block_sep += 4 * bd) {
       fp_type* cur_block = raw_state + block_sep;
       ConstMatrixMap A =
-          ConstMatrixMap((std::complex<fp_type>*)(cur_block), 2, bd);
+          ConstMatrixMap((Complex*)(cur_block), 2, bd);
       C.noalias() = B * A;
       memcpy(cur_block, raw_state + end, sizeof(fp_type) * bd * 4);
     }
@@ -154,10 +155,10 @@ class MPSSimulator final {
     const auto bd = state.bond_dim();
     const auto offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
     const auto end = MPSStateSpace_::Size(state);
-    ConstOneQBMap B = ConstOneQBMap((std::complex<fp_type>*)matrix);
+    ConstOneQBMap B = ConstOneQBMap((Complex*)matrix);
     ConstMatrixMap A =
-        ConstMatrixMap((std::complex<fp_type>*)(raw_state + offset), bd, 2);
-    MatrixMap C = MatrixMap((std::complex<fp_type>*)(raw_state + end), bd, 2);
+        ConstMatrixMap((Complex*)(raw_state + offset), bd, 2);
+    MatrixMap C = MatrixMap((Complex*)(raw_state + end), bd, 2);
     C.noalias() = A * B.transpose();
     memcpy(raw_state + offset, raw_state + end, sizeof(fp_type) * bd * 4);
   }
