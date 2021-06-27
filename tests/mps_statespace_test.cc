@@ -152,7 +152,7 @@ TEST(MPSStateSpaceTest, ToWaveFunction5) {
   auto ss = MPSStateSpace<For, float>(1);
   auto mps = ss.CreateMPS(5, 4);
 
-  // Set to highly entangled three qubit state.
+  // Set to highly entangled five qubit state.
   memset(mps.get(), 0, ss.RawSize(mps));
   mps.get()[0] = -0.7942508170779394;
   mps.get()[1] = -0.08353012422743371;
