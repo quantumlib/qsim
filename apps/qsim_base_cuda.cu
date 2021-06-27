@@ -25,27 +25,28 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
 #include "../lib/run_qsim.h"
-#include "../lib/simmux.h"
+#include "../lib/simulator_cuda.h"
 
 struct Options {
   std::string circuit_file;
   unsigned maxtime = std::numeric_limits<unsigned>::max();
   unsigned seed = 1;
-  unsigned num_threads = 1;
   unsigned max_fused_size = 2;
+  unsigned num_threads = 256;
+  unsigned num_dblocks = 16;
   unsigned verbosity = 0;
 };
 
 Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_base -c circuit -d maxtime "
-                           "-s seed -t threads -f max_fused_size "
-                           "-v verbosity\n";
+                           "-s seed -f max_fused_size -t num_threads"
+                           "-n num_dblocks -v verbosity\n";
 
   Options opt;
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:s:t:f:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:f:t:n:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -56,11 +57,14 @@ Options GetOptions(int argc, char* argv[]) {
       case 's':
         opt.seed = std::atoi(optarg);
         break;
+      case 'f':
+        opt.max_fused_size = std::atoi(optarg);
+        break;
       case 't':
         opt.num_threads = std::atoi(optarg);
         break;
-      case 'f':
-        opt.max_fused_size = std::atoi(optarg);
+      case 'n':
+        opt.num_dblocks = std::atoi(optarg);
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
@@ -115,20 +119,23 @@ int main(int argc, char* argv[]) {
   }
 
   struct Factory {
-    Factory(unsigned num_threads) : num_threads(num_threads) {}
-
-    using Simulator = qsim::Simulator<For>;
+    using Simulator = qsim::SimulatorCUDA<float>;
     using StateSpace = Simulator::StateSpace;
 
+    Factory(const StateSpace::Parameter& param1,
+            const Simulator::Parameter& param2)
+        : param1(param1), param2(param2) {}
+
     StateSpace CreateStateSpace() const {
-      return StateSpace(num_threads);
+      return StateSpace(param1);
     }
 
     Simulator CreateSimulator() const {
-      return Simulator(num_threads);
+      return Simulator(param2);
     }
 
-    unsigned num_threads;
+    const StateSpace::Parameter& param1;
+    const Simulator::Parameter& param2;
   };
 
   using Simulator = Factory::Simulator;
@@ -137,7 +144,16 @@ int main(int argc, char* argv[]) {
   using Fuser = MultiQubitGateFuser<IO, GateQSim<float>>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
 
-  StateSpace state_space = Factory(opt.num_threads).CreateStateSpace();
+  StateSpace::Parameter param1;
+  param1.num_threads = opt.num_threads;
+  param1.num_dblocks = opt.num_dblocks;
+
+  Simulator::Parameter param2;
+  param2.num_threads = opt.num_threads;
+
+  Factory factory(param1, param2);
+
+  StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
   if (state_space.IsNull(state)) {
@@ -147,12 +163,12 @@ int main(int argc, char* argv[]) {
 
   state_space.SetStateZero(state);
 
-  Runner::Parameter param;
-  param.max_fused_size = opt.max_fused_size;
-  param.seed = opt.seed;
-  param.verbosity = opt.verbosity;
+  Runner::Parameter param3;
+  param3.max_fused_size = opt.max_fused_size;
+  param3.seed = opt.seed;
+  param3.verbosity = opt.verbosity;
 
-  if (Runner::Run(param, Factory(opt.num_threads), circuit, state)) {
+  if (Runner::Run(param3, factory, circuit, state)) {
     PrintAmplitudes(circuit.num_qubits, state_space, state);
   }
 
