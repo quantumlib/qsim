@@ -127,6 +127,8 @@ TEST(MPSStateSpaceTest, ToWaveFunction3) {
   mps.get()[86] = -0.13468137383460999;
   mps.get()[87] = 0.0829002782702446;
 
+  // Check that the following transformation is carried out:
+  // wf = einsum('ij,jkl,lm->ikm', *blocks)
   float *wf = new float[32];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], -0.005946025252342224, 1e-4);
@@ -299,6 +301,8 @@ TEST(MPSStateSpaceTest, ToWaveFunction5) {
   mps.get()[214] = -0.41377660632133484;
   mps.get()[215] = 0.20450012385845184;
 
+  // Check that the following transformation is carried out:
+  // wf = einsum('ij,jkl,lmn,nop,pq->ikmoq', *blocks)
   float *wf = new float[128];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 0.0027854256331920624, 1e-4);
