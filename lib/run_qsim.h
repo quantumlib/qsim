@@ -28,10 +28,11 @@ namespace qsim {
 /**
  * Helper struct for running qsim.
  */
-template <typename IO, typename Fuser, typename Simulator,
+template <typename IO, typename Fuser, typename Factory,
           typename RGen = std::mt19937>
 struct QSimRunner final {
  public:
+  using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
@@ -44,26 +45,27 @@ struct QSimRunner final {
      * Random number generator seed to apply measurement gates.
      */
     uint64_t seed;
-    unsigned num_threads;
   };
 
   /**
    * Runs the given circuit, only measuring at the end.
    * @param param Options for gate fusion, parallelism and logging.
+   * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param measure Function that performs measurements (in the sense of
    *   computing expectation values, etc).
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit, typename MeasurementFunc>
-  static bool Run(const Parameter& param, const Circuit& circuit,
-                  MeasurementFunc measure) {
-    return Run(param, {circuit.gates.back().time}, circuit, measure);
+  static bool Run(const Parameter& param, const Factory& factory,
+                  const Circuit& circuit, MeasurementFunc measure) {
+    return Run(param, factory, {circuit.gates.back().time}, circuit, measure);
   }
 
   /**
    * Runs the given circuit, measuring at user-specified times.
    * @param param Options for gate fusion, parallelism and logging.
+   * @param factory Object to create simulators and state spaces.
    * @param times_to_measure_at Time steps at which to perform measurements.
    * @param circuit The circuit to be simulated.
    * @param measure Function that performs measurements (in the sense of
@@ -71,7 +73,7 @@ struct QSimRunner final {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit, typename MeasurementFunc>
-  static bool Run(const Parameter& param,
+  static bool Run(const Parameter& param, const Factory& factory,
                   const std::vector<unsigned>& times_to_measure_at,
                   const Circuit& circuit, MeasurementFunc measure) {
     double t0 = 0.0;
@@ -83,7 +85,7 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space(param.num_threads);
+    StateSpace state_space = factory.CreateStateSpace();
 
     auto state = state_space.Create(circuit.num_qubits);
     if (state_space.IsNull(state)) {
@@ -92,7 +94,7 @@ struct QSimRunner final {
     }
 
     state_space.SetStateZero(state);
-    Simulator simulator(param.num_threads);
+    Simulator simulator = factory.CreateSimulator();
 
     auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
                                         circuit.gates, times_to_measure_at);
@@ -140,6 +142,7 @@ struct QSimRunner final {
    * Runs the given circuit and make the final state available to the caller,
    * recording the result of any intermediate measurements in the circuit.
    * @param param Options for gate fusion, parallelism and logging.
+   * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
@@ -150,9 +153,9 @@ struct QSimRunner final {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
-  static bool Run(
-      const Parameter& param, const Circuit& circuit, State& state,
-      std::vector<MeasurementResult>& measure_results) {
+  static bool Run(const Parameter& param, const Factory& factory,
+                  const Circuit& circuit, State& state,
+                  std::vector<MeasurementResult>& measure_results) {
     double t0 = 0.0;
     double t1 = 0.0;
 
@@ -162,9 +165,8 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space(param.num_threads);
-
-    Simulator simulator(param.num_threads);
+    StateSpace state_space = factory.CreateStateSpace();
+    Simulator simulator = factory.CreateSimulator();
 
     auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
                                         circuit.gates);
@@ -203,6 +205,7 @@ struct QSimRunner final {
    * Runs the given circuit and make the final state available to the caller,
    * discarding the result of any intermediate measurements in the circuit.
    * @param param Options for gate fusion, parallelism and logging.
+   * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
@@ -210,10 +213,10 @@ struct QSimRunner final {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
-  static bool Run(const Parameter& param, const Circuit& circuit,
-                  State& state) {
+  static bool Run(const Parameter& param, const Factory& factory,
+                  const Circuit& circuit, State& state) {
     std::vector<MeasurementResult> discarded_results;
-    return Run(param, circuit, state, discarded_results);
+    return Run(param, factory, circuit, state, discarded_results);
   }
 };
 

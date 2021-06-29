@@ -12,15 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef VECTORSPACE_H_
-#define VECTORSPACE_H_
+#ifndef VECTORSPACE_CUDA_H_
+#define VECTORSPACE_CUDA_H_
 
-#ifdef _WIN32
-  #include <malloc.h>
-#endif
+#include <cuda.h>
+#include <cuda_runtime.h>
 
-#include <cstdint>
-#include <cstdlib>
 #include <memory>
 #include <utility>
 
@@ -31,18 +28,14 @@ namespace detail {
 inline void do_not_free(void*) {}
 
 inline void free(void* ptr) {
-#ifdef _WIN32
-  _aligned_free(ptr);
-#else
-  ::free(ptr);
-#endif
+  cudaFree(ptr);
 }
 
 }  // namespace detail
 
 // Routines for vector manipulations.
-template <typename Impl, typename For, typename FP>
-class VectorSpace {
+template <typename Impl, typename FP>
+class VectorSpaceCUDA {
  public:
   using fp_type = FP;
 
@@ -79,22 +72,19 @@ class VectorSpace {
     unsigned num_qubits_;
   };
 
-  template <typename... ForArgs>
-  VectorSpace(ForArgs&&... args) : for_(args...) {}
+  template <typename... Args>
+  VectorSpaceCUDA(Args&&... args) {}
 
   static Vector Create(unsigned num_qubits) {
+    fp_type* p;
     auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
-    #ifdef _WIN32
-      Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &detail::free};
-      return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
-    #else
-      void* p = nullptr;
-      if (posix_memalign(&p, 64, size) == 0) {
-        return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
-      } else {
-        return Null();
-      }
-    #endif
+    auto rc = cudaMalloc(&p, size);
+
+    if (rc == cudaSuccess) {
+      return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
+    } else {
+      return Null();
+    }
   }
 
   // It is the client's responsibility to make sure that p has at least
@@ -107,8 +97,8 @@ class VectorSpace {
     return Vector{Pointer{nullptr, &detail::free}, 0};
   }
 
-  static bool IsNull(const Vector& vec) {
-    return vec.get() == nullptr;
+  static bool IsNull(const Vector& vector) {
+    return vector.get() == nullptr;
   }
 
   static void Free(fp_type* ptr) {
@@ -120,12 +110,9 @@ class VectorSpace {
       return false;
     }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const fp_type* src, fp_type* dest) {
-      dest[i] = src[i];
-    };
-
-    for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest.get());
+    cudaMemcpy(dest.get(), src.get(),
+               sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
+               cudaMemcpyDeviceToDevice);
 
     return true;
   }
@@ -133,20 +120,16 @@ class VectorSpace {
   // It is the client's responsibility to make sure that dest has at least
   // 2 * 2^src.num_qubits() elements.
   bool Copy(const Vector& src, fp_type* dest) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const fp_type* src, fp_type* dest) {
-      dest[i] = src[i];
-    };
-
-    for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest);
+    cudaMemcpy(dest, src.get(),
+               sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
+               cudaMemcpyDeviceToHost);
 
     return true;
   }
 
  protected:
-  For for_;
 };
 
 }  // namespace qsim
 
-#endif  // VECTORSPACE_H_
+#endif  // VECTORSPACE_CUDA_H_
