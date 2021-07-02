@@ -29,6 +29,14 @@ TEST(MPSSimulator, Create) { auto sim = MPSSimulator<For, float>(1); }
 
 TEST(MPSSimulator, Apply1RightArbitrary) {
   // Apply an arbitrary matrix to the last qubit triggers [bond_dim, 2].
+  //   |     |     |
+  //   |     |   +-+-+
+  //   |     |   | U |
+  //   |     |   +-+-+
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
@@ -77,6 +85,14 @@ TEST(MPSSimulator, Apply1RightArbitrary) {
 
 TEST(MPSSimulator, Apply1LeftArbitrary) {
   // Apply a matrix to the first qubit triggers [2, bond_dim].
+  //   |     |     |
+  // +-+-+   |     |
+  // | U |   |     |
+  // +-+-+   |     |
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
@@ -124,6 +140,14 @@ TEST(MPSSimulator, Apply1LeftArbitrary) {
 
 TEST(MPSSimulator, Apply1InteriorArbitrary) {
   // Apply a matrix to the second qubit. Triggers [bond_dim, 2, bond_dim].
+  //   |     |     |
+  //   |   +-+-+   |
+  //   |   | U |   |
+  //   |   +-+-+   |
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
@@ -240,6 +264,19 @@ TEST(MPSSimulator, Apply1InteriorArbitrary) {
 }
 
 TEST(MPSSimulator, Apply2Left01) {
+  // Compute the state vector of:
+  //   |     |     |
+  // +-+-----+-+   |
+  // |Syc  Gate|   |
+  // +-+-----+-+   |
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
+  // Where 0, 1, 2 are in an initial highly entagled (random) state.
+  // Tests left boundary contraction behavior.
+  // Note: Since SVD is not unique, comparisons are more easily made against
+  // the statevector and not the mps state itself.
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
@@ -308,6 +345,19 @@ TEST(MPSSimulator, Apply2Left01) {
 }
 
 TEST(MPSSimulator, Apply2Right12) {
+  // Compute the state vector of:
+  //   |     |     |
+  //   |   +-+-----+-+
+  //   |   |Syc  Gate|
+  //   |   +-+-----+-+
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
+  // Where 0, 1, 2 are in an initial highly entagled (random) state.
+  // Tests right boundary contraction behavior.
+  // Note: Since SVD is not unique, comparisons are more easily made against
+  // the statevector and not the mps state itself.
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
@@ -376,6 +426,19 @@ TEST(MPSSimulator, Apply2Right12) {
 }
 
 TEST(MPSSimulator, Apply2Middle) {
+  // Compute the state vector of:
+  //   |     |     |     |
+  //   |   +-+-----+-+   |
+  //   |   |Syc  Gate|   |
+  //   |   +-+-----+-+   |
+  //   |     |     |     |
+  // +-+-+ +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 +-+ 3 |
+  // +---+ +---+ +---+ +---+
+  // Where 0, 1, 2, 3 are in an initial highly entagled (random) state.
+  // Tests boundaryless contraction behavior.
+  // Note: Since SVD is not unique, comparisons are more easily made against
+  // the statevector and not the mps state itself.
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
