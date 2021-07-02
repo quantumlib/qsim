@@ -221,19 +221,19 @@ class MPSSimulator final {
     MatrixMap K((Complex*)(raw_state + B_0_offset), 2 * i_dim, 2 * m_dim);
     Eigen::BDCSVD<Matrix> svd(K, Eigen::ComputeThinU | Eigen::ComputeThinV);
     const auto p = std::min(2 * i_dim, 2 * m_dim);
-    MatrixMap U((Complex*)(raw_state + end), 2 * i_dim, p);
-    MatrixMap V((Complex*)(raw_state + end + 8 * bd * bd), p, 2 * m_dim);
-    U.noalias() = svd.matrixU();
-    V.noalias() = svd.matrixV().adjoint();
-    const auto s_vector = svd.singularValues();  // creates a temp. optimize.
 
     // Place U in B0.
+    MatrixMap U((Complex*)(raw_state + end), 2 * i_dim, p);
+    U.noalias() = svd.matrixU();
     B_0.fill(Complex(0, 0));
     const auto keep_cols = (U.cols() > bd) ? bd : U.cols();
     B_0.block(0, 0, U.rows(), keep_cols).noalias() =
         U(Eigen::all, Eigen::seq(0, keep_cols - 1));
 
     // Place row product of S V into B1.
+    MatrixMap V((Complex*)(raw_state + end), p, 2 * m_dim);
+    V.noalias() = svd.matrixV().adjoint();
+    const auto s_vector = svd.singularValues();  // creates a temp. optimize.
     B_1.fill(Complex(0, 0));
     const auto keep_rows = (V.rows() > bd) ? bd : V.rows();
     const auto row_seq = Eigen::seq(0, keep_rows - 1);

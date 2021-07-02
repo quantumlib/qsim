@@ -93,8 +93,8 @@ class MPSStateSpace {
   // Requires num_qubits >= 2 and bond_dim >= 2.
   static MPS CreateMPS(unsigned num_qubits, unsigned bond_dim) {
     auto end_sizes = 2 * 4 * bond_dim;
-    auto internal_sizes = 4 * bond_dim * bond_dim * (num_qubits + 2);
-    // Use four extra "internal style" blocks past the end of the
+    auto internal_sizes = 4 * bond_dim * bond_dim * (num_qubits + 1);
+    // Use three extra "internal style" blocks past the end of the
     //   working allocation for scratch space. Needed for gate
     //   application.
     auto size = sizeof(fp_type) * (end_sizes + internal_sizes);
