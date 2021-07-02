@@ -25,6 +25,8 @@
 #include <vector>
 
 #include "../eigen/Eigen/Dense"
+#include "../eigen/Eigen/SVD"
+#include "../eigen/unsupported/Eigen/CXX11/Tensor"
 #include "mps_statespace.h"
 
 namespace qsim {
@@ -38,16 +40,20 @@ template <typename For, typename fp_type = float>
 class MPSSimulator final {
  public:
   using MPSStateSpace_ = MPSStateSpace<For, fp_type>;
-  using MPS = typename MPSStateSpace_::MPS;
+  using State = typename MPSStateSpace_::MPS;
 
   using Complex = std::complex<fp_type>;
-  using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic,
-                               Eigen::Dynamic, Eigen::RowMajor>;
+  using Matrix =
+      Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using ConstMatrixMap = Eigen::Map<const Matrix>;
   using MatrixMap = Eigen::Map<Matrix>;
 
-  using OneQBMatrix =
-      Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
+  using ConstFourTensorMap =
+      Eigen::TensorMap<const Eigen::Tensor<Complex, 4, Eigen::RowMajor>>;
+  using FourTensorMap =
+      Eigen::TensorMap<Eigen::Tensor<Complex, 4, Eigen::RowMajor>>;
+
+  using OneQBMatrix = Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
   using ConstOneQBMap = Eigen::Map<const OneQBMatrix>;
 
   // Note: ForArgs are currently unused.
@@ -61,16 +67,16 @@ class MPSSimulator final {
    * @param state The state of the system, to be updated by this method.
    */
   void ApplyGate(const std::vector<unsigned>& qs, const fp_type* matrix,
-                 MPS& state) const {
+                 State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     switch (qs.size()) {
       case 1:
         ApplyGate1(qs, matrix, state);
         break;
-      // case 2:
-      //   ApplyGate2(qs, matrix, state);
-      //   break;
+      case 2:
+        ApplyGate2(qs, matrix, state);
+        break;
       // case 3:
       //   ApplyGate3(qs, matrix, state);
       //   break;
@@ -99,7 +105,7 @@ class MPSSimulator final {
    */
   void ApplyControlledGate(const std::vector<unsigned>& qs,
                            const std::vector<unsigned>& cqs, uint64_t cmask,
-                           const fp_type* matrix, MPS& state) const {
+                           const fp_type* matrix, State& state) const {
     // TODO.
   }
 
@@ -113,7 +119,7 @@ class MPSSimulator final {
    */
   std::complex<double> ExpectationValue(const std::vector<unsigned>& qs,
                                         const fp_type* matrix,
-                                        const MPS& state) const {
+                                        const State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
     // TODO.
     return std::complex<double>(-10., -10.);
@@ -121,7 +127,7 @@ class MPSSimulator final {
 
  private:
   void ApplyGate1(const std::vector<unsigned>& qs, const fp_type* matrix,
-                  MPS& state) const {
+                  State& state) const {
     if (qs[0] == state.num_qubits() - 1) {
       Apply1Right(qs, matrix, state);
     } else {
@@ -130,37 +136,111 @@ class MPSSimulator final {
   }
 
   void Apply1LeftOrInterior(const std::vector<unsigned>& qs,
-                            const fp_type* matrix, MPS& state) const {
+                            const fp_type* matrix, State& state) const {
     fp_type* raw_state = state.get();
     const auto bd = state.bond_dim();
     const auto l_offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
     const auto r_offset = MPSStateSpace_::GetBlockOffset(state, qs[0] + 1);
     const auto end = MPSStateSpace_::Size(state);
-    ConstOneQBMap B = ConstOneQBMap((Complex*)matrix);
-    MatrixMap C = MatrixMap((Complex*)(raw_state + end), 2, bd);
+    ConstOneQBMap B((Complex*)matrix);
+    MatrixMap C((Complex*)(raw_state + end), 2, bd);
 
     for (unsigned block_sep = l_offset; block_sep < r_offset;
          block_sep += 4 * bd) {
       fp_type* cur_block = raw_state + block_sep;
-      ConstMatrixMap A =
-          ConstMatrixMap((Complex*)(cur_block), 2, bd);
+      ConstMatrixMap A((Complex*)(cur_block), 2, bd);
       C.noalias() = B * A;
       memcpy(cur_block, raw_state + end, sizeof(fp_type) * bd * 4);
     }
   }
 
   void Apply1Right(const std::vector<unsigned>& qs, const fp_type* matrix,
-                   MPS& state) const {
+                   State& state) const {
     fp_type* raw_state = state.get();
     const auto bd = state.bond_dim();
     const auto offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
     const auto end = MPSStateSpace_::Size(state);
-    ConstOneQBMap B = ConstOneQBMap((Complex*)matrix);
-    ConstMatrixMap A =
-        ConstMatrixMap((Complex*)(raw_state + offset), bd, 2);
-    MatrixMap C = MatrixMap((Complex*)(raw_state + end), bd, 2);
+    ConstOneQBMap B((Complex*)matrix);
+    ConstMatrixMap A((Complex*)(raw_state + offset), bd, 2);
+    MatrixMap C((Complex*)(raw_state + end), bd, 2);
     C.noalias() = A * B.transpose();
     memcpy(raw_state + offset, raw_state + end, sizeof(fp_type) * bd * 4);
+  }
+
+  void ApplyGate2(const std::vector<unsigned>& qs, const fp_type* matrix,
+                  State& state) const {
+    // TODO: micro-benchmark this function and improve performance.
+    const auto bd = state.bond_dim();
+    const auto nq = state.num_qubits();
+    fp_type* raw_state = state.get();
+
+    const auto i_dim = (qs[0] == 0) ? 1 : bd;
+    const auto j_dim = 2;
+    const auto k_dim = bd;
+    const auto l_dim = 2;
+    const auto m_dim = (qs[1] == nq - 1) ? 1 : bd;
+
+    const auto B_0_offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
+    const auto B_1_offset = MPSStateSpace_::GetBlockOffset(state, qs[1]);
+    const auto end = MPSStateSpace_::Size(state);
+
+    MatrixMap B_0((Complex*)(raw_state + B_0_offset), i_dim * j_dim, k_dim);
+    MatrixMap B_1((Complex*)(raw_state + B_1_offset), k_dim, l_dim * m_dim);
+
+    // Merge both blocks into scratch space.
+    MatrixMap C((Complex*)(raw_state + end), i_dim * j_dim, l_dim * m_dim);
+    C.noalias() = B_0 * B_1;
+
+    // Transpose inner dims swapping back into block memory.
+    ConstFourTensorMap C_t((Complex*)(raw_state + end), i_dim, j_dim, l_dim,
+                           m_dim);
+    FourTensorMap C_t_swap((Complex*)(raw_state + B_0_offset), i_dim, l_dim,
+                           j_dim, m_dim);
+    C_t_swap = C_t.shuffle(Eigen::array<int, 4>{0, 2, 1, 3});  // [i, l, j, m]
+
+    // Transpose gate matrix and place in 3rd (last) scratch block.
+    const auto scratch3_offset = end + 8 * bd * bd;
+    ConstMatrixMap G_mat((Complex*)matrix, 4, 4);
+    MatrixMap G_t_mat((Complex*)(raw_state + scratch3_offset), 4, 4);
+    G_t_mat = G_mat.transpose();
+    G_t_mat.col(1).swap(G_t_mat.col(2));
+
+    // Contract gate and merged block tensors, placing result in scratch.
+    for (unsigned i = 0; i < i_dim; i++) {
+      fp_type* dest_block = raw_state + end + i * 8 * m_dim;
+      fp_type* src_block = raw_state + B_0_offset + i * 8 * m_dim;
+      MatrixMap K_i((Complex*)dest_block, 4, m_dim);
+      ConstMatrixMap C_i((Complex*)src_block, 4, m_dim);
+      // [i, np, m] = [np, lj] * [i, lj, m]
+      K_i.noalias() = G_t_mat * C_i;
+    }
+
+    // Copy 1st and 2nd scratch block to B0 B1.
+    memcpy(raw_state + B_0_offset, raw_state + end,
+           8 * i_dim * m_dim * sizeof(fp_type));
+    MatrixMap K((Complex*)(raw_state + B_0_offset), 2 * i_dim, 2 * m_dim);
+    Eigen::BDCSVD<Matrix> svd(K, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    const auto p = std::min(2 * i_dim, 2 * m_dim);
+    MatrixMap U((Complex*)(raw_state + end), 2 * i_dim, p);
+    MatrixMap V((Complex*)(raw_state + end + 8 * bd * bd), p, 2 * m_dim);
+    U.noalias() = svd.matrixU();
+    V.noalias() = svd.matrixV().adjoint();
+    const auto s_vector = svd.singularValues();  // creates a temp. optimize.
+
+    // Place U in B0.
+    B_0.fill(Complex(0, 0));
+    const auto keep_cols = (U.cols() > bd) ? bd : U.cols();
+    B_0.block(0, 0, U.rows(), keep_cols).noalias() =
+        U(Eigen::all, Eigen::seq(0, keep_cols - 1));
+
+    // Place row product of S V into B1.
+    B_1.fill(Complex(0, 0));
+    const auto keep_rows = (V.rows() > bd) ? bd : V.rows();
+    const auto row_seq = Eigen::seq(0, keep_rows - 1);
+    for (unsigned i = 0; i < keep_rows; i++) {
+      V.row(i) *= s_vector(i);
+    }
+    B_1.block(0, 0, keep_rows, V.cols()).noalias() = V(row_seq, Eigen::all);
   }
 
   For for_;
