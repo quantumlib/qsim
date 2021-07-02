@@ -686,6 +686,59 @@ TEST(MPSSimulator, OneTwoQubitFuzz) {
   EXPECT_NEAR(wf[126], -0.019155969843268394, 1e-4);
   EXPECT_NEAR(wf[127], 0.020053446292877197, 1e-4);
   delete[](wf);
+
+  /* Equivalent Cirq code:
+
+  import cirq
+
+  def main():
+    q0 = cirq.LineQubit(0)
+    q1 = cirq.LineQubit(1)
+    q2 = cirq.LineQubit(2)
+    q3 = cirq.LineQubit(3)
+    q4 = cirq.LineQubit(4)
+    q5 = cirq.LineQubit(5)
+
+    circuit = cirq.Circuit(
+      cirq.Moment([
+        cirq.Y(q0) ** 0.1,
+        cirq.Y(q1) ** 0.2,
+        cirq.Y(q2) ** 0.3,
+        cirq.Y(q3) ** 0.4,
+        cirq.Y(q4) ** 0.5,
+        cirq.Y(q5) ** 0.6,
+      ]),
+      cirq.Moment([
+        cirq.FSimGate(1.1,0.8)(q0, q1),
+        cirq.FSimGate(0.2,0.9)(q2, q3),
+        cirq.FSimGate(0.3,0.4)(q4, q5),
+      ]),
+      cirq.Moment([
+        cirq.Y(q0) ** 0.88,
+        cirq.Y(q1) ** 1.8,
+        cirq.Y(q2) ** -0.3,
+        cirq.Y(q3) ** 0.6,
+        cirq.Y(q4) ** -1.2,
+        cirq.Y(q5) ** 2.2,
+      ]),
+      cirq.Moment([
+        cirq.FSimGate(0.5,-0.9)(q1, q2),
+        cirq.FSimGate(-4.1,0.345)(q3, q4),
+      ]),
+    )
+
+    simulator = cirq.Simulator()
+    result = simulator.simulate(circuit)
+
+    for i in range(len(result.state_vector())):
+      wf2 = result.state_vector()
+      print(f'EXPECT_NEAR(wf[{2*i}], {wf2[i].real}, 1e-4);')
+      print(f'EXPECT_NEAR(wf[{2*i + 1}], {wf2[i].imag}, 1e-4);')
+
+  if __name__ == '__main__':
+    main()
+
+  */
 }
 
 }  // namespace
