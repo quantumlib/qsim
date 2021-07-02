@@ -232,8 +232,9 @@ class MPSSimulator final {
 
     // Place row product of S V into B1.
     MatrixMap V((Complex*)(raw_state + end), p, 2 * m_dim);
+    MatrixMap s_vector((Complex*)(raw_state + end + 8 * bd * bd), p, 1);
     V.noalias() = svd.matrixV().adjoint();
-    const auto s_vector = svd.singularValues();  // creates a temp. optimize.
+    s_vector.noalias() = svd.singularValues();
     B_1.fill(Complex(0, 0));
     const auto keep_rows = (V.rows() > bd) ? bd : V.rows();
     const auto row_seq = Eigen::seq(0, keep_rows - 1);
