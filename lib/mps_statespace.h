@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
 
 #include "../eigen/Eigen/Dense"
@@ -93,8 +94,8 @@ class MPSStateSpace {
   // Requires num_qubits >= 2 and bond_dim >= 2.
   static MPS CreateMPS(unsigned num_qubits, unsigned bond_dim) {
     auto end_sizes = 2 * 4 * bond_dim;
-    auto internal_sizes = 4 * bond_dim * bond_dim * num_qubits;
-    // Use two extra "internal style" blocks past the end of the
+    auto internal_sizes = 4 * bond_dim * bond_dim * (num_qubits + 1);
+    // Use three extra "internal style" blocks past the end of the
     //   working allocation for scratch space. Needed for gate
     //   application.
     auto size = sizeof(fp_type) * (end_sizes + internal_sizes);
@@ -153,6 +154,63 @@ class MPSStateSpace {
     for (unsigned i = 4 * state.bond_dim(); i < size; i += block_size) {
       state.get()[i] = 1.0;
     }
+  }
+
+  // Computes <state1 | state2 > for two equal sized MPS.
+  // Requires: state1.bond_dim() == state2.bond_dim() &&
+  //           state1.num_qubits() == state2.num_qubits()
+  static std::complex<fp_type> InnerProduct(MPS& state1, MPS& state2) {
+    const auto nq = state1.num_qubits();
+    const auto bd = state1.bond_dim();
+    const auto end = Size(state1);
+    auto offset = 0;
+    fp_type* state1_raw = state1.get();
+    fp_type* state2_raw = state2.get();
+
+    // Contract leftmost blocks together, store result in state1 scratch.
+    ConstMatrixMap top((Complex*)state2_raw, 2, bd);
+    ConstMatrixMap bot((Complex*)state1_raw, 2, bd);
+    MatrixMap partial_contract((Complex*)(state1_raw + end), bd, bd);
+    MatrixMap partial_contract2((Complex*)(state1_raw + end + 2 * bd * bd), bd,
+                                2 * bd);
+    partial_contract.noalias() = top.adjoint() * bot;
+
+    // Contract all internal blocks together.
+    for (unsigned i = 1; i < nq - 1; i++) {
+      offset = GetBlockOffset(state1, i);
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state1_raw + end + 2 * bd * bd), bd, 2 * bd);
+
+      // Merge bot into left boundary merged tensor.
+      new (&bot) ConstMatrixMap((Complex*)(state1_raw + offset), bd, 2 * bd);
+      partial_contract2.noalias() = partial_contract * bot;
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state1_raw + end + 2 * bd * bd), 2 * bd, bd);
+
+      // Merge top into partial_contract2.
+      new (&top) ConstMatrixMap((Complex*)(state2_raw + offset), 2 * bd, bd);
+      partial_contract.noalias() = top.adjoint() * partial_contract2;
+    }
+
+    // Contract rightmost bottom block.
+    offset = GetBlockOffset(state1, nq - 1);
+    new (&bot) ConstMatrixMap((Complex*)(state1_raw + offset), bd, 2);
+    new (&partial_contract2)
+        MatrixMap((Complex*)(state1_raw + end + 4 * bd * bd), bd, 2);
+    partial_contract2.noalias() = partial_contract * bot;
+
+    // Contract rightmost top block.
+    new (&top) ConstMatrixMap((Complex*)(state2_raw + offset), 2 * bd, 1);
+    new (&partial_contract) MatrixMap((Complex*)(state1_raw + end), 1, 1);
+    new (&partial_contract2)
+        MatrixMap((Complex*)(state1_raw + end + 4 * bd * bd), 2 * bd, 1);
+    partial_contract.noalias() = top.adjoint() * partial_contract2;
+
+    return partial_contract(0, 0);
   }
 
   // Testing only. Convert the MPS to a wavefunction under "normal" ordering.
