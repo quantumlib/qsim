@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <memory>
 
 #include "../eigen/Eigen/Dense"
