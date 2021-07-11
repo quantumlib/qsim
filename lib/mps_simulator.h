@@ -26,7 +26,6 @@
 
 #include "../eigen/Eigen/Dense"
 #include "../eigen/Eigen/SVD"
-#include "../eigen/unsupported/Eigen/CXX11/Tensor"
 #include "mps_statespace.h"
 
 namespace qsim {
@@ -47,11 +46,6 @@ class MPSSimulator final {
       Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using ConstMatrixMap = Eigen::Map<const Matrix>;
   using MatrixMap = Eigen::Map<Matrix>;
-
-  using ConstFourTensorMap =
-      Eigen::TensorMap<const Eigen::Tensor<Complex, 4, Eigen::RowMajor>>;
-  using FourTensorMap =
-      Eigen::TensorMap<Eigen::Tensor<Complex, 4, Eigen::RowMajor>>;
 
   using OneQBMatrix = Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
   using ConstOneQBMap = Eigen::Map<const OneQBMatrix>;
@@ -191,12 +185,11 @@ class MPSSimulator final {
     MatrixMap C((Complex*)(raw_state + end), i_dim * j_dim, l_dim * m_dim);
     C.noalias() = B_0 * B_1;
 
-    // Transpose inner dims swapping back into block memory.
-    ConstFourTensorMap C_t((Complex*)(raw_state + end), i_dim, j_dim, l_dim,
-                           m_dim);
-    FourTensorMap C_t_swap((Complex*)(raw_state + B_0_offset), i_dim, l_dim,
-                           j_dim, m_dim);
-    C_t_swap = C_t.shuffle(Eigen::array<int, 4>{0, 2, 1, 3});  // [i, l, j, m]
+    // Transpose inner dims in-place.
+    MatrixMap C_t((Complex*)(raw_state + end), i_dim * j_dim * l_dim, m_dim);
+    for(unsigned i = 0; i < i_dim * j_dim * l_dim; i += 4){
+      C_t.row(i + 1).swap(C_t.row(i + 2));
+    }
 
     // Transpose gate matrix and place in 3rd (last) scratch block.
     const auto scratch3_offset = end + 8 * bd * bd;
@@ -205,24 +198,22 @@ class MPSSimulator final {
     G_t_mat = G_mat.transpose();
     G_t_mat.col(1).swap(G_t_mat.col(2));
 
-    // Contract gate and merged block tensors, placing result in scratch.
+    // Contract gate and merged block tensors, placing result in B0B1.
     for (unsigned i = 0; i < i_dim; i++) {
-      fp_type* dest_block = raw_state + end + i * 8 * m_dim;
-      fp_type* src_block = raw_state + B_0_offset + i * 8 * m_dim;
+      fp_type* src_block = raw_state + end + i * 8 * m_dim;
+      fp_type* dest_block = raw_state + B_0_offset + i * 8 * m_dim;
       MatrixMap K_i((Complex*)dest_block, 4, m_dim);
       ConstMatrixMap C_i((Complex*)src_block, 4, m_dim);
       // [i, np, m] = [np, lj] * [i, lj, m]
       K_i.noalias() = G_t_mat * C_i;
     }
 
-    // Copy 1st and 2nd scratch block to B0 B1.
-    memcpy(raw_state + B_0_offset, raw_state + end,
-           8 * i_dim * m_dim * sizeof(fp_type));
+    // SVD B0B1.
     MatrixMap K((Complex*)(raw_state + B_0_offset), 2 * i_dim, 2 * m_dim);
     Eigen::BDCSVD<Matrix> svd(K, Eigen::ComputeThinU | Eigen::ComputeThinV);
     const auto p = std::min(2 * i_dim, 2 * m_dim);
 
-    // Place U in B0.
+    // Place U in scratch to truncate and then B0.
     MatrixMap U((Complex*)(raw_state + end), 2 * i_dim, p);
     U.noalias() = svd.matrixU();
     B_0.fill(Complex(0, 0));
@@ -230,7 +221,7 @@ class MPSSimulator final {
     B_0.block(0, 0, U.rows(), keep_cols).noalias() =
         U(Eigen::all, Eigen::seq(0, keep_cols - 1));
 
-    // Place row product of S V into B1.
+    // Place row product of S V into scratch to truncate and then B1.
     MatrixMap V((Complex*)(raw_state + end), p, 2 * m_dim);
     MatrixMap s_vector((Complex*)(raw_state + end + 8 * bd * bd), p, 1);
     V.noalias() = svd.matrixV().adjoint();
