@@ -47,8 +47,8 @@ class MPSSimulator final {
   using ConstMatrixMap = Eigen::Map<const Matrix>;
   using MatrixMap = Eigen::Map<Matrix>;
 
-  using OneQBMatrix = Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
-  using ConstOneQBMap = Eigen::Map<const OneQBMatrix>;
+  using OneQubitMatrix = Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
+  using ConstOneQubitMap = Eigen::Map<const OneQubitMatrix>;
 
   // Note: ForArgs are currently unused.
   template <typename... ForArgs>
@@ -132,107 +132,108 @@ class MPSSimulator final {
   void Apply1LeftOrInterior(const std::vector<unsigned>& qs,
                             const fp_type* matrix, State& state) const {
     fp_type* raw_state = state.get();
-    const auto bd = state.bond_dim();
+    const auto bond_dim = state.bond_dim();
     const auto l_offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
     const auto r_offset = MPSStateSpace_::GetBlockOffset(state, qs[0] + 1);
     const auto end = MPSStateSpace_::Size(state);
-    ConstOneQBMap B((Complex*)matrix);
-    MatrixMap C((Complex*)(raw_state + end), 2, bd);
+    ConstOneQubitMap gate_matrix((Complex*) matrix);
+    MatrixMap scratch_block((Complex*)(raw_state + end), 2, bond_dim);
 
     for (unsigned block_sep = l_offset; block_sep < r_offset;
-         block_sep += 4 * bd) {
+         block_sep += 4 * bond_dim) {
       fp_type* cur_block = raw_state + block_sep;
-      ConstMatrixMap A((Complex*)(cur_block), 2, bd);
-      C.noalias() = B * A;
-      memcpy(cur_block, raw_state + end, sizeof(fp_type) * bd * 4);
+      ConstMatrixMap mps_block((Complex*) cur_block, 2, bond_dim);
+      scratch_block.noalias() = gate_matrix * mps_block;
+      memcpy(cur_block, raw_state + end, sizeof(fp_type) * bond_dim * 4);
     }
   }
 
   void Apply1Right(const std::vector<unsigned>& qs, const fp_type* matrix,
                    State& state) const {
     fp_type* raw_state = state.get();
-    const auto bd = state.bond_dim();
+    const auto bond_dim = state.bond_dim();
     const auto offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
     const auto end = MPSStateSpace_::Size(state);
-    ConstOneQBMap B((Complex*)matrix);
-    ConstMatrixMap A((Complex*)(raw_state + offset), bd, 2);
-    MatrixMap C((Complex*)(raw_state + end), bd, 2);
-    C.noalias() = A * B.transpose();
-    memcpy(raw_state + offset, raw_state + end, sizeof(fp_type) * bd * 4);
+    ConstOneQubitMap gate_matrix((Complex*) matrix);
+    ConstMatrixMap mps_block((Complex*)(raw_state + offset), bond_dim, 2);
+    MatrixMap scratch_block((Complex*)(raw_state + end), bond_dim, 2);
+    scratch_block.noalias() = mps_block * gate_matrix.transpose();
+    memcpy(raw_state + offset, raw_state + end, sizeof(fp_type) * bond_dim * 4);
   }
 
   void ApplyGate2(const std::vector<unsigned>& qs, const fp_type* matrix,
                   State& state) const {
     // TODO: micro-benchmark this function and improve performance.
-    const auto bd = state.bond_dim();
-    const auto nq = state.num_qubits();
+    const auto bond_dim = state.bond_dim();
+    const auto num_qubits = state.num_qubits();
     fp_type* raw_state = state.get();
 
-    const auto i_dim = (qs[0] == 0) ? 1 : bd;
+    const auto i_dim = (qs[0] == 0) ? 1 : bond_dim;
     const auto j_dim = 2;
-    const auto k_dim = bd;
+    const auto k_dim = bond_dim;
     const auto l_dim = 2;
-    const auto m_dim = (qs[1] == nq - 1) ? 1 : bd;
+    const auto m_dim = (qs[1] == num_qubits - 1) ? 1 : bond_dim;
 
-    const auto B_0_offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
-    const auto B_1_offset = MPSStateSpace_::GetBlockOffset(state, qs[1]);
+    const auto b_0_offset = MPSStateSpace_::GetBlockOffset(state, qs[0]);
+    const auto b_1_offset = MPSStateSpace_::GetBlockOffset(state, qs[1]);
     const auto end = MPSStateSpace_::Size(state);
 
-    MatrixMap B_0((Complex*)(raw_state + B_0_offset), i_dim * j_dim, k_dim);
-    MatrixMap B_1((Complex*)(raw_state + B_1_offset), k_dim, l_dim * m_dim);
+    MatrixMap block_0((Complex*)(raw_state + b_0_offset), i_dim * j_dim, k_dim);
+    MatrixMap block_1((Complex*)(raw_state + b_1_offset), k_dim, l_dim * m_dim);
 
     // Merge both blocks into scratch space.
     MatrixMap C((Complex*)(raw_state + end), i_dim * j_dim, l_dim * m_dim);
-    C.noalias() = B_0 * B_1;
+    C.noalias() = block_0 * block_1;
 
     // Transpose inner dims in-place.
     MatrixMap C_t((Complex*)(raw_state + end), i_dim * j_dim * l_dim, m_dim);
-    for(unsigned i = 0; i < i_dim * j_dim * l_dim; i += 4){
+    for (unsigned i = 0; i < i_dim * j_dim * l_dim; i += 4) {
       C_t.row(i + 1).swap(C_t.row(i + 2));
     }
 
     // Transpose gate matrix and place in 3rd (last) scratch block.
-    const auto scratch3_offset = end + 8 * bd * bd;
-    ConstMatrixMap G_mat((Complex*)matrix, 4, 4);
+    const auto scratch3_offset = end + 8 * bond_dim * bond_dim;
+    ConstMatrixMap G_mat((Complex*) matrix, 4, 4);
     MatrixMap G_t_mat((Complex*)(raw_state + scratch3_offset), 4, 4);
     G_t_mat = G_mat.transpose();
     G_t_mat.col(1).swap(G_t_mat.col(2));
 
     // Contract gate and merged block tensors, placing result in B0B1.
-    for (unsigned i = 0; i < i_dim; i++) {
+    for (unsigned i = 0; i < i_dim; ++i) {
       fp_type* src_block = raw_state + end + i * 8 * m_dim;
-      fp_type* dest_block = raw_state + B_0_offset + i * 8 * m_dim;
-      MatrixMap K_i((Complex*)dest_block, 4, m_dim);
-      ConstMatrixMap C_i((Complex*)src_block, 4, m_dim);
+      fp_type* dest_block = raw_state + b_0_offset + i * 8 * m_dim;
+      MatrixMap K_i((Complex*) dest_block, 4, m_dim);
+      ConstMatrixMap C_i((Complex*) src_block, 4, m_dim);
       // [i, np, m] = [np, lj] * [i, lj, m]
       K_i.noalias() = G_t_mat * C_i;
     }
 
     // SVD B0B1.
-    MatrixMap K((Complex*)(raw_state + B_0_offset), 2 * i_dim, 2 * m_dim);
+    MatrixMap K((Complex*)(raw_state + b_0_offset), 2 * i_dim, 2 * m_dim);
     Eigen::BDCSVD<Matrix> svd(K, Eigen::ComputeThinU | Eigen::ComputeThinV);
     const auto p = std::min(2 * i_dim, 2 * m_dim);
 
     // Place U in scratch to truncate and then B0.
     MatrixMap U((Complex*)(raw_state + end), 2 * i_dim, p);
     U.noalias() = svd.matrixU();
-    B_0.fill(Complex(0, 0));
-    const auto keep_cols = (U.cols() > bd) ? bd : U.cols();
-    B_0.block(0, 0, U.rows(), keep_cols).noalias() =
+    block_0.fill(Complex(0, 0));
+    const auto keep_cols = (U.cols() > bond_dim) ? bond_dim : U.cols();
+    block_0.block(0, 0, U.rows(), keep_cols).noalias() =
         U(Eigen::all, Eigen::seq(0, keep_cols - 1));
 
     // Place row product of S V into scratch to truncate and then B1.
     MatrixMap V((Complex*)(raw_state + end), p, 2 * m_dim);
-    MatrixMap s_vector((Complex*)(raw_state + end + 8 * bd * bd), p, 1);
+    MatrixMap s_vector((Complex*)(raw_state + end + 8 * bond_dim * bond_dim), p,
+                       1);
     V.noalias() = svd.matrixV().adjoint();
     s_vector.noalias() = svd.singularValues();
-    B_1.fill(Complex(0, 0));
-    const auto keep_rows = (V.rows() > bd) ? bd : V.rows();
+    block_1.fill(Complex(0, 0));
+    const auto keep_rows = (V.rows() > bond_dim) ? bond_dim : V.rows();
     const auto row_seq = Eigen::seq(0, keep_rows - 1);
-    for (unsigned i = 0; i < keep_rows; i++) {
+    for (unsigned i = 0; i < keep_rows; ++i) {
       V.row(i) *= s_vector(i);
     }
-    B_1.block(0, 0, keep_rows, V.cols()).noalias() = V(row_seq, Eigen::all);
+    block_1.block(0, 0, keep_rows, V.cols()).noalias() = V(row_seq, Eigen::all);
   }
 
   For for_;

@@ -45,7 +45,7 @@ TEST(MPSSimulator, Apply1RightArbitrary) {
   ss.SetMPSZero(state);
   auto offset = ss.GetBlockOffset(state, 9);
   // Completely fill final block.
-  for (unsigned i = offset; i < ss.Size(state); i++) {
+  for (unsigned i = offset; i < ss.Size(state); ++i) {
     state.get()[i] = float(i - offset);
   }
 
@@ -53,7 +53,7 @@ TEST(MPSSimulator, Apply1RightArbitrary) {
   sim.ApplyGate({9}, mat.data(), state);
 
   // Ensure other blocks unchanged.
-  for (unsigned i = 0; i < offset; i++) {
+  for (unsigned i = 0; i < offset; ++i) {
     auto expected = 0.;
     if (i == 0 || (i - 16) % 64 == 0) {
       expected = 1.0;
@@ -101,7 +101,7 @@ TEST(MPSSimulator, Apply1LeftArbitrary) {
   ss.SetMPSZero(state);
   std::vector<float> matrix = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8};
   // Completely fill first block.
-  for (unsigned i = 0; i < ss.GetBlockOffset(state, 1); i++) {
+  for (unsigned i = 0; i < ss.GetBlockOffset(state, 1); ++i) {
     state.get()[i] = float(i);
   }
   sim.ApplyGate({0}, matrix.data(), state);
@@ -109,7 +109,7 @@ TEST(MPSSimulator, Apply1LeftArbitrary) {
   auto offset = ss.GetBlockOffset(state, 1);
 
   // Ensure other blocks unchanged.
-  for (unsigned i = offset; i < ss.Size(state); i++) {
+  for (unsigned i = offset; i < ss.Size(state); ++i) {
     auto expected = 0.;
     if ((i - 16) % 64 == 0) {
       expected = 1.0;
@@ -157,20 +157,20 @@ TEST(MPSSimulator, Apply1InteriorArbitrary) {
   // Completely fill second block.
   auto l_offset = ss.GetBlockOffset(state, 1);
   auto r_offset = ss.GetBlockOffset(state, 2);
-  for (unsigned i = l_offset; i < r_offset; i++) {
+  for (unsigned i = l_offset; i < r_offset; ++i) {
     state.get()[i] = float(i - l_offset);
   }
   sim.ApplyGate({1}, matrix.data(), state);
 
   // Ensure other blocks unchanged.
-  for (unsigned i = 0; i < l_offset; i++) {
+  for (unsigned i = 0; i < l_offset; ++i) {
     auto expected = 0.;
     if (i == 0 || (i - 16) % 64 == 0) {
       expected = 1.0;
     }
     ASSERT_NEAR(state.get()[i], expected, 1e-5);
   }
-  for (unsigned i = r_offset; i < ss.Size(state); i++) {
+  for (unsigned i = r_offset; i < ss.Size(state); ++i) {
     auto expected = 0.;
     if ((i - 16) % 64 == 0) {
       expected = 1.0;
@@ -323,7 +323,7 @@ TEST(MPSSimulator, Apply2Left01) {
   };
   sim.ApplyGate({0, 1}, mat.data(), mps);
 
-  float *wf = new float[32];
+  float wf[32];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 0.30834898352622986, 1e-4);
   EXPECT_NEAR(wf[1], 0.21436986327171326, 1e-4);
@@ -341,7 +341,6 @@ TEST(MPSSimulator, Apply2Left01) {
   EXPECT_NEAR(wf[13], 0.24929752945899963, 1e-4);
   EXPECT_NEAR(wf[14], -0.21864625811576843, 1e-4);
   EXPECT_NEAR(wf[15], -0.16468186676502228, 1e-4);
-  delete[](wf);
 }
 
 TEST(MPSSimulator, Apply2Right12) {
@@ -404,7 +403,7 @@ TEST(MPSSimulator, Apply2Right12) {
   };
   sim.ApplyGate({1, 2}, mat.data(), mps);
 
-  float *wf = new float[32];
+  float wf[32];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 0.30834902875645503, 1e-4);
   EXPECT_NEAR(wf[1], 0.2143698948599676, 1e-4);
@@ -422,7 +421,6 @@ TEST(MPSSimulator, Apply2Right12) {
   EXPECT_NEAR(wf[13], 0.4020253863039828, 1e-4);
   EXPECT_NEAR(wf[14], -0.21864624250067458, 1e-4);
   EXPECT_NEAR(wf[15], -0.16468189647310463, 1e-4);
-  delete[](wf);
 }
 
 TEST(MPSSimulator, Apply2Middle) {
@@ -541,7 +539,7 @@ TEST(MPSSimulator, Apply2Middle) {
   };
   sim.ApplyGate({1, 2}, mat.data(), mps);
 
-  float *wf = new float[128];
+  float wf[128];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], -0.1982501457335573, 1e-4);
   EXPECT_NEAR(wf[1], 0.04522418081945127, 1e-4);
@@ -575,7 +573,6 @@ TEST(MPSSimulator, Apply2Middle) {
   EXPECT_NEAR(wf[29], 0.03211453341738496, 1e-4);
   EXPECT_NEAR(wf[30], -0.19529420117137705, 1e-4);
   EXPECT_NEAR(wf[31], -0.13440315911542725, 1e-4);
-  delete[](wf);
 }
 
 TEST(MPSSimulator, OneTwoQubitFuzz) {
@@ -618,7 +615,7 @@ TEST(MPSSimulator, OneTwoQubitFuzz) {
     ApplyGate(sim, gate, mps);
   }
 
-  float *wf = new float[512];
+  float wf[512];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 0.0014289065729826689, 1e-4);
   EXPECT_NEAR(wf[1], -0.004883236717432737, 1e-4);
@@ -748,7 +745,6 @@ TEST(MPSSimulator, OneTwoQubitFuzz) {
   EXPECT_NEAR(wf[125], 0.004888217896223068, 1e-4);
   EXPECT_NEAR(wf[126], -0.019155969843268394, 1e-4);
   EXPECT_NEAR(wf[127], 0.020053446292877197, 1e-4);
-  delete[](wf);
 
   /* Equivalent Cirq code:
 
@@ -808,7 +804,7 @@ TEST(MPSSimulator, OneTwoQubitFuzz) {
 }  // namespace mps
 }  // namespace qsim
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
