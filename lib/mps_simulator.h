@@ -182,58 +182,57 @@ class MPSSimulator final {
     MatrixMap block_1((Complex*)(raw_state + b_1_offset), k_dim, l_dim * m_dim);
 
     // Merge both blocks into scratch space.
-    MatrixMap C((Complex*)(raw_state + end), i_dim * j_dim, l_dim * m_dim);
-    C.noalias() = block_0 * block_1;
+    MatrixMap scratch_c((Complex*)(raw_state + end), i_dim * j_dim, l_dim * m_dim);
+    scratch_c.noalias() = block_0 * block_1;
 
     // Transpose inner dims in-place.
-    MatrixMap C_t((Complex*)(raw_state + end), i_dim * j_dim * l_dim, m_dim);
+    MatrixMap scratch_c_t((Complex*)(raw_state + end), i_dim * j_dim * l_dim, m_dim);
     for (unsigned i = 0; i < i_dim * j_dim * l_dim; i += 4) {
-      C_t.row(i + 1).swap(C_t.row(i + 2));
+      scratch_c_t.row(i + 1).swap(scratch_c_t.row(i + 2));
     }
 
     // Transpose gate matrix and place in 3rd (last) scratch block.
     const auto scratch3_offset = end + 8 * bond_dim * bond_dim;
-    ConstMatrixMap G_mat((Complex*) matrix, 4, 4);
-    MatrixMap G_t_mat((Complex*)(raw_state + scratch3_offset), 4, 4);
-    G_t_mat = G_mat.transpose();
-    G_t_mat.col(1).swap(G_t_mat.col(2));
+    ConstMatrixMap gate_matrix((Complex*) matrix, 4, 4);
+    MatrixMap gate_matrix_transpose((Complex*)(raw_state + scratch3_offset), 4, 4);
+    gate_matrix_transpose = gate_matrix.transpose();
+    gate_matrix_transpose.col(1).swap(gate_matrix_transpose.col(2));
 
     // Contract gate and merged block tensors, placing result in B0B1.
     for (unsigned i = 0; i < i_dim; ++i) {
       fp_type* src_block = raw_state + end + i * 8 * m_dim;
       fp_type* dest_block = raw_state + b_0_offset + i * 8 * m_dim;
-      MatrixMap K_i((Complex*) dest_block, 4, m_dim);
-      ConstMatrixMap C_i((Complex*) src_block, 4, m_dim);
+      MatrixMap block_b0b1((Complex*) dest_block, 4, m_dim);
+      ConstMatrixMap scratch_c_i((Complex*) src_block, 4, m_dim);
       // [i, np, m] = [np, lj] * [i, lj, m]
-      K_i.noalias() = G_t_mat * C_i;
+      block_b0b1.noalias() = gate_matrix_transpose * scratch_c_i;
     }
 
     // SVD B0B1.
-    MatrixMap K((Complex*)(raw_state + b_0_offset), 2 * i_dim, 2 * m_dim);
-    Eigen::BDCSVD<Matrix> svd(K, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    MatrixMap full_b0b1((Complex*)(raw_state + b_0_offset), 2 * i_dim, 2 * m_dim);
+    Eigen::BDCSVD<Matrix> svd(full_b0b1, Eigen::ComputeThinU | Eigen::ComputeThinV);
     const auto p = std::min(2 * i_dim, 2 * m_dim);
 
     // Place U in scratch to truncate and then B0.
-    MatrixMap U((Complex*)(raw_state + end), 2 * i_dim, p);
-    U.noalias() = svd.matrixU();
+    MatrixMap svd_u((Complex*)(raw_state + end), 2 * i_dim, p);
+    svd_u.noalias() = svd.matrixU();
     block_0.fill(Complex(0, 0));
-    const auto keep_cols = (U.cols() > bond_dim) ? bond_dim : U.cols();
-    block_0.block(0, 0, U.rows(), keep_cols).noalias() =
-        U(Eigen::all, Eigen::seq(0, keep_cols - 1));
+    const auto keep_cols = (svd_u.cols() > bond_dim) ? bond_dim : svd_u.cols();
+    block_0.block(0, 0, svd_u.rows(), keep_cols).noalias() =
+        svd_u(Eigen::all, Eigen::seq(0, keep_cols - 1));
 
     // Place row product of S V into scratch to truncate and then B1.
-    MatrixMap V((Complex*)(raw_state + end), p, 2 * m_dim);
-    MatrixMap s_vector((Complex*)(raw_state + end + 8 * bond_dim * bond_dim), p,
-                       1);
-    V.noalias() = svd.matrixV().adjoint();
+    MatrixMap svd_v((Complex*)(raw_state + end), p, 2 * m_dim);
+    MatrixMap s_vector((Complex*)(raw_state + end + 8 * bond_dim * bond_dim), p, 1);
+    svd_v.noalias() = svd.matrixV().adjoint();
     s_vector.noalias() = svd.singularValues();
     block_1.fill(Complex(0, 0));
-    const auto keep_rows = (V.rows() > bond_dim) ? bond_dim : V.rows();
+    const auto keep_rows = (svd_v.rows() > bond_dim) ? bond_dim : svd_v.rows();
     const auto row_seq = Eigen::seq(0, keep_rows - 1);
     for (unsigned i = 0; i < keep_rows; ++i) {
-      V.row(i) *= s_vector(i);
+      svd_v.row(i) *= s_vector(i);
     }
-    block_1.block(0, 0, keep_rows, V.cols()).noalias() = V(row_seq, Eigen::all);
+    block_1.block(0, 0, keep_rows, svd_v.cols()).noalias() = svd_v(row_seq, Eigen::all);
   }
 
   For for_;
