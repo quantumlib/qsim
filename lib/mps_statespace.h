@@ -18,12 +18,20 @@
 // For templates will take care of parallelization.
 #define EIGEN_DONT_PARALLELIZE 1
 
+#ifdef _WIN32
+  #include <malloc.h>
+#endif
+
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 
 #include "../eigen/Eigen/Dense"
+
+namespace qsim {
+
+namespace mps {
 
 namespace detail {
 
@@ -39,9 +47,6 @@ inline void free(void* ptr) {
 
 }  // namespace detail
 
-namespace qsim {
-
-namespace mps {
 /**
  * Class containing context and routines for fixed bond dimension
  * truncated Matrix Product State (MPS) simulation.

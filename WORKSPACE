@@ -18,6 +18,11 @@ http_archive(
     ],
 )
 
+
+EIGEN_COMMIT = "12e8d57108c50d8a63605c6eb0144c838c128337"
+EIGEN_SHA256 = "f689246e342c3955af48d26ce74ac34d21b579a00675c341721a735937919b02"
+
+
 http_archive(
     name = "eigen",
     build_file_content = """
@@ -27,10 +32,10 @@ cc_library(
   visibility = ["//visibility:public"],
 )
     """,
-    sha256 = "a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b",  # SHARED_EIGEN_SHA
-        strip_prefix = "eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9",
+    sha256 = EIGEN_SHA256,
+        strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz",
-            "https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz",
+            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
+            "https://gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
         ],
 )
