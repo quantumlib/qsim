@@ -18,6 +18,10 @@
 // For templates will take care of parallelization.
 #define EIGEN_DONT_PARALLELIZE 1
 
+#ifdef _WIN32
+  #include <malloc.h>
+#endif
+
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
