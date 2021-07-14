@@ -102,7 +102,7 @@ setup(
         CMakeExtension("qsimcirq/qsim_avx2"),
         CMakeExtension("qsimcirq/qsim_sse"),
         CMakeExtension("qsimcirq/qsim_basic"),
-        CMakeExtension("qsimcirq/qsim_decide")
+        CMakeExtension("qsimcirq/qsim_decide"),
     ],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
