@@ -32,7 +32,7 @@ from cirq.sim.simulator import SimulatesExpectationValues
 
 import numpy as np
 
-from qsimcirq import qsim
+from . import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 

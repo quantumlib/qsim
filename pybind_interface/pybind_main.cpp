@@ -30,7 +30,6 @@
 #include "../lib/qtrajectory.h"
 #include "../lib/run_qsim.h"
 #include "../lib/run_qsimh.h"
-#include "../lib/simmux.h"
 #include "../lib/util.h"
 
 using namespace qsim;
