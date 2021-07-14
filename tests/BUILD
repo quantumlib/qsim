@@ -581,6 +581,8 @@ cc_test(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:gate_appl",
+        "//lib:gates_cirq",
         "//lib:mps_simulator",
         "//lib:formux",
     ],
