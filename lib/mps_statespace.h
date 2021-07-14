@@ -29,6 +29,10 @@
 
 #include "../eigen/Eigen/Dense"
 
+namespace qsim {
+
+namespace mps {
+
 namespace detail {
 
 inline void do_not_free(void*) {}
@@ -43,9 +47,6 @@ inline void free(void* ptr) {
 
 }  // namespace detail
 
-namespace qsim {
-
-namespace mps {
 /**
  * Class containing context and routines for fixed bond dimension
  * truncated Matrix Product State (MPS) simulation.
