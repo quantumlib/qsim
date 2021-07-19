@@ -5,7 +5,7 @@ TARGETS = qsim
 TESTS = run-cxx-tests
 
 CXX=g++
-CXXFLAGS = -O3 -march=native -fopenmp
+CXXFLAGS = -O3 -fopenmp
 PYBIND11 = true
 
 export CXX
