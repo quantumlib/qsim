@@ -1,0 +1,47 @@
+name: Build all
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-10.15
+            name: mac
+            cibw:
+              build: "cp36* cp37* cp38*"
+          - os: macos-10.15
+            name: mac-arm
+            cibw:
+              arch: universal2
+              build: "cp39*"
+    env:
+      CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
+      CIBW_ARCHS_MACOS: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
+      CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
+      # due to package and module name conflict have to temporarily move it away to run tests
+      CIBW_BEFORE_TEST_MACOS: "mv {package}/qsimcirq /tmp"
+      CIBW_TEST_COMMAND_MACOS: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+    steps:
+      - uses: actions/checkout@v2
+
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v2
+
+      - name: Install cibuildwheel and twine
+        run: python -m pip install cibuildwheel==1.11.0
+
+      - name: Run C++ tests
+        run: bash build_tools/test_libs.sh
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
