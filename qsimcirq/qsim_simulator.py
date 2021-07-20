@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from cirq import (
     circuits,
-    linalg,
+    devices,
     ops,
     protocols,
     sim,
@@ -80,7 +80,10 @@ class QSimSimulator(
     SimulatesExpectationValues,
 ):
     def __init__(
-        self, qsim_options: dict = {}, seed: value.RANDOM_STATE_OR_SEED_LIKE = None
+        self,
+        qsim_options: dict = {},
+        seed: value.RANDOM_STATE_OR_SEED_LIKE = None,
+        noise: "devices.NOISE_MODEL_LIKE" = None,
     ):
         """Creates a new QSimSimulator using the given options and seed.
 
@@ -109,6 +112,7 @@ class QSimSimulator(
         self._prng = value.parse_random_state(seed)
         self.qsim_options = {"t": 1, "f": 2, "v": 0, "r": 1}
         self.qsim_options.update(qsim_options)
+        self.noise = devices.NoiseModel.from_noise_model_like(noise)
 
     def get_seed(self):
         # Limit seed size to 32-bit integer for C++ conversion.
@@ -160,8 +164,12 @@ class QSimSimulator(
             ValueError: If there are multiple MeasurementGates with the same key,
                 or if repetitions is negative.
         """
-        if not isinstance(program, qsimc.QSimCircuit):
-            program = qsimc.QSimCircuit(program, device=program.device)
+
+        # Add noise to the circuit if a noise model was provided.
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, program.all_qubits()),
+            device=program.device,
+        )
 
         # Compute indices of measured qubits
         ordered_qubits = ops.QubitOrder.DEFAULT.order_for(program.all_qubits())
@@ -277,8 +285,12 @@ class QSimSimulator(
         Returns:
             List of amplitudes.
         """
-        if not isinstance(program, qsimc.QSimCircuit):
-            program = qsimc.QSimCircuit(program, device=program.device)
+
+        # Add noise to the circuit if a noise model was provided.
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, program.all_qubits()),
+            device=program.device,
+        )
 
         # qsim numbers qubits in reverse order from cirq
         cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
@@ -347,8 +359,12 @@ class QSimSimulator(
             initial_state = 0
         if not isinstance(initial_state, (int, np.ndarray)):
             raise TypeError("initial_state must be an int or state vector.")
-        if not isinstance(program, qsimc.QSimCircuit):
-            program = qsimc.QSimCircuit(program, device=program.device)
+
+        # Add noise to the circuit if a noise model was provided.
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, program.all_qubits()),
+            device=program.device,
+        )
 
         options = {}
         options.update(self.qsim_options)
@@ -476,8 +492,12 @@ class QSimSimulator(
             initial_state = 0
         if not isinstance(initial_state, (int, np.ndarray)):
             raise TypeError("initial_state must be an int or state vector.")
-        if not isinstance(program, qsimc.QSimCircuit):
-            program = qsimc.QSimCircuit(program, device=program.device)
+
+        # Add noise to the circuit if a noise model was provided.
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, program.all_qubits()),
+            device=program.device,
+        )
 
         options = {}
         options.update(self.qsim_options)
