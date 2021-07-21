@@ -5,44 +5,55 @@ TARGETS = qsim
 TESTS = run-cxx-tests
 
 CXX=g++
+NVCC=nvcc
+
 CXXFLAGS = -O3 -fopenmp
+ARCHFLAGS = -march=native
+NVCCFLAGS = -O3
+
 PYBIND11 = true
 
 export CXX
 export CXXFLAGS
+export ARCHFLAGS
+export NVCC
+export NVCCFLAGS
 
 ifeq ($(PYBIND11), true)
   TARGETS += pybind
   TESTS += run-py-tests
 endif
 
-.PHONY: download-eigen
-download-eigen:
-	$(shell\
-		rm -rf eigen;\
-		wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz;\
-		tar -xf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen;\
-		rm eigen-$(EIGEN_PREFIX).tar.gz;)
-
 .PHONY: all
 all: $(TARGETS)
 
 .PHONY: qsim
 qsim:
-	$(MAKE) -C apps/
+	$(MAKE) -C apps/ qsim
+
+.PHONY: qsim-cuda
+qsim-cuda:
+	$(MAKE) -C apps/ qsim-cuda
 
 .PHONY: pybind
 pybind:
 	$(MAKE) -C pybind_interface/ pybind
 
 .PHONY: cxx-tests
-tests: download-eigen
-	-git submodule update --init --recursive tests/googletest
-	$(MAKE) -C tests/
+cxx-tests: eigen
+	$(MAKE) -C tests/ cxx-tests
+
+.PHONY: cuda-tests
+cuda-tests:
+	$(MAKE) -C tests/ cuda-tests
 
 .PHONY: run-cxx-tests
-run-cxx-tests: download-eigen
-	$(MAKE) -C tests/ run-all
+run-cxx-tests: cxx-tests
+	$(MAKE) -C tests/ run-cxx-tests
+
+.PHONY: run-cuda-tests
+run-cuda-tests: cuda-tests
+	$(MAKE) -C tests/ run-cuda-tests
 
 PYTESTS = $(shell find qsimcirq_tests/ -name '*_test.py')
 
@@ -52,6 +63,13 @@ run-py-tests: pybind
 
 .PHONY: run-tests
 run-tests: $(TESTS)
+
+eigen:
+	$(shell\
+		rm -rf eigen;\
+		wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz;\
+		tar -xf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen;\
+		rm eigen-$(EIGEN_PREFIX).tar.gz;)
 
 .PHONY: clean
 clean:

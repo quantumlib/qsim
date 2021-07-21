@@ -1,26 +1,36 @@
 HAVE_AVX512 = $(shell grep avx512f /proc/cpuinfo)
-TARGETS = $(shell\
+CXX_TARGETS = $(shell\
   if [ -z "$(HAVE_AVX512)" ] ; then\
     find . -maxdepth 1 -name "*_test.cc" ! -name "*512*";\
   else\
     find . -maxdepth 1 -name "*_test.cc";\
   fi\
 )
-TARGETS := $(TARGETS:%.cc=%.x)
+CXX_TARGETS := $(CXX_TARGETS:%.cc=%.x)
+
+CUDA_TARGETS = $(shell find . -maxdepth 1 -name "*_test.cu")
+CUDA_TARGETS := $(CUDA_TARGETS:%.cu=%.x)
 
 GTEST_DIR = $(CURDIR)/googletest/googletest
 GMOCK_DIR = $(CURDIR)/googletest/googlemock
 
 CMAKE=cmake
 
-TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/make/lib -march=native -fopenmp -lgtest
+TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/make/lib -lgtest
 
-.PHONY: all
-all: $(TARGETS)
+.PHONY: cxx-tests
+cxx-tests: $(CXX_TARGETS)
 
-.PHONE: run-all
-run-all: all
-	for exe in $(TARGETS); do if ! ./$$exe; then exit 1; fi; done
+.PHONY: cuda-tests
+cuda-tests: $(CUDA_TARGETS)
+
+.PHONY: run-cxx-tests
+run-cxx-tests: cxx-tests
+	for exe in $(CXX_TARGETS); do if ! ./$$exe; then exit 1; fi; done
+
+.PHONY: run-cuda-tests
+run-cuda-tests: cuda-tests
+	for exe in $(CUDA_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 $(GTEST_DIR)/make:
 	-git submodule update --init --recursive googletest
@@ -28,7 +38,10 @@ $(GTEST_DIR)/make:
 	cd $(GTEST_DIR)/make &&	$(CMAKE) .. && $(MAKE)
 
 %.x: %.cc $(GTEST_DIR)/make
-	$(CXX) -o ./$@ $< $(TESTFLAGS) $(CXXFLAGS)
+	$(CXX) -o ./$@ $< $(TESTFLAGS) $(CXXFLAGS) $(ARCHFLAGS)
+
+%.x: %.cu $(GTEST_DIR)/make
+	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS)
 
 .PHONY: clean
 clean:
