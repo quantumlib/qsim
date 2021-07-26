@@ -1,4 +1,4 @@
-name: Build all wheels
+name: Build all wheels and release them
 
 on:
   release:
