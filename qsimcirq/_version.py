@@ -1,3 +1,3 @@
 """The version number defined here is read automatically in setup.py."""
 
-__version__ = "0.10.0.dev20210623"
+__version__ = "0.10.1"
