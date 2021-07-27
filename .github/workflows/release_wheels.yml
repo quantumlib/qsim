@@ -21,14 +21,21 @@ jobs:
             cibw:
               arch: universal2
               build: "cp39*"
+          - os: ubuntu-20.04
+            name: manylinux2014
+            cibw:
+              arch: x86_64
+              build: "cp36* cp37* cp38* cp39*"
+              manylinux_image: manylinux2014
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
-      CIBW_ARCHS_MACOS: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
-      CIBW_BEFORE_TEST_MACOS: "mv {package}/qsimcirq /tmp"
-      CIBW_TEST_COMMAND_MACOS: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
+      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2
 
