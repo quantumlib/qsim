@@ -167,7 +167,7 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, program.all_qubits()),
+            self.noise.noisy_moments(program, sorted(program.all_qubits())),
             device=program.device,
         )
 
@@ -288,7 +288,7 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, program.all_qubits()),
+            self.noise.noisy_moments(program, sorted(program.all_qubits())),
             device=program.device,
         )
 
@@ -362,7 +362,7 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, program.all_qubits()),
+            self.noise.noisy_moments(program, sorted(program.all_qubits())),
             device=program.device,
         )
 
@@ -495,7 +495,7 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, program.all_qubits()),
+            self.noise.noisy_moments(program, sorted(program.all_qubits())),
             device=program.device,
         )
 
