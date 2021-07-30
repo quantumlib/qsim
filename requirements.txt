@@ -7,7 +7,7 @@ absl-py
 
 # Build and test requirements
 
-black==20.8b1
+black==19.10b0
 flynt~=0.60
 pybind11
 pytest
