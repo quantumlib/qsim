@@ -33,7 +33,7 @@ TEST(MPSStateSpaceTest, Create) {
 TEST(MPSStateSpaceTest, BlockOffset) {
   auto ss = MPSStateSpace<For, float>(1);
   auto mps = ss.CreateMPS(5, 8);
-  for (int i = 0; i < ss.Size(mps); i++) {
+  for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
 
@@ -47,11 +47,11 @@ TEST(MPSStateSpaceTest, BlockOffset) {
 TEST(MPSStateSpaceTest, SetZero) {
   auto ss = MPSStateSpace<For, float>(1);
   auto mps = ss.CreateMPS(4, 8);
-  for (int i = 0; i < ss.Size(mps); i++) {
+  for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
   ss.SetMPSZero(mps);
-  for (int i = 0; i < ss.Size(mps); i++) {
+  for (unsigned i = 0; i < ss.Size(mps); ++i) {
     auto expected = 0.0;
     if (i == 0 || i == 32 || i == 256 + 32 || i == 512 + 32) {
       expected = 1;
@@ -65,12 +65,12 @@ TEST(MPSStateSpaceTest, Copy) {
   auto mps = ss.CreateMPS(10, 8);
   auto mps2 = ss.CreateMPS(10, 8);
   auto mps3 = ss.CreateMPS(10, 4);
-  for (int i = 0; i < ss.Size(mps); i++) {
+  for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
   ASSERT_FALSE(ss.CopyMPS(mps, mps3));
   ss.CopyMPS(mps, mps2);
-  for (int i = 0; i < ss.Size(mps); i++) {
+  for (unsigned i = 0; i < ss.Size(mps); ++i) {
     EXPECT_NEAR(mps.get()[i], mps2.get()[i], 1e-5);
   }
 }
@@ -82,7 +82,7 @@ TEST(MPSStateSpaceTest, ToWaveFunctionZero) {
   float *wf = new float[8];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 1, 1e-5);
-  for (int i = 1; i < 8; i++) {
+  for (unsigned i = 1; i < 8; ++i) {
     EXPECT_NEAR(wf[i], 0, 1e-5);
   }
   delete[](wf);

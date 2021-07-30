@@ -1123,6 +1123,8 @@ void TestMultiQubitGates(const Factory& factory) {
   std::vector<unsigned> qubits;
   qubits.reserve(max_gate_qubits);
 
+  std::vector<fp_type> vec(state_space.MinSize(num_qubits));
+
   unsigned size = 1 << num_qubits;
   fp_type inorm = std::sqrt(1.0 / (1 << num_qubits));
 
@@ -1148,6 +1150,9 @@ void TestMultiQubitGates(const Factory& factory) {
       state_space.SetStateUniform(state);
       simulator.ApplyGate(qubits, matrix.data(), state);
 
+      state_space.InternalToNormalOrder(state);
+      state_space.Copy(state, vec.data());
+
       for (unsigned i = 0; i < size; ++i) {
         unsigned j = (i >> k) & mask;
 
@@ -1155,10 +1160,8 @@ void TestMultiQubitGates(const Factory& factory) {
         fp_type expected_real = size2 * (1 + 2 * j) * inorm;
         fp_type expected_imag = expected_real + size1 * inorm;
 
-        auto a = state_space.GetAmpl(state, i);
-
-        EXPECT_NEAR(std::real(a), expected_real, 1e-6);
-        EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+        EXPECT_NEAR(vec[2 * i], expected_real, 1e-6);
+        EXPECT_NEAR(vec[2 * i + 1], expected_imag, 1e-6);
       }
     }
   }
@@ -1188,8 +1191,13 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
   std::vector<fp_type> matrix;
   matrix.reserve(1 << (2 * max_target_qubits + 1));
 
+  std::vector<fp_type> vec;
+  vec.reserve(state_space.MinSize(max_qubits));
+
   // Iterate over circuit size.
   for (unsigned num_qubits = 2; num_qubits <= max_qubits; ++num_qubits) {
+    vec.resize(state_space.MinSize(num_qubits));
+
     unsigned size = 1 << num_qubits;
     unsigned nmask = size - 1;
 
@@ -1256,16 +1264,21 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
           // Starting state.
           for (unsigned j = 0; j < size; ++j) {
             auto val = 2 * j;
-            state_space.SetAmpl(state, j, val, val + 1);
+            vec[2 * j] = val;
+            vec[2 * j + 1] = val + 1;
           }
+
+          state_space.Copy(vec.data(), state);
+          state_space.NormalToInternalOrder(state);
 
           simulator.ApplyControlledGate(
               qubits, cqubits, cval, matrix.data(), state);
 
+          state_space.InternalToNormalOrder(state);
+          state_space.Copy(state, vec.data());
+
           // Test results.
           for (unsigned j = 0; j < size; ++j) {
-            auto a = state_space.GetAmpl(state, j);
-
             if ((j & cmask) == cvmask) {
               // The target matrix is applied.
 
@@ -1282,11 +1295,11 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
                          + 6 * size2 * (1 + 2 * l) * s) / 3;
 
               if (high_precision) {
-                EXPECT_NEAR(std::real(a), expected_real, 1e-6);
-                EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+                EXPECT_NEAR(vec[2 * j], expected_real, 1e-6);
+                EXPECT_NEAR(vec[2 * j + 1], expected_imag, 1e-6);
               } else {
-                EXPECT_NEAR(std::real(a) / expected_real, 1.0, 1e-6);
-                EXPECT_NEAR(std::imag(a) / expected_imag, 1.0, 1e-6);
+                EXPECT_NEAR(vec[2 * j] / expected_real, 1.0, 1e-6);
+                EXPECT_NEAR(vec[2 * j + 1] / expected_imag, 1.0, 1e-6);
               }
             } else {
               // The target matrix is not applied. Unmodified entries.
@@ -1294,8 +1307,8 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
               fp_type expected_real = 2 * j;
               fp_type expected_imag = expected_real + 1;
 
-              EXPECT_NEAR(std::real(a), expected_real, 1e-6);
-              EXPECT_NEAR(std::imag(a), expected_imag, 1e-6);
+              EXPECT_NEAR(vec[2 * j], expected_real, 1e-6);
+              EXPECT_NEAR(vec[2 * j + 1], expected_imag, 1e-6);
             }
           }
         }

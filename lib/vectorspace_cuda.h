@@ -127,6 +127,16 @@ class VectorSpaceCUDA {
     return true;
   }
 
+  // It is the client's responsibility to make sure that src has at least
+  // 2 * 2^dest.num_qubits() elements.
+  bool Copy(const fp_type* src, Vector& dest) const {
+    cudaMemcpy(dest.get(), src,
+               sizeof(fp_type) * Impl::MinSize(dest.num_qubits()),
+               cudaMemcpyHostToDevice);
+
+    return true;
+  }
+
  protected:
 };
 
