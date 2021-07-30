@@ -8,13 +8,11 @@ bazel version
 # Attempt to build all components in SSE and basic mode.
 # The Github Action MacOS VMs may run on different-capability CPUs, so all AVX tests
 # are excluded from the build and test process.
+# apps are sample applications for experts and are meant to be run on only on Linux.
 
-if [[ "$OSTYPE" == "msys"* ]]; then
-  bazel build --config=sse_win apps:all
-  bazel build --config=basic_win apps:all
-else
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   bazel build --config=sse apps:all
-  bazel build --config=basic apps:all
+  bazel build apps:all
 fi
 
 # Run all basic tests.

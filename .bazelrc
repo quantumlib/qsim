@@ -1,79 +1,56 @@
+# Default build options
+build --copt -std=c++11
+build --copt -D_GLIBCXX_USE_CXX11_ABI=0
+
 ##### Sanitizers (choose one, or nosan for none) #####
 
 # Shared config for sanitizers
-build:sanitizer --copt -std=c++11
-build:sanitizer --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:sanitizer --strip=never
 build:sanitizer --copt -O1
 build:sanitizer --copt -fno-omit-frame-pointer
 
 # Address sanitizer
-build:asan --copt -std=c++11
-build:asan --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:asan --config=sanitizer
 build:asan --copt -fsanitize=address
 build:asan --linkopt -fsanitize=address
 
 # Memory sanitizer
-build:msan --copt -std=c++11
-build:msan --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:msan --config=sanitizer
 build:msan --copt -fsanitize=leak
 build:msan --linkopt -fsanitize=leak
 
 # No sanitizers
-build:nosan --copt -std=c++11
-build:nosan --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:nosan --
 
 ##### Instruction set options (choose one) #####
 
 # Build with AVX2 + FMA
-build:avx --copt -std=c++11
-build:avx --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:avx --copt -O3
 build:avx --copt -mavx2
 build:avx --copt -mfma
 
 # Build with SSE
-build:sse --copt -std=c++11
-build:sse --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:sse --copt -O3
 build:sse --copt -msse4
 
-build:sse_win --copt /D_GLIBCXX_USE_CXX11_ABI=0
-build:sse_win --copt /O2
-
 # Build without AVX or SSE
-build:basic --copt -std=c++11
-build:basic --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:basic --copt -O3
-
-build:basic_win --copt /D_GLIBCXX_USE_CXX11_ABI=0
 
 ##### Parallelization (choose one, or nopenmp for none) #####
 
 # Build with OpenMP
-build:openmp --copt -std=c++11
-build:openmp --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:openmp --copt -fopenmp
 build:openmp --linkopt -lgomp
 
 # No OpenMP
-build:nopenmp --copt -std=c++11
-build:nopenmp --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:nopenmp --
 
 ##### Memory handler (choose one) #####
 
 # Build with tcmalloc
-build:tcmalloc --copt -std=c++11
-build:tcmalloc --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:tcmalloc --linkopt="-ltcmalloc"
 
 # Build using malloc (default)
-build:malloc --copt -std=c++11
-build:malloc --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:malloc --
 
 # Test flags

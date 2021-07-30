@@ -12,15 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef _WIN32
-//  Windows
-#include "getopt.h"
-
-#else
-// *nix
 #include <unistd.h>
-
-#endif
 
 #include <complex>
 #include <iomanip>
