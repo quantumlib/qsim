@@ -77,3 +77,6 @@ build:tcmalloc --linkopt="-ltcmalloc"
 build:malloc --copt -std=c++11
 build:malloc --copt -D_GLIBCXX_USE_CXX11_ABI=0
 build:malloc --
+
+# Test flags
+test --test_output=errors
