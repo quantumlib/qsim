@@ -14,6 +14,8 @@
 
 #include "simulator_testfixture.h"
 
+#include <type_traits>
+
 #include "gtest/gtest.h"
 
 #include "../lib/simulator_cuda.h"
@@ -129,7 +131,7 @@ TYPED_TEST(SimulatorCUDATest, CircuitWithControlledGatesDagger) {
 TYPED_TEST(SimulatorCUDATest, MultiQubitGates) {
   using Factory = qsim::Factory<TypeParam>;
 
-  for (unsigned num_threads : {64, 256}) {
+  for (unsigned num_threads : {32, 64, 128, 256}) {
     typename Factory::Simulator::Parameter param;
     param.num_threads = num_threads;
 
@@ -139,12 +141,19 @@ TYPED_TEST(SimulatorCUDATest, MultiQubitGates) {
   }
 }
 
-TEST(SimulatorCUDATest, ControlledGates) {
-  using Factory = qsim::Factory<double>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
-  TestControlledGates(factory, true);
+TYPED_TEST(SimulatorCUDATest, ControlledGates) {
+  using Factory = qsim::Factory<TypeParam>;
+
+  bool high_precision = std::is_same<TypeParam, double>::value;
+
+  for (unsigned num_threads : {64, 256}) {
+    typename Factory::Simulator::Parameter param;
+    param.num_threads = num_threads;
+
+    Factory factory(typename Factory::StateSpace::Parameter(), param);
+
+    TestControlledGates(factory, high_precision);
+  }
 }
 
 TYPED_TEST(SimulatorCUDATest, ExpectationValue1) {
