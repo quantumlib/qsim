@@ -124,13 +124,19 @@ TYPED_TEST(StateSpaceCUDATest, SamplingSmall) {
   }
 }
 
-TEST(StateSpaceCUDATest, SamplingCrossEntropyDifference) {
-  using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
-  TestInvalidStateSize(factory);
-  TestSamplingCrossEntropyDifference(factory);
+TYPED_TEST(StateSpaceCUDATest, SamplingCrossEntropyDifference) {
+  using Factory = qsim::Factory<TypeParam>;
+
+  for (unsigned num_dblocks : {16}) {
+    for (unsigned num_threads : {256, 1024}) {
+      typename Factory::StateSpace::Parameter param;
+      param.num_threads = num_threads;
+
+      Factory factory(param, typename Factory::Simulator::Parameter());
+
+      TestSamplingCrossEntropyDifference(factory);
+    }
+  }
 }
 
 TYPED_TEST(StateSpaceCUDATest, Ordering) {
@@ -154,7 +160,7 @@ TEST(StateSpaceCUDATest, MeasurementSmall) {
   Factory::Simulator::Parameter param2;
   Factory factory(param1, param2);
   TestInvalidStateSize(factory);
-  TestMeasurementSmall(factory);
+  TestMeasurementSmall(factory, true);
 }
 
 TYPED_TEST(StateSpaceCUDATest, MeasurementLarge) {

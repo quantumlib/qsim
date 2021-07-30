@@ -25,7 +25,9 @@ namespace mps {
 
 namespace {
 
-TEST(MPSSimulator, Create) { auto sim = MPSSimulator<For, float>(1); }
+TEST(MPSSimulator, Create) {
+  auto sim = MPSSimulator<For, float>(1);
+}
 
 TEST(MPSSimulator, Apply1RightArbitrary) {
   // Apply an arbitrary matrix to the last qubit triggers [bond_dim, 2].
