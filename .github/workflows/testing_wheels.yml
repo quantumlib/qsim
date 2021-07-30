@@ -58,5 +58,6 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
+          name: python-wheels
           path: ./wheelhouse/*.whl
 

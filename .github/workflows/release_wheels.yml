@@ -53,13 +53,23 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
+          name: python-wheels
           path: ./wheelhouse/*.whl
-
-      - name: Publish packaged wheels
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          packages_dir: wheelhouse/
-          skip_existing: true
-          verbose: true
+  release-wheels:
+    name: Publish all wheels
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: python-wheels
+        path: dist/
+    - name: Publish wheels
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        packages_dir: dist/
+        skip_existing: true
+        verbose: true
