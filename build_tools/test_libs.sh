@@ -9,8 +9,13 @@ bazel version
 # The Github Action MacOS VMs may run on different-capability CPUs, so all AVX tests
 # are excluded from the build and test process.
 
-bazel build --config=sse apps:all
-bazel build apps:all
+if [[ "$OSTYPE" == "msys"* ]]; then
+  bazel build --config=sse_win apps:all
+  bazel build --config=basic_win apps:all
+else
+  bazel build --config=sse apps:all
+  bazel build --config=basic apps:all
+fi
 
 # Run all basic tests.
 set e  # Ignore errors until artifacts are collected.
