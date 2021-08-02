@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef QTRAJECTORY_TESTFIXTURE_H_
+#define QTRAJECTORY_TESTFIXTURE_H_
+
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -20,43 +23,37 @@
 
 #include "../lib/channels_cirq.h"
 #include "../lib/circuit_noisy.h"
-#include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_cirq.h"
 #include "../lib/io.h"
 #include "../lib/qtrajectory.h"
-#include "../lib/simmux.h"
 
 namespace qsim {
 
-namespace {
-
-using State = Simulator<For>::State;
-using fp_type = Simulator<For>::fp_type;
-using GateCirq = Cirq::GateCirq<fp_type>;
-using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
-                                               MultiQubitGateFuser,
-                                               Simulator<For>>;
-
+template <typename Gate>
 void AddBitFlipNoise1(
-    unsigned time, unsigned q, double p, NoisyCircuit<GateCirq>& ncircuit) {
+    unsigned time, unsigned q, double p, NoisyCircuit<Gate>& ncircuit) {
+  using fp_type = typename Gate::fp_type;
+
   double p1 = 1 - p;
   double p2 = p;
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  auto normal = KrausOperator<Gate>::kNormal;
 
   ncircuit.channels.push_back(
       {{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, q)}},
        {normal, 1, p2, {Cirq::X<fp_type>::Create(time, q)}}});
 }
 
-void AddBitFlipNoise2(unsigned time, double p,
-                      NoisyCircuit<GateCirq>& ncircuit) {
+template <typename Gate>
+void AddBitFlipNoise2(unsigned time, double p, NoisyCircuit<Gate>& ncircuit) {
+  using fp_type = typename Gate::fp_type;
+
   double p1 = 1 - p;
   double p2 = p;
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  auto normal = KrausOperator<Gate>::kNormal;
 
   ncircuit.channels.push_back({
     {normal, 1, p1 * p1, {Cirq::I1<fp_type>::Create(time, 0),
@@ -79,8 +76,11 @@ void AddBitFlipNoise2(unsigned time, double p,
 //     {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 1)}}});
 }
 
+template <typename Gate>
 void AddGenAmplDumpNoise1(
-    unsigned time, unsigned q, double g, NoisyCircuit<GateCirq>& ncircuit) {
+    unsigned time, unsigned q, double g, NoisyCircuit<Gate>& ncircuit) {
+  using fp_type = typename Gate::fp_type;
+
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -95,7 +95,7 @@ void AddGenAmplDumpNoise1(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  auto normal = KrausOperator<Gate>::kNormal;
 
   using M = Cirq::MatrixGate1<fp_type>;
 
@@ -106,8 +106,11 @@ void AddGenAmplDumpNoise1(
        {normal, 0, p3, {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})}}});
 }
 
+template <typename Gate>
 void AddGenAmplDumpNoise2(
-    unsigned time, double g, NoisyCircuit<GateCirq>& ncircuit) {
+    unsigned time, double g, NoisyCircuit<Gate>& ncircuit) {
+  using fp_type = typename Gate::fp_type;
+
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -122,7 +125,7 @@ void AddGenAmplDumpNoise2(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  auto normal = KrausOperator<Gate>::kNormal;
 
   using M = Cirq::MatrixGate1<fp_type>;
 
@@ -138,10 +141,12 @@ void AddGenAmplDumpNoise2(
        {normal, 0, p3, {M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}}});
 }
 
-template <typename AddNoise1, typename AddNoise2>
-NoisyCircuit<GateCirq> GenerateNoisyCircuit(
+template <typename Gate, typename AddNoise1, typename AddNoise2>
+NoisyCircuit<Gate> GenerateNoisyCircuit(
     double p, AddNoise1&& add_noise1, AddNoise2&& add_noise2) {
-  NoisyCircuit<GateCirq> ncircuit;
+  using fp_type = typename Gate::fp_type;
+
+  NoisyCircuit<Gate> ncircuit;
 
   ncircuit.num_qubits = 2;
   ncircuit.channels.reserve(24);
@@ -151,7 +156,7 @@ NoisyCircuit<GateCirq> GenerateNoisyCircuit(
   using Rx = Cirq::rx<fp_type>;
   using Ry = Cirq::ry<fp_type>;
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  auto normal = KrausOperator<Gate>::kNormal;
 
   ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 0)}}});
   add_noise1(1, 0, p, ncircuit);
@@ -171,17 +176,23 @@ NoisyCircuit<GateCirq> GenerateNoisyCircuit(
   add_noise1(9, 1, p, ncircuit);
   ncircuit.channels.push_back({{normal, 1, 1.0, {IS::Create(10, 0, 1)}}});
   add_noise2(11, p, ncircuit);
-  ncircuit.channels.push_back({{KrausOperator<GateCirq>::kMeasurement, 1, 1.0,
-                       {gate::Measurement<GateCirq>::Create(12, {0, 1})}}});
+  ncircuit.channels.push_back({{KrausOperator<Gate>::kMeasurement, 1, 1.0,
+                              {gate::Measurement<Gate>::Create(12, {0, 1})}}});
   add_noise2(13, p, ncircuit);
 
   return ncircuit;
 }
 
-void RunBatch(const NoisyCircuit<GateCirq>& ncircuit,
+template <typename Factory, typename Gate>
+void RunBatch(const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
               const std::vector<double>& expected_results) {
+  using Simulator = typename Factory::Simulator;
+  using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
+                                                 Simulator>;
+
   unsigned num_qubits = 2;
-  unsigned num_threads = 1;
   unsigned num_reps = 25000;
 
   auto measure = [](uint64_t r, const State& state,
@@ -193,11 +204,11 @@ void RunBatch(const NoisyCircuit<GateCirq>& ncircuit,
 
   std::vector<unsigned> histogram(1 << num_qubits, 0);
 
-  QTSimulator::Parameter param;
+  typename QTSimulator::Parameter param;
   param.collect_mea_stat = true;
 
-  Simulator<For> simulator(num_threads);
-  Simulator<For>::StateSpace state_space(num_threads);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   EXPECT_TRUE(QTSimulator::RunBatch(param, ncircuit, 0, num_reps, state_space,
                                     simulator, measure, histogram));
@@ -207,14 +218,21 @@ void RunBatch(const NoisyCircuit<GateCirq>& ncircuit,
   }
 }
 
-void RunOnceRepeatedly(const NoisyCircuit<GateCirq>& ncircuit,
+template <typename Factory, typename Gate>
+void RunOnceRepeatedly(const Factory& factory,
+                       const NoisyCircuit<Gate>& ncircuit,
                        const std::vector<double>& expected_results) {
+  using Simulator = typename Factory::Simulator;
+  using StateSpace = typename Factory::StateSpace;
+  using State = typename StateSpace::State;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
+                                                 Simulator>;
+
   unsigned num_qubits = 2;
-  unsigned num_threads = 1;
   unsigned num_reps = 25000;
 
-  Simulator<For> simulator(num_threads);
-  Simulator<For>::StateSpace state_space(num_threads);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   State scratch = state_space.Null();
   State state = state_space.Create(num_qubits);
@@ -226,7 +244,7 @@ void RunOnceRepeatedly(const NoisyCircuit<GateCirq>& ncircuit,
 
   std::vector<unsigned> histogram(1 << num_qubits, 0);
 
-  QTSimulator::Parameter param;
+  typename QTSimulator::Parameter param;
   param.collect_mea_stat = true;
 
   for (unsigned i = 0; i < num_reps; ++i) {
@@ -246,9 +264,8 @@ void RunOnceRepeatedly(const NoisyCircuit<GateCirq>& ncircuit,
   }
 }
 
-}  // namespace
-
-TEST(QTrajectoryTest, BitFlip) {
+template <typename Factory>
+void TestBitFlip(const Factory& factory) {
 /* The expected results are obtained with the following Cirq code.
 
 import cirq
@@ -284,12 +301,15 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.389352, 0.242790, 0.081009, 0.286850,
   };
 
-  auto ncircuit1 = GenerateNoisyCircuit(0.01, AddBitFlipNoise1,
-                                        AddBitFlipNoise2);
-  RunBatch(ncircuit1, expected_results);
+  using Gate = Cirq::GateCirq<typename Factory::fp_type>;
+
+  auto ncircuit = GenerateNoisyCircuit<Gate>(0.01, AddBitFlipNoise1<Gate>,
+                                             AddBitFlipNoise2<Gate>);
+  RunBatch(factory, ncircuit, expected_results);
 }
 
-TEST(QTrajectoryTest, GenDump) {
+template <typename Factory>
+void TestGenDump(const Factory& factory) {
 /* The expected results are obtained with the following Cirq code.
 
 import cirq
@@ -339,14 +359,25 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.318501, 0.260538, 0.164616, 0.256345,
   };
 
-  auto ncircuit = GenerateNoisyCircuit(0.1, AddGenAmplDumpNoise1,
-                                       AddGenAmplDumpNoise2);
-  RunOnceRepeatedly(ncircuit, expected_results);
+  using Gate = Cirq::GateCirq<typename Factory::fp_type>;
+
+  auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
+                                             AddGenAmplDumpNoise2<Gate>);
+  RunOnceRepeatedly(factory, ncircuit, expected_results);
 }
 
-TEST(QTrajectoryTest, CollectKopStat) {
+template <typename Factory>
+void TestCollectKopStat(const Factory& factory) {
+  using Simulator = typename Factory::Simulator;
+  using StateSpace = typename Factory::StateSpace;
+  using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
+  using GateCirq = Cirq::GateCirq<fp_type>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
+                                                 MultiQubitGateFuser,
+                                                 Simulator>;
+
   unsigned num_qubits = 4;
-  unsigned num_threads = 1;
   unsigned num_reps = 20000;
 
   double p = 0.1;
@@ -390,11 +421,11 @@ TEST(QTrajectoryTest, CollectKopStat) {
 
   std::vector<std::vector<unsigned>> histogram(8, std::vector<unsigned>(2, 0));
 
-  QTSimulator::Parameter param;
+  typename QTSimulator::Parameter param;
   param.collect_kop_stat = true;
 
-  Simulator<For> simulator(num_threads);
-  Simulator<For>::StateSpace state_space(num_threads);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   EXPECT_TRUE(QTSimulator::RunBatch(param, ncircuit, 0, num_reps, state_space,
                                     simulator, measure, histogram));
@@ -410,9 +441,18 @@ TEST(QTrajectoryTest, CollectKopStat) {
   }
 }
 
-TEST(QTrajectoryTest, CleanCircuit) {
+template <typename Factory>
+void TestCleanCircuit(const Factory& factory) {
+  using Simulator = typename Factory::Simulator;
+  using StateSpace = typename Factory::StateSpace;
+  using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
+  using GateCirq = Cirq::GateCirq<fp_type>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
+                                                 MultiQubitGateFuser,
+                                                 Simulator>;
+
   unsigned num_qubits = 4;
-  unsigned num_threads = 1;
   auto size = uint64_t{1} << num_qubits;
 
   std::vector<GateCirq> circuit;
@@ -455,8 +495,8 @@ TEST(QTrajectoryTest, CleanCircuit) {
     ncircuit.channels.push_back({{normal, 1, 1.0, {circuit[i]}}});
   }
 
-  Simulator<For> simulator(num_threads);
-  Simulator<For>::StateSpace state_space(num_threads);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
@@ -470,11 +510,12 @@ TEST(QTrajectoryTest, CleanCircuit) {
 
   State scratch = state_space.Null();
   State nstate = state_space.Create(num_qubits);
+
   EXPECT_FALSE(state_space.IsNull(nstate));
 
   std::vector<uint64_t> stat;
 
-  QTSimulator::Parameter param;
+  typename QTSimulator::Parameter param;
 
   state_space.SetStateZero(nstate);
 
@@ -494,9 +535,18 @@ TEST(QTrajectoryTest, CleanCircuit) {
 }
 
 // Test that QTSimulator::Run does not overwrite initial states.
-TEST(QTrajectoryTest, InitialState) {
+template <typename Factory>
+void TestInitialState(const Factory& factory) {
+  using Simulator = typename Factory::Simulator;
+  using StateSpace = typename Factory::StateSpace;
+  using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
+  using GateCirq = Cirq::GateCirq<fp_type>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
+                                                 MultiQubitGateFuser,
+                                                 Simulator>;
+
   unsigned num_qubits = 3;
-  unsigned num_threads = 1;
 
   NoisyCircuit<GateCirq> ncircuit;
 
@@ -512,14 +562,15 @@ TEST(QTrajectoryTest, InitialState) {
   ncircuit.channels.push_back(
       {{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 2)}}});
 
-  Simulator<For> simulator(num_threads);
-  Simulator<For>::StateSpace state_space(num_threads);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   State scratch = state_space.Null();
   State state = state_space.Create(num_qubits);
+
   EXPECT_FALSE(state_space.IsNull(state));
 
-  QTSimulator::Parameter param;
+  typename QTSimulator::Parameter param;
   std::vector<uint64_t> stat;
 
   for (unsigned i = 0; i < 8; ++i) {
@@ -535,7 +586,17 @@ TEST(QTrajectoryTest, InitialState) {
   }
 }
 
-TEST(QTrajectoryTest, UncomputeFinalState) {
+template <typename Factory>
+void TestUncomputeFinalState(const Factory& factory) {
+  using Simulator = typename Factory::Simulator;
+  using StateSpace = typename Factory::StateSpace;
+  using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
+  using GateCirq = Cirq::GateCirq<fp_type>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
+                                                 MultiQubitGateFuser,
+                                                 Simulator>;
+
   unsigned num_qubits = 4;
 
   std::vector<GateCirq> circuit = {
@@ -558,25 +619,20 @@ TEST(QTrajectoryTest, UncomputeFinalState) {
   };
 
   // Works only with mixtures.
-  auto channel = Cirq::bit_flip<float>(0.3);
+  auto channel = Cirq::bit_flip<fp_type>(0.3);
   auto ncircuit = MakeNoisy(num_qubits, circuit, channel);
 
-  using Simulator = qsim::Simulator<const For&>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
-                                                 MultiQubitGateFuser,
-                                                 Simulator>;
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
-  For parfor(1);
-  Simulator simulator(parfor);
-  Simulator::StateSpace state_space(parfor);
+  State scratch = state_space.Null();
+  State state = state_space.Create(num_qubits);
 
-  Simulator::State scratch = state_space.Null();
-  Simulator::State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
 
   state_space.SetStateZero(state);
 
-  QTSimulator::Parameter param;
+  typename QTSimulator::Parameter param;
   param.collect_kop_stat = true;
 
   std::vector<uint64_t> stat;
@@ -594,7 +650,7 @@ TEST(QTrajectoryTest, UncomputeFinalState) {
     const auto& ops = ncircuit.channels[k][stat[k]].ops;
 
     for (auto it = ops.rbegin(); it != ops.rend(); ++it) {
-      ApplyGateDagger(Simulator(parfor), *it, state);
+      ApplyGateDagger(simulator, *it, state);
     }
   }
 
@@ -609,7 +665,4 @@ TEST(QTrajectoryTest, UncomputeFinalState) {
 
 }  // namespace qsim
 
-int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+#endif  // QTRAJECTORY_TESTFIXTURE_H_
