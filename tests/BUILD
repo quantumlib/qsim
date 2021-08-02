@@ -173,24 +173,38 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "qtrajectory_test",
-    srcs = ["qtrajectory_test.cc"],
+cc_library(
+    name = "qtrajectory_testfixture",
+    hdrs = ["qtrajectory_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:channels_cirq",
         "//lib:circuit_noisy",
-        "//lib:formux",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_cirq",
         "//lib:io",
         "//lib:qtrajectory",
-        "//lib:simulator",
+    ],
+    testonly = 1,
+)
+
+cc_test(
+    name = "qtrajectory_avx_test",
+    srcs = ["qtrajectory_avx_test.cc"],
+    deps = [
+        ":qtrajectory_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": avx_copts,
     }),
 )
 
