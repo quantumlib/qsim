@@ -304,7 +304,7 @@ for key, val in sorted(res.histogram(key='m').items()):
   using Gate = Cirq::GateCirq<typename Factory::fp_type>;
 
   auto ncircuit = GenerateNoisyCircuit<Gate>(0.01, AddBitFlipNoise1<Gate>,
-                                                 AddBitFlipNoise2<Gate>);
+                                             AddBitFlipNoise2<Gate>);
   RunBatch(factory, ncircuit, expected_results);
 }
 
