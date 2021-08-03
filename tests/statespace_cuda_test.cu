@@ -159,7 +159,6 @@ TEST(StateSpaceCUDATest, MeasurementSmall) {
   Factory::StateSpace::Parameter param1;
   Factory::Simulator::Parameter param2;
   Factory factory(param1, param2);
-  TestInvalidStateSize(factory);
   TestMeasurementSmall(factory, true);
 }
 
