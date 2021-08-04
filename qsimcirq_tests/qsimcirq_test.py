@@ -1376,3 +1376,152 @@ def test_cirq_qsim_global_shift():
     assert cirq.linalg.allclose_up_to_global_phase(
         qsim_result.state_vector(), cirq_result.state_vector()
     )
+
+
+@pytest.mark.parametrize("mode", ["noiseless", "noisy"])
+def test_cirq_qsim_circuit_memoization_compute_amplitudes(mode: str):
+    """Verifies the correctness of simulator functions when
+    circuit_memoization_size is set."""
+    execution_repetitions = 3
+    qsim_sim = qsimcirq.QSimSimulator(circuit_memoization_size=4)
+
+    # Pick qubits.
+    a, b, c, d = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+        cirq.GridQubit(1, 1),
+        cirq.GridQubit(1, 0),
+    ]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(
+        cirq.X(a) ** 0.5,
+        cirq.Y(b) ** 0.5,
+        cirq.Z(c),
+        cirq.CZ(a, d),
+    )
+
+    if mode == "noisy":
+        cirq_circuit.append(NoiseTrigger().on(a))
+
+    for _ in range(execution_repetitions):
+        result = qsim_sim.compute_amplitudes(cirq_circuit, bitstrings=[0b0100, 0b1011])
+        assert np.allclose(result, [0.5j, 0j])
+
+
+@pytest.mark.parametrize("mode", ["noiseless", "noisy"])
+def test_cirq_qsim_circuit_memoization_simulate(mode: str):
+    execution_repetitions = 3
+    qsim_sim = qsimcirq.QSimSimulator(circuit_memoization_size=4)
+    cirq_sim = cirq.Simulator()
+
+    # Pick qubits.
+    a, b, c, d = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+        cirq.GridQubit(1, 1),
+        cirq.GridQubit(1, 0),
+    ]
+
+    # Create a circuit.
+    cirq_circuit = cirq.Circuit(
+        cirq.Moment(
+            cirq.X(a) ** 0.5,
+            cirq.H(b),
+            cirq.X(c),
+            cirq.H(d),
+        ),
+        cirq.Moment(
+            cirq.X(a) ** 0.5,
+            cirq.CX(b, c),
+            cirq.S(d),
+        ),
+        cirq.Moment(
+            cirq.I(a),
+            cirq.ISWAP(b, c),
+        ),
+    )
+
+    if mode == "noisy":
+        cirq_circuit.append(NoiseTrigger().on(a))
+
+    cirq_result = cirq_sim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
+    for _ in range(execution_repetitions):
+        result = qsim_sim.simulate(cirq_circuit, qubit_order=[a, b, c, d])
+        assert result.state_vector().shape == (16,)
+        assert cirq.linalg.allclose_up_to_global_phase(
+            result.state_vector(), cirq_result.state_vector()
+        )
+
+
+@pytest.mark.parametrize("mode", ["noiseless", "noisy"])
+def test_cirq_qsim_circuit_memoization_run(mode: str):
+    execution_repetitions = 3
+    qsim_sim = qsimcirq.QSimSimulator(circuit_memoization_size=4)
+
+    # Pick qubits.
+    a, b, c, d = [
+        cirq.GridQubit(0, 0),
+        cirq.GridQubit(0, 1),
+        cirq.GridQubit(1, 1),
+        cirq.GridQubit(1, 0),
+    ]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(
+        cirq.X(a) ** 0.5,
+        cirq.Y(b) ** 0.5,
+        cirq.Z(c),
+        cirq.CZ(a, d),
+        # measure qubits
+        cirq.measure(a, key="ma"),
+        cirq.measure(b, key="mb"),
+        cirq.measure(c, key="mc"),
+        cirq.measure(d, key="md"),
+    )
+    if mode == "noisy":
+        cirq_circuit.append(NoiseTrigger().on(a))
+
+    for _ in range(execution_repetitions):
+        result = qsim_sim.run(cirq_circuit, repetitions=5)
+        for key, value in result.measurements.items():
+            assert value.shape == (5, 1)
+
+
+@pytest.mark.parametrize("mode", ["noiseless", "noisy"])
+def test_cirq_qsim_circuit_memoization_simulate_expectation_values_sweep(mode: str):
+    execution_repetitions = 3
+    qsim_sim = qsimcirq.QSimSimulator(circuit_memoization_size=4)
+    cirq_sim = cirq.Simulator()
+
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    x_exp = sympy.Symbol("x_exp")
+    h_exp = sympy.Symbol("h_exp")
+    circuit = cirq.Circuit(
+        cirq.X(a) ** x_exp,
+        cirq.H(b),
+        cirq.H(a) ** h_exp,
+        cirq.H(b) ** h_exp,
+    )
+    params = [
+        {x_exp: 0, h_exp: 0},  # |0+)
+        {x_exp: 1, h_exp: 0},  # |1+)
+        {x_exp: 0, h_exp: 1},  # |+0)
+        {x_exp: 1, h_exp: 1},  # |-0)
+    ]
+    psum1 = cirq.Z(a) + 3 * cirq.X(b)
+    psum2 = cirq.X(a) - 3 * cirq.Z(b)
+
+    if mode == "noisy":
+        circuit.append(NoiseTrigger().on(a))
+
+    cirq_result = cirq_sim.simulate_expectation_values_sweep(
+        circuit, [psum1, psum2], params
+    )
+
+    for _ in range(execution_repetitions):
+        qsim_result = qsim_sim.simulate_expectation_values_sweep(
+            circuit, [psum1, psum2], params
+        )
+        assert cirq.approx_eq(qsim_result, cirq_result, atol=1e-6)
