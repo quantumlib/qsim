@@ -43,8 +43,8 @@ TEST(MPSSimulator, Apply1RightArbitrary) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto state = ss.CreateMPS(10, 4);
-  ss.SetMPSZero(state);
+  auto state = ss.Create(10, 4);
+  ss.SetZeroState(state);
   auto offset = ss.GetBlockOffset(state, 9);
   // Completely fill final block.
   for (unsigned i = offset; i < ss.Size(state); ++i) {
@@ -99,8 +99,8 @@ TEST(MPSSimulator, Apply1LeftArbitrary) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto state = ss.CreateMPS(10, 4);
-  ss.SetMPSZero(state);
+  auto state = ss.Create(10, 4);
+  ss.SetZeroState(state);
   std::vector<float> matrix = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8};
   // Completely fill first block.
   for (unsigned i = 0; i < ss.GetBlockOffset(state, 1); ++i) {
@@ -153,8 +153,8 @@ TEST(MPSSimulator, Apply1InteriorArbitrary) {
   auto sim = MPSSimulator<For, float>(1);
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
-  auto state = ss.CreateMPS(10, 4);
-  ss.SetMPSZero(state);
+  auto state = ss.Create(10, 4);
+  ss.SetZeroState(state);
   std::vector<float> matrix = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8};
   // Completely fill second block.
   auto l_offset = ss.GetBlockOffset(state, 1);
@@ -283,7 +283,7 @@ TEST(MPSSimulator, Apply2Left01) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto mps = ss.CreateMPS(3, 4);
+  auto mps = ss.Create(3, 4);
   memset(mps.get(), 0, ss.RawSize(mps));
   mps.get()[0] = -0.35590581027809776;
   mps.get()[1] = 0.026818375951314005;
@@ -363,7 +363,7 @@ TEST(MPSSimulator, Apply2Right12) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto mps = ss.CreateMPS(3, 4);
+  auto mps = ss.Create(3, 4);
   memset(mps.get(), 0, ss.RawSize(mps));
   mps.get()[0] = -0.35590581027809776;
   mps.get()[1] = 0.026818375951314005;
@@ -443,7 +443,7 @@ TEST(MPSSimulator, Apply2Middle) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto mps = ss.CreateMPS(4, 4);
+  auto mps = ss.Create(4, 4);
   memset(mps.get(), 0, ss.RawSize(mps));
   mps.get()[0] = 0.7542437229597659;
   mps.get()[1] = 0.6320228540989201;
@@ -611,8 +611,8 @@ TEST(MPSSimulator, OneTwoQubitFuzz) {
   gates.push_back(FSimGate::Create(3, 1, 2, 0.5, -0.9));
   gates.push_back(FSimGate::Create(3, 3, 4, -4.1, 0.345));
 
-  auto mps = ss.CreateMPS(num_qubits, bond_dim);
-  ss.SetMPSZero(mps);
+  auto mps = ss.Create(num_qubits, bond_dim);
+  ss.SetZeroState(mps);
   for (const auto &gate : gates) {
     ApplyGate(sim, gate, mps);
   }

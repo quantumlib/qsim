@@ -25,14 +25,14 @@ namespace {
 
 TEST(MPSStateSpaceTest, Create) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(5, 8);
+  auto mps = ss.Create(5, 8);
   EXPECT_EQ(mps.num_qubits(), 5);
   EXPECT_EQ(mps.bond_dim(), 8);
 }
 
 TEST(MPSStateSpaceTest, BlockOffset) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(5, 8);
+  auto mps = ss.Create(5, 8);
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
@@ -46,11 +46,11 @@ TEST(MPSStateSpaceTest, BlockOffset) {
 
 TEST(MPSStateSpaceTest, SetZero) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(4, 8);
+  auto mps = ss.Create(4, 8);
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
-  ss.SetMPSZero(mps);
+  ss.SetZeroState(mps);
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     auto expected = 0.0;
     if (i == 0 || i == 32 || i == 256 + 32 || i == 512 + 32) {
@@ -62,14 +62,14 @@ TEST(MPSStateSpaceTest, SetZero) {
 
 TEST(MPSStateSpaceTest, Copy) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(10, 8);
-  auto mps2 = ss.CreateMPS(10, 8);
-  auto mps3 = ss.CreateMPS(10, 4);
+  auto mps = ss.Create(10, 8);
+  auto mps2 = ss.Create(10, 8);
+  auto mps3 = ss.Create(10, 4);
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
-  ASSERT_FALSE(ss.CopyMPS(mps, mps3));
-  ss.CopyMPS(mps, mps2);
+  ASSERT_FALSE(ss.Copy(mps, mps3));
+  ss.Copy(mps, mps2);
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     EXPECT_NEAR(mps.get()[i], mps2.get()[i], 1e-5);
   }
@@ -77,8 +77,8 @@ TEST(MPSStateSpaceTest, Copy) {
 
 TEST(MPSStateSpaceTest, ToWaveFunctionZero) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(2, 8);
-  ss.SetMPSZero(mps);
+  auto mps = ss.Create(2, 8);
+  ss.SetZeroState(mps);
   float *wf = new float[8];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 1, 1e-5);
@@ -90,7 +90,7 @@ TEST(MPSStateSpaceTest, ToWaveFunctionZero) {
 
 TEST(MPSStateSpaceTest, ToWaveFunction3) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(3, 4);
+  auto mps = ss.Create(3, 4);
 
   // Set to highly entangled three qubit state.
   memset(mps.get(), 0, ss.RawSize(mps));
@@ -152,7 +152,7 @@ TEST(MPSStateSpaceTest, ToWaveFunction3) {
 
 TEST(MPSStateSpaceTest, ToWaveFunction5) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(5, 4);
+  auto mps = ss.Create(5, 4);
 
   // Set to highly entangled five qubit state.
   memset(mps.get(), 0, ss.RawSize(mps));
@@ -374,8 +374,8 @@ TEST(MPSStateSpaceTest, ToWaveFunction5) {
 
 TEST(MPSStateSpaceTest, InnerProduct4) {
   auto ss = MPSStateSpace<For, float>(1);
-  auto mps = ss.CreateMPS(4, 4);
-  auto mps2 = ss.CreateMPS(4, 4);
+  auto mps = ss.Create(4, 4);
+  auto mps2 = ss.Create(4, 4);
 
   // Set to highly entangled four qubit state.
   memset(mps.get(), 0, ss.RawSize(mps));
@@ -581,6 +581,9 @@ TEST(MPSStateSpaceTest, InnerProduct4) {
   auto r = ss.InnerProduct(mps, mps2);
   EXPECT_NEAR(r.real(), 0.5524, 1e-4);
   EXPECT_NEAR(r.imag(), 0.2471, 1e-4);
+
+  auto f = ss.RealInnerProduct(mps, mps2);
+  EXPECT_NEAR(f, 0.5524, 1e-4);
 }
 
 }  // namespace
