@@ -36,8 +36,8 @@ using namespace qsim;
 
 namespace {
 
-struct Factory {
-  Factory(unsigned num_threads) : num_threads(num_threads) {}
+struct CpuFactory {
+  CpuFactory(unsigned num_threads) : num_threads(num_threads) {}
 
   using Simulator = qsim::Simulator<For>;
   using StateSpace = Simulator::StateSpace;
@@ -380,6 +380,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     return {};
   }
 
+  using Factory = CpuFactory;
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
@@ -427,7 +428,8 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<For>;
+  using Factory = CpuFactory;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
@@ -475,6 +477,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 // Helper class for simulating circuits of all types.
 class SimulatorHelper {
  public:
+  using Factory = CpuFactory;
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
@@ -738,6 +741,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
     return {};
   }
 
+  using Factory = CpuFactory;
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
@@ -784,6 +788,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     return {};
   }
 
+  using Factory = CpuFactory;
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
