@@ -11,10 +11,10 @@ QSIMLIB_DECIDE = ../qsimcirq/qsim_decide`python3-config --extension-suffix`
 PYBINDFLAGS_BASIC = -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
 PYBINDFLAGS_SSE = -msse4.1 -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
 PYBINDFLAGS_AVX2 = -mavx2 -mfma -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
-PYBINDFLAGS_AVX512 = -std=c++17 -Xcompiler "-mavx512f -Wall -shared -fPIC `python3 -m pybind11 --includes`"
+PYBINDFLAGS_AVX512 = -mavx512f -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
 
 # The flags for the compilation of GPU-specific Pybind11 interfaces
-PYBINDFLAGS_CUDA = -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
+PYBINDFLAGS_CUDA = -std=c++17 -Xcompiler "-Wall -shared -fPIC `python3 -m pybind11 --includes`"
 
 .PHONY: pybind
 pybind:
