@@ -58,4 +58,7 @@ PYBIND11_MODULE(qsim_decide, m) {
 
   // Methods for returning amplitudes
   m.def("detect_instructions", &detect_instructions, "Detect SIMD");
+
+  // Detect available GPUs.
+  m.def("detect_gpu", &detect_gpu, "Detect GPU");
 }

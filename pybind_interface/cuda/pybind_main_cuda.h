@@ -14,4 +14,4 @@
 
 #include "../pybind_main.h"
 
-PYBIND11_MODULE(qsim_basic, m) { MODULE_BINDINGS }
+PYBIND11_MODULE(qsim_cuda, m) { MODULE_BINDINGS }
