@@ -17,7 +17,6 @@
 #include "../../lib/simulator_cuda.h"
 
 namespace qsim {
-  template <typename For>
   using Simulator = SimulatorCUDA<float>;
 
   struct Factory {
@@ -25,7 +24,7 @@ namespace qsim {
     using StateSpace = Simulator::StateSpace;
 
     Factory(unsigned num_threads, unsigned num_dblocks)
-      : ss_params(num_threads, num_dblocks), sim_params(num_threads) {}
+      : ss_params{num_threads, num_dblocks}, sim_params{num_threads} {}
 
     StateSpace CreateStateSpace() const {
       return StateSpace(ss_params);

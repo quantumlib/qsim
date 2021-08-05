@@ -11,7 +11,7 @@ QSIMLIB_DECIDE = ../qsimcirq/qsim_decide`python3-config --extension-suffix`
 PYBINDFLAGS_BASIC = -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
 PYBINDFLAGS_SSE = -msse4.1 -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
 PYBINDFLAGS_AVX2 = -mavx2 -mfma -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
-PYBINDFLAGS_AVX512 = -mavx512f -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
+PYBINDFLAGS_AVX512 = -std=c++17 -Xcompiler "-mavx512f -Wall -shared -fPIC `python3 -m pybind11 --includes`"
 
 # The flags for the compilation of GPU-specific Pybind11 interfaces
 PYBINDFLAGS_CUDA = -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
@@ -22,7 +22,7 @@ pybind:
 	$(CXX) sse/pybind_main_sse.cpp -o $(QSIMLIB_SSE) $(CXXFLAGS) $(PYBINDFLAGS_SSE)
 	$(CXX) avx2/pybind_main_avx2.cpp -o $(QSIMLIB_AVX2) $(CXXFLAGS) $(PYBINDFLAGS_AVX2)
 	$(CXX) avx512/pybind_main_avx512.cpp -o $(QSIMLIB_AVX512) $(CXXFLAGS) $(PYBINDFLAGS_AVX512)
-	$(NVCC) cuda/pybind_main_cuda.cpp -o $(QSIMLIB_CUDA) $(NVCCFLAGS) -Xcompiler "$(PYBINDFLAGS_CUDA)"
+	$(NVCC) cuda/pybind_main_cuda.cpp -o $(QSIMLIB_CUDA) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA)
 	$(CXX) decide/decide.cpp -o $(QSIMLIB_DECIDE) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
 
 .PHONY: clean
