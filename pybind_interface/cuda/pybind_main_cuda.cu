@@ -12,32 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "pybind_main_sse.h"
+#include "pybind_main_cuda.h"
 
-#include "../../lib/formux.h"
-#include "../../lib/simulator_sse.h"
+#include "../../lib/simulator_cuda.h"
 
 namespace qsim {
   template <typename For>
-  using Simulator = SimulatorSSE<For>;
+  using Simulator = SimulatorCUDA<float>;
 
   struct Factory {
-    // num_dblocks is unused, but kept for consistency with GPU version.
-    Factory(unsigned num_threads, unsigned num_dblocks)
-      : num_threads(num_threads) {}
-
-    using Simulator = qsim::Simulator<For>;
+    using Simulator = qsim::Simulator;
     using StateSpace = Simulator::StateSpace;
 
+    Factory(unsigned num_threads, unsigned num_dblocks)
+      : ss_params(num_threads, num_dblocks), sim_params(num_threads) {}
+
     StateSpace CreateStateSpace() const {
-      return StateSpace(num_threads);
+      return StateSpace(ss_params);
     }
 
     Simulator CreateSimulator() const {
-      return Simulator(num_threads);
+      return Simulator(sim_params);
     }
 
-    unsigned num_threads;
+    const StateSpace::Parameter ss_params;
+    const Simulator::Parameter sim_params;
   };
 }
 

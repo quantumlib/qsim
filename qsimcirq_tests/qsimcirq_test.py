@@ -1062,6 +1062,24 @@ def test_cirq_qsimh_simulate():
     assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
 
 
+def test_cirq_qsim_gpu_simulate():
+    # Dummy test.
+    print(qsimcirq.qsim_gpu)
+    assert False
+    # # Pick qubits.
+    # a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # # Create a circuit
+    # cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
+
+    # qsimh_options = {"k": [0], "w": 0, "p": 1, "r": 1}
+    # qsimhSim = qsimcirq.QSimhSimulator(qsimh_options)
+    # result = qsimhSim.compute_amplitudes(
+    #     cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11]
+    # )
+    # assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
+
+
 def test_cirq_qsim_params():
     qubit = cirq.GridQubit(0, 0)
 

@@ -45,6 +45,14 @@ int detect_instructions() {
   return static_cast<int>(instr);
 }
 
+enum GPUCapabilities { CUDA = 0, NO_GPU = 10 };
+
+int detect_gpu() {
+  // TODO: detect non-CUDA
+  GPUCapabilities gpu = CUDA;
+  return gpu;
+}
+
 PYBIND11_MODULE(qsim_decide, m) {
   m.doc() = "pybind11 plugin";  // optional module docstring
 

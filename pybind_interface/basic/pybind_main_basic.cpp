@@ -22,7 +22,7 @@ namespace qsim {
   using Simulator = SimulatorBasic<For>;
 
   struct Factory {
-    // num_dblocks is unused, but kept for consistency with GpuFactory.
+    // num_dblocks is unused, but kept for consistency with GPU version.
     Factory(unsigned num_threads, unsigned num_dblocks)
       : num_threads(num_threads) {}
 
