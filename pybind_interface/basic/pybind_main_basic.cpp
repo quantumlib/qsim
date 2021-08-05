@@ -14,11 +14,31 @@
 
 #include "pybind_main_basic.h"
 
+#include "../../lib/formux.h"
 #include "../../lib/simulator_basic.h"
 
 namespace qsim {
   template <typename For>
   using Simulator = SimulatorBasic<For>;
+
+  struct Factory {
+    // num_dblocks is unused, but kept for consistency with GpuFactory.
+    Factory(unsigned num_threads, unsigned num_dblocks)
+      : num_threads(num_threads) {}
+
+    using Simulator = qsim::Simulator<For>;
+    using StateSpace = Simulator::StateSpace;
+
+    StateSpace CreateStateSpace() const {
+      return StateSpace(num_threads);
+    }
+
+    Simulator CreateSimulator() const {
+      return Simulator(num_threads);
+    }
+
+    unsigned num_threads;
+  };
 }
 
 #include "../pybind_main.cpp"
