@@ -42,7 +42,7 @@ struct Factory {
   typename Simulator::Parameter param2;
 };
 
-TEST(HybridAVXTest, Hybrid2) {
+TEST(HybridCUDATest, Hybrid2) {
   using Factory = qsim::Factory<float>;
   Factory::StateSpace::Parameter param1;
   Factory::Simulator::Parameter param2;
@@ -50,7 +50,7 @@ TEST(HybridAVXTest, Hybrid2) {
   TestHybrid2(factory);
 }
 
-TEST(HybridAVXTest, Hybrid4) {
+TEST(HybridCUDATest, Hybrid4) {
   using Factory = qsim::Factory<float>;
   Factory::StateSpace::Parameter param1;
   Factory::Simulator::Parameter param2;
