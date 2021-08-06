@@ -14,7 +14,7 @@ PYBINDFLAGS_AVX2 = -mavx2 -mfma -Wall -shared -std=c++17 -fPIC `python3 -m pybin
 PYBINDFLAGS_AVX512 = -mavx512f -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
 
 # The flags for the compilation of GPU-specific Pybind11 interfaces
-PYBINDFLAGS_CUDA = -std=c++17 -Xcompiler "-Wall -shared -fPIC `python3 -m pybind11 --includes`"
+PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC `python3 -m pybind11 --includes`"
 
 .PHONY: pybind
 pybind:
