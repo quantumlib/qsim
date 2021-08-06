@@ -33,7 +33,7 @@ from cirq.sim.simulator import SimulatesExpectationValues
 
 import numpy as np
 
-from . import qsim
+from . import qsim, qsim_gpu
 import qsimcirq.qsim_circuit as qsimc
 
 
@@ -93,6 +93,7 @@ class QSimSimulator(
                 applied to all circuits run using this simulator. Accepted keys and
                 their behavior are as follows:
                     - 'f': int (> 0). Maximum size of fused gates. Default: 2.
+                    - 'g': bool. If true, simulate with GPU. Default: false.
                     - 'r': int (> 0). Noisy repetitions (see below). Default: 1.
                     - 't': int (> 0). Number of threads to run on. Default: 1.
                     - 'v': int (>= 0). Log verbosity. Default: 0.
@@ -119,6 +120,8 @@ class QSimSimulator(
                 "used in QSimCircuit instantiation."
             )
         self._prng = value.parse_random_state(seed)
+        # module to use for simulation
+        self._sim_module = qsim_gpu if qsim_options['g'] else qsim
         self.qsim_options = {"t": 1, "f": 2, "v": 0, "r": 1}
         self.qsim_options.update(qsim_options)
         # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
@@ -220,10 +223,10 @@ class QSimSimulator(
         noisy = _needs_trajectories(program)
         if noisy:
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            sampler_fn = qsim.qtrajectory_sample
+            sampler_fn = self._sim_module.qtrajectory_sample
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            sampler_fn = qsim.qsim_sample
+            sampler_fn = self._sim_module.qsim_sample
 
         if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
             print(
@@ -246,7 +249,7 @@ class QSimSimulator(
                 ops.QubitOrder.DEFAULT,
             )
             options["s"] = self.get_seed()
-            final_state = qsim.qsim_simulate_fullstate(options, 0)
+            final_state = self._sim_module.qsim_simulate_fullstate(options, 0)
             full_results = sim.sample_state_vector(
                 final_state.view(np.complex64),
                 range(num_qubits),
@@ -319,10 +322,10 @@ class QSimSimulator(
         trials_results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            simulator_fn = qsim.qtrajectory_simulate
+            simulator_fn = self._sim_module.qtrajectory_simulate
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            simulator_fn = qsim.qsim_simulate
+            simulator_fn = self._sim_module.qsim_simulate
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
@@ -398,10 +401,10 @@ class QSimSimulator(
         trials_results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            fullstate_simulator_fn = qsim.qtrajectory_simulate_fullstate
+            fullstate_simulator_fn = self._sim_module.qtrajectory_simulate_fullstate
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            fullstate_simulator_fn = qsim.qsim_simulate_fullstate
+            fullstate_simulator_fn = self._sim_module.qsim_simulate_fullstate
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
@@ -525,10 +528,10 @@ class QSimSimulator(
         results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            ev_simulator_fn = qsim.qtrajectory_simulate_expectation_values
+            ev_simulator_fn = self._sim_module.qtrajectory_simulate_expectation_values
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            ev_simulator_fn = qsim.qsim_simulate_expectation_values
+            ev_simulator_fn = self._sim_module.qsim_simulate_expectation_values
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
