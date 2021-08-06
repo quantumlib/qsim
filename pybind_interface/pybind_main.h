@@ -362,28 +362,5 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
             "Call the qtrajectory simulator for expectation value simulation");       \
                                                                                       \
       /* Method for hybrid simulation */                                              \
-      m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");           \
-                                                                                      \
-      m.def("add_gate", &add_gate, "Adds a gate to the given circuit.");              \
-      m.def("add_diagonal_gate", &add_diagonal_gate,                                  \
-            "Adds a two- or three-qubit diagonal gate to the given circuit.");        \
-      m.def("add_matrix_gate", &add_matrix_gate,                                      \
-            "Adds a matrix-defined gate to the given circuit.");                      \
-      m.def("control_last_gate", &control_last_gate,                                  \
-            "Applies controls to the final gate of a circuit.");                      \
-                                                                                      \
-      m.def("add_gate_channel", &add_gate_channel,                                    \
-            "Adds a gate to the given noisy circuit.");                               \
-      m.def("add_diagonal_gate_channel", &add_diagonal_gate_channel,                  \
-            "Adds a two- or three-qubit diagonal gate to the given noisy circuit.");  \
-      m.def("add_matrix_gate_channel", &add_matrix_gate_channel,                      \
-            "Adds a matrix-defined gate to the given noisy circuit.");                \
-      m.def("control_last_gate_channel", &control_last_gate_channel,                  \
-            "Applies controls to the final channel of a noisy circuit.");             \
-                                                                                      \
-      m.def("add_channel", &add_channel,                                              \
-            "Adds a channel to the given noisy circuit.");                            \
-                                                                                      \
-      m.def("add_gate_to_opstring", &add_gate_to_opstring,                            \
-            "Adds a gate to the given opstring.");
+      m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");
 #endif
