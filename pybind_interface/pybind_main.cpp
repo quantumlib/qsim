@@ -851,9 +851,8 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
 // Method for running the hybrid simulator.
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
-  using Simulator = qsim::Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
-                                          MultiQubitGateFuser, Simulator, For>;
+                                          MultiQubitGateFuser, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Circuit<Cirq::GateCirq<float>> circuit;
@@ -889,7 +888,9 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   // Define container for amplitudes
   std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
 
-  if (Runner::Run(param, circuit, parts, bitstrings, amplitudes)) {
+  Factory factory(param.num_threads);
+
+  if (Runner::Run(param, factory, circuit, parts, bitstrings, amplitudes)) {
     return amplitudes;
   }
   IO::errorf("qsimh simulation of the circuit errored out.\n");

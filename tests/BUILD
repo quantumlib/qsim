@@ -141,9 +141,13 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "hybrid_test",
-    srcs = ["hybrid_test.cc"],
+cc_library(
+    name = "hybrid_testfixture",
+    hdrs = ["hybrid_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
@@ -152,11 +156,22 @@ cc_test(
         "//lib:gates_qsim",
         "//lib:hybrid",
         "//lib:io",
-        "//lib:simulator",
+    ],
+    testonly = 1,
+)
+
+cc_test(
+    name = "hybrid_avx_test",
+    srcs = ["hybrid_avx_test.cc"],
+    deps = [
+        ":hybrid_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": avx_copts,
     }),
 )
 
