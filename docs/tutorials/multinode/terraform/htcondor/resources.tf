@@ -50,11 +50,11 @@ variable "metric_target_queue" {
 }
 variable "compute_instance_type" {
   type = string
-  default = "n2-standard-16"
+  default = "n1-standard-1"
 }
 variable "instance_type" {
   type = string
-  default = "n2-standard-4"
+  default = "n1-standard-1"
 }
 variable "service_account" {
   type = string
@@ -264,7 +264,7 @@ resource "google_compute_instance_group_manager" "condor-compute-igm" {
   target_size        = "1"
 
   update_policy {
-    max_surge_fixed         = 5
+    max_surge_fixed         = 2
     minimal_action          = "REPLACE"
     type                    = "OPPORTUNISTIC"
   }
@@ -290,7 +290,7 @@ resource "google_compute_autoscaler" "condor-compute-as" {
   zone    = var.zone
 
   autoscaling_policy {
-    cooldown_period = "60"
+    cooldown_period = 30
     max_replicas    = var.max_replicas
     min_replicas = var.min_replicas
 

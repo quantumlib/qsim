@@ -16,6 +16,9 @@ To generate a cost estimate based on your projected usage, use the [pricing calc
 When you finish this tutorial, you can avoid continued billing by deleting the resources 
 you created. For more information, see Cleaning up.
 
+> Note: the resources created in this tutorial will persist until deleted or the project is deleted. Google Cloud will charge for this time.
+
+
 ## Before you begin
 1. In the Google Cloud Console, on the project selector page, select or create a Google Cloud project. To make this easy, try to choose a project where you are _Owner_ or _Editor_.
 
@@ -132,7 +135,7 @@ slot1@c-6klg.c.test-quantum-multinode.internal LINUX      X86_64 Unclaimed Idle 
 If  the output shows "Unclaimed" machines, you are ready to submit a job with HTCondor.
 
 ```
-condor_submit circuit_q32.sub
+condor_submit circuit_q30.sub
 ```
 There should be a response indicating the job was submitted.
 ```
@@ -209,7 +212,7 @@ queue 20
 ```
 Now when you run the `condor_submit` command, 
 ```
-condor_submit circuit_q32.sub
+condor_submit circuit_q30.sub
 ```
 20 jobs will be visible from the `condor_q` command.
 
