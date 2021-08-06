@@ -150,7 +150,7 @@ class MPSStateSpace {
   }
 
   // Set the MPS to the |0> state.
-  static void SetZeroState(MPS& state) {
+  static void SetStateZero(MPS& state) {
     auto size = Size(state);
     memset(state.get(), 0, sizeof(fp_type) * size);
     auto block_size = 4 * state.bond_dim() * state.bond_dim();

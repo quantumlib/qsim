@@ -50,7 +50,7 @@ TEST(MPSStateSpaceTest, SetZero) {
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     mps.get()[i] = i;
   }
-  ss.SetZeroState(mps);
+  ss.SetStateZero(mps);
   for (unsigned i = 0; i < ss.Size(mps); ++i) {
     auto expected = 0.0;
     if (i == 0 || i == 32 || i == 256 + 32 || i == 512 + 32) {
@@ -78,7 +78,7 @@ TEST(MPSStateSpaceTest, Copy) {
 TEST(MPSStateSpaceTest, ToWaveFunctionZero) {
   auto ss = MPSStateSpace<For, float>(1);
   auto mps = ss.Create(2, 8);
-  ss.SetZeroState(mps);
+  ss.SetStateZero(mps);
   float *wf = new float[8];
   ss.ToWaveFunction(mps, wf);
   EXPECT_NEAR(wf[0], 1, 1e-5);
