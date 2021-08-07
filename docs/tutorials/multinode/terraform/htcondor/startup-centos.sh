@@ -167,3 +167,10 @@ chmod 666 /var/log/condor/jobs/stats.log
 fi
 
 service google-fluentd restart
+
+# Add Python Libraries and Autoscaler
+if [ "$SERVER_TYPE" == "submit" ]; then
+  python3 -m pip install --upgrade oauth2client
+  python3 -m pip install --upgrade google-api-python-client
+  python3 -m pip install --upgrade absl-py
+fi

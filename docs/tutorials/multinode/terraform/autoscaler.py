@@ -28,49 +28,21 @@ import os
 import math
 import argparse
 
+parser = argparse.ArgumentParser("autoscaler.py")
+parser.add_argument("-p", "--project_id", help="Project id", type=str)
+parser.add_argument("-r", "--region", help="GCP region where the managed instance group is located", type=str)
+parser.add_argument("-z", "--zone", help="Name of GCP zone where the managed instance group is located", type=str)
+parser.add_argument("-g", "--group_manager", help="Name of the managed instance group", type=str)
+parser.add_argument("-c", "--computeinstancelimit", help="Maximum number of compute instances", type=int)
+parser.add_argument("-v", "--verbosity", help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
+
+args = parser.parse_args()
+        
 
 class AutoScaler():
 
     def __init__(self):
-        parser = argparse.ArgumentParser("autoscaler.py")
-        parser.add_argument("-p", "--project_id", help="Project id", type=str)
-        parser.add_argument("-r", "--region", help="GCP region where the managed instance group is located", type=str)
-        parser.add_argument("-z", "--zone", help="Name of GCP zone where the managed instance group is located", type=str)
-        parser.add_argument("-g", "--group_manager", help="Name of the managed instance group", type=str)
-        parser.add_argument("-c", "--computeinstancelimit", help="Maximum number of compute instances", type=int)
-        parser.add_argument("-v", "--verbosity", help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
-        
-        args = parser.parse_args()
-        
-        # Project ID
-        self.project = args.project_id  # Ex:'slurm-var-demo'
-        
-        # Region where the managed instance group is located
-        self.region = args.region  # Ex: 'us-central1'
-        
-        # Name of the zone where the managed instance group is located
-        self.zone = args.zone  # Ex: 'us-central1-f'
-        
-        # The name of the managed instance group.
-        self.instance_group_manager = args.group_manager  # Ex: 'condor-compute-igm'
-        
-        # Default number of cores per intance, will be replaced with actual value
-        self.cores_per_node = 4
-        
-        # Default number of running instances that the managed instance group should maintain at any given time. This number will go up and down based on the load (number of jobs in the queue)
-        self.size = 0
-        
-        # Debug level: 1-print debug information, 2 - print detail debug information
-        self.debug = 0
-        if (args.verbosity):
-            self.debug = args.verbosity
-        
-        # Limit for the maximum number of compute instance. If zero (default setting), no limit will be enforced by the  script 
-        self.compute_instance_limit = 0
-        if (args.computeinstancelimit):
-            self.compute_instance_limit = abs(args.computeinstancelimit)
-        
-        
+
         if self.debug > 1:
             print('Launching autoscaler.py with the following arguments:')
             print('project_id: ' + self.project)
@@ -285,6 +257,36 @@ class AutoScaler():
 def main():
 
     scaler = AutoScaler()
+
+    # Project ID
+    scaler.project = args.project_id  # Ex:'slurm-var-demo'
+    
+    # Region where the managed instance group is located
+    scaler.region = args.region  # Ex: 'us-central1'
+    
+    # Name of the zone where the managed instance group is located
+    scaler.zone = args.zone  # Ex: 'us-central1-f'
+    
+    # The name of the managed instance group.
+    scaler.instance_group_manager = args.group_manager  # Ex: 'condor-compute-igm'
+    
+    # Default number of cores per intance, will be replaced with actual value
+    scaler.cores_per_node = 4
+    
+    # Default number of running instances that the managed instance group should maintain at any given time. This number will go up and down based on the load (number of jobs in the queue)
+    scaler.size = 0
+    
+    # Debug level: 1-print debug information, 2 - print detail debug information
+    scaler.debug = 0
+    if (args.verbosity):
+        scaler.debug = args.verbosity
+    
+    # Limit for the maximum number of compute instance. If zero (default setting), no limit will be enforced by the  script 
+    scaler.compute_instance_limit = 0
+    if (args.computeinstancelimit):
+        scaler.compute_instance_limit = abs(args.computeinstancelimit)
+    
+    
     scaler.scale()
 
 
