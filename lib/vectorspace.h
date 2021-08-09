@@ -74,6 +74,10 @@ class VectorSpace {
       return num_qubits_;
     }
 
+    bool requires_copy_to_host() const {
+      return false;
+    }
+
    private:
     Pointer ptr_;
     unsigned num_qubits_;
