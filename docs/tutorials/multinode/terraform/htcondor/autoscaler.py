@@ -258,6 +258,7 @@ def main():
 
     scaler = AutoScaler()
 
+    exit()
     # Project ID
     scaler.project = args.p  # Ex:'slurm-var-demo'
     

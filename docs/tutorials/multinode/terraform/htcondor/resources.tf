@@ -30,7 +30,7 @@ variable "zone" {
 }
 variable "min_replicas" {
     type = number
-    default = 1
+    default = 0
 }
 variable "max_replicas" {
     type = number
@@ -199,7 +199,8 @@ resource "google_compute_instance" "condor-submit" {
   service_account {
       email = var.service_account
   #  email  = "487217491196-compute@developer.gserviceaccount.com"
-    scopes = ["https://www.googleapis.com/auth/monitoring.write", "https://www.googleapis.com/auth/compute", "https://www.googleapis.com/auth/servicecontrol", "https://www.googleapis.com/auth/devstorage.read_only", "https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/service.management.readonly", "https://www.googleapis.com/auth/trace.append"]
+    #scopes = ["https://www.googleapis.com/auth/monitoring.write", "https://www.googleapis.com/auth/compute", "https://www.googleapis.com/auth/servicecontrol", "https://www.googleapis.com/auth/devstorage.read_only", "https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/service.management.readonly", "https://www.googleapis.com/auth/trace.append"]
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
   shielded_instance_config {
@@ -210,6 +211,17 @@ resource "google_compute_instance" "condor-submit" {
 
   tags = ["${var.cluster_name}-submit"]
   zone = var.zone
+  provisioner "file" {
+    source = "autoscaler.py"
+    destination = "/opt/autoscaler.py"
+  
+    #connection {
+    #  type = "ssh"
+    #  user = "jon"
+    #  private_key = "${file("./creds/gcloud_instance")}"
+    #  agent = "false"
+    #}
+  }
 }
 resource "google_compute_instance_template" "condor-compute" {
   can_ip_forward = "false"
@@ -283,6 +295,7 @@ resource "google_compute_instance_group_manager" "condor-compute-igm" {
   ]
   zone = var.zone
 }
+/*
 resource "google_compute_autoscaler" "condor-compute-as" {
   name    = "${var.cluster_name}-compute-as"
   project = var.project
@@ -298,16 +311,16 @@ resource "google_compute_autoscaler" "condor-compute-as" {
       target = 0.2
     }
 
-    # metric {
-    #   name   = "custom.googleapis.com/q0"
-    #   target = var.metric_target_queue
-    #   type   = "GAUGE"
-    # }
-    # metric {
-    #   name   = "custom.googleapis.com/la0"
-    #   target = var.metric_target_loadavg
-    #   type   = "GAUGE"
-    # }
+    metric {
+       name   = "custom.googleapis.com/q0"
+       target = var.metric_target_queue
+       type   = "GAUGE"
+    }
+    metric {
+       name   = "custom.googleapis.com/la0"
+       target = var.metric_target_loadavg
+       type   = "GAUGE"
+    }
 
   }
 
@@ -320,3 +333,5 @@ resource "google_compute_autoscaler" "condor-compute-as" {
    google_compute_instance_group_manager.condor-compute-igm
   ]
 }
+*/
+
