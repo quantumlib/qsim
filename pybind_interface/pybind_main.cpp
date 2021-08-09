@@ -431,7 +431,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 
   try {
     num_threads = parseOptions<unsigned>(options, "t\0");
-    num_dblocks = 1;
+    num_dblocks = parseOptions<unsigned>(options, "g\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     seed = parseOptions<unsigned>(options, "s\0");
@@ -537,7 +537,7 @@ class SimulatorHelper {
         num_qubits = circuit.num_qubits;
       }
       num_threads = parseOptions<unsigned>(options, "t\0");
-      num_dblocks = 1;
+      num_dblocks = parseOptions<unsigned>(options, "g\0");
       max_fused_size = parseOptions<unsigned>(options, "f\0");
       verbosity = parseOptions<unsigned>(options, "v\0");
       seed = parseOptions<unsigned>(options, "s\0");
@@ -756,7 +756,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   Runner::Parameter param;
   try {
     num_threads = parseOptions<unsigned>(options, "t\0");
-    num_dblocks = 1;
+    num_dblocks = parseOptions<unsigned>(options, "g\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
@@ -806,7 +806,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
 
   try {
     num_threads = parseOptions<unsigned>(options, "t\0");
-    num_dblocks = 1;
+    num_dblocks = parseOptions<unsigned>(options, "g\0");
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     seed = parseOptions<unsigned>(options, "s\0");
