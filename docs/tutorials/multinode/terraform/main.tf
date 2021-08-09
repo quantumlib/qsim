@@ -18,7 +18,7 @@ module "htcondor" {
   zone = var.zone
   osversion = "7"
   max_replicas=20
-  min_replicas=1
+  min_replicas=0
   service_account="htcondor@${var.project}.iam.gserviceaccount.com"
   use_preemptibles=false
   osproject ="centos-cloud"
