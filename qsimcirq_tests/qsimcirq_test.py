@@ -1070,7 +1070,7 @@ def test_cirq_qsim_gpu_amplitudes():
     cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
 
     # Enable GPU acceleration.
-    gpu_options = {'g': True}
+    gpu_options = {'g': 32}
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
     result = qsimGpuSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11]
@@ -1086,7 +1086,7 @@ def test_cirq_qsim_gpu_simulate():
     cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
 
     # Enable GPU acceleration.
-    gpu_options = {'g': True}
+    gpu_options = {'g': 32}
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
     result = qsimGpuSim.simulate(cirq_circuit)
     assert result.state_vector().shape == (4,)
@@ -1107,7 +1107,7 @@ def test_cirq_qsim_gpu_expectation_values():
     obs = [cirq.Z(a) * cirq.Z(b)]
 
     # Enable GPU acceleration.
-    gpu_options = {'g': True}
+    gpu_options = {'g': 32}
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
     result = qsimGpuSim.simulate_expectation_values(cirq_circuit, obs)
 

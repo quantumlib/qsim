@@ -93,7 +93,8 @@ class QSimSimulator(
                 applied to all circuits run using this simulator. Accepted keys and
                 their behavior are as follows:
                     - 'f': int (> 0). Maximum size of fused gates. Default: 2.
-                    - 'g': bool. If true, simulate with GPU. Default: false.
+                    - 'g': int (>= 0). GPU dblocks to use. If set to zero,
+                           GPUs will not be used for simulation. Default: 0.
                     - 'r': int (> 0). Noisy repetitions (see below). Default: 1.
                     - 't': int (> 0). Number of threads to run on. Default: 1.
                     - 'v': int (>= 0). Log verbosity. Default: 0.
@@ -121,13 +122,9 @@ class QSimSimulator(
             )
         self._prng = value.parse_random_state(seed)
         # module to use for simulation
-        self._sim_module = (
-            qsim_gpu
-            if 'g' in qsim_options and qsim_options['g']
-            else qsim
-        )
-        self.qsim_options = {"t": 1, "f": 2, "v": 0, "r": 1}
+        self.qsim_options = {"t": 1, "g": 0, "f": 2, "v": 0, "r": 1}
         self.qsim_options.update(qsim_options)
+        self._sim_module = qsim_gpu if qsim_options['g'] > 0 else qsim
         # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
         self._translated_circuits = deque(maxlen=circuit_memoization_size)
 
