@@ -211,17 +211,6 @@ resource "google_compute_instance" "condor-submit" {
 
   tags = ["${var.cluster_name}-submit"]
   zone = var.zone
-  provisioner "file" {
-    source = "autoscaler.py"
-    destination = "/opt/autoscaler.py"
-  
-    #connection {
-    #  type = "ssh"
-    #  user = "jon"
-    #  private_key = "${file("./creds/gcloud_instance")}"
-    #  agent = "false"
-    #}
-  }
 }
 resource "google_compute_instance_template" "condor-compute" {
   can_ip_forward = "false"
