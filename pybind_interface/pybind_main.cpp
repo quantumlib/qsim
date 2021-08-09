@@ -604,14 +604,21 @@ class SimulatorHelper {
 
   py::array_t<float> release_state_to_python() {
     state_space.InternalToNormalOrder(state);
+    uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
     if (state.requires_copy_to_host()) {
-      uint64_t fsv_size = state_space.MinSize(state.num_qubits());
+      uint64_t storage_size = state_space.MinSize(state.num_qubits());
       auto* fsv = new float[fsv_size];
-      state_space.Copy(state, fsv);
+      if (storage_size != fsv_size) {
+        auto* temp = new float[storage_size];
+        state_space.Copy(state, temp);
+        memcpy(fsv, temp, fsv_size * sizeof(float));
+        delete [] temp;
+      } else {
+        state_space.Copy(state, fsv);
+      }
       auto capsule = py::capsule(fsv, [](void *data) {});
       return py::array_t<float>(fsv_size, fsv, capsule);
     } else {
-      uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
       float* fsv = state.release();
       auto capsule = py::capsule(
           fsv, [](void *data) { detail::free(data); });
