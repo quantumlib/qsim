@@ -121,7 +121,11 @@ class QSimSimulator(
             )
         self._prng = value.parse_random_state(seed)
         # module to use for simulation
-        self._sim_module = qsim_gpu if qsim_options['g'] else qsim
+        self._sim_module = (
+            qsim_gpu
+            if 'g' in qsim_options and qsim_options['g']
+            else qsim
+        )
         self.qsim_options = {"t": 1, "f": 2, "v": 0, "r": 1}
         self.qsim_options.update(qsim_options)
         # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.

@@ -1062,7 +1062,7 @@ def test_cirq_qsimh_simulate():
     assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
 
 
-def test_cirq_qsim_gpu_simulate():
+def test_cirq_qsim_gpu_amplitudes():
     # Pick qubits.
     a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
 
@@ -1076,6 +1076,44 @@ def test_cirq_qsim_gpu_simulate():
         cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11]
     )
     assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
+
+
+def test_cirq_qsim_gpu_simulate():
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
+
+    # Enable GPU acceleration.
+    gpu_options = {'g': True}
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+    result = qsimGpuSim.simulate(cirq_circuit)
+    assert result.state_vector().shape == (4,)
+
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector(), atol=1.0e-6
+    )
+
+
+def test_cirq_qsim_gpu_expectation_values():
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
+    obs = [cirq.Z(a) * cirq.Z(b)]
+
+    # Enable GPU acceleration.
+    gpu_options = {'g': True}
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+    result = qsimGpuSim.simulate_expectation_values(cirq_circuit, obs)
+
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate_expectation_values(cirq_circuit, obs)
+    assert np.allclose(result, cirq_result)
 
 
 def test_cirq_qsim_params():
