@@ -28,29 +28,19 @@ import os
 import math
 import argparse
 
-parser = argparse.ArgumentParser("autoscaler.py")
-parser.add_argument("-p", "--project_id", help="Project id", type=str)
-parser.add_argument("-r", "--region", help="GCP region where the managed instance group is located", type=str)
-parser.add_argument("-z", "--zone", help="Name of GCP zone where the managed instance group is located", type=str)
-parser.add_argument("-g", "--group_manager", help="Name of the managed instance group", type=str)
-parser.add_argument("-c", "--computeinstancelimit", help="Maximum number of compute instances", type=int)
-parser.add_argument("-v", "--verbosity", help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
+parser = argparse.ArgumentParser()
+parser.add_argument("--p", help="Project id", type=str)
+parser.add_argument("--r", help="GCP region where the managed instance group is located", type=str)
+parser.add_argument("--z", help="Name of GCP zone where the managed instance group is located", type=str)
+parser.add_argument("--g", help="Name of the managed instance group", type=str)
+parser.add_argument("--c", help="Maximum number of compute instances", type=int)
+parser.add_argument("--v", help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
 
 args = parser.parse_args()
         
-
 class AutoScaler():
 
     def __init__(self):
-
-        if self.debug > 1:
-            print('Launching autoscaler.py with the following arguments:')
-            print('project_id: ' + self.project)
-            print('region: ' + self.region)
-            print('zone: ' + self.zone)
-            print('group_manager: ' + self.instance_group_manager)
-            print('computeinstancelimit: ' + str(self.compute_instance_limit))
-            print('debuglevel: ' + str(self.debug))
 
         # Obtain credentials
         self.credentials = GoogleCredentials.get_application_default()
@@ -124,6 +114,16 @@ class AutoScaler():
     
 
     def scale(self):
+        # diagnosis
+        if self.debug > 1:
+            print('Launching autoscaler.py with the following arguments:')
+            print('project_id: ' + self.project)
+            print('region: ' + self.region)
+            print('zone: ' + self.zone)
+            print('group_manager: ' + self.instance_group_manager)
+            print('computeinstancelimit: ' + str(self.compute_instance_limit))
+            print('debuglevel: ' + str(self.debug))
+
         # Get total number of jobs in the queue that includes number of jos waiting as well as number of jobs already assigned to nodes
         queue_length_req = 'condor_q -totals -format "%d " Jobs -format "%d " Idle -format "%d " Held'
         queue_length_resp = os.popen(queue_length_req).read().split()
@@ -259,16 +259,16 @@ def main():
     scaler = AutoScaler()
 
     # Project ID
-    scaler.project = args.project_id  # Ex:'slurm-var-demo'
+    scaler.project = args.p  # Ex:'slurm-var-demo'
     
     # Region where the managed instance group is located
-    scaler.region = args.region  # Ex: 'us-central1'
+    scaler.region = args.r  # Ex: 'us-central1'
     
     # Name of the zone where the managed instance group is located
-    scaler.zone = args.zone  # Ex: 'us-central1-f'
+    scaler.zone = args.z # Ex: 'us-central1-f'
     
     # The name of the managed instance group.
-    scaler.instance_group_manager = args.group_manager  # Ex: 'condor-compute-igm'
+    scaler.instance_group_manager = args.g  # Ex: 'condor-compute-igm'
     
     # Default number of cores per intance, will be replaced with actual value
     scaler.cores_per_node = 4
@@ -278,17 +278,17 @@ def main():
     
     # Debug level: 1-print debug information, 2 - print detail debug information
     scaler.debug = 0
-    if (args.verbosity):
-        scaler.debug = args.verbosity
+    if (args.v):
+        scaler.debug = args.v
     
     # Limit for the maximum number of compute instance. If zero (default setting), no limit will be enforced by the  script 
     scaler.compute_instance_limit = 0
-    if (args.computeinstancelimit):
-        scaler.compute_instance_limit = abs(args.computeinstancelimit)
+    if (args.c):
+        scaler.compute_instance_limit = abs(args.c)
     
     
     scaler.scale()
 
 
 if __name__ == "__main__":
-    app.run(main)
+    main()
