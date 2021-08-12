@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import deque
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from cirq import (
@@ -32,7 +33,7 @@ from cirq.sim.simulator import SimulatesExpectationValues
 
 import numpy as np
 
-from qsimcirq import qsim
+from . import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
@@ -80,7 +81,10 @@ class QSimSimulator(
     SimulatesExpectationValues,
 ):
     def __init__(
-        self, qsim_options: dict = {}, seed: value.RANDOM_STATE_OR_SEED_LIKE = None
+        self,
+        qsim_options: dict = {},
+        seed: value.RANDOM_STATE_OR_SEED_LIKE = None,
+        circuit_memoization_size: int = 0,
     ):
         """Creates a new QSimSimulator using the given options and seed.
 
@@ -97,6 +101,14 @@ class QSimSimulator(
                 over when calculating expectation values for a noisy circuit.
                 Note that this does not apply to other simulation types.
             seed: A random state or seed object, as defined in cirq.value.
+            circuit_memoization_size: The number of last translated circuits
+                to be memoized from simulation executions, to eliminate
+                translation overhead. Every simulation will perform a linear
+                search through the list of memoized circuits using circuit
+                equality checks, so a large circuit_memoization_size with large
+                circuits will incur a significant runtime overhead.
+                Note that every resolved parameterization results in a separate
+                circuit to be memoized.
 
         Raises:
             ValueError if internal keys 'c', 'i' or 's' are included in 'qsim_options'.
@@ -109,6 +121,8 @@ class QSimSimulator(
         self._prng = value.parse_random_state(seed)
         self.qsim_options = {"t": 1, "f": 2, "v": 0, "r": 1}
         self.qsim_options.update(qsim_options)
+        # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
+        self._translated_circuits = deque(maxlen=circuit_memoization_size)
 
     def get_seed(self):
         # Limit seed size to 32-bit integer for C++ conversion.
@@ -225,7 +239,12 @@ class QSimSimulator(
                     else [ops.IdentityGate(1).on(q) for q in op.qubits]
                     for op in program.moments[i]
                 )
-            options["c"] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
+            translator_fn_name = "translate_cirq_to_qsim"
+            options["c"] = self._translate_circuit(
+                program,
+                translator_fn_name,
+                ops.QubitOrder.DEFAULT,
+            )
             options["s"] = self.get_seed()
             final_state = qsim.qsim_simulate_fullstate(options, 0)
             full_results = sim.sample_state_vector(
@@ -241,8 +260,11 @@ class QSimSimulator(
                     for j, q in enumerate(meas_indices):
                         results[key][i][j] = full_results[i][q]
         else:
-            translator_fn = getattr(program, translator_fn_name)
-            options["c"] = translator_fn(ops.QubitOrder.DEFAULT)
+            options["c"] = self._translate_circuit(
+                program,
+                translator_fn_name,
+                ops.QubitOrder.DEFAULT,
+            )
             for i in range(repetitions):
                 options["s"] = self.get_seed()
                 measurements = sampler_fn(options)
@@ -304,8 +326,11 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
-            translator_fn = getattr(solved_circuit, translator_fn_name)
-            options["c"] = translator_fn(cirq_order)
+            options["c"] = self._translate_circuit(
+                solved_circuit,
+                translator_fn_name,
+                cirq_order,
+            )
             options["s"] = self.get_seed()
             amplitudes = simulator_fn(options)
             trials_results.append(amplitudes)
@@ -380,8 +405,12 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
-            translator_fn = getattr(solved_circuit, translator_fn_name)
-            options["c"] = translator_fn(cirq_order)
+
+            options["c"] = self._translate_circuit(
+                solved_circuit,
+                translator_fn_name,
+                cirq_order,
+            )
             options["s"] = self.get_seed()
             qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
 
@@ -503,8 +532,11 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
-            translator_fn = getattr(solved_circuit, translator_fn_name)
-            options["c"] = translator_fn(cirq_order)
+            options["c"] = self._translate_circuit(
+                solved_circuit,
+                translator_fn_name,
+                cirq_order,
+            )
             options["s"] = self.get_seed()
 
             if isinstance(initial_state, int):
@@ -514,3 +546,24 @@ class QSimSimulator(
             results.append(evs)
 
         return results
+
+    def _translate_circuit(
+        self,
+        circuit: Any,
+        translator_fn_name: str,
+        qubit_order: ops.QubitOrderOrList,
+    ):
+        # If the circuit is memoized, reuse the corresponding translated
+        # circuit.
+        translated_circuit = None
+        for original, translated in self._translated_circuits:
+            if original == circuit:
+                translated_circuit = translated
+                break
+
+        if translated_circuit is None:
+            translator_fn = getattr(circuit, translator_fn_name)
+            translated_circuit = translator_fn(qubit_order)
+            self._translated_circuits.append((circuit, translated_circuit))
+
+        return translated_circuit

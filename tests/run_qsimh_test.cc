@@ -100,6 +100,20 @@ R"(4
 21 h 3
 )";
 
+struct Factory {
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = Simulator::StateSpace;
+  using fp_type = Simulator::fp_type;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(1);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(1);
+  }
+};
+
 TEST(RunQSimHTest, QSimHRunner) {
   std::stringstream ss(circuit_string);
   Circuit<GateQSim<float>> circuit;
@@ -108,9 +122,8 @@ TEST(RunQSimHTest, QSimHRunner) {
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, For>;
+                                          For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
@@ -122,15 +135,19 @@ TEST(RunQSimHTest, QSimHRunner) {
 
   std::vector<uint64_t> bitstrings;
   bitstrings.reserve(8);
+
   for (std::size_t i = 0; i < 8; ++i) {
     bitstrings.push_back(i);
   }
 
+  Factory factory;
+
   {
-    std::vector<std::complex<Simulator::fp_type>> results(8, 0);
+    std::vector<std::complex<Factory::fp_type>> results(8, 0);
     std::vector<unsigned> parts = {0, 0, 1, 1};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
     EXPECT_NEAR(std::imag(results[0]), 0.08956901, 1e-6);
@@ -143,12 +160,13 @@ TEST(RunQSimHTest, QSimHRunner) {
   }
 
   {
-    std::vector<std::complex<Simulator::fp_type>> results(8, 0);
+    std::vector<std::complex<Factory::fp_type>> results(8, 0);
     std::vector<unsigned> parts = {1, 1, 0, 0};
 
     param.num_root_gatexs = 3;
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     EXPECT_NEAR(std::real(results[0]), -0.08102149, 1e-6);
     EXPECT_NEAR(std::imag(results[0]), 0.08956903, 1e-6);
@@ -165,9 +183,8 @@ TEST(RunQSimHTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>(false);
   const auto& expected_results = CirqCircuit1::expected_results0;
 
-  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
-                                          BasicGateFuser, Simulator, For>;
+                                          BasicGateFuser, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
@@ -181,15 +198,19 @@ TEST(RunQSimHTest, CirqGates) {
 
   std::vector<uint64_t> bitstrings;
   bitstrings.reserve(num_bitstrings);
+
   for (std::size_t i = 0; i < num_bitstrings; ++i) {
     bitstrings.push_back(i);
   }
 
+  Factory factory;
+
   {
-    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
     std::vector<unsigned> parts = {1, 1, 0, 0};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     for (uint64_t i = 0; i < num_bitstrings; ++i) {
       EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
@@ -198,10 +219,11 @@ TEST(RunQSimHTest, CirqGates) {
   }
 
   {
-    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
     std::vector<unsigned> parts = {1, 0, 1, 0};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     for (uint64_t i = 0; i < num_bitstrings; ++i) {
       EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
@@ -210,10 +232,11 @@ TEST(RunQSimHTest, CirqGates) {
   }
 
   {
-    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
     std::vector<unsigned> parts = {1, 0, 0, 0};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     for (uint64_t i = 0; i < num_bitstrings; ++i) {
       EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
@@ -222,10 +245,11 @@ TEST(RunQSimHTest, CirqGates) {
   }
 
   {
-    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
     std::vector<unsigned> parts = {0, 1, 0, 0};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     for (uint64_t i = 0; i < num_bitstrings; ++i) {
       EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
@@ -234,10 +258,11 @@ TEST(RunQSimHTest, CirqGates) {
   }
 
   {
-    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
     std::vector<unsigned> parts = {0, 0, 1, 0};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     for (uint64_t i = 0; i < num_bitstrings; ++i) {
       EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);
@@ -246,10 +271,11 @@ TEST(RunQSimHTest, CirqGates) {
   }
 
   {
-    std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+    std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
     std::vector<unsigned> parts = {0, 0, 0, 1};
 
-    EXPECT_TRUE(Runner::Run(param, circuit, parts, bitstrings, results));
+    EXPECT_TRUE(Runner::Run(
+        param, factory, circuit, parts, bitstrings, results));
 
     for (uint64_t i = 0; i < num_bitstrings; ++i) {
       EXPECT_NEAR(std::real(results[i]), std::real(expected_results[i]), 2e-6);

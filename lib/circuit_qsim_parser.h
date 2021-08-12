@@ -83,7 +83,7 @@ class CircuitQsimParser final {
           return false;
         }
 
-        last_times.resize(circuit.num_qubits, -1);
+        last_times.resize(circuit.num_qubits, unsigned(-1));
 
         continue;
       }

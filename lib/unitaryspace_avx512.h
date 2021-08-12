@@ -23,6 +23,7 @@
 #include <cstdint>
 
 #include "unitaryspace.h"
+#include "vectorspace.h"
 
 namespace qsim {
 
@@ -36,9 +37,10 @@ namespace unitary {
  */
 template <typename For>
 struct UnitarySpaceAVX512 :
-    public UnitarySpace<UnitarySpaceAVX512<For>, For, float> {
+    public UnitarySpace<UnitarySpaceAVX512<For>, VectorSpace, For, float> {
  private:
-  using Base = UnitarySpace<UnitarySpaceAVX512<For>, For, float>;
+  using Base = UnitarySpace<UnitarySpaceAVX512<For>,
+                            qsim::VectorSpace, For, float>;
 
  public:
   using Unitary = typename Base::Unitary;

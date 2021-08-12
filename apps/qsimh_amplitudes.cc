@@ -186,9 +186,26 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  using Simulator = qsim::Simulator<For>;
+  struct Factory {
+    Factory(unsigned num_threads) : num_threads(num_threads) {}
+
+    using Simulator = qsim::Simulator<For>;
+    using StateSpace = Simulator::StateSpace;
+    using fp_type = Simulator::fp_type;
+
+    StateSpace CreateStateSpace() const {
+      return StateSpace(num_threads);
+    }
+
+    Simulator CreateSimulator() const {
+      return Simulator(num_threads);
+    }
+
+    unsigned num_threads;
+  };
+
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, For>;
+                                          For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
@@ -198,9 +215,11 @@ int main(int argc, char* argv[]) {
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  std::vector<std::complex<Simulator::fp_type>> results(bitstrings.size(), 0);
+  std::vector<std::complex<Factory::fp_type>> results(bitstrings.size(), 0);
 
-  if (Runner::Run(param, circuit, parts, bitstrings, results)) {
+  Factory factory(opt.num_threads);
+
+  if (Runner::Run(param, factory, circuit, parts, bitstrings, results)) {
     WriteAmplitudes(opt.output_file, bitstrings, results);
     IO::messagef("all done.\n");
   }
