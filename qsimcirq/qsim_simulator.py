@@ -81,21 +81,21 @@ class QSimSimulatorTrialResult(sim.StateVectorMixin, sim.SimulationTrialResult):
             state_vector = self.dirac_notation(3)
         else:
             state_vector = str(final)
-        return f'measurements: {samples}\noutput vector: {state_vector}'
+        return f"measurements: {samples}\noutput vector: {state_vector}"
 
     def _repr_pretty_(self, p: Any, cycle: bool) -> None:
         """Text output in Jupyter."""
         if cycle:
             # There should never be a cycle.  This is just in case.
-            p.text('StateVectorTrialResult(...)')
+            p.text("StateVectorTrialResult(...)")
         else:
             p.text(str(self))
 
     def __repr__(self) -> str:
         return (
-            f'cirq.StateVectorTrialResult(params={self.params!r}, '
-            f'measurements={self.measurements!r}, '
-            f'final_simulator_state={self._final_simulator_state!r})'
+            f"cirq.StateVectorTrialResult(params={self.params!r}, "
+            f"measurements={self.measurements!r}, "
+            f"final_simulator_state={self._final_simulator_state!r})"
         )
 
 
