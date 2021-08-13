@@ -1139,6 +1139,20 @@ def test_cirq_qsim_gpu_expectation_values():
     assert np.allclose(result, cirq_result)
 
 
+def test_cirq_qsim_old_options():
+    old_options = {"f": 3, "t": 4, "r": 100, "v": 1}
+    old_sim = qsimcirq.QSimSimulator(qsim_options=old_options)
+
+    new_options = qsimcirq.QSimOptions(
+        max_fused_gate_size=3,
+        cpu_threads=4,
+        ev_noisy_repetitions=100,
+        verbosity=1,
+    )
+    new_sim = qsimcirq.QSimSimulator(qsim_options=new_options)
+    assert new_sim.qsim_options == old_sim.qsim_options
+
+
 def test_cirq_qsim_params():
     qubit = cirq.GridQubit(0, 0)
 
