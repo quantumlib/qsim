@@ -948,7 +948,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   // Define container for amplitudes
   std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
 
-  Factory factory(param.num_threads);
+  Factory factory(param.num_threads, 0, 0);
 
   if (Runner::Run(param, factory, circuit, parts, bitstrings, amplitudes)) {
     return amplitudes;
