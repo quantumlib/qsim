@@ -1069,11 +1069,12 @@ def test_cirq_qsimh_simulate():
 def test_qsim_gpu_unavailable():
     if qsimcirq.qsim_gpu is not None:
         pytest.skip("GPU is available; skipping test.")
-    
+
     # Attempt to create a simulator with GPU support.
     gpu_options = qsimcirq.QSimOptions(use_gpu=True)
     with pytest.raises(
-        ValueError, match="GPU execution requested, but not supported",
+        ValueError,
+        match="GPU execution requested, but not supported",
     ):
         _ = qsimcirq.QSimSimulator(qsim_options=gpu_options)
 

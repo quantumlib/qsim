@@ -16,16 +16,31 @@ PYBINDFLAGS_AVX512 = -mavx512f -Wall -shared -std=c++17 -fPIC `python3 -m pybind
 # The flags for the compilation of GPU-specific Pybind11 interfaces
 PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC `python3 -m pybind11 --includes`"
 
-.PHONY: pybind
-pybind:
+# Check for nvcc to decide compilation mode.
+ifeq ($(shell which $(NVCC)),)
+pybind: pybind-cpu decide-cpu
+else
+pybind: pybind-cpu pybind-gpu decide-gpu
+endif
+
+.PHONY: pybind-cpu
+pybind-cpu:
 	$(CXX) basic/pybind_main_basic.cpp -o $(QSIMLIB_BASIC) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
 	$(CXX) sse/pybind_main_sse.cpp -o $(QSIMLIB_SSE) $(CXXFLAGS) $(PYBINDFLAGS_SSE)
 	$(CXX) avx2/pybind_main_avx2.cpp -o $(QSIMLIB_AVX2) $(CXXFLAGS) $(PYBINDFLAGS_AVX2)
 	$(CXX) avx512/pybind_main_avx512.cpp -o $(QSIMLIB_AVX512) $(CXXFLAGS) $(PYBINDFLAGS_AVX512)
-	if [ -n "$(which $NVCC)" ] ; then\
-		$(NVCC) cuda/pybind_main_cuda.cpp -o $(QSIMLIB_CUDA) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA);\
-	fi
+
+.PHONY: decide-cpu
+decide-cpu:
 	$(CXX) decide/decide.cpp -o $(QSIMLIB_DECIDE) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
+
+.PHONY: pybind-gpu
+pybind-gpu:
+	$(NVCC) cuda/pybind_main_cuda.cpp -o $(QSIMLIB_CUDA) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA)
+
+.PHONY: decide-gpu
+decide-gpu:
+	$(NVCC) decide/decide.cpp -o $(QSIMLIB_DECIDE) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
 
 .PHONY: clean
 clean:
