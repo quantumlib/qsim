@@ -40,7 +40,7 @@ pybind-gpu:
 
 .PHONY: decide-gpu
 decide-gpu:
-	$(NVCC) decide/decide.cpp -o $(QSIMLIB_DECIDE) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
+	$(NVCC) decide/decide.cpp -o $(QSIMLIB_DECIDE) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA)
 
 .PHONY: clean
 clean:
