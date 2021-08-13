@@ -1,6 +1,6 @@
 # Runtime requirements for the python 3 version of cirq.
 
-cirq
+cirq-core
 numpy~=1.16
 typing_extensions
 absl-py
