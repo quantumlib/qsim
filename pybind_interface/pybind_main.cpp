@@ -638,17 +638,11 @@ class SimulatorHelper {
     state_space.InternalToNormalOrder(state);
     uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
     if (state.requires_copy_to_host()) {
-      uint64_t storage_size = state_space.MinSize(state.num_qubits());
-      auto* fsv = new float[fsv_size];
-      if (storage_size != fsv_size) {
-        auto* temp = new float[storage_size];
-        state_space.Copy(state, temp);
-        memcpy(fsv, temp, fsv_size * sizeof(float));
-        delete [] temp;
-      } else {
-        state_space.Copy(state, fsv);
-      }
-      auto capsule = py::capsule(fsv, [](void *data) {});
+      auto* fsv = new float[state_space.MinSize(state.num_qubits())];
+      state_space.Copy(state, fsv);
+      // Cast on delete to silence warnings.
+      auto capsule = py::capsule(
+        fsv, [](void *data) { delete [] (float*)data; });
       return py::array_t<float>(fsv_size, fsv, capsule);
     } else {
       float* fsv = state.release();
