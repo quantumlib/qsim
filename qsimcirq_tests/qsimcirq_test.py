@@ -976,7 +976,8 @@ def test_noise_aggregation():
 
     # Test expectation value aggregation over repetitions of a noisy circuit.
     # Repetitions are handled in C++, so overhead costs are minimal.
-    qsim_simulator = qsimcirq.QSimSimulator(qsim_options={"r": 10000}, seed=1)
+    qsim_options = qsimcirq.QSimOptions(ev_noisy_repetitions=10000)
+    qsim_simulator = qsimcirq.QSimSimulator(qsim_options=qsim_options, seed=1)
     qsim_evs = qsim_simulator.simulate_expectation_values(circuit, [psum1, psum2])
     assert len(qsim_evs) == 2
 
@@ -1008,10 +1009,12 @@ def test_multi_qubit_fusion():
         cirq.Y(q1) ** 0.5,
     )
 
-    qsimSim = qsimcirq.QSimSimulator(qsim_options={"f": 2})
+    options = qsimcirq.QSimOptions(max_fused_gate_size=2)
+    qsimSim = qsimcirq.QSimSimulator(qsim_options=options)
     result_2q_fusion = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
 
-    qsimSim = qsimcirq.QSimSimulator(qsim_options={"f": 4})
+    options.max_fused_gate_size = 4
+    qsimSim = qsimcirq.QSimSimulator(qsim_options=options)
     result_4q_fusion = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
     assert cirq.linalg.allclose_up_to_global_phase(
         result_2q_fusion.state_vector(), result_4q_fusion.state_vector()
@@ -1022,7 +1025,8 @@ def test_multi_qubit_fusion():
 def test_cirq_qsim_simulate_random_unitary(mode: str):
 
     q0, q1 = cirq.LineQubit.range(2)
-    qsimSim = qsimcirq.QSimSimulator(qsim_options={"t": 16, "v": 0})
+    options = qsimcirq.QSimOptions(cpu_threads=16, verbosity=0)
+    qsimSim = qsimcirq.QSimSimulator(qsim_options=options)
     for iter in range(10):
         random_circuit = cirq.testing.random_circuit(
             qubits=[q0, q1], n_moments=8, op_density=0.99, random_state=iter
@@ -1070,7 +1074,7 @@ def test_cirq_qsim_gpu_amplitudes():
     cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
 
     # Enable GPU acceleration.
-    gpu_options = {'g': 32}
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
     result = qsimGpuSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11]
@@ -1086,7 +1090,7 @@ def test_cirq_qsim_gpu_simulate():
     cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
 
     # Enable GPU acceleration.
-    gpu_options = {'g': 32}
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
     result = qsimGpuSim.simulate(cirq_circuit)
     assert result.state_vector().shape == (4,)
@@ -1107,7 +1111,7 @@ def test_cirq_qsim_gpu_expectation_values():
     obs = [cirq.Z(a) * cirq.Z(b)]
 
     # Enable GPU acceleration.
-    gpu_options = {'g': 32}
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
     result = qsimGpuSim.simulate_expectation_values(cirq_circuit, obs)
 

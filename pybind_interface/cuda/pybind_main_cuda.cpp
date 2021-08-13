@@ -23,8 +23,12 @@ namespace qsim {
     using Simulator = qsim::Simulator;
     using StateSpace = Simulator::StateSpace;
 
-    Factory(unsigned num_threads, unsigned num_dblocks)
-      : ss_params{num_threads, num_dblocks}, sim_params{num_threads} {}
+    Factory(
+      unsigned num_sim_threads,
+      unsigned num_state_threads,
+      unsigned num_dblocks
+    ) : ss_params{num_state_threads, num_dblocks},
+        sim_params{num_sim_threads} {}
 
     StateSpace CreateStateSpace() const {
       return StateSpace(ss_params);

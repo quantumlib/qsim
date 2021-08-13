@@ -22,9 +22,12 @@ namespace qsim {
   using Simulator = SimulatorSSE<For>;
 
   struct Factory {
-    // num_dblocks is unused, but kept for consistency with GPU version.
-    Factory(unsigned num_threads, unsigned num_dblocks)
-      : num_threads(num_threads) {}
+    // num_state_threads and num_dblocks are unused, but kept for consistency
+    // with the GPU Factory.
+    Factory(
+      unsigned num_sim_threads,
+      unsigned num_state_threads,
+      unsigned num_dblocks) : num_threads(num_sim_threads) {}
 
     using Simulator = qsim::Simulator<For>;
     using StateSpace = Simulator::StateSpace;
