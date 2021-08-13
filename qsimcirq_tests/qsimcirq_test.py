@@ -1066,7 +1066,21 @@ def test_cirq_qsimh_simulate():
     assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
 
 
+def test_qsim_gpu_unavailable():
+    if qsimcirq.qsim_gpu is not None:
+        pytest.skip("GPU is available; skipping test.")
+    
+    # Attempt to create a simulator with GPU support.
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    with pytest.raises(
+        ValueError, match="GPU execution requested, but not supported",
+    ):
+        _ = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+
+
 def test_cirq_qsim_gpu_amplitudes():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
     # Pick qubits.
     a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
 
@@ -1083,6 +1097,8 @@ def test_cirq_qsim_gpu_amplitudes():
 
 
 def test_cirq_qsim_gpu_simulate():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
     # Pick qubits.
     a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
 
@@ -1103,6 +1119,8 @@ def test_cirq_qsim_gpu_simulate():
 
 
 def test_cirq_qsim_gpu_expectation_values():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
     # Pick qubits.
     a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
 

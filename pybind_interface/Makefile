@@ -22,7 +22,9 @@ pybind:
 	$(CXX) sse/pybind_main_sse.cpp -o $(QSIMLIB_SSE) $(CXXFLAGS) $(PYBINDFLAGS_SSE)
 	$(CXX) avx2/pybind_main_avx2.cpp -o $(QSIMLIB_AVX2) $(CXXFLAGS) $(PYBINDFLAGS_AVX2)
 	$(CXX) avx512/pybind_main_avx512.cpp -o $(QSIMLIB_AVX512) $(CXXFLAGS) $(PYBINDFLAGS_AVX512)
-	$(NVCC) cuda/pybind_main_cuda.cpp -o $(QSIMLIB_CUDA) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA)
+	if [ -n "$(which $NVCC)" ] ; then\
+		$(NVCC) cuda/pybind_main_cuda.cpp -o $(QSIMLIB_CUDA) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA);\
+	fi
 	$(CXX) decide/decide.cpp -o $(QSIMLIB_DECIDE) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
 
 .PHONY: clean

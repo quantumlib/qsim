@@ -173,7 +173,12 @@ class QSimSimulator(
         self.qsim_options = QSimOptions().as_dict()
         self.qsim_options.update(qsim_options)
         # module to use for simulation
-        self._sim_module = qsim_gpu if self.qsim_options["g"] > 0 else qsim
+        if self.qsim_options["g"] and qsim_gpu is None:
+            raise ValueError(
+                "GPU execution requested, but not supported. If your device "
+                "has GPU support, you may need to compile qsim locally."
+            )
+        self._sim_module = qsim_gpu if self.qsim_options["g"] else qsim
         # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
         self._translated_circuits = deque(maxlen=circuit_memoization_size)
 

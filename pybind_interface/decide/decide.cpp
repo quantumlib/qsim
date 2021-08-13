@@ -47,9 +47,17 @@ int detect_instructions() {
 
 enum GPUCapabilities { CUDA = 0, NO_GPU = 10 };
 
+// For now, GPU detection is performed at compile time, as our wheels are
+// generated on Github Actions runners which do not have GPU support.
+//
+// Users wishing to use qsim with GPU will need to compile locally on a device
+// which has the necessary CUDA toolkit.
 int detect_gpu() {
-  // TODO: detect non-CUDA
+  #ifdef __NVCC__
   GPUCapabilities gpu = CUDA;
+  #else
+  GPUCapabilities gpu = NO_GPU;
+  #endif
   return gpu;
 }
 
