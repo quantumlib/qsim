@@ -44,7 +44,8 @@ class QSimSimulatorState(sim.StateVectorSimulatorState):
         super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
-class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
+@value.value_equality(unhashable=True)
+class QSimSimulatorTrialResult(sim.StateVectorMixin, sim.SimulationTrialResult):
     def __init__(
         self,
         params: study.ParamResolver,
@@ -55,6 +56,47 @@ class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
             params=params,
             measurements=measurements,
             final_simulator_state=final_simulator_state,
+        )
+
+    # The following methods are (temporarily) copied here from
+    # cirq.StateVectorTrialResult due to incompatibility with the
+    # intermediate state simulation support which that class requires.
+    # TODO: remove these methods once inheritance is restored.
+
+    @property
+    def final_state_vector(self):
+        return self._final_simulator_state.state_vector
+
+    def state_vector(self):
+        """Return the state vector at the end of the computation."""
+        return self._final_simulator_state.state_vector.copy()
+
+    def _value_equality_values_(self):
+        measurements = {k: v.tolist() for k, v in sorted(self.measurements.items())}
+        return (self.params, measurements, self._final_simulator_state)
+
+    def __str__(self) -> str:
+        samples = super().__str__()
+        final = self.state_vector()
+        if len([1 for e in final if abs(e) > 0.001]) < 16:
+            state_vector = self.dirac_notation(3)
+        else:
+            state_vector = str(final)
+        return f"measurements: {samples}\noutput vector: {state_vector}"
+
+    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
+        """Text output in Jupyter."""
+        if cycle:
+            # There should never be a cycle.  This is just in case.
+            p.text("StateVectorTrialResult(...)")
+        else:
+            p.text(str(self))
+
+    def __repr__(self) -> str:
+        return (
+            f"cirq.StateVectorTrialResult(params={self.params!r}, "
+            f"measurements={self.measurements!r}, "
+            f"final_simulator_state={self._final_simulator_state!r})"
         )
 
 

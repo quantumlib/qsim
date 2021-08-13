@@ -82,8 +82,6 @@ cc_library(
         "io.h",
         "io_file.h",
         "matrix.h",
-        "mps_simulator.h",
-        "mps_statespace.h",
         "parfor.h",
         "run_qsim.h",
         "seqfor.h",
