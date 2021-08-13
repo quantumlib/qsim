@@ -22,6 +22,7 @@
 
 #include "statespace.h"
 #include "util.h"
+#include "vectorspace.h"
 
 namespace qsim {
 
@@ -31,9 +32,10 @@ namespace qsim {
  * followed by one imaginary amplitude.
  */
 template <typename For, typename FP>
-class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
+class StateSpaceBasic :
+    public StateSpace<StateSpaceBasic<For, FP>, VectorSpace, For, FP> {
  private:
-  using Base = StateSpace<StateSpaceBasic<For, FP>, For, FP>;
+  using Base = StateSpace<StateSpaceBasic<For, FP>, qsim::VectorSpace, For, FP>;
 
  public:
   using State = typename Base::State;
@@ -291,4 +293,4 @@ class StateSpaceBasic : public StateSpace<StateSpaceBasic<For, FP>, For, FP> {
 
 }  // namespace qsim
 
-#endif  // STATESPACE_BASIC_H_f
+#endif  // STATESPACE_BASIC_H_

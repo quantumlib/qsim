@@ -17,20 +17,19 @@
 
 #include <cstdint>
 
-#include "vectorspace.h"
-
 namespace qsim {
 
 namespace unitary {
 
 /**
  * Abstract class containing routines for general unitary matrix manipulations.
- * "AVX", "Basic", and "SSE" implementations are provided.
+ * "AVX", "AVX512", "Basic", and "SSE" implementations are provided.
  */
-template <typename Impl, typename For, typename FP>
-class UnitarySpace : public VectorSpace<Impl, For, FP> {
+template <typename Impl,
+          template<typename...> class VectorSpace, typename... VSTypeParams>
+class UnitarySpace : public VectorSpace<Impl, VSTypeParams...> {
  private:
-  using Base = VectorSpace<Impl, For, FP>;
+  using Base = VectorSpace<Impl, VSTypeParams...>;
 
  public:
   using fp_type = typename Base::fp_type;

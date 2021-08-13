@@ -17,3 +17,25 @@ http_archive(
         "https://github.com/tensorflow/tensorflow/archive/v2.1.0.zip",
     ],
 )
+
+
+EIGEN_COMMIT = "12e8d57108c50d8a63605c6eb0144c838c128337"
+EIGEN_SHA256 = "f689246e342c3955af48d26ce74ac34d21b579a00675c341721a735937919b02"
+
+
+http_archive(
+    name = "eigen",
+    build_file_content = """
+cc_library(
+  name = "eigen3",
+  textual_hdrs = glob(["Eigen/**", "unsupported/**"]),
+  visibility = ["//visibility:public"],
+)
+    """,
+    sha256 = EIGEN_SHA256,
+        strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
+            "https://gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
+        ],
+)

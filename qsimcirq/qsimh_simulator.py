@@ -14,61 +14,61 @@
 
 from typing import Union, Sequence
 
-from cirq import study, ops, protocols, circuits, value,  SimulatesAmplitudes
+from cirq import study, ops, protocols, circuits, value, SimulatesAmplitudes
 
-from qsimcirq import qsim
+from . import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
 class QSimhSimulator(SimulatesAmplitudes):
+    def __init__(self, qsimh_options: dict = {}):
+        """Creates a new QSimhSimulator using the given options.
 
-  def __init__(self, qsimh_options: dict = {}):
-    """Creates a new QSimhSimulator using the given options.
-    
-    Args:
-        qsim_options: A map of circuit options for the simulator. These will be
-            applied to all circuits run using this simulator. Accepted keys and
-            their behavior are as follows:
-                - 'k': Comma-separated list of ints. Indices of "part 1" qubits.
-                - 'p': int (>= 0). Number of "prefix" gates.
-                - 'r': int (>= 0). Number of "root" gates.
-                - 't': int (> 0). Number of threads to run on. Default: 1.
-                - 'v': int (>= 0). Log verbosity. Default: 0.
-                - 'w': int (>= 0). Prefix value.
-            See qsim/docs/usage.md for more details on these options.
-    """
-    self.qsimh_options = {'t': 1, 'f': 2, 'v': 0}
-    self.qsimh_options.update(qsimh_options)
+        Args:
+            qsim_options: A map of circuit options for the simulator. These will be
+                applied to all circuits run using this simulator. Accepted keys and
+                their behavior are as follows:
+                    - 'k': Comma-separated list of ints. Indices of "part 1" qubits.
+                    - 'p': int (>= 0). Number of "prefix" gates.
+                    - 'r': int (>= 0). Number of "root" gates.
+                    - 't': int (> 0). Number of threads to run on. Default: 1.
+                    - 'v': int (>= 0). Log verbosity. Default: 0.
+                    - 'w': int (>= 0). Prefix value.
+                See qsim/docs/usage.md for more details on these options.
+        """
+        self.qsimh_options = {"t": 1, "f": 2, "v": 0}
+        self.qsimh_options.update(qsimh_options)
 
-  def compute_amplitudes_sweep(
-      self,
-      program: circuits.Circuit,
-      bitstrings: Sequence[int],
-      params: study.Sweepable,
-      qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
-  ) -> Sequence[Sequence[complex]]:
+    def compute_amplitudes_sweep(
+        self,
+        program: circuits.Circuit,
+        bitstrings: Sequence[int],
+        params: study.Sweepable,
+        qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
+    ) -> Sequence[Sequence[complex]]:
 
-    if not isinstance(program, qsimc.QSimCircuit):
-      program = qsimc.QSimCircuit(program, device=program.device)
+        if not isinstance(program, qsimc.QSimCircuit):
+            program = qsimc.QSimCircuit(program, device=program.device)
 
-    n_qubits = len(program.all_qubits())
-    # qsim numbers qubits in reverse order from cirq
-    bitstrings = [format(bitstring, 'b').zfill(n_qubits)[::-1]
-                  for bitstring in bitstrings]
+        n_qubits = len(program.all_qubits())
+        # qsim numbers qubits in reverse order from cirq
+        bitstrings = [
+            format(bitstring, "b").zfill(n_qubits)[::-1] for bitstring in bitstrings
+        ]
 
-    options = {'i': '\n'.join(bitstrings)}
-    options.update(self.qsimh_options)
-    param_resolvers = study.to_resolvers(params)
+        options = {"i": "\n".join(bitstrings)}
+        options.update(self.qsimh_options)
+        param_resolvers = study.to_resolvers(params)
 
-    trials_results = []
-    for prs in param_resolvers:
+        trials_results = []
+        for prs in param_resolvers:
 
-      solved_circuit = protocols.resolve_parameters(program, prs)
+            solved_circuit = protocols.resolve_parameters(program, prs)
 
-      options['c'] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+            options["c"] = solved_circuit.translate_cirq_to_qsim(qubit_order)
 
-      options.update(self.qsimh_options)
-      amplitudes = qsim.qsimh_simulate(options)
-      trials_results.append(amplitudes)
+            options.update(self.qsimh_options)
+            amplitudes = qsim.qsimh_simulate(options)
+            trials_results.append(amplitudes)
 
-    return trials_results
+        return trials_results

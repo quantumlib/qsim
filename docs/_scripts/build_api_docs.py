@@ -25,15 +25,19 @@ import qsimcirq as qs
 
 flags.DEFINE_string("output_dir", "/tmp/qsim_api", "Where to output the docs")
 
-flags.DEFINE_string("code_url_prefix",
-                    ("https://github.com/quantumlib/qsim/tree/master/"
-                     "qsimcirq"), "The url prefix for links to code.")
+flags.DEFINE_string(
+    "code_url_prefix",
+    ("https://github.com/quantumlib/qsim/tree/master/" "qsimcirq"),
+    "The url prefix for links to code.",
+)
 
-flags.DEFINE_bool("search_hints", True,
-                  "Include metadata search hints in the generated files")
+flags.DEFINE_bool(
+    "search_hints", True, "Include metadata search hints in the generated files"
+)
 
-flags.DEFINE_string("site_path", "/quark/qsim/api_docs/python",
-                    "Path prefix in the _toc.yaml")
+flags.DEFINE_string(
+    "site_path", "/quark/qsim/api_docs/python", "Path prefix in the _toc.yaml"
+)
 
 FLAGS = flags.FLAGS
 
@@ -55,7 +59,8 @@ def main(unused_argv):
                 "qsim_simulator",
                 "qsimh_simulator",
             ]
-        })
+        },
+    )
 
     doc_generator.build(output_dir=FLAGS.output_dir)
 

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef HYBRID_TESTFIXTURE_H_
+#define HYBRID_TESTFIXTURE_H_
+
 #include <cmath>
 #include <complex>
 #include <cstdint>
@@ -25,13 +28,12 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/hybrid.h"
 #include "../lib/io.h"
-#include "../lib/simmux.h"
 
 namespace qsim {
 
-constexpr char provider[] = "hybrid_test";
-
-TEST(HybridTest, Hybrid2) {
+template <typename Factory>
+void TestHybrid2(const Factory& factory) {
+  constexpr char provider[] = "hybrid_test";
   constexpr char circuit_string[] =
 R"(2
 0 h 0
@@ -66,9 +68,8 @@ R"(2
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.gates.size(), 23);
 
-  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, For>;
+                                          For>;
   using Fuser = HybridSimulator::Fuser;
 
   std::vector<unsigned> parts = {0, 1};
@@ -103,12 +104,12 @@ R"(2
     bitstrings.push_back(i);
   }
 
-  std::vector<std::complex<Simulator::fp_type>> results(4, 0);
+  std::vector<std::complex<typename Factory::fp_type>> results(4, 0);
 
-  std::complex<Simulator::fp_type> zero(0, 0);
+  std::complex<typename Factory::fp_type> zero(0, 0);
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -124,7 +125,7 @@ R"(2
   param.num_root_gatexs = 1;
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -140,7 +141,7 @@ R"(2
   param.num_root_gatexs = 2;
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -156,7 +157,7 @@ R"(2
   param.num_root_gatexs = 5;
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -172,7 +173,9 @@ R"(2
   param.num_root_gatexs = 6;
 }
 
-TEST(HybridTest, Hybrid4) {
+template <typename Factory>
+void TestHybrid4(const Factory& factory) {
+  constexpr char provider[] = "hybrid_test";
   constexpr char circuit_string[] =
 R"(4
 0 h 0
@@ -247,9 +250,8 @@ R"(4
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using Simulator = Simulator<For>;
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, For>;
+                                          For>;
   using Fuser = HybridSimulator::Fuser;
 
   std::vector<unsigned> parts = {0, 0, 1, 1};
@@ -284,10 +286,10 @@ R"(4
     bitstrings.push_back(i);
   }
 
-  std::vector<std::complex<Simulator::fp_type>> results(8, 0);
+  std::vector<std::complex<typename Factory::fp_type>> results(8, 0);
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.02852439, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.05243438, 1e-6);
@@ -301,7 +303,4 @@ R"(4
 
 }  // namespace qsim
 
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+#endif  // HYBRID_TESTFIXTURE_H_

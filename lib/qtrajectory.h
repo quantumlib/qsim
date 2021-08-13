@@ -20,53 +20,11 @@
 #include <random>
 #include <vector>
 
+#include "circuit_noisy.h"
 #include "gate.h"
+#include "gate_appl.h"
 
 namespace qsim {
-
-/**
- * Kraus operator.
- */
-template <typename Gate>
-struct KrausOperator {
-  enum Kind {
-    kNormal = 0,
-    kMeasurement = gate::kMeasurement,
-  };
-
-  /**
-   * Kraus operator type;
-   */
-  Kind kind;
-
-  /**
-   * If true, the Kraus operator is a unitary operator times a constant.
-   */
-  bool unitary;
-
-  /**
-   * Lower bound on Kraus operator probability.
-   */
-  double prob;
-
-  /**
-   * Sequence of operations that represent the Kraus operator. This can be just
-   * one operation.
-   */
-  std::vector<Gate> ops;
-};
-
-/**
- * Quantum channel.
- */
-template <typename Gate>
-using Channel = std::vector<KrausOperator<Gate>>;
-
-/**
- * Noisy circuit.
- */
-template <typename Gate>
-using NoisyCircuit = std::vector<Channel<Gate>>;
 
 /**
  * Quantum trajectory simulator.
@@ -78,17 +36,13 @@ class QuantumTrajectorySimulator {
  public:
   using Fuser = FuserT<IO, const Gate*>;
   using StateSpace = typename Simulator::StateSpace;
-  using State = typename StateSpace::State;
+  using State = typename Simulator::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
   /**
    * User-specified parameters for the simulator.
    */
   struct Parameter : public Fuser::Parameter {
-    /**
-     * Number of threads for the backend quantum circuit simulator.
-     */
-    unsigned num_threads = 1;
     /**
      * If true, collect statistics of sampled Kraus operator indices.
      */
@@ -107,9 +61,11 @@ class QuantumTrajectorySimulator {
    * Runs the given noisy circuit performing repetitions. Each repetition is
    * seeded by repetition ID.
    * @param param Options for the quantum trajectory simulator.
-   * @param num_qubits The number of qubits acted on by 'circuit'.
    * @param circuit The noisy circuit to be simulated.
    * @param r0, r1 The range of repetition IDs [r0, r1) to perform repetitions.
+   * @param state_space StateSpace object required to manipulate state vector.
+   * @param simulator Simulator object. Provides specific implementations for
+   *   applying gates.
    * @param measure Function that performs measurements (in the sense of
    *   computing expectation values, etc). This function should have three
    *   required parameters [repetition ID (uint64_t), final state vector
@@ -120,11 +76,14 @@ class QuantumTrajectorySimulator {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename MeasurementFunc, typename... Args>
-  static bool Run(const Parameter& param, unsigned num_qubits,
-                  const NoisyCircuit<Gate>& circuit, uint64_t r0, uint64_t r1,
-                  MeasurementFunc&& measure, Args&&... args) {
-    return Run(param, num_qubits,
-               circuit.begin(), circuit.end(), r0, r1, measure, args...);
+  static bool RunBatch(const Parameter& param,
+                       const NoisyCircuit<Gate>& circuit,
+                       uint64_t r0, uint64_t r1, const StateSpace& state_space,
+                       const Simulator& simulator, MeasurementFunc&& measure,
+                       Args&&... args) {
+    return RunBatch(param, circuit.num_qubits, circuit.channels.begin(),
+                    circuit.channels.end(), r0, r1, state_space, simulator,
+                    measure, args...);
   }
 
   /**
@@ -132,9 +91,11 @@ class QuantumTrajectorySimulator {
    * seeded by repetition ID.
    * @param param Options for the quantum trajectory simulator.
    * @param num_qubits The number of qubits acted on by the circuit.
-   * @param cfirst, clast The range of channels [cfirst, clast) to run
-   *   the circuit.
+   * @param cbeg, cend The range of channels [cbeg, cend) to run the circuit.
    * @param r0, r1 The range of repetition IDs [r0, r1) to perform repetitions.
+   * @param state_space StateSpace object required to manipulate state vector.
+   * @param simulator Simulator object. Provides specific implementations for
+   *   applying gates.
    * @param measure Function that performs measurements (in the sense of
    *   computing expectation values, etc). This function should have three
    *   required parameters [repetition ID (uint64_t), final state vector
@@ -145,15 +106,15 @@ class QuantumTrajectorySimulator {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename MeasurementFunc, typename... Args>
-  static bool Run(const Parameter& param, unsigned num_qubits,
-                  typename NoisyCircuit<Gate>::const_iterator cfirst,
-                  typename NoisyCircuit<Gate>::const_iterator clast,
-                  uint64_t r0, uint64_t r1,
-                  MeasurementFunc&& measure, Args&&... args) {
+  static bool RunBatch(const Parameter& param, unsigned num_qubits,
+                       ncircuit_iterator<Gate> cbeg,
+                       ncircuit_iterator<Gate> cend,
+                       uint64_t r0, uint64_t r1, const StateSpace& state_space,
+                       const Simulator& simulator, MeasurementFunc&& measure,
+                       Args&&... args) {
     std::vector<const Gate*> gates;
-    gates.reserve(4 * std::size_t(clast - cfirst));
+    gates.reserve(4 * std::size_t(cend - cbeg));
 
-    StateSpace state_space(param.num_threads);
     State state = state_space.Null();
     State scratch = state_space.Null();
 
@@ -164,8 +125,8 @@ class QuantumTrajectorySimulator {
         state_space.SetStateZero(state);
       }
 
-      if (!RunIteration(r, param, num_qubits,
-                        cfirst, clast, gates, scratch, state, stat)) {
+      if (!RunIteration(param, num_qubits, cbeg, cend, r,
+                        state_space, simulator, gates, scratch, state, stat)) {
         return false;
       }
 
@@ -178,46 +139,54 @@ class QuantumTrajectorySimulator {
   /**
    * Runs the given noisy circuit one time.
    * @param param Options for the quantum trajectory simulator.
-   * @param num_qubits The number of qubits acted on by 'circuit'.
    * @param circuit The noisy circuit to be simulated.
    * @param r The repetition ID. The random number generator is seeded by 'r'.
+   * @param state_space StateSpace object required to manipulate state vector.
+   * @param simulator Simulator object. Provides specific implementations for
+   *   applying gates.
    * @param scratch A temporary state vector. Used for samping Kraus operators.
    * @param state The state of the system, to be updated by this method.
    * @param stat Statistics of sampled Kraus operator indices and/or measured
    *   bitstrings, to be populated by this method.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  static bool Run(const Parameter& param, unsigned num_qubits,
-                  const NoisyCircuit<Gate>& circuit, uint64_t r,
-                  State& scratch, State& state, std::vector<uint64_t>& stat) {
-    return Run(param, num_qubits,
-               circuit.begin(), circuit.end(), r, scratch, state, stat);
+  static bool RunOnce(const Parameter& param,
+                      const NoisyCircuit<Gate>& circuit, uint64_t r,
+                      const StateSpace& state_space, const Simulator& simulator,
+                      State& scratch, State& state,
+                      std::vector<uint64_t>& stat) {
+    return RunOnce(param, circuit.num_qubits, circuit.channels.begin(),
+                   circuit.channels.end(), r, state_space, simulator,
+                   scratch, state, stat);
   }
 
   /**
    * Runs the given noisy circuit one time.
    * @param param Options for the quantum trajectory simulator.
    * @param num_qubits The number of qubits acted on by the circuit.
-   * @param cfirst, clast The range of channels [cfirst, clast) to run
-   *   the circuit.
+   * @param cbeg, cend The range of channels [cbeg, cend) to run the circuit.
    * @param circuit The noisy circuit to be simulated.
    * @param r The repetition ID. The random number generator is seeded by 'r'.
+   * @param state_space StateSpace object required to manipulate state vector.
+   * @param simulator Simulator object. Provides specific implementations for
+   *   applying gates.
    * @param scratch A temporary state vector. Used for samping Kraus operators.
    * @param state The state of the system, to be updated by this method.
    * @param stat Statistics of sampled Kraus operator indices and/or measured
    *   bitstrings, to be populated by this method.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  static bool Run(const Parameter& param, unsigned num_qubits,
-                  typename NoisyCircuit<Gate>::const_iterator cfirst,
-                  typename NoisyCircuit<Gate>::const_iterator clast,
-                  uint64_t r, State& scratch, State& state,
-                  std::vector<uint64_t>& stat) {
+  static bool RunOnce(const Parameter& param, unsigned num_qubits,
+                      ncircuit_iterator<Gate> cbeg,
+                      ncircuit_iterator<Gate> cend,
+                      uint64_t r, const StateSpace& state_space,
+                      const Simulator& simulator, State& scratch, State& state,
+                      std::vector<uint64_t>& stat) {
     std::vector<const Gate*> gates;
-    gates.reserve(4 * std::size_t(clast - cfirst));
+    gates.reserve(4 * std::size_t(cend - cbeg));
 
-    if (!RunIteration(r, param, num_qubits,
-                      cfirst, clast, gates, scratch, state, stat)) {
+    if (!RunIteration(param, num_qubits, cbeg, cend, r,
+                      state_space, simulator, gates, scratch, state, stat)) {
       return false;
     }
 
@@ -225,20 +194,17 @@ class QuantumTrajectorySimulator {
   }
 
  private:
-  static bool RunIteration(uint64_t rep,
-                           const Parameter& param, unsigned num_qubits,
-                           typename NoisyCircuit<Gate>::const_iterator cfirst,
-                           typename NoisyCircuit<Gate>::const_iterator clast,
-                           std::vector<const Gate*>& gates,
-                           State& scratch, State& state,
-                           std::vector<uint64_t>& stat) {
+  static bool RunIteration(const Parameter& param, unsigned num_qubits,
+                           ncircuit_iterator<Gate> cbeg,
+                           ncircuit_iterator<Gate> cend,
+                           uint64_t rep, const StateSpace& state_space,
+                           const Simulator& simulator,
+                           std::vector<const Gate*>& gates, State& scratch,
+                           State& state, std::vector<uint64_t>& stat) {
     if (param.collect_kop_stat || param.collect_mea_stat) {
-      stat.reserve(std::size_t(clast - cfirst));
+      stat.reserve(std::size_t(cend - cbeg));
       stat.resize(0);
     }
-
-    StateSpace state_space(param.num_threads);
-    Simulator simulator(param.num_threads);
 
     if (state_space.IsNull(state)) {
       state = CreateState(num_qubits, state_space);
@@ -257,9 +223,7 @@ class QuantumTrajectorySimulator {
 
     bool unitary = true;
 
-    typename NoisyCircuit<Gate>::const_iterator it = cfirst;
-
-    for (; it != clast; ++it) {
+    for (auto it = cbeg; it != cend; ++it) {
       const auto& channel = *it;
 
       if (channel.size() == 0) continue;
