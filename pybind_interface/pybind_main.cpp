@@ -842,8 +842,8 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   Runner::Parameter param;
   bool use_gpu;
   unsigned num_sim_threads;
-  unsigned num_state_threads;
-  unsigned num_dblocks;
+  unsigned num_state_threads = 0;
+  unsigned num_dblocks = 0;
   uint64_t seed;
 
   try {
