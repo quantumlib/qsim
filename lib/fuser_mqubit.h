@@ -393,17 +393,42 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
         FuseGateSequences(
             max_fused_size, num_qubits, scratch, gates_seq, stat, fused_gates);
       } else {
-        for (auto& fgate : gates_seq) {
-          if (fgate.gates.size() > 0) {
-            // Assume fgate.qubits (gate.qubits) are sorted.
-            fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
-                                   std::move(fgate.qubits), fgate.parent,
-                                   std::move(fgate.gates)});
+        unsigned prev_time = 0;
 
-            if (fgate.visited != kMeaCnt) {
-              ++stat.num_fused_gates;
+        std::vector<GateF*> orphaned_gates;
+        orphaned_gates.reserve(num_qubits);
+
+        for (auto& fgate : gates_seq) {
+          if (fgate.gates.size() == 0) continue;
+
+          if (prev_time != fgate.parent->time) {
+            if (orphaned_gates.size() > 0) {
+              FuseOrphanedGates(
+                  max_fused_size, stat, orphaned_gates, fused_gates);
+              orphaned_gates.resize(0);
             }
+
+            prev_time = fgate.parent->time;
           }
+
+          if (fgate.qubits.size() == 1 && max_fused_size > 1
+              && fgate.visited != kMeaCnt && !fgate.parent->unfusible) {
+            orphaned_gates.push_back(&fgate);
+            continue;
+          }
+
+          // Assume fgate.qubits (gate.qubits) are sorted.
+          fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
+                                 std::move(fgate.qubits), fgate.parent,
+                                 std::move(fgate.gates)});
+
+          if (fgate.visited != kMeaCnt) {
+            ++stat.num_fused_gates;
+          }
+        }
+
+        if (orphaned_gates.size() > 0) {
+          FuseOrphanedGates(max_fused_size, stat, orphaned_gates, fused_gates);
         }
       }
     }
