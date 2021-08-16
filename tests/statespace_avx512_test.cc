@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#if defined(__AVX512F__) && !defined(_WIN32) && !defined(__SANITIZE_ADDRESS__)
+#if defined(__AVX512F__) && !defined(_WIN32)
 
 #ifdef _OPENMP
 #include "../lib/parfor.h"
@@ -115,7 +115,7 @@ TYPED_TEST(StateSpaceAVX512Test, ThreadThrashing) {
 
 }  // namespace qsim
 
-#endif  // defined(__AVX512F__) && !defined(_WIN32) && !defined(__SANITIZE_ADDRESS__)
+#endif  // defined(__AVX512F__) && !defined(_WIN32)
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
