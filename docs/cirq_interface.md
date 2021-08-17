@@ -76,11 +76,11 @@ This circuit can then be simulated using either `QSimSimulator` or
 acquiring the complete state of a reasonably-sized circuit (~25 qubits on an
 average PC, or up to 40 qubits on high-performance VMs).
 Options for the simulator, including number of threads and verbosity, can be
-set with the `qsim_options` field using the `qsim_base` flag format defined in
-the [usage docs](./usage.md).
+set with the `qsim_options` field, which accepts a `QSimOptions` object as
+defined in [qsim_simulator.py](https://github.com/quantumlib/qsim/blob/master/qsimcirq/qsim_simulator.py).
 
 ```
-qsim_options = {'t': 8, 'v': 0}
+qsim_options = qsimcirq.QSimOptions(cpu_threads=8, verbosity=0)
 my_sim = qsimcirq.QSimSimulator(qsim_options)
 myres = my_sim.simulate(program=my_circuit)
 ```
@@ -136,8 +136,8 @@ outlined in the [usage docs](./usage.md).
 
 ## Additional features
 
-The qsim-Cirq interface provides basic support for gate decomposition and
-circuit parameterization.
+The qsim-Cirq interface supports arbitrary gates and circuit parameterization.
+Additionally, GPU execution of circuits can be requested if GPUs are available.
 
 ### Gate decompositions
 
@@ -148,7 +148,26 @@ matrices, if one is specified.
 
 ### Parametrized circuits
 
-QSimCircuit objects can also contain
+`QSimCircuit` objects can also contain
 [parameterized gates](https://cirq.readthedocs.io/en/stable/docs/tutorials/basics.html#Using-parameter-sweeps)
 which have values assigned by Cirq's `ParamResolver`. See the link above for
 details on how to use this feature.
+
+### GPU execution
+
+`QSimSimulator` provides optional support for GPU execution of circuits, which
+may improve performance. In order to use this feature, qsim must be compiled on
+a device with the [CUDA toolkit](https://developer.nvidia.com/cuda-downloads)
+and run on a device with available NVIDIA GPUs.
+
+Compilation for GPU follows the same steps outlined in the
+[Compiling qsimcirq](./cirq_interface.md#compiling-qsimcirq) section.
+
+`QSimOptions` provides four parameters to configure GPU execution:
+* use_gpu: whether to use GPU instead of CPU for simulation.
+* gpu_sim_threads: number of threads per CUDA block to use for the GPU
+Simulator. This must be a power of 2 in the range [32, 256].
+* gpu_state_threads: number of threads per CUDA block to use for the GPU
+StateSpace. This must be a power of 2 in the range [32, 1024].
+* gpu_data_blocks: number of data blocks to use on GPU. Below 16 data blocks,
+performance is noticeably reduced.
