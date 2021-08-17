@@ -1139,6 +1139,29 @@ def test_cirq_qsim_gpu_expectation_values():
     assert np.allclose(result, cirq_result)
 
 
+def test_cirq_qsim_gpu_input_state():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
+
+    # Enable GPU acceleration.
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+    initial_state = np.asarray([0.5] * 4, dtype=np.complex64)
+    result = qsimGpuSim.simulate(cirq_circuit, initial_state=initial_state)
+    assert result.state_vector().shape == (4,)
+
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, initial_state=initial_state)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector(), atol=1.0e-6
+    )
+
+
 def test_cirq_qsim_old_options():
     old_options = {"f": 3, "t": 4, "r": 100, "v": 1}
     old_sim = qsimcirq.QSimSimulator(qsim_options=old_options)

@@ -584,12 +584,7 @@ class SimulatorHelper {
   }
 
   void init_state(const py::array_t<float> &input_vector) {
-    const float* ptr = input_vector.data();
-    auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
-                float* fsv) {
-      fsv[i] = ptr[i];
-    };
-    For(num_sim_threads).Run(input_vector.size(), f, ptr, state.get());
+    state_space.Copy(input_vector.data(), state);
     state_space.NormalToInternalOrder(state);
   }
 
