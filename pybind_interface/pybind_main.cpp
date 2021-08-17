@@ -458,10 +458,9 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     return {};
   }
 
-  Simulator simulator = Factory(
-    num_sim_threads, num_state_threads, num_dblocks).CreateSimulator();
-  StateSpace state_space = Factory(
-    num_sim_threads, num_state_threads, num_dblocks).CreateStateSpace();
+  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   auto measure = [&bitstrings, &ncircuit, &amplitudes, &state_space](
                   unsigned k, const State &state,
@@ -613,22 +612,19 @@ class SimulatorHelper {
   bool simulate(const StateType& input_state) {
     init_state(input_state);
     bool result = false;
+
+    Factory factory(num_sim_threads, num_state_threads, num_dblocks);
     if (is_noisy) {
       std::vector<uint64_t> stat;
       auto params = get_noisy_params();
 
-      Simulator simulator = Factory(
-        num_sim_threads, num_state_threads, num_dblocks).CreateSimulator();
-      StateSpace state_space = Factory(
-        num_sim_threads, num_state_threads, num_dblocks).CreateStateSpace();
+      Simulator simulator = factory.CreateSimulator();
+      StateSpace state_space = factory.CreateStateSpace();
 
       result = NoisyRunner::RunOnce(params, ncircuit, seed, state_space,
                                     simulator, scratch, state, stat);
     } else {
-      result = Runner::Run(
-        get_params(),
-        Factory(num_sim_threads, num_state_threads, num_dblocks),
-        circuit, state);
+      result = Runner::Run(get_params(), factory, circuit, state);
     }
     seed += 1;
     return result;
@@ -803,14 +799,12 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   }
 
   std::vector<MeasurementResult> results;
-  StateSpace state_space = Factory(
-    num_sim_threads, num_state_threads, num_dblocks).CreateStateSpace();
+  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+  StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
   state_space.SetStateZero(state);
 
-  if (!Runner::Run(
-        param, Factory(num_sim_threads, num_state_threads, num_dblocks),
-        circuit, state, results)) {
+  if (!Runner::Run(param, factory, circuit, state, results)) {
     IO::errorf("qsim sampling of the circuit errored out.\n");
     return {};
   }
@@ -864,10 +858,9 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     return {};
   }
 
-  Simulator simulator = Factory(
-    num_sim_threads, num_state_threads, num_dblocks).CreateSimulator();
-  StateSpace state_space = Factory(
-    num_sim_threads, num_state_threads, num_dblocks).CreateStateSpace();
+  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   std::vector<std::vector<unsigned>> results;
 

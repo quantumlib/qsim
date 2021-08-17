@@ -135,10 +135,10 @@ class QSimOptions:
             simulation modes.
         use_gpu: whether to use GPU instead of CPU for simulation. The "gpu_*"
             arguments below are only considered if this is set to True.
-        gpu_sim_threads: number of threads to use for the GPU Simulator.
-            This must be a power of 2 in the range [32, 256].
-        gpu_state_threads: number of threads to use for the GPU StateSpace.
-            This must be a power of 2 in the range [32, 1024].
+        gpu_sim_threads: number of threads per CUDA block to use for the GPU
+            Simulator. This must be a power of 2 in the range [32, 256].
+        gpu_state_threads: number of threads per CUDA block to use for the GPU
+            StateSpace. This must be a power of 2 in the range [32, 1024].
         gpu_data_blocks: number of data blocks to use on GPU. Below 16 data
             blocks, performance is noticeably reduced.
         verbosity: Logging verbosity.
@@ -148,8 +148,8 @@ class QSimOptions:
     cpu_threads: int = 1
     ev_noisy_repetitions: int = 1
     use_gpu: bool = False
-    gpu_sim_threads: int = 32
-    gpu_state_threads: int = 32
+    gpu_sim_threads: int = 256
+    gpu_state_threads: int = 512
     gpu_data_blocks: int = 16
     verbosity: int = 0
 

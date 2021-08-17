@@ -33,7 +33,7 @@ int detect_instructions() {
   }
   if (nIds >= 7) {
     cpuid(info, 7);
-    if ((info[1] & (1 <<  5) )!= 0) {
+    if ((info[1] & (1 <<  5))!= 0) {
       instr = AVX2;
     }
     if ((info[1] & (1 << 16)) != 0) {
