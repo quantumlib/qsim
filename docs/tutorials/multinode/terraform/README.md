@@ -3,6 +3,13 @@ This tutorial will take you through the process of running many qsim simulations
 on Google Cloud. In some situations, it is required to run many instances of the same 
 simulation. This could be used to provide a parameter sweep or to evaluation noise characteristics.
 
+## Objectives
+
+* Use Terraform to deploy a HTCondor cluster
+* Run a multinode simulation using HTCondor
+* Query cluster information and monitor running jobs in HTCondor
+
+
 ## Create a project
 In a seperate tutorial the method to create Google Cloud project is explained in detail. 
 [Please refer to this tutorial for guidance](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup).
