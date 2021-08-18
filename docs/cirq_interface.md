@@ -75,11 +75,16 @@ This circuit can then be simulated using either `QSimSimulator` or
 `QSimSimulator` uses a Schrödinger full state-vector simulator, suitable for
 acquiring the complete state of a reasonably-sized circuit (~25 qubits on an
 average PC, or up to 40 qubits on high-performance VMs).
+
 Options for the simulator, including number of threads and verbosity, can be
 set with the `qsim_options` field, which accepts a `QSimOptions` object as
-defined in [qsim_simulator.py](https://github.com/quantumlib/qsim/blob/master/qsimcirq/qsim_simulator.py).
+defined in
+[qsim_simulator.py](https://github.com/quantumlib/qsim/blob/master/qsimcirq/qsim_simulator.py).
+These options can also be passed as a {str: val} dict, using the format
+described by that class.
 
 ```
+# equivalent to {'t': 8, 'v': 0}
 qsim_options = qsimcirq.QSimOptions(cpu_threads=8, verbosity=0)
 my_sim = qsimcirq.QSimSimulator(qsim_options)
 myres = my_sim.simulate(program=my_circuit)
@@ -163,11 +168,16 @@ and run on a device with available NVIDIA GPUs.
 Compilation for GPU follows the same steps outlined in the
 [Compiling qsimcirq](./cirq_interface.md#compiling-qsimcirq) section.
 
-`QSimOptions` provides four parameters to configure GPU execution:
-* use_gpu: whether to use GPU instead of CPU for simulation.
-* gpu_sim_threads: number of threads per CUDA block to use for the GPU
+`QSimOptions` provides four parameters to configure GPU execution. Only
+`use_gpu` is required to enable GPU execution:
+* `use_gpu`: if True, use GPU instead of CPU for simulation.
+
+The remaining parameters use default values which provide good performance in
+most cases, but can optionally be set to fine-tune perfomance for a specific
+device or circuit.
+* `gpu_sim_threads`: number of threads per CUDA block to use for the GPU
 Simulator. This must be a power of 2 in the range [32, 256].
-* gpu_state_threads: number of threads per CUDA block to use for the GPU
+* `gpu_state_threads`: number of threads per CUDA block to use for the GPU
 StateSpace. This must be a power of 2 in the range [32, 1024].
-* gpu_data_blocks: number of data blocks to use on GPU. Below 16 data blocks,
+* `gpu_data_blocks`: number of data blocks to use on GPU. Below 16 data blocks,
 performance is noticeably reduced.
