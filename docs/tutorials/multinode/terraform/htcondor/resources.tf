@@ -61,6 +61,7 @@ variable "service_account" {
   default = "default"
 }
 locals{
+  autoscaler = file("${path.module}/autoscaler.py")
   compute_startup = templatefile(
     "${path.module}/startup-centos.sh", 
     {
@@ -68,7 +69,10 @@ locals{
       "cluster_name" = var.cluster_name,
       "htserver_type" = "compute", 
       "osversion" = var.osversion, 
+      "zone" = var.zone, 
       "condorversion" = var.condorversion, 
+      "max_replicas" = var.max_replicas, 
+      "autoscaler" = "",
       "admin_email" = var.admin_email
     })
   submit_startup = templatefile(
@@ -79,6 +83,9 @@ locals{
       "htserver_type" = "submit", 
       "osversion" = var.osversion, 
       "condorversion" = var.condorversion, 
+      "zone" = var.zone, 
+      "max_replicas" = var.max_replicas, 
+      "autoscaler" = local.autoscaler,
       "admin_email" = var.admin_email
     })
   manager_startup = templatefile(
@@ -88,7 +95,10 @@ locals{
       "cluster_name" = var.cluster_name,
       "htserver_type" = "manager", 
       "osversion" = var.osversion, 
+      "zone" = var.zone, 
+      "max_replicas" = var.max_replicas, 
       "condorversion" = var.condorversion, 
+      "autoscaler" = "",
       "admin_email" = var.admin_email
     })
 }
@@ -262,7 +272,7 @@ resource "google_compute_instance_group_manager" "condor-compute-igm" {
   name               = var.cluster_name
 
   project            = var.project
-  target_size        = "1"
+  target_size        = "0"
 
   update_policy {
     max_surge_fixed         = 2
@@ -324,3 +334,6 @@ resource "google_compute_autoscaler" "condor-compute-as" {
 }
 */
 
+output "startup_script" {
+  value = local.submit_startup
+}

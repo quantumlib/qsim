@@ -29,12 +29,13 @@ import math
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--p", help="Project id", type=str)
-parser.add_argument("--r", help="GCP region where the managed instance group is located", type=str)
-parser.add_argument("--z", help="Name of GCP zone where the managed instance group is located", type=str)
-parser.add_argument("--g", help="Name of the managed instance group", type=str)
-parser.add_argument("--c", help="Maximum number of compute instances", type=int)
-parser.add_argument("--v", help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
+parser.add_argument("--p", required=True, help="Project id", type=str)
+parser.add_argument("--z", required=True, help="Name of GCP zone where the managed instance group is located", type=str)
+parser.add_argument("--g", required=True, help="Name of the managed instance group", type=str)
+parser.add_argument("--c", required=True, help="Maximum number of compute instances", type=int)
+parser.add_argument("--v", default=0, help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
+parser.add_argument("--d", default=0, help="Dry Run, default=0, if 1, then no scaling actions", type=int, choices=[0, 1])
+
 
 args = parser.parse_args()
         
@@ -57,12 +58,15 @@ class AutoScaler():
             self.service.instanceGroupManagers().deleteInstances(project=self.project,
                 zone=self.zone, instanceGroupManager=self.instance_group_manager,
                 body=instances_to_delete)
-        response = requestDelInstance.execute()
-        if self.debug > 0:
-            print('Request to delete instance ' + instance)
-            pprint(response)
-    
-        return response
+
+        # execute if not a dry-run
+        if not self.dryrun:
+            response = requestDelInstance.execute()
+            if self.debug > 0:
+                print('Request to delete instance ' + instance)
+                pprint(response)
+            return response
+        return "Dry Run"
     
     def getInstanceTemplateInfo(self):
         requestTemplateName = \
@@ -118,7 +122,6 @@ class AutoScaler():
         if self.debug > 1:
             print('Launching autoscaler.py with the following arguments:')
             print('project_id: ' + self.project)
-            print('region: ' + self.region)
             print('zone: ' + self.zone)
             print('group_manager: ' + self.instance_group_manager)
             print('computeinstancelimit: ' + str(self.compute_instance_limit))
@@ -258,12 +261,8 @@ def main():
 
     scaler = AutoScaler()
 
-    exit()
     # Project ID
     scaler.project = args.p  # Ex:'slurm-var-demo'
-    
-    # Region where the managed instance group is located
-    scaler.region = args.r  # Ex: 'us-central1'
     
     # Name of the zone where the managed instance group is located
     scaler.zone = args.z # Ex: 'us-central1-f'
@@ -276,6 +275,9 @@ def main():
     
     # Default number of running instances that the managed instance group should maintain at any given time. This number will go up and down based on the load (number of jobs in the queue)
     scaler.size = 0
+
+    # Dry run: : 0, run scaling; 1, only provide info.
+    scaler.dryrun = args.d > 0
     
     # Debug level: 1-print debug information, 2 - print detail debug information
     scaler.debug = 0
