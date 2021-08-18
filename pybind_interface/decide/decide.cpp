@@ -33,7 +33,7 @@ int detect_instructions() {
   }
   if (nIds >= 7) {
     cpuid(info, 7);
-    if ((info[1] & (1 <<  5) )!= 0) {
+    if ((info[1] & (1 <<  5))!= 0) {
       instr = AVX2;
     }
     if ((info[1] & (1 << 16)) != 0) {
@@ -45,9 +45,28 @@ int detect_instructions() {
   return static_cast<int>(instr);
 }
 
+enum GPUCapabilities { CUDA = 0, NO_GPU = 10 };
+
+// For now, GPU detection is performed at compile time, as our wheels are
+// generated on Github Actions runners which do not have GPU support.
+//
+// Users wishing to use qsim with GPU will need to compile locally on a device
+// which has the necessary CUDA toolkit.
+int detect_gpu() {
+  #ifdef __NVCC__
+  GPUCapabilities gpu = CUDA;
+  #else
+  GPUCapabilities gpu = NO_GPU;
+  #endif
+  return gpu;
+}
+
 PYBIND11_MODULE(qsim_decide, m) {
   m.doc() = "pybind11 plugin";  // optional module docstring
 
   // Methods for returning amplitudes
   m.def("detect_instructions", &detect_instructions, "Detect SIMD");
+
+  // Detect available GPUs.
+  m.def("detect_gpu", &detect_gpu, "Detect GPU");
 }

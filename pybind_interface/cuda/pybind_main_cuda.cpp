@@ -12,35 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "pybind_main_avx512.h"
+#include "pybind_main_cuda.h"
 
-#include "../../lib/formux.h"
-#include "../../lib/simulator_avx512.h"
+#include "../../lib/simulator_cuda.h"
 
 namespace qsim {
-  template <typename For>
-  using Simulator = SimulatorAVX512<For>;
+  using Simulator = SimulatorCUDA<float>;
 
   struct Factory {
-    // num_state_threads and num_dblocks are unused, but kept for consistency
-    // with the GPU Factory.
+    using Simulator = qsim::Simulator;
+    using StateSpace = Simulator::StateSpace;
+
     Factory(
       unsigned num_sim_threads,
       unsigned num_state_threads,
-      unsigned num_dblocks) : num_threads(num_sim_threads) {}
-
-    using Simulator = qsim::Simulator<For>;
-    using StateSpace = Simulator::StateSpace;
+      unsigned num_dblocks
+    ) : ss_params{num_state_threads, num_dblocks},
+        sim_params{num_sim_threads} {}
 
     StateSpace CreateStateSpace() const {
-      return StateSpace(num_threads);
+      return StateSpace(ss_params);
     }
 
     Simulator CreateSimulator() const {
-      return Simulator(num_threads);
+      return Simulator(sim_params);
     }
 
-    unsigned num_threads;
+    const StateSpace::Parameter ss_params;
+    const Simulator::Parameter sim_params;
   };
 }
 
