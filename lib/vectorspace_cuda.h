@@ -67,6 +67,10 @@ class VectorSpaceCUDA {
       return num_qubits_;
     }
 
+    bool requires_copy_to_host() const {
+      return true;
+    }
+
    private:
     Pointer ptr_;
     unsigned num_qubits_;
