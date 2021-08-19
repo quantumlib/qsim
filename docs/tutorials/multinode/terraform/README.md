@@ -135,6 +135,7 @@ After the job s completed, the ouput of the job can be seen:
 ```
 cat out/out.1-0
 ```
+## Running noisy simulations
 To run multiple simulations, you can run the submit file `noise.sub`:
 ```
 universe                = docker
@@ -149,9 +150,45 @@ log                     = out/log.$(Cluster)-$(Process)
 request_memory          = 10GB
 queue 50
 ```
-Change the final line to `queue 100`. Then submit the job again:
+The final line in this submit file has `queue 50`. This means 50 instances of this simulation will be run. The job can be submitted with the `condor_submit` command.
 ```
-condor_submit circuit_q24.sub
+condor_submit noise.sub
 ```
-Now many jobs will be submitted.
+The output will look as follows:
+```
+Submitting job(s)..................................................
+50 job(s) submitted to cluster 2.
+```
+If this is the second _submit_ you have run, you can see the output of the all the simualtions. The output will be in the `out` directory. 
+```
+cat out/out.2-*
+```
+You can see the results of the simulations.
+```
+Counter({3: 462, 0: 452, 2: 50, 1: 36})
+Counter({0: 475, 3: 435, 1: 49, 2: 41})
+Counter({0: 450, 3: 440, 1: 59, 2: 51})
+Counter({0: 459, 3: 453, 2: 51, 1: 37})
+Counter({3: 471, 0: 450, 2: 46, 1: 33})
+Counter({3: 467, 0: 441, 1: 54, 2: 38})
+Counter({3: 455, 0: 455, 1: 50, 2: 40})
+Counter({3: 466, 0: 442, 2: 51, 1: 41})
+.
+.
+.
+```
+Note that because this is a noise driven circuit, the results of each simulation are different.
+
+To run your own simulations, simply create a noisy circuit in your _qsim_ python file.
+
+There are many more examples of circuits to be run [here](https://quantumai.google/cirq/noise)
+
+## Shutting down
+When you are done with this tutorial, it is important to remove the resources. You can do this with _terraform_
+```
+make destroy
+```
+> The most effective way to ensure you are not charged is to delete the project. [The instructions are here.](https://cloud.google.com/resource-manager/docs/creating-managing-projects#shutting_down_projects)
+
+
 
