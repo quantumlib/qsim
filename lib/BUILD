@@ -1,12 +1,12 @@
 package(default_visibility = ["//visibility:public"])
 
-##### Aggregate libraries #####
-
 # Libraries of the following form:
 #   # cuda_library
 #   cc_library(...)
 # are converted to cuda_library rules when imported to the Google codebase.
 # Do not modify this tag.
+
+##### Aggregate libraries #####
 
 # Full qsim library
 # cuda_library
