@@ -2,7 +2,14 @@ package(default_visibility = ["//visibility:public"])
 
 ##### Aggregate libraries #####
 
+# Libraries of the following form:
+#   # cuda_library
+#   cc_library(...)
+# are converted to cuda_library rules when imported to the Google codebase.
+# Do not modify this tag.
+
 # Full qsim library
+# cuda_library
 cc_library(
     name = "qsim_lib",
     hdrs = [
@@ -171,6 +178,7 @@ cc_library(
     hdrs = ["util.h"],
 )
 
+# cuda_library
 cc_library(
     name = "util_cuda",
     hdrs = ["util_cuda.h"],
@@ -331,6 +339,7 @@ cc_library(
     hdrs = ["vectorspace.h"],
 )
 
+# cuda_library
 cc_library(
     name = "vectorspace_cuda",
     hdrs = ["vectorspace_cuda.h"],
@@ -384,6 +393,7 @@ cc_library(
     ],
 )
 
+# cuda_library
 cc_library(
     name = "statespace_cuda",
     hdrs = [
@@ -435,6 +445,7 @@ cc_library(
     ],
 )
 
+# cuda_library
 cc_library(
     name = "simulator_cuda",
     hdrs = [
