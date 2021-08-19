@@ -18,7 +18,7 @@ When you have a project created, move on to the next step.
 
 ## Configure your enviroment
 
-In your procject using the Cloud Console(https://console.google.com/home/dashboard?cloudshell=true), clone this Github repo.
+In your project using the Cloud Console(https://console.google.com/home/dashboard?cloudshell=true), clone this Github repo.
 ```
 git clone https://github.com/jrossthomson/qsim.git
 ```
@@ -135,19 +135,19 @@ After the job s completed, the ouput of the job can be seen:
 ```
 cat out/out.1-0
 ```
-To run multiple simulations, you can change the submit file by editing the file `circuit_q24.sub`:
+To run multiple simulations, you can run the submit file `noise.sub`:
 ```
 universe                = docker
-docker_image            = gcr.io/quantum-builds/github.com/quantumlib/qsim
-arguments               = -c circuit_q24
-transfer_input_files    = ../../../circuits/circuit_q24
+docker_image            = gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
+arguments               = python3 noise3.py
 should_transfer_files   = YES
+transfer_input_files    = noise3.py
 when_to_transfer_output = ON_EXIT
 output                  = out/out.$(Cluster)-$(Process)
 error                   = out/err.$(Cluster)-$(Process)
 log                     = out/log.$(Cluster)-$(Process)
-request_memory          = 1GB
-queue 1
+request_memory          = 10GB
+queue 50
 ```
 Change the final line to `queue 100`. Then submit the job again:
 ```
