@@ -31,7 +31,7 @@ cd qsim/docs/tutorials/multinode/terraform
 ```
 This is where you will use terraform to create the HTCondor cluster required to run your jobs.
 
-### Edit init file to setup environment
+### Edit init.sh file to setup environment
 
 You can now edit `init.sh` to change the name of the project you are using. You can also change the zone and region as you see fit. More information is available [here](https://cloud.google.com/compute/docs/regions-zones).
 
