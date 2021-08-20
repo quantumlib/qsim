@@ -8,10 +8,66 @@ package(default_visibility = ["//visibility:public"])
 
 ##### Aggregate libraries #####
 
-# Full qsim library
-# cuda_library
+# Full qsim library, minus CUDA
 cc_library(
     name = "qsim_lib",
+    hdrs = [
+        "bits.h",
+        "bitstring.h",
+        "channel.h",
+        "channels_cirq.h",
+        "circuit_noisy.h",
+        "circuit_qsim_parser.h",
+        "circuit.h",
+        "expect.h",
+        "formux.h",
+        "fuser.h",
+        "fuser_basic.h",
+        "fuser_mqubit.h",
+        "gate.h",
+        "gate_appl.h",
+        "gates_cirq.h",
+        "gates_qsim.h",
+        "hybrid.h",
+        "io_file.h",
+        "io.h",
+        "matrix.h",
+        "mps_simulator.h",
+        "mps_statespace.h",
+        "parfor.h",
+        "qtrajectory.h",
+        "run_qsim.h",
+        "run_qsimh.h",
+        "seqfor.h",
+        "simmux.h",
+        "simulator_avx.h",
+        "simulator_avx512.h",
+        "simulator_basic.h",
+        "simulator_sse.h",
+        "statespace_avx.h",
+        "statespace_avx512.h",
+        "statespace_basic.h",
+        "statespace_sse.h",
+        "statespace.h",
+        "umux.h",
+        "unitaryspace.h",
+        "unitaryspace_avx.h",
+        "unitaryspace_avx512.h",
+        "unitaryspace_basic.h",
+        "unitaryspace_sse.h",
+        "unitary_calculator_avx.h",
+        "unitary_calculator_avx512.h",
+        "unitary_calculator_basic.h",
+        "unitary_calculator_sse.h",
+        "util.h",
+        "vectorspace.h",
+    ],
+)
+
+# Full qsim library, including CUDA
+# cuda_library
+cc_library(
+    name = "qsim_cuda_lib",
     hdrs = [
         "bits.h",
         "bitstring.h",
