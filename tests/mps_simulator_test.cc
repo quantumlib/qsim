@@ -26,7 +26,7 @@ namespace mps {
 namespace {
 
 TEST(MPSSimulator, Create) {
-  auto sim = MPSSimulator<For, float>(1);
+  MPSSimulator<For, float>(1);
 }
 
 TEST(MPSSimulator, Apply1RightArbitrary) {
