@@ -161,7 +161,7 @@ The output will look as follows:
 Submitting job(s)..................................................
 50 job(s) submitted to cluster 2.
 ```
-If this is the second _submit_ you have run, you can see the output of the all the simualtions. The output will be in the `out` directory. 
+If this is the second _submit_ you have run, you can see the output of the all the simulations. The output will be in the `out` directory. 
 ```
 cat out/out.2-*
 ```
