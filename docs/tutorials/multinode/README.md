@@ -19,7 +19,7 @@ When you have a project created, move on to the next step.
 
 ## Configure your enviroment
 
-In your project using the Cloud Console(https://console.google.com/home/dashboard?cloudshell=true), clone this Github repo.
+In your project using the Cloud Shell (https://console.google.com/home/dashboard?cloudshell=true), clone this Github repo.
 ```
 git clone https://github.com/jrossthomson/qsim.git
 ```
