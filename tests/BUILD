@@ -265,6 +265,7 @@ cc_library(
         "//lib:gate_appl",
         "//lib:gates_qsim",
         "//lib:io",
+        "//lib:util",
     ],
     testonly = 1,
 )

@@ -383,12 +383,14 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
                             Factory>;
 
   bool use_gpu;
+  bool denormals_are_zeros;
   unsigned num_sim_threads;
   unsigned num_state_threads = 0;
   unsigned num_dblocks = 0;
   Runner::Parameter param;
   try {
     use_gpu = parseOptions<unsigned>(options, "g\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
     if (use_gpu) {
       num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
@@ -403,6 +405,13 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     IO::errorf(exp.what());
     return {};
   }
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
+
   Runner::Run(
     param, Factory(num_sim_threads, num_state_threads, num_dblocks), circuit,
     measure);
@@ -436,6 +445,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 
   Runner::Parameter param;
   bool use_gpu;
+  bool denormals_are_zeros;
   unsigned num_sim_threads;
   unsigned num_state_threads = 0;
   unsigned num_dblocks = 0;
@@ -443,6 +453,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 
   try {
     use_gpu = parseOptions<unsigned>(options, "g\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
     if (use_gpu) {
       num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
@@ -469,6 +480,12 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
       amplitudes.push_back(state_space.GetAmpl(state, b));
     }
   };
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
 
   if (!Runner::RunBatch(param, ncircuit, seed, seed + 1, state_space,
                         simulator, measure)) {
@@ -544,6 +561,7 @@ class SimulatorHelper {
       : state_space(Factory(1, 1, 1).CreateStateSpace()),
         state(StateSpace::Null()),
         scratch(StateSpace::Null()) {
+    bool denormals_are_zeros;
     is_valid = false;
     is_noisy = noisy;
     try {
@@ -557,6 +575,7 @@ class SimulatorHelper {
       }
 
       use_gpu = parseOptions<unsigned>(options, "g\0");
+      denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
       if (use_gpu) {
         num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
         num_state_threads = parseOptions<unsigned>(options, "gsst\0");
@@ -572,6 +591,12 @@ class SimulatorHelper {
         num_sim_threads, num_state_threads, num_dblocks).CreateStateSpace();
       state = state_space.Create(num_qubits);
       is_valid = true;
+
+      if (denormals_are_zeros) {
+        SetFlushToZeroAndDenormalsAreZeros();
+      } else {
+        ClearFlushToZeroAndDenormalsAreZeros();
+      }
     } catch (const std::invalid_argument &exp) {
       // If this triggers, is_valid is false.
       IO::errorf(exp.what());
@@ -609,6 +634,7 @@ class SimulatorHelper {
     bool result = false;
 
     Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+
     if (is_noisy) {
       std::vector<uint64_t> stat;
       auto params = get_noisy_params();
@@ -772,12 +798,14 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
                             Factory>;
 
   bool use_gpu;
+  bool denormals_are_zeros;
   unsigned num_sim_threads;
   unsigned num_state_threads = 0;
   unsigned num_dblocks = 0;
   Runner::Parameter param;
   try {
     use_gpu = parseOptions<unsigned>(options, "g\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
     if (use_gpu) {
       num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
@@ -798,6 +826,12 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
   state_space.SetStateZero(state);
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
 
   if (!Runner::Run(param, factory, circuit, state, results)) {
     IO::errorf("qsim sampling of the circuit errored out.\n");
@@ -830,6 +864,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
 
   Runner::Parameter param;
   bool use_gpu;
+  bool denormals_are_zeros;
   unsigned num_sim_threads;
   unsigned num_state_threads = 0;
   unsigned num_dblocks = 0;
@@ -837,6 +872,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
 
   try {
     use_gpu = parseOptions<unsigned>(options, "g\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
     if (use_gpu) {
       num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
@@ -882,6 +918,12 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
       }
     }
   };
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
 
   if (!Runner::RunBatch(param, ncircuit, seed, seed + 1,
                         state_space, simulator, measure)) {
