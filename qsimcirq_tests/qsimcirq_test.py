@@ -1491,12 +1491,12 @@ def test_cirq_qsim_global_shift():
         qsim_result1.state_vector(), cirq_result.state_vector()
     )
 
-    qsim_simulator.qsim_options["u"] = True
+    qsim_simulator.qsim_options["z"] = True
     qsim_result2 = qsim_simulator.simulate(circuit)
 
     assert (qsim_result1.state_vector() == qsim_result2.state_vector()).all()
 
-    qsim_simulator.qsim_options["u"] = False
+    qsim_simulator.qsim_options["z"] = False
     qsim_result3 = qsim_simulator.simulate(circuit)
 
     assert (qsim_result1.state_vector() == qsim_result3.state_vector()).all()

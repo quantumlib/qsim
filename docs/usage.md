@@ -23,7 +23,7 @@ Sample circuits are provided in
 |`-t num_threads` | number of threads to use|
 |`-f max_fused_size` | maximum fused gate size|
 |`-v verbosity` | verbosity level (0,1,>1)|
-|`-z | set flush-to-zero and denormals-are-zeros MXCSR control flags|
+|`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsim_base computes all the amplitudes and just prints the first eight of them
 (or a smaller number for 1- or 2-qubit circuits).
@@ -47,7 +47,7 @@ Example:
 |`-t num_threads` | number of threads to use|
 |`-f max_fused_size` | maximum fused gate size|
 |`-v verbosity` | verbosity level (0,1,>1)|
-|`-z | set flush-to-zero and denormals-are-zeros MXCSR control flags|
+|`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsim_von_neumann computes all the amplitudes and calculates the von Neumann
 entropy. Note that this can be quite slow for large circuits and small thread
@@ -78,7 +78,7 @@ Example:
 |`-t num_threads` | number of threads to use|
 |`-f max_fused_size` | maximum fused gate size|
 |`-v verbosity` | verbosity level (0,1,>1)|
-|`-z | set flush-to-zero and denormals-are-zeros MXCSR control flags|
+|`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsim_amplitudes reads input files of bitstrings, computes the corresponding
 amplitudes at specified times and writes them to output files.
@@ -113,7 +113,7 @@ Example:
 |`-r num_root_gates` | number of root gates|
 |`-t num_threads` | number of threads to use|
 |`-v verbosity` | verbosity level (0,>0)|
-|`-z | set flush-to-zero and denormals-are-zeros MXCSR control flags|
+|`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsimh_base just computes and just prints the first eight amplitudes. The hybrid
 Schrödinger-Feynman method is used. The lattice is split into two parts.
@@ -194,7 +194,7 @@ maximum "time".
 |`-o output_file` | amplitude output file|
 |`-t num_threads` | number of threads to use|
 |`-v verbosity` | verbosity level (0,>0)|
-|`-z | set flush-to-zero and denormals-are-zeros MXCSR control flags|
+|`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
 amplitudes and writes them to the output file. The hybrid Schrödinger-Feynman

@@ -117,10 +117,10 @@ the circuit once for each repetition unless all measurements are terminal. This
 ensures that nondeterminism from intermediate measurements is properly
 reflected in the results.
 
-In rare cases when the state vector and the gate matrices have many zero
-entries (denormal numbers), a significant performance slowdown can occur.
-Set the `denormals_are_zeros` option to `True` to prevent this issue
-potentially at the cost of a tiny precision loss:
+In rare cases when the state vector and gate matrices have many zero entries
+(denormal numbers), a significant performance slowdown can occur. Set
+the `denormals_are_zeros` option to `True` to prevent this issue potentially
+at the cost of a tiny precision loss:
 
 ```
 # equivalent to {'t': 8, 'v': 0, 'z': True}
