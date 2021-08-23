@@ -142,6 +142,9 @@ class QSimOptions:
         gpu_data_blocks: number of data blocks to use on GPU. Below 16 data
             blocks, performance is noticeably reduced.
         verbosity: Logging verbosity.
+        denormals_are_zeros: if true, set flush-to-zero and denormals-are-zeros
+            MXCSR control flags. This prevents rare cases of performance
+            slowdown potentially at the cost of a tiny precision loss.
     """
 
     max_fused_gate_size: int = 2
@@ -152,6 +155,7 @@ class QSimOptions:
     gpu_state_threads: int = 512
     gpu_data_blocks: int = 16
     verbosity: int = 0
+    denormals_are_zeros: bool = False
 
     def as_dict(self):
         """Generates an options dict from this object.
@@ -167,6 +171,7 @@ class QSimOptions:
             "gsst": self.gpu_state_threads,
             "gdb": self.gpu_data_blocks,
             "v": self.verbosity,
+            "z": self.denormals_are_zeros,
         }
 
 

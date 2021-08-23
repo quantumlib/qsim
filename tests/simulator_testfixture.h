@@ -27,6 +27,7 @@
 #include "../lib/gate_appl.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
+#include "../lib/util.h"
 
 namespace qsim {
 
@@ -460,11 +461,11 @@ void TestCircuitWithControlledGates(const Factory& factory) {
   StateSpace state_space = factory.CreateStateSpace();
   Simulator simulator = factory.CreateSimulator();
 
-  auto state = state_space.Create(num_qubits);
-  state_space.SetStateZero(state);
+  auto state1 = state_space.Create(num_qubits);
+  state_space.SetStateZero(state1);
 
   for (const auto& gate : gates) {
-    ApplyGate(simulator, gate, state);
+    ApplyGate(simulator, gate, state1);
   }
 
 /*
@@ -717,9 +718,41 @@ if __name__ == '__main__':
   unsigned size = 1 << num_qubits;
 
   for (unsigned i = 0; i < size; ++i) {
-    auto a = StateSpace::GetAmpl(state, i);
+    auto a = StateSpace::GetAmpl(state1, i);
     EXPECT_NEAR(std::real(a), expected_results[i][0], 1e-6);
     EXPECT_NEAR(std::imag(a), expected_results[i][1], 1e-6);
+  }
+
+  SetFlushToZeroAndDenormalsAreZeros();
+
+  auto state2 = state_space.Create(num_qubits);
+  state_space.SetStateZero(state2);
+
+  for (const auto& gate : gates) {
+    ApplyGate(simulator, gate, state2);
+  }
+
+  for (unsigned i = 0; i < size; ++i) {
+    auto a1 = StateSpace::GetAmpl(state1, i);
+    auto a2 = StateSpace::GetAmpl(state2, i);
+    EXPECT_EQ(std::real(a1), std::real(a2));
+    EXPECT_EQ(std::imag(a1), std::imag(a2));
+  }
+
+  ClearFlushToZeroAndDenormalsAreZeros();
+
+  auto state3 = state_space.Create(num_qubits);
+  state_space.SetStateZero(state3);
+
+  for (const auto& gate : gates) {
+    ApplyGate(simulator, gate, state3);
+  }
+
+  for (unsigned i = 0; i < size; ++i) {
+    auto a1 = StateSpace::GetAmpl(state1, i);
+    auto a2 = StateSpace::GetAmpl(state3, i);
+    EXPECT_EQ(std::real(a1), std::real(a2));
+    EXPECT_EQ(std::imag(a1), std::imag(a2));
   }
 }
 
