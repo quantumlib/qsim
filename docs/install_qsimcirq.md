@@ -19,19 +19,19 @@ file, and will be automatically installed along with qsimcirq.
 
 ## Linux installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{5,6,7,8,9}`.
+We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{6,7,8,9}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## MacOS installation
 
-We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{5,6,7,8,9}`.
+We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{6,7,8,9}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## Windows installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{5,6,7,8,9}`.
+We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{6,7,8,9}`.
 
 Simply run `pip3 install qsimcirq`.
 
