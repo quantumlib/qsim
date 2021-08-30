@@ -1,50 +1,88 @@
 # Multinode quantum simulation using HTCondor on GCP
-This tutorial will take you through the process of running many qsim simulations
-on Google Cloud. In some situations, it is required to run many instances of the same 
-simulation. This could be used to provide a parameter sweep or to evaluation noise characteristics.
+This tutorial will take you through the process of running multiple simultaneous
+`qsim` simulations on Google Cloud. In some situations, it is required to run
+many instances of the same simulation. This could be used to provide a parameter
+sweep or to evaluation noise characteristics.
+
+One of the key competencies of a quantum computing effort is the ability to run
+simulations. While quantum computing hardware is still years from general
+availability, quantum computing simulation with `qsim` and `Cirq` is available for
+researchers exploring a quantum program. It is expected that simulation will be
+a gating requirement to make use of physical hardware, to prove out algorithms
+both for computability and stability under noisy conditions. Many thousands of
+simulation runs will typically be required to prove out the gating requirements
+for each circuit, sometimes requiring years of simulation in advance of any
+practical use of the quantum hardware.
 
 ## Objectives
 
-* Use Terraform to deploy a HTCondor cluster
+* Use `terraform` to deploy a HTCondor cluster
 * Run a multinode simulation using HTCondor
 * Query cluster information and monitor running jobs in HTCondor
+* Use `terraform` to destroy the cluster
 
 
-## Create a project
+## Step 1: Create a project
 In a seperate tutorial the method to create Google Cloud project is explained in detail. 
 [Please refer to this tutorial for guidance](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup).
 
 When you have a project created, move on to the next step.
 
-## Configure your enviroment
+## Step 2: Configure your enviroment
 
-In your project using the Cloud Console(https://console.google.com/home/dashboard?cloudshell=true), clone this Github repo.
-```
+Although this tutorial can be run from your local computer, we recommend the use
+of [Google Cloud Shell](https://cloud.google.com/shell). Cloud Shell has many useful tools pre-installed.
+
+Once you have created  a project in the previous step, 
+the Cloud Console with Cloud Shell activeated can be reached through this link: (https://console.google.com/home/dashboard?cloudshell=true)
+
+### Clone this repo
+
+In your Clous Shell window, clone this Github repo.
+``` bash
 git clone https://github.com/jrossthomson/qsim.git
 ```
 
+### Change directory
 Change directory to the tutorial:
-```
+``` bash
 cd qsim/docs/tutorials/multinode/terraform
 ```
-This is where you will use terraform to create the HTCondor cluster required to run your jobs.
+This is where you will use `terraform` to create the HTCondor cluster required to run your jobs.
 
-### Edit init file to setup environment
+### Edit `init.sh` file to customize your environment
 
-You can now edit `init.sh` to change the name of the project you are using. You can also change the zone and region as you see fit. More information is available [here](https://cloud.google.com/compute/docs/regions-zones).
+You can now edit `init.sh` to change the name of the project you are using. You
+can also change the zone and region as you see fit. More information is
+available [here](https://cloud.google.com/compute/docs/regions-zones).
 
-Change the variables to reflect your project, most important is the first line:
+Use your favorite text file editor, either the integrated [Cloud Shell
+Editor](https://cloud.google.com/shell/docs/editor-overview), `vim`, `emacs` or `nano`.
+For example:
+``` bash
+vim init.sh
 ```
+The file has many lines, but only edit the first 4.
+``` bash
+export TF_VAR_project=quantum-htcondor-15
+export TF_VAR_project_id=us-east4-c
+export TF_VAR_zone=us-east4-c
+export TF_VAR_region=us-east4
+```
+
+The most important is the first line, indicating the name of the project you created above.
+``` bash
 export TF_VAR_project=my-quantum-htcondor-project
 ```
 The project id needs to be globally unique and to be the same as the project you just created.
 
+### Source the `init.sh` file
 The edited `init.sh` file should be "sourced" in the cloud shell:
 
-```
+``` bash
 source init.sh
 ```
-Repsond in the affirmative to any pop-ups that request permissions on the Cloud platform.
+Respond `Agree` to any pop-ups that request permissions on the Google Cloud platform.
 
 The final outcome of this script will include:
 
@@ -53,36 +91,53 @@ The final outcome of this script will include:
 * The appropriate permissions assigned to the service account
 * A key file created to enable the use of Google Cloud automation.
 
-This will take about 60 seconds. At the end you will see output about permissions and the configuration of the account.
+This will take up to 60 seconds. At the end you will see output about
+permissions and the configuration of the account.
 
-## Run terraform
+##  Step 3: Run terraform
 
-When this is complete, you can initialize teraform to begin your cluster creations:
-```
+After the previous steps are completed, you can initialize `terraform` to begin your cluster creation.
+The first step is to initialize the `terraform` state.
+``` bash
 terraform init
 ```
-A correct result will contain:
+A successful result will contain the text:
 ```
 Terraform has been successfully initialized!
 ```
-Some terraform commands are wrapped in a makefile, so you can now create your cluster:
-```
+### Run the `make` command
+For convenience, some terraform commands are prepared in a `Makefile`. This means
+you can now create your cluster, with a simple `make` command.
+```bash
 make apply
 ```
 A successful run will show:
 ```
 Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 ```
-## Connect to the Submit node for HTCondor
-You will now be able list the VMs created:
+## Step4: Connect to the _submit_ node for HTCondor
+Although there are ways to run `HTCondor` commands from your local machine, 
+the normal path  is to login to the _submit_ node. From there you can run 
+commands to submit and monitor jobs on HTCondor.
+
+### List VMs that were created by
+
+You can list the VMs created. One of them will be the submit node. It will be the VM with
+"submit" in the name.
+
 ```
 gcloud compute instances list
 ```
-You will log in to the `submit` node:
-```
+Identify the node name, then log in to the `submit` node. If you used the
+standard install, the cluster name is "c". In that case you would connect using
+the `gcloud ssh` command.
+```bash
 gcloud compute ssh c-submit
 ```
-Now you are logged in to your HTCondor cluster.
+Now you are logged in to your HTCondor cluster. You will see a command prompt something like
+```bash
+[mylogin@c-submit ~]$
+```
 
 ### Checking the status 
 You can verify if the HTCondor install is completed:
@@ -100,9 +155,15 @@ Total for all users: 0 jobs; 0 completed, 0 removed, 0 idle, 0 running, 0 held, 
 ```
 If you get `command not found`, you will need to wait a few minutes for the HTCondor install to complete.
 
-## Clone the repo on your cluster
+## Step 5: Get the sample code and run it
+The HTCondor cluster is now ready for your jobs to be run. If you are familiar with HTCondor and you want to run your own jobs, you may do so. 
 
-Again on the `submit` node you you can install the repo to get access to previously created submission files:
+If you don't have jobs to run, you can get sample jobs from this Github repo. You will clone the repo to 
+the submit node and run a job.
+
+##  Clone the repo on your cluster
+
+on the `submit` node you you can install the repo to get access to previously created submission files:
 ```
 git clone https://github.com/jrossthomson/qsim.git
 ```
@@ -110,6 +171,7 @@ Then cd to the tutorial directory.
 ```
 cd qsim/docs/tutorials/multinode
 ```
+### Submit a job
 Now it is possible to submit a job:
 ```
 condor_submit circuit_q24.sub
