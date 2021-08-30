@@ -26,9 +26,3 @@ gcloud projects add-iam-policy-binding ${TF_VAR_project} --member serviceAccount
 gcloud projects add-iam-policy-binding ${TF_VAR_project} --member serviceAccount:${TF_VAR_service_account} --role roles/monitoring.admin
 gcloud projects add-iam-policy-binding ${TF_VAR_project} --member serviceAccount:${TF_VAR_service_account} --role roles/logging.admin
 gcloud projects add-iam-policy-binding ${TF_VAR_project} --member serviceAccount:${TF_VAR_service_account} --role roles/autoscaling.metricsWriter
-
-"""
-# Save key file locally.
-gcloud iam service-accounts keys create ~/.${TF_VAR_project_id}.json --iam-account=${TF_VAR_service_account}
-export GOOGLE_APPLICATION_CREDENTIALS=~/.${TF_VAR_project_id}.json
-"""

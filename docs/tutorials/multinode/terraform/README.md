@@ -128,13 +128,18 @@ You can list the VMs created. One of them will be the submit node. It will be th
 ```
 gcloud compute instances list
 ```
-Identify the node name, then log in to the `submit` node. If you used the
-standard install, the cluster name is "c". In that case you would connect using
-the `gcloud ssh` command.
+You will see two instances listed:
+* c-manager: the core controller node
+* c-submit: the submit node where you will run interactive work.
+
+Identify then log in to the `submit` node. If you used the standard install, the
+cluster name is "c". In that case you would connect using the `gcloud ssh`
+command.
 ```bash
 gcloud compute ssh c-submit
 ```
-Now you are logged in to your HTCondor cluster. You will see a command prompt something like
+Now you are logged in to your HTCondor cluster. You will see a command prompt
+something like:
 ```bash
 [mylogin@c-submit ~]$
 ```
@@ -181,7 +186,13 @@ If successful, the output will be:
 Submitting job(s).
 1 job(s) submitted to cluster 1.
 ```
-This may take a few minutes, but when completed the command:
+You can see the job in queue by with the `condor_q` command.
+```
+condor_q
+```
+The job will take several minutes to finish. The time includes creating a VM
+compute node, installing the HTCondor system and running the job. When completed
+the files will be in the `out` directory.
 ```
 ls out
 ```
@@ -197,8 +208,28 @@ After the job s completed, the ouput of the job can be seen:
 ```
 cat out/out.1-0
 ```
-## Running noisy simulations
-To run multiple simulations, you can run the submit file `noise.sub`:
+## Step5: Run multi-node noise simulations
+Noise simulations make use of a [Monte Carlo
+method](https://en.wikipedia.org/wiki/Monte_Carlo_method) for [quantum
+trajectories](https://en.wikipedia.org/wiki/Quantum_Trajectory_Theory). 
+
+The primary goal of these simulations is to understand the behavior of the
+quantum circuit taking into account the effects of noise. There are many
+potential sources of noise in a quantum circuit, including thermal noise, 1/f
+noise or shot noise, as well as perturbations from cosmic rays. Understanding
+and calibrating noise in quantum computing is an active field of investigation,
+and it will require well characterized simulations.
+
+To run multiple simulations, you can run the submit file `noise.sub`.  The
+submit file is shown below. It is key to note that this is running  a `docker`
+container. Also, the `queue 50` command at the end of the file submits 50
+separate instances of the container. Since this job is noise driven, the output
+of each simulation with be different. A typical analysis of the output would be 
+a statistical study of the means and variations, perhaps looking for parameter 
+ranges where circuits are particularly susceptible to noise.
+
+
+### The noise.sub file
 ```
 universe                = docker
 docker_image            = gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
@@ -212,7 +243,7 @@ log                     = out/log.$(Cluster)-$(Process)
 request_memory          = 10GB
 queue 50
 ```
-The final line in this submit file has `queue 50`. This means 50 instances of this simulation will be run. The job can be submitted with the `condor_submit` command.
+The job can be submitted with the `condor_submit` command.
 ```
 condor_submit noise.sub
 ```
@@ -221,7 +252,21 @@ The output will look as follows:
 Submitting job(s)..................................................
 50 job(s) submitted to cluster 2.
 ```
-If this is the second _submit_ you have run, you can see the output of the all the simualtions. The output will be in the `out` directory. 
+To monitor the ongoing process of jobs running, you can take advantage of the
+Linux `watch` command and run `condor_q` repeatedly. When complete you watch can
+be exited with cntrl-c.
+```
+watch "condor_q; condor_status"
+```
+The output of this command will show you the jobs in the queue as well as the
+VMs being created to run the jobs. There is a limit of 20 VMs for this
+configuration of the cluster. This can be modified for future runs.
+
+When the command shows the queue is empty, the command can be stopped with cntl-c.
+
+If this is the second _submit_ you have run, you can see the output of the all
+the simualtions. The output will be in the `out` directory. 
+
 ```
 cat out/out.2-*
 ```
@@ -241,15 +286,46 @@ Counter({3: 466, 0: 442, 2: 51, 1: 41})
 ```
 Note that because this is a noise driven circuit, the results of each simulation are different.
 
-To run your own simulations, simply create a noisy circuit in your _qsim_ python file.
+## Next steps
+
+To run your own simulations, simply create a noisy circuit in your  _qsim_ python file.
+The file being run in this was `noise3.py`. You can take this example and expand
+to your own circuit. 
+
+```python
+import cirq, qsimcirq
+
+# Create a Bell state, |00) + |11)
+q0, q1 = cirq.LineQubit.range(2)
+circuit = cirq.Circuit(
+    cirq.H(q0),
+    cirq.CNOT(q0, q1),
+    cirq.measure(q0, q1, key='m')
+)
+
+# Constructs a noise model that adds depolarizing noise after each gate.
+noise = cirq.NoiseModel.from_noise_model_like(cirq.depolarize(p=0.05))
+
+# Use the noise model to create a noisy circuit.
+noisy_circuit = cirq.Circuit(noise.noisy_moments(circuit, system_qubits=[q0, q1]))
+
+sim = qsimcirq.QSimSimulator()
+result = sim.run(noisy_circuit, repetitions=1000)
+# Outputs a histogram dict of result:count pairs.
+# Expected result is a bunch of 0s and 3s, with fewer 1s and 2s.
+# (For comparison, the noiseless circuit will only have 0s and 3s)
+print(result.histogram(key='m'))
+```
 
 There are many more examples of circuits to be run [here](https://quantumai.google/cirq/noise)
 
-## Shutting down
-When you are done with this tutorial, it is important to remove the resources. You can do this with _terraform_
+## FINAL STEP: Shutting down 
+
+> **IMPORTANT**:  To avoid excess billing for this project, it is important to shut down the cluster. This is easily done using the make command built for this purpose.
 ```
 make destroy
 ```
+
 > The most effective way to ensure you are not charged is to delete the project. [The instructions are here.](https://cloud.google.com/resource-manager/docs/creating-managing-projects#shutting_down_projects)
 
 
