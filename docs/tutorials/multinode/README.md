@@ -38,7 +38,7 @@ the Cloud Console with Cloud Shell activeated can be reached through this link: 
 
 ### Clone this repo
 
-In your Clous Shell window, clone this Github repo.
+In your Cloud Shell window, clone this Github repo.
 ``` bash
 git clone https://github.com/jrossthomson/qsim.git
 ```
