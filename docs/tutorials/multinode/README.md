@@ -166,7 +166,7 @@ The HTCondor cluster is now ready for your jobs to be run. If you are familiar w
 If you don't have jobs to run, you can get sample jobs from this Github repo. You will clone the repo to 
 the submit node and run a job.
 
-##  Clone the repo on your cluster
+###  Clone the repo on your cluster
 
 on the `submit` node you you can install the repo to get access to previously created submission files:
 ```
