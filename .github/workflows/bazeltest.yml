@@ -12,7 +12,7 @@ jobs:
   # Run tests with Bazel v0.26.
   test:
     name: Test with Bazel
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         # Hardware optimizers.
@@ -26,8 +26,8 @@ jobs:
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
         run: |
-          wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
-          sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
+          wget https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel_3.7.2-linux-x86_64.deb
+          sudo dpkg -i bazel_3.7.2-linux-x86_64.deb
       - name: Run C++ tests
         run: |
           bazel test --config=${{ matrix.hardware_opt }} \
@@ -40,7 +40,7 @@ jobs:
 
   test-san:
     name: Sanitizer tests
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         # Test sanitizers
@@ -52,8 +52,8 @@ jobs:
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
         run: |
-          wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
-          sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
+          wget https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel_3.7.2-linux-x86_64.deb
+          sudo dpkg -i bazel_3.7.2-linux-x86_64.deb
       - name: Run C++ tests
         run: |
           bazel test --config=avx --config=openmp \
@@ -61,7 +61,7 @@ jobs:
   
   test-mem:
     name: Test with tcmalloc
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
 
     steps:
       - uses: actions/checkout@v2
@@ -69,8 +69,8 @@ jobs:
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
         run: |
-          wget https://github.com/bazelbuild/bazel/releases/download/0.26.0/bazel_0.26.0-linux-x86_64.deb
-          sudo dpkg -i bazel_0.26.0-linux-x86_64.deb
+          wget https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel_3.7.2-linux-x86_64.deb
+          sudo dpkg -i bazel_3.7.2-linux-x86_64.deb
       - name: Install google-perftools for tcmalloc
         run: sudo apt-get install libgoogle-perftools-dev
       - name: Run C++ tests

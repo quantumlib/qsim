@@ -1,0 +1,80 @@
+name: Build all wheels and release them
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-10.15
+            name: mac
+            cibw:
+              build: "cp36* cp37* cp38*"
+          - os: macos-10.15
+            name: mac-arm
+            cibw:
+              arch: universal2
+              build: "cp39*"
+          - os: ubuntu-20.04
+            name: manylinux2014
+            cibw:
+              arch: x86_64
+              build: "cp36* cp37* cp38* cp39*"
+              manylinux_image: manylinux2014
+          - os: windows-2019
+            name: win_amd64
+            architecture: x64
+            cibw:
+              build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64"
+    env:
+      CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
+      CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
+      CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
+      CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
+      # due to package and module name conflict have to temporarily move it away to run tests
+      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
+      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+    steps:
+      - uses: actions/checkout@v2
+
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v2
+
+      - name: Install cibuildwheel and twine
+        run: python -m pip install cibuildwheel==1.11.0
+
+      - name: Run C++ tests
+        run: bash build_tools/test_libs.sh
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: python-wheels
+          path: ./wheelhouse/*.whl
+  release-wheels:
+    name: Publish all wheels
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: python-wheels
+        path: dist/
+    - name: Publish wheels
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        packages_dir: dist/
+        skip_existing: true
+        verbose: true

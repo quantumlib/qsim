@@ -27,9 +27,9 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o expect_test.x
 g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_basic_test.x fuser_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o fuser_mqubit_test.x fuser_mqubit_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o gates_qsim_test.x gates_qsim_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o hybrid_test.x hybrid_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o hybrid_avx_test.x hybrid_avx_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o matrix_test.x matrix_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o qtrajectory_test.x qtrajectory_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o qtrajectory_avx_test.x qtrajectory_avx_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsim_test.x run_qsim_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o run_qsimh_test.x run_qsimh_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o simulator_avx_test.x simulator_avx_test.cc -lgtest -lpthread
@@ -49,3 +49,8 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx512f -mfma -fopenmp -o unitaryspa
 g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o unitaryspace_basic_test.x unitaryspace_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o unitaryspace_sse_test.x unitaryspace_sse_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o vectorspace_test.x vectorspace_test.cc -lgtest -lpthread
+
+nvcc -O3 -I$path_to_include -L$path_to_lib -o hybrid_cuda_test.x hybrid_cuda_test.cu -lgtest -lpthread
+nvcc -O3 -I$path_to_include -L$path_to_lib -o qtrajectory_cuda_test.x qtrajectory_cuda_test.cu -lgtest -lpthread
+nvcc -O3 -I$path_to_include -L$path_to_lib -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
+nvcc -O3 -I$path_to_include -L$path_to_lib -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread

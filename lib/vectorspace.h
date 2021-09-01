@@ -74,6 +74,10 @@ class VectorSpace {
       return num_qubits_;
     }
 
+    bool requires_copy_to_host() const {
+      return false;
+    }
+
    private:
     Pointer ptr_;
     unsigned num_qubits_;
@@ -126,6 +130,32 @@ class VectorSpace {
     };
 
     for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest.get());
+
+    return true;
+  }
+
+  // It is the client's responsibility to make sure that dest has at least
+  // 2 * 2^src.num_qubits() elements.
+  bool Copy(const Vector& src, fp_type* dest) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* src, fp_type* dest) {
+      dest[i] = src[i];
+    };
+
+    for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest);
+
+    return true;
+  }
+
+  // It is the client's responsibility to make sure that src has at least
+  // 2 * 2^dest.num_qubits() elements.
+  bool Copy(const fp_type* src, Vector& dest) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* src, fp_type* dest) {
+      dest[i] = src[i];
+    };
+
+    for_.Run(Impl::MinSize(dest.num_qubits()), f, src, dest.get());
 
     return true;
   }

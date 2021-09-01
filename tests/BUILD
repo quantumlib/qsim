@@ -141,9 +141,13 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "hybrid_test",
-    srcs = ["hybrid_test.cc"],
+cc_library(
+    name = "hybrid_testfixture",
+    hdrs = ["hybrid_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
@@ -152,11 +156,22 @@ cc_test(
         "//lib:gates_qsim",
         "//lib:hybrid",
         "//lib:io",
-        "//lib:simulator",
+    ],
+    testonly = 1,
+)
+
+cc_test(
+    name = "hybrid_avx_test",
+    srcs = ["hybrid_avx_test.cc"],
+    deps = [
+        ":hybrid_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": avx_copts,
     }),
 )
 
@@ -173,24 +188,38 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "qtrajectory_test",
-    srcs = ["qtrajectory_test.cc"],
+cc_library(
+    name = "qtrajectory_testfixture",
+    hdrs = ["qtrajectory_testfixture.h"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
         "@com_google_googletest//:gtest_main",
         "//lib:channels_cirq",
         "//lib:circuit_noisy",
-        "//lib:formux",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_cirq",
         "//lib:io",
         "//lib:qtrajectory",
-        "//lib:simulator",
+    ],
+    testonly = 1,
+)
+
+cc_test(
+    name = "qtrajectory_avx_test",
+    srcs = ["qtrajectory_avx_test.cc"],
+    deps = [
+        ":qtrajectory_testfixture",
+        "@com_google_googletest//:gtest_main",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
     ],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": avx_copts,
     }),
 )
 
@@ -236,6 +265,7 @@ cc_library(
         "//lib:gate_appl",
         "//lib:gates_qsim",
         "//lib:io",
+        "//lib:util",
     ],
     testonly = 1,
 )
@@ -554,5 +584,36 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:formux",
         "//lib:vectorspace",
+    ],
+)
+
+cc_test(
+    name = "mps_statespace_test",
+    srcs = ["mps_statespace_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:mps_statespace",
+        "//lib:formux",
+    ],
+)
+
+
+cc_test(
+    name = "mps_simulator_test",
+    srcs = ["mps_simulator_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:gate_appl",
+        "//lib:gates_cirq",
+        "//lib:mps_simulator",
+        "//lib:formux",
     ],
 )

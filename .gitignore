@@ -17,3 +17,6 @@ __pycache__
 bazel-*
 
 .idea/*
+
+# Eigen library
+eigen

@@ -34,7 +34,7 @@
 constexpr char usage[] = "usage:\n  ./qsimh_base -c circuit_file "
                          "-d maximum_time -k part1_qubits "
                          "-w prefix -p num_prefix_gates -r num_root_gates "
-                         "-t num_threads -v verbosity\n";
+                         "-t num_threads -v verbosity -z\n";
 
 struct Options {
   std::string circuit_file;
@@ -45,6 +45,7 @@ struct Options {
   unsigned num_root_gatexs = 0;
   unsigned num_threads = 1;
   unsigned verbosity = 0;
+  bool denormals_are_zeros = false;
 };
 
 Options GetOptions(int argc, char* argv[]) {
@@ -56,7 +57,7 @@ Options GetOptions(int argc, char* argv[]) {
     return std::atoi(word.c_str());
   };
 
-  while ((k = getopt(argc, argv, "c:d:k:w:p:r:t:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:k:w:p:r:t:v:z")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -81,6 +82,9 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
+        break;
+      case 'z':
+        opt.denormals_are_zeros = true;
         break;
       default:
         qsim::IO::errorf(usage);
@@ -142,6 +146,10 @@ int main(int argc, char* argv[]) {
   }
   auto parts = GetParts(circuit.num_qubits, opt.part1);
 
+  if (opt.denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  }
+
   uint64_t num_bitstrings =
       std::min(uint64_t{8}, uint64_t{1} << circuit.num_qubits);
 
@@ -151,9 +159,26 @@ int main(int argc, char* argv[]) {
     bitstrings.push_back(i);
   }
 
-  using Simulator = qsim::Simulator<For>;
+  struct Factory {
+    Factory(unsigned num_threads) : num_threads(num_threads) {}
+
+    using Simulator = qsim::Simulator<For>;
+    using StateSpace = Simulator::StateSpace;
+    using fp_type = Simulator::fp_type;
+
+    StateSpace CreateStateSpace() const {
+      return StateSpace(num_threads);
+    }
+
+    Simulator CreateSimulator() const {
+      return Simulator(num_threads);
+    }
+
+    unsigned num_threads;
+  };
+
   using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          Simulator, For>;
+                                          For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
@@ -163,9 +188,11 @@ int main(int argc, char* argv[]) {
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
-  std::vector<std::complex<Simulator::fp_type>> results(num_bitstrings, 0);
+  std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
 
-  if (Runner::Run(param, circuit, parts, bitstrings, results)) {
+  Factory factory(opt.num_threads);
+
+  if (Runner::Run(param, factory, circuit, parts, bitstrings, results)) {
     static constexpr char const* bits[8] = {
       "000", "001", "010", "011", "100", "101", "110", "111",
     };

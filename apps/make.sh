@@ -22,3 +22,5 @@ g++ -O3 -march=native -fopenmp -o qsim_von_neumann.x qsim_von_neumann.cc
 g++ -O3 -march=native -fopenmp -o qsim_amplitudes.x qsim_amplitudes.cc
 g++ -O3 -march=native -fopenmp -o qsimh_base.x qsimh_base.cc
 g++ -O3 -march=native -fopenmp -o qsimh_amplitudes.x qsimh_amplitudes.cc
+
+nvcc -O3 -o qsim_base_cuda.x qsim_base_cuda.cu

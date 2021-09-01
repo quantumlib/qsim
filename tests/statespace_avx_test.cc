@@ -35,62 +35,76 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorAVX<For>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(StateSpaceAVXTest, for_impl);
 
 TYPED_TEST(StateSpaceAVXTest, Add) {
-  TestAdd<StateSpaceAVX<TypeParam>>();
+  TestAdd(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, NormSmall) {
-  TestNormSmall<StateSpaceAVX<TypeParam>>();
+  TestNormSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceAVX<TypeParam>>();
+  TestNormAndInnerProductSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorAVX<TypeParam>>();
+  TestNormAndInnerProduct(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, SamplingSmall) {
-  TestSamplingSmall<StateSpaceAVX<TypeParam>>();
+  TestSamplingSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorAVX<TypeParam>>();
+  TestSamplingCrossEntropyDifference(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, Ordering) {
-  TestOrdering<StateSpaceAVX<TypeParam>>();
+  TestOrdering(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceAVX<TypeParam>, TypeParam>();
+  TestMeasurementSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorAVX<TypeParam>>();
+  TestMeasurementLarge(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, Collapse) {
-  TestCollapse<StateSpaceAVX<TypeParam>>();
+  TestCollapse(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceAVX<TypeParam>>();
+  TestInvalidStateSize(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, BulkSetAmpl) {
-  TestBulkSetAmplitude<StateSpaceAVX<TypeParam>>();
+  TestBulkSetAmplitude(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, BulkSetAmplExclude) {
-  TestBulkSetAmplitudeExclusion<StateSpaceAVX<TypeParam>>();
+  TestBulkSetAmplitudeExclusion(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, BulkSetAmplDefault) {
-  TestBulkSetAmplitudeDefault<StateSpaceAVX<TypeParam>>();
+  TestBulkSetAmplitudeDefault(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVXTest, ThreadThrashing) {

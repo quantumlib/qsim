@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#if defined(__AVX512F__) && !defined(_WIN32) && !defined(__SANITIZE_ADDRESS__)
+#if defined(__AVX512F__) && !defined(_WIN32)
 
 #include "../lib/formux.h"
 #include "../lib/unitary_calculator_avx512.h"
