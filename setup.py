@@ -56,6 +56,12 @@ class CMakeBuild(build_ext):
             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
             build_args += ["--", "-j2"]
 
+        if platform.system() == "Darwin":
+            cmake_args += [
+                "-DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang",
+                "-DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++",
+            ]
+
         env = os.environ.copy()
         env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(
             env.get("CXXFLAGS", ""), self.distribution.get_version()
@@ -77,7 +83,8 @@ description = "Schrödinger and Schrödinger-Feynman simulators for quantum circ
 # README file as long_description.
 long_description = open("README.md", encoding="utf-8").read()
 
-__version__ = "0.9.5"
+__version__ = ""
+exec(open("qsimcirq/_version.py").read())
 
 setup(
     name="qsimcirq",
@@ -90,7 +97,13 @@ setup(
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    ext_modules=[CMakeExtension("qsimcirq/qsim")],
+    ext_modules=[
+        CMakeExtension("qsimcirq/qsim_avx512"),
+        CMakeExtension("qsimcirq/qsim_avx2"),
+        CMakeExtension("qsimcirq/qsim_sse"),
+        CMakeExtension("qsimcirq/qsim_basic"),
+        CMakeExtension("qsimcirq/qsim_decide"),
+    ],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     packages=["qsimcirq"],

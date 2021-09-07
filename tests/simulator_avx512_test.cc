@@ -36,51 +36,65 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorAVX512<For>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(SimulatorAVX512Test, for_impl);
 
 TYPED_TEST(SimulatorAVX512Test, ApplyGate1) {
-  TestApplyGate1<SimulatorAVX512<TypeParam>>();
+  TestApplyGate1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, ApplyGate2) {
-  TestApplyGate2<SimulatorAVX512<TypeParam>>();
+  TestApplyGate2(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, ApplyGate3) {
-  TestApplyGate3<SimulatorAVX512<TypeParam>>();
+  TestApplyGate3(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, ApplyGate5) {
-  TestApplyGate5<SimulatorAVX512<TypeParam>>();
+  TestApplyGate5(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, CircuitWithControlledGates) {
-  TestCircuitWithControlledGates<SimulatorAVX512<TypeParam>>();
+  TestCircuitWithControlledGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, CircuitWithControlledGatesDagger) {
-  TestCircuitWithControlledGatesDagger<SimulatorAVX512<TypeParam>>();
+  TestCircuitWithControlledGatesDagger(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, MultiQubitGates) {
-  TestMultiQubitGates<SimulatorAVX512<TypeParam>>();
+  TestMultiQubitGates(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, ControlledGates) {
-  TestControlledGates<SimulatorAVX512<TypeParam>>(false);
+  TestControlledGates(Factory<TypeParam>(), false);
 }
 
 TYPED_TEST(SimulatorAVX512Test, ExpectationValue1) {
-  TestExpectationValue1<SimulatorAVX512<TypeParam>>();
+  TestExpectationValue1(Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorAVX512Test, ExpectationValue2) {
-  TestExpectationValue2<SimulatorAVX512<TypeParam>>();
+  TestExpectationValue2(Factory<TypeParam>());
 }
 
 }  // namespace qsim
 
-#endif  // __AVX512F__ && !_WIN32
+#endif  // defined(__AVX512F__) && !defined(_WIN32)
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

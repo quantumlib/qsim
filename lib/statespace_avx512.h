@@ -25,6 +25,7 @@
 
 #include "statespace.h"
 #include "util.h"
+#include "vectorspace.h"
 
 namespace qsim {
 
@@ -76,8 +77,12 @@ inline double HorizontalSumAVX512(__m512 s) {
  * be loaded into an AVX512 register.
  */
 template <typename For>
-struct StateSpaceAVX512 : public StateSpace<StateSpaceAVX512<For>, For, float> {
-  using Base = StateSpace<StateSpaceAVX512<For>, For, float>;
+class StateSpaceAVX512 :
+    public StateSpace<StateSpaceAVX512<For>, VectorSpace, For, float> {
+ private:
+  using Base = StateSpace<StateSpaceAVX512<For>, qsim::VectorSpace, For, float>;
+
+ public:
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 

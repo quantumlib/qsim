@@ -37,62 +37,76 @@ typedef Types<ParallelFor, SequentialFor> for_impl;
 typedef Types<SequentialFor> for_impl;
 #endif
 
+template <typename For>
+struct Factory {
+  using Simulator = SimulatorAVX512<For>;
+  using StateSpace = typename Simulator::StateSpace;
+
+  static StateSpace CreateStateSpace() {
+    return StateSpace(2);
+  }
+
+  static Simulator CreateSimulator() {
+    return Simulator(2);
+  }
+};
+
 TYPED_TEST_SUITE(StateSpaceAVX512Test, for_impl);
 
 TYPED_TEST(StateSpaceAVX512Test, Add) {
-  TestAdd<StateSpaceAVX512<TypeParam>>();
+  TestAdd(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, NormSmall) {
-  TestNormSmall<StateSpaceAVX512<TypeParam>>();
+  TestNormSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, NormAndInnerProductSmall) {
-  TestNormAndInnerProductSmall<StateSpaceAVX512<TypeParam>>();
+  TestNormAndInnerProductSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, NormAndInnerProduct) {
-  TestNormAndInnerProduct<SimulatorAVX512<TypeParam>>();
+  TestNormAndInnerProduct(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, SamplingSmall) {
-  TestSamplingSmall<StateSpaceAVX512<TypeParam>>();
+  TestSamplingSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, SamplingCrossEntropyDifference) {
-  TestSamplingCrossEntropyDifference<SimulatorAVX512<TypeParam>>();
+  TestSamplingCrossEntropyDifference(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, Ordering) {
-  TestOrdering<StateSpaceAVX512<TypeParam>>();
+  TestOrdering(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, MeasurementSmall) {
-  TestMeasurementSmall<StateSpaceAVX512<TypeParam>, TypeParam>();
+  TestMeasurementSmall(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, MeasurementLarge) {
-  TestMeasurementLarge<SimulatorAVX512<TypeParam>>();
+  TestMeasurementLarge(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, Collapse) {
-  TestCollapse<StateSpaceAVX512<TypeParam>>();
+  TestCollapse(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, InvalidStateSize) {
-  TestInvalidStateSize<StateSpaceAVX512<TypeParam>>();
+  TestInvalidStateSize(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, BulkSetAmpl) {
-  TestBulkSetAmplitude<StateSpaceAVX512<TypeParam>>();
+  TestBulkSetAmplitude(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, BulkSetAmplExclude) {
-  TestBulkSetAmplitudeExclusion<StateSpaceAVX512<TypeParam>>();
+  TestBulkSetAmplitudeExclusion(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, BulkSetAmplDefault) {
-  TestBulkSetAmplitudeDefault<StateSpaceAVX512<TypeParam>>();
+  TestBulkSetAmplitudeDefault(Factory<TypeParam>());
 }
 
 TYPED_TEST(StateSpaceAVX512Test, ThreadThrashing) {
@@ -101,7 +115,7 @@ TYPED_TEST(StateSpaceAVX512Test, ThreadThrashing) {
 
 }  // namespace qsim
 
-#endif  // __AVX512F__ && !_WIN32
+#endif  // defined(__AVX512F__) && !defined(_WIN32)
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

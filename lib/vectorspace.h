@@ -28,9 +28,9 @@ namespace qsim {
 
 namespace detail {
 
-inline void do_not_free(void*) noexcept {}
+inline void do_not_free(void*) {}
 
-inline void free(void* ptr) noexcept {
+inline void free(void* ptr) {
 #ifdef _WIN32
   _aligned_free(ptr);
 #else
@@ -47,7 +47,7 @@ class VectorSpace {
   using fp_type = FP;
 
  private:
-  using Pointer = std::unique_ptr<fp_type, decltype(&free)>;
+  using Pointer = std::unique_ptr<fp_type, decltype(&detail::free)>;
 
  public:
   class Vector {
@@ -72,6 +72,10 @@ class VectorSpace {
 
     unsigned num_qubits() const {
       return num_qubits_;
+    }
+
+    bool requires_copy_to_host() const {
+      return false;
     }
 
    private:
@@ -126,6 +130,32 @@ class VectorSpace {
     };
 
     for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest.get());
+
+    return true;
+  }
+
+  // It is the client's responsibility to make sure that dest has at least
+  // 2 * 2^src.num_qubits() elements.
+  bool Copy(const Vector& src, fp_type* dest) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* src, fp_type* dest) {
+      dest[i] = src[i];
+    };
+
+    for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest);
+
+    return true;
+  }
+
+  // It is the client's responsibility to make sure that src has at least
+  // 2 * 2^dest.num_qubits() elements.
+  bool Copy(const fp_type* src, Vector& dest) const {
+    auto f = [](unsigned n, unsigned m, uint64_t i,
+                const fp_type* src, fp_type* dest) {
+      dest[i] = src[i];
+    };
+
+    for_.Run(Impl::MinSize(dest.num_qubits()), f, src, dest.get());
 
     return true;
   }
