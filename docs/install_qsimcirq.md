@@ -1,48 +1,51 @@
 # Installing qsimcirq
 
-The qsim-Cirq Python interface is available as a PyPI package for Linux users.
-For all other users, Dockerfiles are provided to install qsim in a contained
+The qsim-Cirq Python interface is available as a PyPI package for Linux, MacOS and Windows users.
+For all others, Dockerfiles are provided to install qsim in a contained
 environment.
 
 **Note:** The core qsim library (under
 [lib/](https://github.com/quantumlib/qsim/blob/master/lib)) can be included
 directly in C++ code without installing this interface.
 
-## Linux installation
+## Before installation
 
 Prior to installation, consider opening a
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 
-The qsim-Cirq interface uses [CMake](https://cmake.org/) to ensure stable
-compilation of its C++ libraries across a variety of Linux distributions.
-CMake can be installed from their website, or with the command
-`apt-get install cmake`.
-
-Other prerequisites (including pybind11 and pytest) are included in the
+Prerequisites are included in the
 [`requirements.txt`](https://github.com/quantumlib/qsim/blob/master/requirements.txt)
 file, and will be automatically installed along with qsimcirq.
 
-To install the qsim-Cirq interface on Linux, simply run `pip3 install qsimcirq`.
-For examples of how to use this package, see the tests in
-[qsim/qsimcirq_tests/](https://github.com/quantumlib/qsim/blob/master/qsimcirq_tests/).
+## Linux installation
 
-## MacOS and Windows installation
+We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{6,7,8,9}`.
 
-For users interested in running qsim on a MacOS or Windows device, we strongly
-recommend using the [Docker config](./docker.md) provided with this
-repository.
+Simply run `pip3 install qsimcirq`.
 
-### Experimental install process
+## MacOS installation
 
-Alternatively, MacOS and Windows users can follow the Linux install process,
-but it is currently untested on those platforms. Users are encouraged to report
-any issues seen with this process.
+We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{6,7,8,9}`.
+
+Simply run `pip3 install qsimcirq`.
+
+## Windows installation
+
+We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{6,7,8,9}`.
+
+Simply run `pip3 install qsimcirq`.
+
+## There's no compatible wheel for my machine!
+
+If existing wheels do no meet your needs please open an issue with your machine configuration (i.e. CPU architecture, Python version) and consider using the [Docker config](./docker.md) provided with this repository.
 
 ## Testing
 
-After installing qsimcirq on your machine, you can test the installation by
+After installing `qsimcirq` on your machine, you can test the installation by
 copying [qsimcirq_tests/qsimcirq_test.py](qsimcirq_tests/qsimcirq_test.py)
 to your machine and running `python3 -m pytest qsimcirq_test.py`.
+
+It also has examples of how how to use this package.
 
 **Note:** Because of how Python searches for modules, the test file cannot
 be run from inside a clone of the qsim repository, or from any parent
