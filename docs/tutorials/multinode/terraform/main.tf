@@ -4,6 +4,16 @@ variable "project" {
 variable "zone" {
   type=string
 }
+variable "region" {
+  type=string
+}
+variable "multizone" {
+  type=bool
+}
+variable "numzones" {
+  type=string
+}
+
 variable "cluster_name" {
   type = string
   default = "c"
@@ -16,6 +26,9 @@ module "htcondor" {
   cluster_name = var.cluster_name
   project = var.project
   zone = var.zone
+  region = var.region
+  multizone = var.multizone
+  numzones = var.numzones
   osversion = "7"
   max_replicas=20
   min_replicas=0

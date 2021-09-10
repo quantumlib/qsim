@@ -169,7 +169,6 @@ fi
 service google-fluentd restart
 
 # Add Python Libraries and Autoscaler
-
 if [ "$SERVER_TYPE" == "submit" ]; then
   python3 -m pip install --upgrade oauth2client
   python3 -m pip install --upgrade google-api-python-client
@@ -181,7 +180,7 @@ EOFZ
 
 # Create cron entry for autoscaler. Log to /var/log/messages
 
-echo "* * * * * python3 /opt/autoscaler.py --p ${project} --z ${zone} --g ${cluster_name} --c ${max_replicas} | logger " |crontab -
+echo "* * * * * python3 /opt/autoscaler.py --p ${project} --z ${zone} --r ${region} %{ if multizone }--mz %{ endif }--g ${cluster_name} --c ${max_replicas} | logger " |crontab -
 
 fi
 
