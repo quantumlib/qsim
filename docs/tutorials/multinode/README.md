@@ -34,7 +34,7 @@ Although this tutorial can be run from your local computer, we recommend the use
 of [Google Cloud Shell](https://cloud.google.com/shell). Cloud Shell has many useful tools pre-installed.
 
 Once you have created  a project in the previous step, 
-the Cloud Console with Cloud Shell activeated can be reached through this link: (https://console.google.com/home/dashboard?cloudshell=true)
+the Cloud Console with Cloud Shell activeated can be reached through this link: (https://console.cloud.google.com/home/dashboard?cloudshell=true)
 
 ### Clone this repo
 
