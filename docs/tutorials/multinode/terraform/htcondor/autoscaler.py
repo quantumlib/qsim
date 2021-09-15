@@ -31,6 +31,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", required=True, help="Project id", type=str)
 parser.add_argument("--z", required=True, help="Name of GCP zone where the managed instance group is located", type=str)
+parser.add_argument("--r", required=True, help="Name of GCP region where the managed instance group is located", type=str)
+parser.add_argument("--mz", required=False, help="Enabled multizone (regional) managed instance group", action="store_true")
 parser.add_argument("--g", required=True, help="Name of the managed instance group", type=str)
 parser.add_argument("--c", required=True, help="Maximum number of compute instances", type=int)
 parser.add_argument("--v", default=0, help="Increase output verbosity. 1-show basic debug info. 2-show detail debug info", type=int, choices=[0, 1, 2])
@@ -41,23 +43,33 @@ args = parser.parse_args()
         
 class AutoScaler():
 
-    def __init__(self):
+    def __init__(self, multizone=False):
 
+        self.multizone = multizone
         # Obtain credentials
         self.credentials = GoogleCredentials.get_application_default()
         self.service = discovery.build('compute', 'v1', credentials=self.credentials)
     
+        if self.multizone:
+            self.instanceGroupManagers = self.service.regionInstanceGroupManagers()
+        else:
+            self.instanceGroupManagers = self.service.instanceGroupManagers()
     
     # Remove specified instance from MIG and decrease MIG size
     def deleteFromMig(self, instance):
-        instanceUrl = 'https://www.googleapis.com/compute/v1/projects/' \
-            + self.project + '/zones/' + self.zone + '/instances/' + instance
+        instanceUrl = 'https://www.googleapis.com/compute/v1/projects/' + self.project
+        if (self.multizone):
+            instanceUrl += '/regions/' + self.region
+        else:
+            instanceUrl += '/zones/' + self.zone
+        instanceUrl += '/instances/' + instance
+
         instances_to_delete = {'instances': [instanceUrl]}
     
         requestDelInstance = \
-            self.service.instanceGroupManagers().deleteInstances(project=self.project,
-                zone=self.zone, instanceGroupManager=self.instance_group_manager,
-                body=instances_to_delete)
+            self.instanceGroupManagers.deleteInstances(project=self.project,
+            **self.zoneargs, instanceGroupManager=self.instance_group_manager,
+            body=instances_to_delete)
 
         # execute if not a dry-run
         if not self.dryrun:
@@ -70,7 +82,7 @@ class AutoScaler():
     
     def getInstanceTemplateInfo(self):
         requestTemplateName = \
-            self.service.instanceGroupManagers().get(project=self.project, zone=self.zone,
+                self.instanceGroupManagers.get(project=self.project, **self.zoneargs,
                 instanceGroupManager=self.instance_group_manager,
                 fields='instanceTemplate')
         responseTemplateName = requestTemplateName.execute()
@@ -123,9 +135,16 @@ class AutoScaler():
             print('Launching autoscaler.py with the following arguments:')
             print('project_id: ' + self.project)
             print('zone: ' + self.zone)
+            print('region: ' + self.region)
+            print(f'multizone: {self.multizone}')
             print('group_manager: ' + self.instance_group_manager)
             print('computeinstancelimit: ' + str(self.compute_instance_limit))
             print('debuglevel: ' + str(self.debug))
+
+        if self.multizone:
+            self.zoneargs = {'region': self.region}
+        else:
+            self.zoneargs = {'zone': self.zone}
 
         # Get total number of jobs in the queue that includes number of jos waiting as well as number of jobs already assigned to nodes
         queue_length_req = 'condor_q -totals -format "%d " Jobs -format "%d " Idle -format "%d " Held'
@@ -180,8 +199,8 @@ class AutoScaler():
         print('New MIG target size: ' + str(self.size))
         
         # Get current number of instances in the MIG
-        requestGroupInfo = self.service.instanceGroupManagers().get(project=self.project,
-                zone=self.zone, instanceGroupManager=self.instance_group_manager)
+        requestGroupInfo = self.instanceGroupManagers.get(project=self.project,
+                **self.zoneargs, instanceGroupManager=self.instance_group_manager)
         responseGroupInfo = requestGroupInfo.execute()
         currentTarget = int(responseGroupInfo['targetSize'])
         print('Current MIG target size: ' + str(currentTarget))
@@ -248,8 +267,8 @@ class AutoScaler():
         if self.size > currentTarget:
             print("Scaling up. Need to increase number of instances to " + str(self.size))
             #Request to resize
-            request = self.service.instanceGroupManagers().resize(project=self.project,
-                    zone=self.zone, 
+            request = self.instanceGroupManagers.resize(project=self.project,
+                    **self.zoneargs,
                     instanceGroupManager=self.instance_group_manager,
                     size=self.size)
             response = request.execute()
@@ -259,7 +278,7 @@ class AutoScaler():
                 print("Scaling up complete")
 def main():
 
-    scaler = AutoScaler()
+    scaler = AutoScaler(args.mz)
 
     # Project ID
     scaler.project = args.p  # Ex:'slurm-var-demo'
@@ -267,6 +286,9 @@ def main():
     # Name of the zone where the managed instance group is located
     scaler.zone = args.z # Ex: 'us-central1-f'
     
+    # Name of the region where the managed instance group is located
+    scaler.region = args.r # Ex: 'us-central1'
+
     # The name of the managed instance group.
     scaler.instance_group_manager = args.g  # Ex: 'condor-compute-igm'
     
