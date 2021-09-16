@@ -2,7 +2,7 @@
 This tutorial will take you through the process of running multiple simultaneous
 `qsim` simulations on Google Cloud. In some situations, it is required to run
 many instances of the same simulation. This could be used to provide a parameter
-sweep or to evaluation noise characteristics.
+sweep or to evaluate noise characteristics.
 
 One of the key competencies of a quantum computing effort is the ability to run
 simulations. While quantum computing hardware is still years from general
@@ -17,18 +17,29 @@ practical use of the quantum hardware.
 ## Objectives
 
 * Use `terraform` to deploy a HTCondor cluster
-* Run a multinode simulation using HTCondor
+* Run a multi-node simulation using HTCondor
 * Query cluster information and monitor running jobs in HTCondor
 * Use `terraform` to destroy the cluster
 
 
 ## Step 1: Create a project
-In a seperate tutorial the method to create Google Cloud project is explained in detail. 
-[Please refer to this tutorial for guidance](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup).
+If necessary, you can run this tutorial in an existing project, but to avoid collisions or damage to existing work, it is often better to create a new project.
+
+In this [GCP setup tutorial](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup), the method to create Google Cloud project is explained in detail.
 
 When you have a project created, move on to the next step.
 
-## Step 2: Configure your enviroment
+> IMPORTANT: For this tutorial, it is best if you have `Owner` privilege on the project. If you do not have owner rights, the following roles will be required:
+```bash
+roles/compute.admin
+roles/iam.serviceAccountUser
+roles/monitoring.admin
+roles/logging.admin
+roles/autoscaling.metricsWrite
+```
+Your Cloud admin will be able to provide these roles.
+
+## Step 2: Configure your environment
 
 Although this tutorial can be run from your local computer, we recommend the use
 of [Google Cloud Shell](https://cloud.google.com/shell). Cloud Shell has many useful tools pre-installed.
@@ -186,7 +197,7 @@ If successful, the output will be:
 Submitting job(s).
 1 job(s) submitted to cluster 1.
 ```
-You can see the job in queue by with the `condor_q` command.
+You can see the job in queue with the `condor_q` command.
 ```
 condor_q
 ```
@@ -200,11 +211,11 @@ will list the files:
 ```
 err.1-0  log.1-0  out.1-0  placeholder
 ```
-You can also see the progress of the job throught the log file:
+You can also see the progress of the job through the log file:
 ```
 tail -f out/log.1-0
 ```
-After the job s completed, the ouput of the job can be seen:
+After the job is completed, the output of the job can be seen:
 ```
 cat out/out.1-0
 ```
@@ -224,7 +235,7 @@ To run multiple simulations, you can run the submit file `noise.sub`.  The
 submit file is shown below. It is key to note that this is running  a `docker`
 container. Also, the `queue 50` command at the end of the file submits 50
 separate instances of the container. Since this job is noise driven, the output
-of each simulation with be different. A typical analysis of the output would be 
+of each simulation will be different. A typical analysis of the output would be 
 a statistical study of the means and variations, perhaps looking for parameter 
 ranges where circuits are particularly susceptible to noise.
 
@@ -253,7 +264,7 @@ Submitting job(s)..................................................
 50 job(s) submitted to cluster 2.
 ```
 To monitor the ongoing process of jobs running, you can take advantage of the
-Linux `watch` command and run `condor_q` repeatedly. When complete you watch can
+Linux `watch` command and run `condor_q` repeatedly. When complete watch can
 be exited with cntrl-c.
 ```
 watch "condor_q; condor_status"
@@ -262,10 +273,10 @@ The output of this command will show you the jobs in the queue as well as the
 VMs being created to run the jobs. There is a limit of 20 VMs for this
 configuration of the cluster. This can be modified for future runs.
 
-When the command shows the queue is empty, the command can be stopped with cntl-c.
+When the command shows the queue is empty, the command can be stopped with cntrl-c.
 
-If this is the second _submit_ you have run, you can see the output of the all
-the simualtions. The output will be in the `out` directory. 
+If this is the second _submit_ you have run, you can see the output of all
+the simulations. The output will be in the `out` directory. 
 
 ```
 cat out/out.2-*
