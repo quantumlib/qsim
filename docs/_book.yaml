@@ -38,6 +38,8 @@ upper_tabs:
         path: /qsim/tutorials/qsimcirq_gcp
       - title: "Simulate a large quantum circuit"
         path: /qsim/tutorials/q32d14
+      - title: "Multinode quantum simulation using HTCondor on GCP"
+        path: /qsim/tutorials/multinode
 
     - name: "Python Reference"
       skip_translation: true
