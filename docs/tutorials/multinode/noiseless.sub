@@ -1,8 +1,8 @@
 universe                = docker
-docker_image            = gcr.io/quantum-builds/github.com/quantumlib/qsim
-arguments               = -c circuit_q30
-transfer_input_files    = ../../../circuits/circuit_q30
+docker_image            = gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
+arguments               = python3  noiseless3.py
 should_transfer_files   = YES
+transfer_input_files    = noiseless3.py
 when_to_transfer_output = ON_EXIT
 output                  = out/out.$(Cluster)-$(Process)
 error                   = out/err.$(Cluster)-$(Process)

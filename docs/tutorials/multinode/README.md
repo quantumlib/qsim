@@ -4,16 +4,6 @@ This tutorial will take you through the process of running multiple simultaneous
 many instances of the same simulation. This could be used to provide a parameter
 sweep or to evaluate noise characteristics.
 
-One of the key competencies of a quantum computing effort is the ability to run
-simulations. While quantum computing hardware is still years from general
-availability, quantum computing simulation with `qsim` and `Cirq` is available for
-researchers exploring a quantum program. It is expected that simulation will be
-a gating requirement to make use of physical hardware, to prove out algorithms
-both for computability and stability under noisy conditions. Many thousands of
-simulation runs will typically be required to prove out the gating requirements
-for each circuit, sometimes requiring years of simulation in advance of any
-practical use of the quantum hardware.
-
 ## Objectives
 
 * Use `terraform` to deploy a HTCondor cluster
@@ -190,7 +180,7 @@ cd qsim/docs/tutorials/multinode
 ### Submit a job
 Now it is possible to submit a job:
 ```
-condor_submit circuit_q24.sub
+condor_submit noiseless.sub
 ```
 If successful, the output will be:
 ```
@@ -234,10 +224,10 @@ and it will require well characterized simulations.
 To run multiple simulations, you can run the submit file `noise.sub`.  The
 submit file is shown below. It is key to note that this is running  a `docker`
 container. Also, the `queue 50` command at the end of the file submits 50
-separate instances of the container. Since this job is noise driven, the output
-of each simulation will be different. A typical analysis of the output would be 
-a statistical study of the means and variations, perhaps looking for parameter 
-ranges where circuits are particularly susceptible to noise.
+separate instances of the container. Each simulation will be different due to
+the stochastic nature of noisy simulations. A typical analysis of the output
+would be a statistical study of the means and variations, perhaps looking for
+parameter ranges where circuits are particularly susceptible to noise.
 
 
 ### The noise.sub file
@@ -295,49 +285,25 @@ Counter({3: 466, 0: 442, 2: 51, 1: 41})
 .
 .
 ```
-Note that because this is a noise driven circuit, the results of each simulation are different.
 
 ## Next steps
 
-To run your own simulations, simply create a noisy circuit in your  _qsim_ python file.
-The file being run in this was `noise3.py`. You can take this example and expand
-to your own circuit. 
+The file being run in the previous example was `noise3.py`. To run your own
+simulations, simply create a new python file with your circuit and change the
+`noise3.py` references in `noise.sub` to point to the new file.
 
-```python
-import cirq, qsimcirq
+A detailed discussion of how to construct various types of noise in Cirq can be
+found [here](https://quantumai.google/cirq/noise).
 
-# Create a Bell state, |00) + |11)
-q0, q1 = cirq.LineQubit.range(2)
-circuit = cirq.Circuit(
-    cirq.H(q0),
-    cirq.CNOT(q0, q1),
-    cirq.measure(q0, q1, key='m')
-)
-
-# Constructs a noise model that adds depolarizing noise after each gate.
-noise = cirq.NoiseModel.from_noise_model_like(cirq.depolarize(p=0.05))
-
-# Use the noise model to create a noisy circuit.
-noisy_circuit = cirq.Circuit(noise.noisy_moments(circuit, system_qubits=[q0, q1]))
-
-sim = qsimcirq.QSimSimulator()
-result = sim.run(noisy_circuit, repetitions=1000)
-# Outputs a histogram dict of result:count pairs.
-# Expected result is a bunch of 0s and 3s, with fewer 1s and 2s.
-# (For comparison, the noiseless circuit will only have 0s and 3s)
-print(result.histogram(key='m'))
-```
-
-There are many more examples of circuits to be run [here](https://quantumai.google/cirq/noise)
-
-## FINAL STEP: Shutting down 
+## Final step: Shutting down
 
 > **IMPORTANT**:  To avoid excess billing for this project, it is important to shut down the cluster. This is easily done using the make command built for this purpose.
 ```
 make destroy
 ```
 
-> The most effective way to ensure you are not charged is to delete the project. [The instructions are here.](https://cloud.google.com/resource-manager/docs/creating-managing-projects#shutting_down_projects)
+> The most effective way to prevent further charges is to delete the project.
+[The instructions are here.](https://cloud.google.com/resource-manager/docs/creating-managing-projects#shutting_down_projects)
 
 
 
