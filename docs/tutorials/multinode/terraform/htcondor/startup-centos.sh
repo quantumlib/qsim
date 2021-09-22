@@ -5,28 +5,12 @@ SERVER_TYPE="${htserver_type}"
 ##############################################################
 ## Install and configure HTCONDOR
 ##############################################################
-
-if [ "${condorversion}" == "" ]; then
-   CONDOR_INSTALL_OPT="condor"
-else
-   CONDOR_INSTALL_OPT="condor-all-${condorversion}"
-  #  email  = "487217491196-compute@developer.gserviceaccount.com"
-fi
-if [ "${osversion}" == "6" ]; then
-   CONDOR_STARTUP_CMD="service condor start"
-else
-   CONDOR_STARTUP_CMD="systemctl start condor;systemctl enable condor"
-fi
-CONDOR_REPO_URL=https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel${osversion}.repo
-
-sleep 2 #Give it some time to setup yum
 cd /tmp
 yum update -y
 yum install -y wget curl net-tools vim gcc python3 git
-wget https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
-rpm --import RPM-GPG-KEY-HTCondor
-cd /etc/yum.repos.d && wget $CONDOR_REPO_URL
-yum install -y $CONDOR_INSTALL_OPT
+yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+yum install -y https://research.cs.wisc.edu/htcondor/repo/8.8/el7/release/htcondor-release-8.8-1.el7.noarch.rpm
+yum install -y condor
 
 ##############################################################
 # Install Docker on Compute Nodes 
@@ -96,7 +80,8 @@ fi
 
 mkdir -p /etc/condor/config.d
 mv condor_config.local /etc/condor/config.d
-eval $CONDOR_STARTUP_CMD
+systemctl start condor
+systemctl enable condor
 
 ##############################################################
 # Install and configure logging agent for StackDriver

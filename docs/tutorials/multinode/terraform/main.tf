@@ -35,6 +35,6 @@ module "htcondor" {
   compute_instance_type = "custom-2-11264"
   service_account="htcondor@${var.project}.iam.gserviceaccount.com"
   use_preemptibles=false
-  osproject ="centos-cloud"
-  osimage ="centos-7"
+  osproject ="quantum-htcondor-15"
+  osimage ="my-hpc"
 }
