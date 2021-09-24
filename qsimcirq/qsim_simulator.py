@@ -454,6 +454,11 @@ class QSimSimulator(
         This method returns a result which allows access to the entire
         wave function. In contrast to simulate, this allows for sweeping
         over different parameter values.
+        
+        Avoid using this method with `use_gpu=True` in the simulator options;
+        when used with GPU this method must copy state from device to host memory
+        multiple times, which can be very slow. This issue is not present in
+        `simulate_expectation_values_sweep`.
 
         Args:
             program: The circuit to simulate.
