@@ -266,53 +266,6 @@ TEST(MPSSimulator, Apply1InteriorArbitrary) {
   ASSERT_NEAR(state.get()[l_offset + 63], 153.6, 1e-5);
 }
 
-TEST(MPSSimulator, ApplyLeftFusedGate) {
-  // Apply a fused gate matrix to the first two qubits.
-  // Compute the state vector of:
-  //   |     |     |
-  // +-+-----+-+   |
-  // |FusedGate|   |
-  // +-+-----+-+   |
-  //   |     |     |
-  // +-+-+ +-+-+ +-+-+
-  // | 0 +-+ 1 +-+ 2 |
-  // +---+ +---+ +---+
-  auto sim = MPSSimulator<For, float>(1);
-  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
-  auto ss = MPSStateSpace(1);
-
-  auto gate1 = GateCZ<float>::Create(2, 0, 1);
-  auto gate2 = GateHd<float>::Create(0, 0);
-  auto gate3 = GateHd<float>::Create(0, 1);
-
-  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {0, 1},  &gate1, {&gate2, &gate3}};
-  auto mps = ss.CreateMPS(3, 2);
-  ss.SetMPSZero(mps);
-  ApplyFusedGate(sim, fgate1, mps);
-
-  // float wf[32];
-  // ss.ToWaveFunction(mps, wf);
-  // for (int i = 0; i < 16; i++) {
-  //   std::cerr << wf[i] << std::endl;
-  // }
-  // EXPECT_NEAR(wf[0], 100, 1e-4);
-  // EXPECT_NEAR(wf[1], 0.2143698948599676, 1e-4);
-  // EXPECT_NEAR(wf[2], -0.11738977370009586, 1e-4);
-  // EXPECT_NEAR(wf[3], 0.12454935773362025, 1e-4);
-  // EXPECT_NEAR(wf[4], -0.47150921436100324, 1e-4);
-  // EXPECT_NEAR(wf[5], 0.2765580906536361, 1e-4);
-  // EXPECT_NEAR(wf[6], -0.00488996377601076, 1e-4);
-  // EXPECT_NEAR(wf[7], -0.052702222730185794, 1e-4);
-  // EXPECT_NEAR(wf[8], -0.15375504635790666, 1e-4);
-  // EXPECT_NEAR(wf[9], -0.006893208509005258, 1e-4);
-  // EXPECT_NEAR(wf[10], 0.3625325032891465, 1e-4);
-  // EXPECT_NEAR(wf[11], -0.12932957404571366, 1e-4);
-  // EXPECT_NEAR(wf[12], -0.3459372670125525, 1e-4);
-  // EXPECT_NEAR(wf[13], 0.4020253863039828, 1e-4);
-  // EXPECT_NEAR(wf[14], -0.21864624250067458, 1e-4);
-  // EXPECT_NEAR(wf[15], -0.16468189647310463, 1e-4);
-}
-
 TEST(MPSSimulator, Apply2Left01) {
   // Compute the state vector of:
   //   |     |     |
@@ -848,6 +801,110 @@ TEST(MPSSimulator, OneTwoQubitFuzz) {
     main()
 
   */
+}
+
+TEST(MPSSimulator, ApplyFusedGateLeft) {
+  // Apply a fused gate matrix to the first two qubits.
+  // Compute the state vector of:
+  //   |     |     |
+  // +-+-----+-+   |
+  // |FusedGate|   |
+  // +-+-----+-+   |
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  auto gate1 = GateCZ<float>::Create(2, 0, 1);
+  auto gate2 = GateHd<float>::Create(0, 0);
+  auto gate3 = GateHd<float>::Create(0, 1);
+
+  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {0, 1}, &gate1,
+                                    {&gate2, &gate3}};
+  auto mps = ss.Create(3, 4);
+  ss.SetStateZero(mps);
+  ApplyFusedGate(sim, fgate1, mps);
+
+  float wf[32];
+  float ground_truth[] = {0.5, 0., 0., 0., 0.5, 0., 0., 0.,
+                          0.5, 0., 0., 0., 0.5, 0., 0., 0.};
+  ss.ToWaveFunction(mps, wf);
+  for (int i = 0; i < 16; i++) {
+    EXPECT_NEAR(wf[i], ground_truth[i], 1e-4);
+  }
+}
+
+TEST(MPSSimulator, ApplyFusedGateRight) {
+  // Apply a fused gate matrix to the last two qubits.
+  // Compute the state vector of:
+  //   |     |     |
+  //   |   +-+-----+-+
+  //   |   |FusedGate|
+  //   |   +-+-----+-+ 
+  //   |     |     |
+  // +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |
+  // +---+ +---+ +---+
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  auto gate1 = GateCZ<float>::Create(2, 1, 2);
+  auto gate2 = GateHd<float>::Create(0, 1);
+  auto gate3 = GateHd<float>::Create(0, 2);
+
+  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {1, 2}, &gate1,
+                                    {&gate2, &gate3}};
+  auto mps = ss.Create(3, 4);
+  ss.SetStateZero(mps);
+  ApplyFusedGate(sim, fgate1, mps);
+
+  float wf[32];
+  float ground_truth[] = {0.5, 0., 0.5, 0., 0.5, 0., 0.5, 0.,
+                          0., 0., 0., 0., 0., 0., 0., 0.};
+  ss.ToWaveFunction(mps, wf);
+  for (int i = 0; i < 16; i++) {
+    EXPECT_NEAR(wf[i], ground_truth[i], 1e-4);
+  }
+}
+
+TEST(MPSSimulator, ApplyFusedGateMiddle) {
+  // Apply a fused gate matrix to the middle two qubits.
+  // Compute the state vector of:
+  //   |     |     |     |
+  //   |   +-+-----+-+   |
+  //   |   |FusedGate|   |
+  //   |   +-+-----+-+   |
+  //   |     |     |     |
+  // +-+-+ +-+-+ +-+-+ +-+-+
+  // | 0 +-+ 1 +-+ 2 |-| 3 |
+  // +---+ +---+ +---+ +-+-+
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  auto gate1 = GateCZ<float>::Create(2, 1, 2);
+  auto gate2 = GateHd<float>::Create(0, 1);
+  auto gate3 = GateHd<float>::Create(0, 2);
+
+  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {1, 2}, &gate1,
+                                    {&gate2, &gate3}};
+  auto mps = ss.Create(4, 4);
+  ss.SetStateZero(mps);
+  ApplyFusedGate(sim, fgate1, mps);
+
+  float wf[64];
+  float ground_truth[] = {0.5, 0., 0., 0., 0.5, 0., 0., 0.,
+                          0.5, 0., 0., 0., 0.5, 0., 0., 0.,
+                          0., 0., 0., 0., 0., 0., 0., 0.,
+                          0., 0., 0., 0., 0., 0., 0., 0.};
+  ss.ToWaveFunction(mps, wf);
+  for (int i = 0; i < 32; i++) {
+    EXPECT_NEAR(wf[i], ground_truth[i], 1e-4);
+  }
 }
 
 }  // namespace
