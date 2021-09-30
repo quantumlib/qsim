@@ -229,6 +229,11 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  if (opt.times.size() == 1
+      && opt.times[0] == std::numeric_limits<unsigned>::max()) {
+    opt.times[0] = circuit.gates.back().time;
+  }
+
   StateSpace::Parameter param1;
   Simulator::Parameter param2;
   Factory factory(param1, param2);
@@ -256,7 +261,7 @@ int main(int argc, char* argv[]) {
   auto observables = GetObservables<GateQSim<fp_type>>(circuit.num_qubits);
 
   std::vector<std::vector<std::vector<std::complex<double>>>> results;
-  results.reserve(noisy_circuits.size());
+  results.reserve(opt.num_trajectories);
 
   for (unsigned i = 0; i < opt.num_trajectories; ++i) {
     results.push_back({});
