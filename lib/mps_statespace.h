@@ -51,10 +51,11 @@ inline void free(void* ptr) {
  * Class containing context and routines for fixed bond dimension
  * truncated Matrix Product State (MPS) simulation.
  */
-template <typename For, typename fp_type = float>
+template <typename For, typename FP = float>
 class MPSStateSpace {
  private:
  public:
+  using fp_type = FP;
   using Pointer = std::unique_ptr<fp_type, decltype(&detail::free)>;
 
   using Complex = std::complex<fp_type>;
