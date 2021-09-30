@@ -12,38 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "unitaryspace_testfixture.h"
+#include "hybrid_testfixture.h"
 
 #include "gtest/gtest.h"
 
-#if defined(__AVX512F__) && !defined(_WIN32)
-
-#include "../lib/formux.h"
-#include "../lib/unitaryspace_avx512.h"
+#include "../lib/seqfor.h"
+#include "../lib/simulator_avx.h"
 
 namespace qsim {
-namespace unitary {
-namespace {
 
-TEST(UnitarySpaceAVX512Test, SetZero) {
-  TestSetZeros<UnitarySpaceAVX512<For>>();
+template <typename For>
+struct Factory {
+  using Simulator = qsim::SimulatorAVX<For>;
+  using StateSpace = typename Simulator::StateSpace;
+  using fp_type = typename StateSpace::fp_type;
+
+  StateSpace CreateStateSpace() const {
+    return StateSpace(1);
+  }
+
+  Simulator CreateSimulator() const {
+    return Simulator(1);
+  }
+};
+
+TEST(HybridAVXTest, Hybrid2) {
+  TestHybrid2(qsim::Factory<SequentialFor>());
 }
 
-TEST(UnitarySpaceAVX512Test, SetIdentity) {
-  TestSetIdentity<UnitarySpaceAVX512<For>>();
+TEST(HybridAVXTest, Hybrid4) {
+  TestHybrid4(qsim::Factory<SequentialFor>());
 }
 
-TEST(UnitarySpaceAVX512Test, GetEntry) {
-  TestSetEntry<UnitarySpaceAVX512<For>>();
-}
-
-}  // namspace
-}  // namespace unitary
 }  // namespace qsim
 
-#endif  // __AVX512F__ && !_WIN32
-
 int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
+  testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

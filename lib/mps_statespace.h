@@ -97,7 +97,7 @@ class MPSStateSpace {
   MPSStateSpace(ForArgs&&... args) : for_(args...) {}
 
   // Requires num_qubits >= 2 and bond_dim >= 2.
-  static MPS CreateMPS(unsigned num_qubits, unsigned bond_dim) {
+  static MPS Create(unsigned num_qubits, unsigned bond_dim) {
     auto end_sizes = 2 * 4 * bond_dim;
     auto internal_sizes = 4 * bond_dim * bond_dim * (num_qubits + 1);
     // Use three extra "internal style" blocks past the end of the
@@ -140,7 +140,7 @@ class MPSStateSpace {
 
   // Copies the state contents of one MPS to another.
   // Ignores scratch data.
-  static bool CopyMPS(const MPS& src, MPS& dest) {
+  static bool Copy(const MPS& src, MPS& dest) {
     if ((src.num_qubits() != dest.num_qubits()) ||
         src.bond_dim() != dest.bond_dim()) {
       return false;
@@ -151,7 +151,7 @@ class MPSStateSpace {
   }
 
   // Set the MPS to the |0> state.
-  static void SetMPSZero(MPS& state) {
+  static void SetStateZero(MPS& state) {
     auto size = Size(state);
     memset(state.get(), 0, sizeof(fp_type) * size);
     auto block_size = 4 * state.bond_dim() * state.bond_dim();
@@ -159,6 +159,13 @@ class MPSStateSpace {
     for (unsigned i = 4 * state.bond_dim(); i < size; i += block_size) {
       state.get()[i] = 1.0;
     }
+  }
+
+  // Computes Re{<state1 | state2 >} for two equal sized MPS.
+  // Requires: state1.bond_dim() == state2.bond_dim() &&
+  //           state1.num_qubits() == state2.num_qubits()
+  static fp_type RealInnerProduct(MPS& state1, MPS& state2) {
+    return InnerProduct(state1, state2).real();
   }
 
   // Computes <state1 | state2 > for two equal sized MPS.

@@ -8,7 +8,14 @@ upper_tabs:
   lower_tabs:
     # Subsite tabs
     other:
-    - name: "Guide & Tutorials"
+    - name: "Tutorials"
+      - title: "Get started with qsimcirq"
+        path: /qsim/tutorials/qsimcirq
+      - title: "Quantum simulation on GCP with Cirq and qsim"
+        path: /qsim/tutorials/qsimcirq_gcp
+      - title: "Simulate a large quantum circuit"
+        path: /qsim/tutorials/q32d14
+    - name: "Guide"
       contents:
       - title: "qsim and qsimh"
         path: /qsim/overview
@@ -30,15 +37,6 @@ upper_tabs:
         path: /qsim/docker
       - title: "Release process"
         path: /qsim/release
-
-      - heading: "Tutorials"
-      - title: "Get started with qsimcirq"
-        path: /qsim/tutorials/qsimcirq
-      - title: "Quantum simulation on GCP with Cirq and qsim"
-        path: /qsim/tutorials/qsimcirq_gcp
-      - title: "Simulate a large quantum circuit"
-        path: /qsim/tutorials/q32d14
-
     - name: "Python Reference"
       skip_translation: true
       contents:

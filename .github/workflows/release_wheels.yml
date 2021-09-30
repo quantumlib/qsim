@@ -27,6 +27,11 @@ jobs:
               arch: x86_64
               build: "cp36* cp37* cp38* cp39*"
               manylinux_image: manylinux2014
+          - os: windows-2019
+            name: win_amd64
+            architecture: x64
+            cibw:
+              build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64"
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
