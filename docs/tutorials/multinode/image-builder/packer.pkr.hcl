@@ -22,7 +22,7 @@ source "googlecompute" "qsim_htcondor_builder" {
     account_file            = "image-builder.key"
     image_name              = "${var.family}-${var.date}"
     image_family            = var.family
-    startup_script_file     = "tmp.sh"
+    startup_script_file     = "builder.sh"
 }
 
 build {
