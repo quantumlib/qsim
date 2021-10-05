@@ -175,7 +175,7 @@ After a moment, you should see a result that looks similar to the following.
 ## Next steps
 
 After you finish, don't forget to stop or delete your VM on the Compute
-Instances dashboard.
+Instances dashboard to prevent further billing.
 
 You are now ready to run your own large simulations on Google Cloud. For sample
 code of a large circuit, see the [Simulate a large

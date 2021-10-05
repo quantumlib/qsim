@@ -222,7 +222,7 @@ and run your code.
 ## Next steps
 
 After you finish, don't forget to stop or delete your VM on the Compute
-Instances dashboard.
+Instances dashboard to prevent further billing.
 
 You are now ready to run your own large simulations on Google Cloud. If you want
 to try a large circuit on Google Cloud, you can connect the
