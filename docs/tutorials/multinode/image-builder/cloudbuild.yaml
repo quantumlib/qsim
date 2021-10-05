@@ -6,6 +6,7 @@ steps:
   - build
   - -var
   - project_id=$PROJECT_ID
+  - -debug
   - -var
   - date=${_DATE_}
   - -var
