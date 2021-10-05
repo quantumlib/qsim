@@ -91,6 +91,39 @@ Example:
 ./qsim_amplitudes.x -c ../circuits/circuit_q24 -t 4 -d 16,24 -i ../circuits/bitstrings_q24_s1,../circuits/bitstrings_q24_s2 -o ampl_q24_s1,ampl_q24_s2 -v 1
 ```
 
+## qsim_qtrajectory_cuda usage
+
+```
+./qsim_qtrajectory_cuda.x -c circuit_file \
+                          -d times_to_calculate_observables \
+                          -a amplitude_damping_const \
+                          -p phase_damping_const \
+                          -t traj0 -n num_trajectories \
+                          -f max_fused_size \
+                          -v verbosity
+```
+
+| Flag | Description |
+|-------|------------|
+|`-c circuit_file` | circuit file to run|
+|`-d times_to_calculate_observables` | comma-separated list of circuit times to calculate observables at|
+|`-a amplitude_damping_const` | amplitude damping constant |
+|`-p phase_damping_const` | phase damping constant |
+|`-t traj0` | starting trajectory |
+|`-n num_trajectories ` | number of trajectories to run starting with `traj0` |
+|`-f max_fused_size` | maximum fused gate size|
+|`-v verbosity` | verbosity level (0,1)|
+
+qsim_qtrajectory_cuda runs on GPUs. qsim_qtrajectory_cuda performs quantum
+trajactory simulations with amplitude damping and phase damping noise channels.
+qsim_qtrajectory_cuda calculates observables (operator X at each qubit) at
+specified times.
+
+Example:
+```
+./qsim_qtrajectory_cuda.x -c ../circuits/circuit_q24 -d 8,16,32 -a 0.005 -p 0.005 -t 0 -n 100 -f 4 -v 0
+```
+
 ## qsimh_base usage
 
 ```

@@ -60,6 +60,10 @@ class SimulatorCUDA final {
     ErrorCheck(cudaFree(d_idx));
     ErrorCheck(cudaFree(d_ms));
     ErrorCheck(cudaFree(d_xss));
+
+    if (scratch_ != nullptr) {
+      ErrorCheck(cudaFree(scratch_));
+    }
   }
 
   /**

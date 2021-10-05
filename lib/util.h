@@ -91,7 +91,7 @@ inline std::vector<DistrRealType> GenerateRandomValues(
 // This function sets flush-to-zero and denormals-are-zeros MXCSR control
 // flags. This prevents rare cases of performance slowdown potentially at
 // the cost of a tiny precision loss.
-void SetFlushToZeroAndDenormalsAreZeros() {
+inline void SetFlushToZeroAndDenormalsAreZeros() {
 #ifdef __SSE2__
   _mm_setcsr(_mm_getcsr() | 0x8040);
 #endif
@@ -99,7 +99,7 @@ void SetFlushToZeroAndDenormalsAreZeros() {
 
 // This function clears flush-to-zero and denormals-are-zeros MXCSR control
 // flags.
-void ClearFlushToZeroAndDenormalsAreZeros() {
+inline void ClearFlushToZeroAndDenormalsAreZeros() {
 #ifdef __SSE2__
   _mm_setcsr(_mm_getcsr() & ~unsigned{0x8040});
 #endif
