@@ -1,13 +1,4 @@
 steps:
-- name: 'gcr.io/cloud-builders/gcloud'
-  args:
-  - kms
-  - decrypt
-  - --ciphertext-file=image-builder-enc.key
-  - --plaintext-file=image-builder.key
-  - --location=global
-  - --keyring=packer
-  - --key=pk
 - name: 'gcr.io/$PROJECT_ID/packer'
   args:
   - build
