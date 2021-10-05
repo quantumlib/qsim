@@ -31,3 +31,4 @@ This tutorial depends on resources provided by the Google Cloud Platform.
     and click through to Enable it.
     *   For more information about enabling the Compute Engine API, see
         [Getting Started](https://cloud.google.com/apis/docs/getting-started) in
+        the Google Cloud documentation.

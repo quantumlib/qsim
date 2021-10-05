@@ -40,21 +40,22 @@ for your project.
 Use SSH to create an encrypted tunnel from your computer to your VM and redirect
 a local port to your VM over the tunnel.
 
-1.  Follow the instructions in the
+1.  Install the `gcloud` command line tool. Follow the instructions in the
     [Installing Cloud SDK](https://cloud.google.com/sdk/docs/install)
-    documentation to install the `gcloud` command line tool.
-1.  After installation, initialize the Google Cloud environment by using the
-    `gcloud init` command. You need to provide details about your VM, such as
-    the project name and the region where your VM is located.
+    documentation.
+2.  After installation, run the `gcloud init` command to initialize the Google
+    Cloud environment. You need to provide the `gcloud` tool with details
+    about your VM, such as the project name and the region where your VM is
+    located.
     1.  You can verify your environment by using the `gcloud config list`
         command.
-1.  Create an SSH tunnel and redirect a local port to use the tunnel by typing
+3.  Create an SSH tunnel and redirect a local port to use the tunnel by typing
     the following command in a terminal window on your computer. Replace
     `[YOUR_INSTANCE_NAME]` with the name of your VM.
 
-```
-gcloud compute ssh [YOUR_INSTANCE_NAME] -- -L 8888:localhost:8888
-```
+    ```
+    gcloud compute ssh [YOUR_INSTANCE_NAME] -- -L 8888:localhost:8888
+    ```
 
 When the command completes successfully, your prompt changes from your local
 machine to your virtual machine.
@@ -62,7 +63,7 @@ machine to your virtual machine.
 ## 3. Start the qsim Docker container on your virtual machine
 
 On your VM, start the qsim container by typing the following command at the
-command prompt on your VM from the previous step.
+command prompt, on your VM from the previous step.
 
 ```
 docker run -v `pwd`:/homedir -p 8888:8888 gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest &
@@ -100,7 +101,7 @@ and run your code.
 *   {Colab}
 
       You can write code in a Colab notebook, and use your VM to run your code. In
-      this step, we use the
+      this scenario, we use the
       [Get Started with qsimcirq Colab notebook](https://quantumai.google/qsim/tutorials/qsimcirq).
 
       1.  Open the
@@ -143,7 +144,7 @@ and run your code.
       **Before you begin**
 
       For this scenario, you can connect to your machine directly over SSH rather than
-      create a tunnel. In step 3.3 above, remove the second half of the command.
+      create a tunnel. In step 2.3 above, remove the second half of the command.
       Instead of the following command:
 
       ```
@@ -161,8 +162,8 @@ and run your code.
 
       **1. Copy the container ID for your qsim Docker container**
 
-      Use the `docker ps` command to display the container ID. The output should look
-      like the following text:
+      Run `docker ps` to display the container ID. The output should look like
+      the following text:
 
       ```
       CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES i
@@ -173,8 +174,8 @@ and run your code.
 
       **2. Connect to your qsim Docker container**
 
-      Use the docker exec command line tool to login to your container. Replace
-      `[CONTAINER_ID]` with the ID that you copied in step 1.
+      Run `docker exec` to login to your container. Replace `[CONTAINER_ID]`
+      with the ID that you copied in step 1.
 
       ```
       docker exec -it [CONTAINER_ID] /bin/bash
@@ -187,6 +188,7 @@ and run your code.
       You can use the code below to verify that qsim uses your qsim installation.
       You can paste the code directly into the REPL, or paste the code in a
       file.
+
       ```
       # Import Cirq and qsim
       import cirq
@@ -216,12 +218,16 @@ and run your code.
       [(0.7071067690849304+0j), 0j]
       ```
 
-## Clean up
+## Next steps
 
-After you finish either tutorial, you can avoid continued billing by stopping or
-deleting the VM instance that you create; visit the
-[Compute Instances dashboard](https://pantheon.corp.google.com/compute/instances)
-to manage your VM.
+After you finish, don't forget to stop or delete your VM on the Compute
+Instances dashboard.
+
+You are now ready to run your own large simulations on Google Cloud. If you want
+to try a large circuit on Google Cloud, you can connect the
+[Simulate a large quantum circuit](https://colab.sandbox.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/q32d14.ipynb)
+Colab notebook to your VM
+([documentation](https://quantumai.google/qsim/tutorials/q32d14)).
 
 For more information about managing your VM, see the following documentation
 from Google Cloud:
@@ -229,18 +235,6 @@ from Google Cloud:
 *   [Stopping and starting a VM](https://cloud.google.com/compute/docs/instances/stop-start-instance)
 *   [Suspending and resuming an instance](https://cloud.google.com/compute/docs/instances/suspend-resume-instance)
 *   [Deleting a VM instance](https://cloud.google.com/compute/docs/instances/deleting-instance)
-
-## Next steps
-
-After you finish, don't forget to stop or delete your VM on the Compute
-Instances dashboard. For more information, see the
-[Clean Up section in the Overview](https://quantumai.google/qsim/tutorials/gcp_overview#clean_up).
-
-You are now ready to run your own large simulations on Google Cloud. If you want
-to try a large circuit on Google Cloud, you can connect the
-[Simulate a large quantum circuit](https://colab.sandbox.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/q32d14.ipynb)
-Colab notebook to your VM
-([documentation](https://quantumai.google/qsim/tutorials/q32d14)).
 
 As an alternative to Google Cloud, you can download the Docker container or the
 qsim source code to run quantum simulations on your own high-performance
