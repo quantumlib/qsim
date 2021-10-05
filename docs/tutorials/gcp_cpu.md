@@ -18,8 +18,9 @@ instance heading, ensure that your VM has the following properties:
 *   In the Machine Configuration section, in the Machine family options, in
     the Machine type option, choose **c2-standard-16**. This option gives
     you 16 virtual CPUS and 64MB of RAM.
-    *   This choice is for demonstration purposes only. For a live
-        experiment, see [Choosing hardware for your qsim simulation]().
+    *   This choice is for demonstration purposes only.
+<!-- TODO(cognigami): Add the following sentence to the sub-bullet when the doc
+is published: "For a live experiment, see [Choosing hardware for your qsim simulation]().-->
 *   In the Boot disk section, click the Change button, and choose
     Container-Optimized OS. This overrides step 3 in the quickstart guide.
 *   In the Firewall section, ensure that both the **Allow HTTP traffic**
