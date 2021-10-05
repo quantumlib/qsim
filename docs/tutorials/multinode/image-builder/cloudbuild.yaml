@@ -1,6 +1,7 @@
 steps:
 - name: 'gcr.io/$PROJECT_ID/packer'
   dir: 'docs/tutorials/multinode/image-builder'
+  timeout: 3500s
   args:
   - build
   - -var
