@@ -19,7 +19,6 @@ source "googlecompute" "qsim_htcondor_builder" {
     image_description       = "qsim on HTCondor"
     ssh_username            = "admin"
     tags                    = ["packer"]
-    account_file            = "image-builder.key"
     image_name              = "${var.family}-${var.date}"
     image_family            = var.family
     startup_script_file     = "builder.sh"
