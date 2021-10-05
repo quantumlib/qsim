@@ -3,28 +3,6 @@
 SERVER_TYPE="${htserver_type}"
 
 ##############################################################
-## Install and configure HTCONDOR
-##############################################################
-cd /tmp
-yum update -y
-yum install -y wget curl net-tools vim gcc python3 git
-yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-yum install -y https://research.cs.wisc.edu/htcondor/repo/8.8/el7/release/htcondor-release-8.8-1.el7.noarch.rpm
-yum install -y condor
-
-##############################################################
-# Install Docker on Compute Nodes 
-##############################################################
-if [ "$SERVER_TYPE" == "compute" ]; then
-    yum install -y yum-utils
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    yum install -y docker-ce docker-ce-cli containerd.io
-    systemctl start docker
-    systemctl enable docker
-    usermod -aG docker condor
-fi
-
-##############################################################
 # Configure Condor Daemons 
 ##############################################################
 cd /tmp
@@ -89,71 +67,10 @@ systemctl enable condor
 curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
 bash install-logging-agent.sh
 
-# Install Custom Metric Plugin:
-google-fluentd-gem install fluent-plugin-stackdriver-monitoring
-
-# Create Fluentd Config
-
-cat <<EOF > condor.conf
-<source>
-  @type tail
-  format none
-  path /var/log/condor/*Log
-  pos_file /var/lib/google-fluentd/pos/condor.pos
-  read_from_head true
-  tag condor
-</source>
-<source>
-  @type exec
-  command condor_status -direct `hostname` -format "%f " TotalLoadAvg |  cut -d " " -f 1
-    <parse>
-      keys la0
-    </parse>
-  tag condor_la0
-  run_interval 5s
-</source>
-<source>
-  @type exec
-  command condor_status -schedd -format "%d" TotalIdleJobs
-    <parse>
-      keys q0
-    </parse>
-  tag condor_q0
-  run_interval 5s
-</source>
-<match condor_la0>
-  @type stackdriver_monitoring
-  project ${project}
-  <custom_metrics>
-    key la0
-    type custom.googleapis.com/la0
-    metric_kind GAUGE
-    value_type DOUBLE
-  </custom_metrics>
-</match>
-<match condor_q0>
-  @type stackdriver_monitoring
-  project ${project}
-  <custom_metrics>
-    key q0
-    type custom.googleapis.com/q0
-    metric_kind GAUGE
-    value_type INT64
-  </custom_metrics>
-</match>
-EOF
-mkdir -p /etc/google-fluentd/config.d/
-mv condor.conf /etc/google-fluentd/config.d/
-
-if [ "$SERVER_TYPE" == "submit" ]; then
-mkdir -p /var/log/condor/jobs
-touch /var/log/condor/jobs/stats.log
-chmod 666 /var/log/condor/jobs/stats.log
-fi
-
-service google-fluentd restart
-
+##############################################################
 # Add Python Libraries and Autoscaler
+##############################################################
+
 if [ "$SERVER_TYPE" == "submit" ]; then
   python3 -m pip install --upgrade oauth2client
   python3 -m pip install --upgrade google-api-python-client

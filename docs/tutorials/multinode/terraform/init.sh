@@ -5,7 +5,7 @@ export TF_VAR_project=quantum-htcondor-15
 export TF_VAR_zone=us-central1-a
 export TF_VAR_region=us-central1
 export TF_VAR_numzones=4  # for regional/multizone, set to the number of regions in the zone
-export TF_VAR_multizone=true # optional 
+export TF_VAR_multizone=false # optional 
 
 # ---- Do not edit below -----#
 
