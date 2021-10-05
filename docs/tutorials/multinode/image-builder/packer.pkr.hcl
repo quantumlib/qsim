@@ -19,6 +19,8 @@ source "googlecompute" "qsim_htcondor_builder" {
     image_description       = "qsim on HTCondor"
     ssh_username            = "admin"
     ssh_timeout             = "15m"
+
+    machine_type            = "n1-standard-4"
     tags                    = ["packer"]
     image_name              = "${var.family}-${var.date}"
     image_family            = var.family
