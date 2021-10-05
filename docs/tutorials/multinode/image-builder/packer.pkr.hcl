@@ -18,6 +18,7 @@ source "googlecompute" "qsim_htcondor_builder" {
     zone                    = "us-central1-a"
     image_description       = "qsim on HTCondor"
     ssh_username            = "admin"
+    ssh_timeout             = "15m"
     tags                    = ["packer"]
     image_name              = "${var.family}-${var.date}"
     image_family            = var.family
