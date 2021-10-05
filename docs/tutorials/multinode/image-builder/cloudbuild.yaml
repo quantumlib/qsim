@@ -8,7 +8,7 @@ steps:
   - date=${_DATE_}
   - -var
   - family=${_IMAGE_FAMILY_}
-  - packer.pkr.hcl
+  - docs/tutorials/multinode/image-builder/packer.pkr.hcl
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args: ['compute', 'images', 'add-iam-policy-binding', '${_IMAGE_FAMILY_}-${_DATE_}',
