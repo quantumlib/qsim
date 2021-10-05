@@ -35,6 +35,10 @@ module "htcondor" {
   compute_instance_type = "custom-2-11264"
   service_account="htcondor@${var.project}.iam.gserviceaccount.com"
   use_preemptibles=false
-  osproject ="centos-cloud"
-  osimage ="centos-7"
+  #osproject ="centos-cloud"
+  #osimage ="centos-7"
+  gpu_count            = 1
+  gpu_type             = "nvidia-tesla-k80"
+  osproject ="qsim-htcondor-image"
+  osimage ="qsim-htcondor"
 }

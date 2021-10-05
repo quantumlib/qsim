@@ -1,0 +1,30 @@
+steps:
+- name: 'gcr.io/cloud-builders/gcloud'
+  args:
+  - kms
+  - decrypt
+  - --ciphertext-file=image-builder-enc.key
+  - --plaintext-file=image-builder.key
+  - --location=global
+  - --keyring=packer
+  - --key=pk
+- name: 'gcr.io/$PROJECT_ID/packer'
+  args:
+  - build
+  - -var
+  - project_id=$PROJECT_ID
+  - -var
+  - date=${_DATE_}
+  - -var
+  - family=${_IMAGE_FAMILY_}
+  - packer.pkr.hcl
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args: ['compute', 'images', 'add-iam-policy-binding', '${_IMAGE_FAMILY_}-${_DATE_}',
+          '--member=allAuthenticatedUsers', '--role=roles/compute.imageUser'
+        ]
+  env:
+    - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+    - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+substitutions:
+  _IMAGE_FAMILY_: qsim-htcondor

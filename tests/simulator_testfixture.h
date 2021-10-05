@@ -1224,13 +1224,10 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
   std::vector<fp_type> matrix;
   matrix.reserve(1 << (2 * max_target_qubits + 1));
 
-  std::vector<fp_type> vec;
-  vec.reserve(state_space.MinSize(max_qubits));
+  std::vector<fp_type> vec(state_space.MinSize(max_qubits));
 
   // Iterate over circuit size.
   for (unsigned num_qubits = 2; num_qubits <= max_qubits; ++num_qubits) {
-    vec.resize(state_space.MinSize(num_qubits));
-
     unsigned size = 1 << num_qubits;
     unsigned nmask = size - 1;
 

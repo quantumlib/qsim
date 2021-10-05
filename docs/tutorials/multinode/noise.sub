@@ -1,6 +1,6 @@
-universe                = docker
-docker_image            = gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
-arguments               = python3  noise3.py
+universe                = vanilla
+executable              = /usr/bin/python3
+arguments               = noise3.py
 should_transfer_files   = YES
 transfer_input_files    = noise3.py
 when_to_transfer_output = ON_EXIT

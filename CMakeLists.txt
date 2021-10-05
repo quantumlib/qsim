@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.11)
-project(qsim)
+
+execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
+if(has_nvcc STREQUAL "")
+    project(qsim)
+else()
+    project(qsim LANGUAGES CXX CUDA)
+    ADD_SUBDIRECTORY(pybind_interface/cuda)
+endif()
 
 ADD_SUBDIRECTORY(pybind_interface/sse)
 ADD_SUBDIRECTORY(pybind_interface/avx512)

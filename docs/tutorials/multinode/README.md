@@ -1,33 +1,30 @@
 # Multinode quantum simulation using HTCondor on GCP
+Evaluating the noise characteristics of a Quantum Circuit using Monte Carlo trajectory simulations
+requires running many instances of the same simulation.
+It is possible to do this manually, or using shell scripts, but there are
+existing tools to manage job submission across many machines in a data center
+or in the cloud.
 This tutorial will take you through the process of running multiple simultaneous
-`qsim` simulations on Google Cloud. In some situations, it is required to run
-many instances of the same simulation. This could be used to provide a parameter
-sweep or to evaluate noise characteristics.
-
-One of the key competencies of a quantum computing effort is the ability to run
-simulations. While quantum computing hardware is still years from general
-availability, quantum computing simulation with `qsim` and `Cirq` is available for
-researchers exploring a quantum program. It is expected that simulation will be
-a gating requirement to make use of physical hardware, to prove out algorithms
-both for computability and stability under noisy conditions. Many thousands of
-simulation runs will typically be required to prove out the gating requirements
-for each circuit, sometimes requiring years of simulation in advance of any
-practical use of the quantum hardware.
+`qsim` simulations on Google Cloud using [HTCondor](https://research.cs.wisc.edu/htcondor/)
 
 ## Objectives
 
 * Use `terraform` to deploy a HTCondor cluster
-* Run a multi-node simulation using HTCondor
+* Run a multi-node qsim simulation using HTCondor
 * Query cluster information and monitor running jobs in HTCondor
 * Use `terraform` to destroy the cluster
 
-
 ## Step 1: Create a project
-If necessary, you can run this tutorial in an existing project, but to avoid collisions or damage to existing work, it is often better to create a new project.
+[This linded tutorial](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup) describes the
+method to create Google Cloud project in detail.
 
-In this [GCP setup tutorial](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup), the method to create Google Cloud project is explained in detail.
+> If necessary, you can run this tutorial in an existing project, but to avoid
+collisions or damage to existing work, it is often better to create a new
+project.
+In this [GCP setup
+tutorial](https://quantumai.google/qsim/tutorials/qsimcirq_gcp#gcp_setup), the
+method to create Google Cloud project is explained in detail.
 
-When you have a project created, move on to the next step.
 
 > IMPORTANT: For this tutorial, it is best if you have `Owner` privilege on the project. If you do not have owner rights, the following roles will be required:
 ```bash
@@ -37,7 +34,10 @@ roles/monitoring.admin
 roles/logging.admin
 roles/autoscaling.metricsWrite
 ```
+
 Your Cloud admin will be able to provide these roles.
+
+When you have a project created, move on to the next step.
 
 ## Step 2: Configure your environment
 
@@ -63,6 +63,7 @@ This is where you will use `terraform` to create the HTCondor cluster required t
 
 ### Edit `init.sh` file to customize your environment
 
+To make the steps easier, much of the required configuration is containd in the `init.sh` file.
 You can now edit `init.sh` to change the name of the project you are using. You
 can also change the zone and region as you see fit. More information is
 available [here](https://cloud.google.com/compute/docs/regions-zones).
@@ -76,10 +77,14 @@ vim init.sh
 The file has many lines, but only edit the first 4.
 ``` bash
 export TF_VAR_project=quantum-htcondor-15
-export TF_VAR_project_id=us-east4-c
 export TF_VAR_zone=us-east4-c
 export TF_VAR_region=us-east4
 ```
+
+The choice of region and zone can be a long discussion, involving where you have
+data stored, what legal issue might be important and which type of VMs you plan
+to make use of. This is covered in this
+[article](https://cloud.google.com/compute/docs/regions-zones).
 
 The most important is the first line, indicating the name of the project you created above.
 ``` bash

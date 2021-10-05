@@ -65,6 +65,14 @@ variable "instance_type" {
   type = string
   default = "n1-standard-1"
 }
+variable "gpu_type" {
+  type = string
+  default = null
+}
+variable "gpu_count" {
+  type = number
+  default = 0
+}
 variable "service_account" {
   type = string
   default = "default"
@@ -252,6 +260,10 @@ resource "google_compute_instance_template" "condor-compute" {
 
   machine_type = var.compute_instance_type
 
+  guest_accelerator {
+    count = var.gpu_count
+    type = var.gpu_type != null ? var.gpu_type : ""
+  } 
   metadata = {
     startup-script = local.compute_startup
   }
