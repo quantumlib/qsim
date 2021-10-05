@@ -1,5 +1,6 @@
 steps:
 - name: 'gcr.io/$PROJECT_ID/packer'
+  dir: 'docs/tutorials/multinode/image-builder'
   args:
   - build
   - -var
@@ -8,7 +9,7 @@ steps:
   - date=${_DATE_}
   - -var
   - family=${_IMAGE_FAMILY_}
-  - docs/tutorials/multinode/image-builder/packer.pkr.hcl
+  - packer.pkr.hcl
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args: ['compute', 'images', 'add-iam-policy-binding', '${_IMAGE_FAMILY_}-${_DATE_}',
