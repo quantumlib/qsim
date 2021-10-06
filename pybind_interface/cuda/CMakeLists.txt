@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(qsim)
+project(qsim LANGUAGES CXX CUDA)
 
 IF (WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
@@ -26,4 +26,15 @@ if(NOT pybind11_POPULATED)
   FetchContent_Populate(pybind11)
   add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif()
-pybind11_add_module(qsim_cuda pybind_main_cuda.cpp)
+
+find_package(PythonLibs 3.6 REQUIRED)
+find_package(CUDA REQUIRED)
+
+include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
+
+cuda_add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
+set_target_properties(qsim_cuda PROPERTIES
+       PREFIX "${PYTHON_MODULE_PREFIX}"
+       SUFFIX "${PYTHON_MODULE_EXTENSION}"
+)
+set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
