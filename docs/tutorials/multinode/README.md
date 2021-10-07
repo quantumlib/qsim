@@ -256,7 +256,7 @@ Counter({3: 466, 0: 442, 2: 51, 1: 41})
 
 ## 6. Shutting down
 
-> **IMPORTANT**:  To avoid excess billing for this project, it is important to
+**IMPORTANT**:  To avoid excess billing for this project, it is important to
 shut down the cluster. If your Cloud Shell is still open, simply run:
 ```
 make destroy
