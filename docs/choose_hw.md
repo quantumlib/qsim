@@ -23,7 +23,7 @@ not technical limits.
 
 ## Choose hardware for your simulation
 
-### 1. Evaluate whether your simulation can be run locally.
+### 1. Evaluate whether your simulation can be run locally
 
 If you have a modern laptop with at least 8GB of memory, you can run your
 simulation locally in the following cases:
@@ -60,7 +60,7 @@ benefits from high-bandwidth memory (above 100GB/s).
 
 The following chart shows the runtime for a circuit run on
 [Google Compute Engine](https://cloud.google.com/compute), using an NVidia A100
-processor, and a compute-optimized processor (c2-standard-4). Each circuit was
+GPU, and a compute-optimized CPU (c2-standard-4). Each circuit was
 run with three different phase damping channel (p) settings: 0, 0.1, and 0.001.
 The graph is log scale.
 
@@ -80,12 +80,12 @@ choose a specific machine:
         [Google Cloud pricing calculator](https://cloud.google.com/products/calculator).
     *   Prioritizing performance is particularly important in the following
         scenarios:
-        *   Simulating with an **higher f value** (f is the maximum number of
+        *   Simulating with a **higher f value** (f is the maximum number of
             qubits allowed per fused gate).
             *   For small to medium size circuits (up to 22 qubits), keep f low
-                (2 or 3)
-            *   For medium to large size qubits (22+ qubits), use a higher f (3
-                or 4)
+                (2 or 3).
+            *   For medium to large size qubits (22+ qubits), use a higher f
+                typically, f=4 is the best option).
         *   Simulating a **deep circuit** (depth 30+).
 
 ### 5. Consider multiple compute nodes
@@ -144,9 +144,9 @@ depth beyond 20 qubits.
     *   For circuits that contain fewer than 20 qubits, the qsimcirq translation
         layer performance overhead tends to dominate the runtime estimate. In
         addition to this, qsim is not optimized for small circuits
-    *   ​​The total small circuits runtime overhead for an N qubit circuit
-        depends on the circuit depth and on N, and can be up to orders of
-        magnitude larger than $ 2^N $.
+    *   The total small circuits runtime overhead for an N qubit circuit
+        depends on the circuit depth and on N. The overhead can be large enough to
+        conceal the  $ 2^N $ growth in runtime.
 
 ## Sample benchmarks
 
