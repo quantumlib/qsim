@@ -25,6 +25,8 @@ In your Cloud Shell window, clone this Github repo.
 ``` bash
 git clone https://github.com/quantumlib/qsim.git
 ```
+If you get an error saying something like `qsim already exists`, you may need
+to delete the `qsim` directory with `rm -rf qsim` and rerun the clone command.
 
 ### Change directory
 
@@ -117,10 +119,15 @@ which manages resource requests behind the scenes
 * c-submit: the [submit node](https://htcondor.readthedocs.io/en/latest/getting-htcondor/admin-quick-start.html#the-submit-role),
 where you will submit jobs to be run in the cluster
 
-Identify and log into the submit node:
-```bash
-gcloud compute ssh c-submit
-```
+### Connecting to the submit node
+
+To connect to the submit node, navigate to the
+[Compute Instances](https://console.cloud.google.com/compute/instances) section
+of the Cloud Console and press the `SSH` button next to the `c-submit` instance.
+This will open a new window connected to the Submit node. You may see a prompt
+asking to "disable Identity-Aware Proxy" during this step; simply accept the
+prompt and the connection should complete.
+
 Now you are logged in to your HTCondor cluster. You will see a command prompt
 something like:
 ```bash
@@ -147,7 +154,7 @@ sample jobs have been provided in the Github repo.
 
 ###  Clone the repo on your cluster
 
-On the submit node, you can install the repo to get access to previously
+On the submit node, you can clone the repo to get access to previously
 created submission files:
 ```bash
 git clone https://github.com/quantumlib/qsim.git
@@ -186,18 +193,9 @@ Noise simulations make use of a [Monte Carlo
 method](https://en.wikipedia.org/wiki/Monte_Carlo_method) for [quantum
 trajectories](https://en.wikipedia.org/wiki/Quantum_Trajectory_Theory).
 
-To run multiple simulations, you can run the submit file `noise.sub`.  The
-submit file is shown below. It is key to note that this is running  a `docker`
-container. Also, the `queue 50` command at the end of the file submits 50
-separate instances of the container. Each simulation will be different due to
-the stochastic nature of noisy simulations. A typical analysis of the output
-would be a statistical study of the means and variations, perhaps looking for
-parameter ranges where circuits are particularly susceptible to noise.
-
-
 ### The noise.sub file
 
-To run multiple simulations, you can define a "submit file". `noise.sub` is
+To run multiple simulations, you can define a "submit" file. `noise.sub` is
 an example of this file format, and is shown below. Notable features include:
 
 * `universe = docker` means that all jobs will run inside a `docker` container.
@@ -237,7 +235,11 @@ configuration of the cluster.
 When the queue is empty, the command can be stopped with CTRL-C.
 
 The output from all trajectories will be stored in the `out` directory. To see
-the results of the simulations, you can run `cat out/out.${TRAJECTORY_NUM}`, replacing `${TRAJECTORY_NUM}` with the trajectory number (e.g. `2-0`).
+the results of all simulations together, you can run:
+```
+cat out/out.2-*
+```
+The output should look something like this:
 ```
 Counter({3: 462, 0: 452, 2: 50, 1: 36})
 Counter({0: 475, 3: 435, 1: 49, 2: 41})
@@ -252,12 +254,28 @@ Counter({3: 466, 0: 442, 2: 51, 1: 41})
 .
 ```
 
-## Next steps
+## 6. Shutting down
 
-This tutorial makes use of an experimental
+> **IMPORTANT**:  To avoid excess billing for this project, it is important to
+shut down the cluster. If your Cloud Shell is still open, simply run:
+```
+make destroy
+```
+If your Cloud Shell closed at any point, you'll need to re-initialize it.
+[Open a new shell](https://console.cloud.google.com/home/dashboard?cloudshell=true)
+and run:
+```
+cd qsim/docs/tutorials/multinode/terraform
+source init.sh
+make destroy
+```
+After these commands complete, check the Compute Instances dashboard to verify
+that all VMs have been shut down. This tutorial makes use of an experimental
 [autoscaling script](./terraform/htcondor/autoscaler.py) to bring up and turn
-down VMs as needed. After you finish, check the Compute Instances dashboard and
-stop or delete any remaining VM(s) to prevent further billing.
+down VMs as needed. If any VMs remain after several minutes, you may need to
+shut them down manually, as described in the next section.
+
+## Next steps
 
 The file being run in the previous example was `noise3.py`. To run your own
 simulations, simply create a new python file with your circuit and change the
