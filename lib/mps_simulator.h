@@ -35,11 +35,12 @@ namespace mps {
 /**
  *  Truncated Matrix Product State (MPS) circuit simulator w/ vectorization.
  */
-template <typename For, typename fp_type = float>
+template <typename For, typename FP = float>
 class MPSSimulator final {
  public:
-  using MPSStateSpace_ = MPSStateSpace<For, fp_type>;
+  using MPSStateSpace_ = MPSStateSpace<For, FP>;
   using State = typename MPSStateSpace_::MPS;
+  using fp_type = typename MPSStateSpace_::fp_type;
 
   using Complex = std::complex<fp_type>;
   using Matrix =
