@@ -1,11 +1,13 @@
 # ---- Edit below -----#
 
-export TF_VAR_project=quantum-htcondor-15
-export TF_VAR_project_id=us-east4-c
+export TF_VAR_project=[USER_PROJECT]
 export TF_VAR_zone=us-east4-c
 export TF_VAR_region=us-east4
-export TF_VAR_multizone=true
-export TF_VAR_numzones=4  # for regional/multizone, set to the number of regions in the zone
+
+export TF_VAR_multizone=false
+# For regional/multizone, set this to the number of regions in the zone.
+export TF_VAR_numzones=4
+
 # ---- Do not edit below -----#
 
 export TF_VAR_project_id=${TF_VAR_project}
