@@ -118,16 +118,16 @@ NAME: c-manager
 ZONE: us-central1-a
 MACHINE_TYPE: n1-standard-1
 PREEMPTIBLE:
-INTERNAL_IP: 10.128.0.3
-EXTERNAL_IP: 104.198.206.37
+INTERNAL_IP: X.X.X.X
+EXTERNAL_IP: X.X.X.X
 STATUS: RUNNING
 
 NAME: c-submit
 ZONE: us-central1-a
 MACHINE_TYPE: n1-standard-1
 PREEMPTIBLE:
-INTERNAL_IP: 10.128.0.2
-EXTERNAL_IP: 35.238.197.124
+INTERNAL_IP: X.X.X.X
+EXTERNAL_IP: X.X.X.X
 STATUS: RUNNING
 ```
 
@@ -136,9 +136,10 @@ STATUS: RUNNING
 To connect to the submit node, click the `Compute Engine` item on the Cloud
 dashboard. This will open the VM Instances page, where you should see the two
 instances listed above. In the `c-submit` row, click on the `SSH` button to
-open a new window connected to the submit node. You may see a prompt asking to
-disable Identity-Aware Proxy during this step; simply accept the prompt and
-the connection should complete.
+open a new window connected to the submit node. During this step, you may see a
+prompt that reads `Connection via Cloud Identity-Aware Proxy Failed`; simply
+click on `Connect without Identity-Aware Proxy` and the connection should
+complete.
 
 This new window is logged into your HTCondor cluster. You will see a command
 prompt that looks something like this:
