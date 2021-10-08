@@ -126,8 +126,9 @@ class QSimOptions:
 
     Args:
         max_fused_gate_size: maximum number of qubits allowed per fused gate.
-            Depending on the capabilities of the device qsim runs on, this
-            usually has best performance when set to 3 or 4.
+            Circuits of less than 22 qubits usually perform best with this set
+            to 2 or 3, while larger circuits (with >= 22 qubits) typically
+            perform better with it set to 3 or 4.
         cpu_threads: number of threads to use when running on CPU. For best
             performance, this should equal the number of cores on the device.
         ev_noisy_repetitions: number of repetitions used for estimating
