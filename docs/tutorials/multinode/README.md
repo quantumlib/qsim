@@ -47,8 +47,8 @@ export TF_VAR_project=[USER_PROJECT]
 export TF_VAR_zone=us-east4-c
 export TF_VAR_region=us-east4
 ```
-Replace `[USER_PROJECT]` with the project ID you chose in the `Before you begin`
-tutorial.
+Replace `[USER_PROJECT]` with the project name you chose on the
+`Before you begin` page.
 
 The other lines can optionally be modified to adjust your environment.
 * The `TF_VAR_zone` and `TF_VAR_region` lines can be modified to select where
@@ -113,26 +113,39 @@ To see the VMs created by HTCondor, run:
 gcloud compute instances list
 ```
 At this point in the tutorial, you will see two instances listed:
+```
+NAME: c-manager
+ZONE: us-central1-a
+MACHINE_TYPE: n1-standard-1
+PREEMPTIBLE:
+INTERNAL_IP: 10.128.0.3
+EXTERNAL_IP: 104.198.206.37
+STATUS: RUNNING
 
-* c-manager: the [central manager node](https://htcondor.readthedocs.io/en/latest/getting-htcondor/admin-quick-start.html#the-central-manager-role),
-which manages resource requests behind the scenes
-* c-submit: the [submit node](https://htcondor.readthedocs.io/en/latest/getting-htcondor/admin-quick-start.html#the-submit-role),
-where you will submit jobs to be run in the cluster
+NAME: c-submit
+ZONE: us-central1-a
+MACHINE_TYPE: n1-standard-1
+PREEMPTIBLE:
+INTERNAL_IP: 10.128.0.2
+EXTERNAL_IP: 35.238.197.124
+STATUS: RUNNING
+```
 
 ### Connecting to the submit node
 
-To connect to the submit node, navigate to the
-[Compute Instances](https://console.cloud.google.com/compute/instances) section
-of the Cloud Console and press the `SSH` button next to the `c-submit` instance.
-This will open a new window connected to the Submit node. You may see a prompt
-asking to "disable Identity-Aware Proxy" during this step; simply accept the
-prompt and the connection should complete.
+To connect to the submit node, click the `Compute Engine` item on the Cloud
+dashboard. This will open the VM Instances page, where you should see the two
+instances listed above. In the `c-submit` row, click on the `SSH` button to
+open a new window connected to the submit node. You may see a prompt asking to
+disable Identity-Aware Proxy during this step; simply accept the prompt and
+the connection should complete.
 
-Now you are logged in to your HTCondor cluster. You will see a command prompt
-something like:
+This new window is logged into your HTCondor cluster. You will see a command
+prompt that looks something like this:
 ```bash
 [mylogin@c-submit ~]$
 ```
+The following steps should be performed in this window.
 
 ### Checking the status
 
@@ -184,7 +197,7 @@ compute node, installing the HTCondor system and running the job. When complete,
 * `out/out.1-0` contains the final output of the job.
 * `out/err.1-0` contains any error reports. This should be empty.
 
-To view one of these files in the shell, you can run `cat [FILE]`,
+To view one of these files in the shell, you can run `cat out/[FILE]`,
 replacing `[FILE]` with the name of the file to be viewed.
 
 ## 5. Run multinode noise simulations
@@ -257,7 +270,9 @@ Counter({3: 466, 0: 442, 2: 51, 1: 41})
 ## 6. Shutting down
 
 **IMPORTANT**:  To avoid excess billing for this project, it is important to
-shut down the cluster. If your Cloud Shell is still open, simply run:
+shut down the cluster. Return to the Cloud dashboard window for the steps below.
+
+If your Cloud Shell is still open, simply run:
 ```
 make destroy
 ```
