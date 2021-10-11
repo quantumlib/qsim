@@ -220,7 +220,7 @@ class MPSSimulator final {
     block_0.fill(Complex(0, 0));
     const auto keep_cols = (svd_u.cols() > bond_dim) ? bond_dim : svd_u.cols();
     block_0.block(0, 0, svd_u.rows(), keep_cols).noalias() =
-        svd_u(Eigen::all, Eigen::seq(0, keep_cols - 1));
+        svd_u(Eigen::indexing::all, Eigen::seq(0, keep_cols - 1));
 
     // Place row product of S V into scratch to truncate and then B1.
     MatrixMap svd_v((Complex*)(raw_state + end), p, 2 * m_dim);
@@ -233,7 +233,8 @@ class MPSSimulator final {
     for (unsigned i = 0; i < keep_rows; ++i) {
       svd_v.row(i) *= s_vector(i);
     }
-    block_1.block(0, 0, keep_rows, svd_v.cols()).noalias() = svd_v(row_seq, Eigen::all);
+    block_1.block(0, 0, keep_rows, svd_v.cols()).noalias() =
+        svd_v(row_seq, Eigen::indexing::all);
   }
 
   For for_;
