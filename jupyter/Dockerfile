@@ -22,6 +22,5 @@ RUN  jupyter serverextension enable --py jupyter_http_over_ws
 CMD ["jupyter-notebook", "--port=8888", "--no-browser",\
       "--ip=0.0.0.0", "--allow-root", \
 	  "--NotebookApp.allow_origin='*'", \
-      "--NotebookApp.port_retries=0"]
-
-	  #"--NotebookApp.allow_origin='https://colab.research.google.com'", \
+      "--NotebookApp.port_retries=0", \
+	  "--NotebookApp.token=''"]
