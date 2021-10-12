@@ -58,9 +58,9 @@ landing_page:
 
         # Define a circuit to run
         # (Example is from the 2019 "Quantum Supremacy" experiement)
-        circuit = cirq.experiments.
+        circuit = (cirq.experiments.
             random_rotations_between_grid_interaction_layers_circuit(
-            qubits=qubits, depth=16)
+            qubits=qubits, depth=16))
 
         # Measure qubits at the end of the circuit
         circuit.append(cirq.measure(*qubits, key='all_qubits'))
