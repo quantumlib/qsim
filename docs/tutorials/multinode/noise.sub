@@ -1,0 +1,11 @@
+universe                = docker
+docker_image            = gcr.io/quantum-builds/github.com/quantumlib/jupyter_qsim:latest
+arguments               = python3  noise3.py
+should_transfer_files   = YES
+transfer_input_files    = noise3.py
+when_to_transfer_output = ON_EXIT
+output                  = out/out.$(Cluster)-$(Process)
+error                   = out/err.$(Cluster)-$(Process)
+log                     = out/log.$(Cluster)-$(Process)
+request_memory          = 10GB
+queue 50

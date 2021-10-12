@@ -19,6 +19,8 @@ upper_tabs:
          path: /qsim/tutorials/gcp_cpu
        - title: "GPU-based simulation"
          path: /qsim/tutorials/gcp_gpu
+       - title: "Multinode simulation"
+         path: /qsim/tutorials/multinode
        - heading: "Other tutorials"
        - title: "Simulate a large circuit"
          path: /qsim/tutorials/q32d14
