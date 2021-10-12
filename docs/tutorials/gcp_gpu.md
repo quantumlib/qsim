@@ -34,7 +34,7 @@ for your project.
 
 ### Find out more
 
-<!-- TODO(cognigami): Add this line when the doc is published: "*   [Choosing hardware for your qsim simulation]()" -->
+*   [Choosing hardware for your qsim simulation](/qsim/choose_hw)
 *   [Choosing the right machine family and type](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
 *   [Creating a VM with attached GPUs](https://cloud.google.com/compute/docs/gpus/create-vm-with-gpus#create-new-gpu-vm)
 

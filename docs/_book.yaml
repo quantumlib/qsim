@@ -31,9 +31,8 @@ upper_tabs:
      contents:
        - title: "Introduction"
          path: /qsim/overview
-         #       TODO(cognigami): Uncomment this when you post the choose_hw doc.
-         #       - title: "Choosing hardware"
-         #      path: /qsim/choose_hw
+       - title: "Choosing hardware"
+         path: /qsim/choose_hw
        - title: "Command line reference"
          path: /qsim/usage
        - title: "Python interface"
