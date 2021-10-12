@@ -32,8 +32,8 @@ simulation locally in the following cases:
 *   Noisy simulations that use fewer than 18 qubits.
 
 If you intend to simulate a circuit many times, consider multinode simulation.
-For more information about multinode simulation
-[see step 5, below](#5_consider_multiple_compute_nodes).
+For more information about multinode simulation [see step 5,
+below](#5_consider_multiple_compute_nodes).
 
 ### 2. Estimate your memory requirements
 
@@ -53,18 +53,20 @@ benefits from high-bandwidth memory (above 100GB/s).
     faster) for circuits with more than 20 qubits.
 *   The maximum number of qubits that you can simulate with a GPU is limited by
     the memory of the GPU. Currently, for a noiseless simulation on an NVIDIA
-    A100 GPU, the maximum number of qubits is 32.
+    A100 GPU (with 40GB of memory), the maximum number of qubits is 32.
 *   For noiseless simulations with 32-40 qubits, you can use CPUs. However, the
     runtime time increases exponentially with the number of qubits, and runtimes
     are long for simulations above 32 qubits.
 
-The following chart shows the runtime for a circuit run on
+The following charts show the runtime for a random circuit run on
 [Google Compute Engine](https://cloud.google.com/compute), using an NVidia A100
-GPU, and a compute-optimized CPU (c2-standard-4). Each circuit was
-run with three different phase damping channel (p) settings: 0, 0.1, and 0.001.
-The graph is log scale.
+GPU, and a compute-optimized CPU (c2-standard-4). The first chart shows the
+runtimes for the noiseless simulation. The second chart shows the runtimes for a
+noisy simulation, using a phase damping channel (p=0.01). The charts use a log
+scale.
 
-![qsim runtime comparison on multipe processors and configurations](images/qsim_runtime_comparison.png)
+![qsim runtime comparison on multipe processors: noiseless](images/qsim_runtime_comparison_noiseless.png)
+![qsim runtime comparison on multipe processors: noisy](images/qsim_runtime_comparison_noisy.png)
 
 ### 4. Select a specific machine
 
@@ -96,6 +98,9 @@ are “embarrassingly parallelizable”, there is an automated workflow for
 distributing these trajectories over multiple nodes. A simulation of many
 noiseless circuits can also be distributed over multiple compute nodes.
 
+For mor information about running a mulitnode simulation, see [Multinode quantum
+simulation using HTCondor on Google Cloud](/qsim/tutorials/multinode).
+
 ## Runtime estimates
 
 Runtime grows exponentially with the number of qubits, and linearly with circuit
@@ -104,7 +109,7 @@ depth beyond 20 qubits.
 *   For noiseless simulations, runtime grows at a rate of $ 2^N $ for an N-qubit
     circuit. For more information about runtimes for small circuits, see
     [Additional notes for advanced users](#additional_notes_for_advanced_users)
-    below),
+    below).
 *   For noisy simulations, runtime grows at a rate of $ 2^N $ multiplied by the
     number of iterations for an N-qubit circuit.
 
@@ -113,16 +118,16 @@ depth beyond 20 qubits.
 *   The impact of noise on simulation depends on:
     *   What type of errors are included in your noise channel (decoherence,
         depolarizing channels, coherent errors, readout errors).
-    *   How you can represent your noise model using Kraus operator formalism
+    *   How you can represent your noise model using Kraus operator formalism:
         *   Performance is best in the case where all Kraus operators are
             proportional to unitary matrices, such as when using only a
             depolarizing channel. In this case, memory requirements are equal to
-            noiseless memory requirements (8\*2^n bytes)
+            noiseless memory requirements (8\*2^n bytes).
         *   Using noise which cannot be represented with Kraus operators
             proportional to unitary matrices, can slow down simulations by a
             factor of up to 6** **compared to using a depolarizing channel only
         *   Noisy simulations are faster with lower noise (when one Kraus
-            operator dominates)
+            operator dominates).
 *   Experimenting with the 'f' parameter (maximum number of qubits allowed per
     fused gate):
     *   The advanced user is advised to try out multiple f values to optimize
@@ -130,7 +135,7 @@ depth beyond 20 qubits.
         *   Note that f=2 or f=3 can be optimal for large circuits simulated on
             CPUs with a smaller number of threads (say, up to four or eight
             threads). However, this depends on the circuit structure.
-        *   Note that f=6 is very rarely optimal
+        *   Note that f=6 is very rarely optimal.
 *   Using the optimal number of threads:
     *   Use the maximum number of threads on CPUs for the best performance.
     *   If the maximum number of threads is not used on multi-socket machines
@@ -143,7 +148,7 @@ depth beyond 20 qubits.
 *   Runtime estimates for small circuits:
     *   For circuits that contain fewer than 20 qubits, the qsimcirq translation
         layer performance overhead tends to dominate the runtime estimate. In
-        addition to this, qsim is not optimized for small circuits
+        addition to this, qsim is not optimized for small circuits.
     *   The total small circuits runtime overhead for an N qubit circuit
         depends on the circuit depth and on N. The overhead can be large enough to
         conceal the  $ 2^N $ growth in runtime.
