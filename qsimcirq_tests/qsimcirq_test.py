@@ -29,7 +29,7 @@ class NoiseTrigger(cirq.SingleQubitGate):
     # def _mixture_(self):
     #   return ((1.0, np.asarray([1, 0, 0, 1])),)
 
-    def _channel_(self):
+    def _kraus_(self):
         return (np.asarray([1, 0, 0, 1]),)
 
 
@@ -781,8 +781,8 @@ def test_mixture_simulation():
     possible_circuits = [
         cirq.Circuit(cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5, pf, bf)
         # Extract the operators from the mixtures to construct trajectories.
-        for pf in [NoiseStep(m).on(q0) for m in cirq.channel(pflip)]
-        for bf in [NoiseStep(m).on(q1) for m in cirq.channel(bflip)]
+        for pf in [NoiseStep(m).on(q0) for m in cirq.kraus(pflip)]
+        for bf in [NoiseStep(m).on(q1) for m in cirq.kraus(bflip)]
     ]
     possible_states = [
         cirq.Simulator().simulate(pc).state_vector() for pc in possible_circuits
@@ -823,8 +823,8 @@ def test_channel_simulation():
     possible_circuits = [
         cirq.Circuit(cirq.X(q0) ** 0.5, cirq.X(q1) ** 0.5, ad, gad)
         # Extract the operators from the channels to construct trajectories.
-        for ad in [NoiseStep(m).on(q0) for m in cirq.channel(amp_damp)]
-        for gad in [NoiseStep(m).on(q1) for m in cirq.channel(gen_amp_damp)]
+        for ad in [NoiseStep(m).on(q0) for m in cirq.kraus(amp_damp)]
+        for gad in [NoiseStep(m).on(q1) for m in cirq.kraus(gen_amp_damp)]
     ]
     possible_states = [
         cirq.Simulator().simulate(pc).state_vector() for pc in possible_circuits
@@ -860,7 +860,7 @@ class NoiseChannel(cirq.Gate):
     def _num_qubits_(self):
         return self._num_qubits
 
-    def _channel_(self):
+    def _kraus_(self):
         return [cirq.unitary(op) for _, op, in self._prob_op_pairs]
 
     def steps(self):

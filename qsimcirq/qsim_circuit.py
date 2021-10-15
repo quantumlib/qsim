@@ -376,7 +376,7 @@ class QSimCircuit(cirq.Circuit):
                     ops_by_mix.append(qsim_op)
                     moment_length = max(moment_length, 1)
                     pass
-                elif cirq.has_channel(qsim_op):
+                elif cirq.has_kraus(qsim_op):
                     ops_by_channel.append(qsim_op)
                     moment_length = max(moment_length, 1)
                     pass
@@ -407,7 +407,7 @@ class QSimCircuit(cirq.Circuit):
                 # Handle channel output.
                 for channel in ops_by_channel:
                     chdata = []
-                    for i, mat in enumerate(cirq.channel(channel)):
+                    for i, mat in enumerate(cirq.kraus(channel)):
                         square_mat = np.reshape(mat, (int(np.sqrt(mat.size)), -1))
                         unitary = cirq.is_unitary(square_mat)
                         singular_vals = np.linalg.svd(square_mat)[1]
