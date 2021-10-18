@@ -72,7 +72,7 @@ machine to your virtual machine.
 2.  Install the CUDA toolkit.
 
     ```shell
-    sudo apt install -y nvidia-cuda-toolkit`
+    sudo apt install -y nvidia-cuda-toolkit
     ```
 
 3.  Add your CUDA toolkit to the environment search path.
