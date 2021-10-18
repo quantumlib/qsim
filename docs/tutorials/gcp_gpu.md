@@ -61,7 +61,7 @@ Use SSH in the `glcoud` tool to communicate with your VM.
 When the command completes successfully, your prompt changes from your local
 machine to your virtual machine.
 
-## 3. Enable your virutal machine to use the GPU
+## 3. Enable your virtual machine to use the GPU
 
 1.  Install the GPU driver. In the Google Cloud documentation, in the Installing
     GPU drivers guide, follow the steps provided in the following sections:
