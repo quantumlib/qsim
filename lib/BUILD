@@ -674,7 +674,10 @@ cc_library(
 cc_library(
     name = "mps_statespace",
     hdrs = ["mps_statespace.h"],
-    deps = ["@eigen//:eigen3"],
+    deps = [
+        ":util",
+        "@eigen//:eigen3",
+    ],
 )
 
 cc_library(
