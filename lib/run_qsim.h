@@ -79,7 +79,7 @@ struct QSimRunner final {
     double t0 = 0.0;
     double t1 = 0.0;
 
-    if (param.verbosity > 0) {
+    if (param.verbosity > 1) {
       t0 = GetTime();
     }
 
@@ -96,17 +96,33 @@ struct QSimRunner final {
     state_space.SetStateZero(state);
     Simulator simulator = factory.CreateSimulator();
 
+    if (param.verbosity > 1) {
+      t1 = GetTime();
+      IO::messagef("init time is %g seconds.\n", t1 - t0);
+      t0 = GetTime();
+    }
+
     auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
                                         circuit.gates, times_to_measure_at);
+
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
+    }
+
+    if (param.verbosity > 1) {
+      t1 = GetTime();
+      IO::messagef("fuse time is %g seconds.\n", t1 - t0);
+    }
+
+    if (param.verbosity > 0) {
+      t0 = GetTime();
     }
 
     unsigned cur_time_index = 0;
 
     // Apply fused gates.
     for (std::size_t i = 0; i < fused_gates.size(); ++i) {
-      if (param.verbosity > 1) {
+      if (param.verbosity > 3) {
         t1 = GetTime();
       }
 
@@ -116,7 +132,7 @@ struct QSimRunner final {
         return false;
       }
 
-      if (param.verbosity > 1) {
+      if (param.verbosity > 3) {
         double t2 = GetTime();
         IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
       }
@@ -132,7 +148,7 @@ struct QSimRunner final {
 
     if (param.verbosity > 0) {
       double t2 = GetTime();
-      IO::messagef("time elapsed %g seconds.\n", t2 - t0);
+      IO::messagef("time is %g seconds.\n", t2 - t0);
     }
 
     return true;
@@ -159,7 +175,7 @@ struct QSimRunner final {
     double t0 = 0.0;
     double t1 = 0.0;
 
-    if (param.verbosity > 0) {
+    if (param.verbosity > 1) {
       t0 = GetTime();
     }
 
@@ -168,16 +184,33 @@ struct QSimRunner final {
     StateSpace state_space = factory.CreateStateSpace();
     Simulator simulator = factory.CreateSimulator();
 
+    if (param.verbosity > 1) {
+      t1 = GetTime();
+      IO::messagef("init time is %g seconds.\n", t1 - t0);
+      t0 = GetTime();
+    }
+
     auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
                                         circuit.gates);
+
     if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
       return false;
     }
+
     measure_results.reserve(fused_gates.size());
+
+    if (param.verbosity > 1) {
+      t1 = GetTime();
+      IO::messagef("fuse time is %g seconds.\n", t1 - t0);
+    }
+
+    if (param.verbosity > 0) {
+      t0 = GetTime();
+    }
 
     // Apply fused gates.
     for (std::size_t i = 0; i < fused_gates.size(); ++i) {
-      if (param.verbosity > 1) {
+      if (param.verbosity > 3) {
         t1 = GetTime();
       }
 
@@ -187,7 +220,7 @@ struct QSimRunner final {
         return false;
       }
 
-      if (param.verbosity > 1) {
+      if (param.verbosity > 3) {
         double t2 = GetTime();
         IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
       }
@@ -195,7 +228,7 @@ struct QSimRunner final {
 
     if (param.verbosity > 0) {
       double t2 = GetTime();
-      IO::messagef("time elapsed %g seconds.\n", t2 - t0);
+      IO::messagef("simu time is %g seconds.\n", t2 - t0);
     }
 
     return true;

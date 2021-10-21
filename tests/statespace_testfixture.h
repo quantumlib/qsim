@@ -463,17 +463,18 @@ void TestNormAndInnerProductSmall(const Factory& factory) {
 
 template <typename Factory>
 void TestNormAndInnerProduct(const Factory& factory) {
-  unsigned depth = 8;
-
-  std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
-  circuit.gates.emplace_back(GateT<float>::Create(depth + 1, 0));
-
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using fp_type = typename StateSpace::fp_type;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+
+  unsigned depth = 8;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<fp_type>> circuit;
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
+  circuit.gates.emplace_back(GateT<fp_type>::Create(depth + 1, 0));
 
   StateSpace state_space = factory.CreateStateSpace();
   State state0 = state_space.Create(circuit.num_qubits);
@@ -773,16 +774,17 @@ void TestMeasurementSmall(const Factory& factory, bool cuda = false) {
 
 template <typename Factory>
 void TestMeasurementLarge(const Factory& factory) {
-  unsigned depth = 20;
-
-  std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
-
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using fp_type = typename StateSpace::fp_type;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+
+  unsigned depth = 20;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<fp_type>> circuit;
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
 
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
