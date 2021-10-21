@@ -586,6 +586,51 @@ TEST(MPSStateSpaceTest, InnerProduct4) {
   EXPECT_NEAR(f, 0.5524, 1e-4);
 }
 
+TEST(MPSStateSpaceTest, SamplingSmall) {
+  uint64_t num_samples = 2000000;
+  constexpr unsigned num_qubits = 6;
+  constexpr int bond_dim = 4;
+  constexpr uint64_t size = uint64_t{1} << num_qubits;
+
+  auto ss = MPSStateSpace<For, float>(1);
+  auto mps = ss.Create(num_qubits, bond_dim);
+
+  ss.SetAllZeros(mps);
+
+  std::vector<float> ps = {
+    0.0046, 0.0100, 0.0136, 0.0239, 0.0310, 0.0263, 0.0054, 0.0028,
+    0.0129, 0.0128, 0.0319, 0.0023, 0.0281, 0.0185, 0.0284, 0.0175,
+    0.0148, 0.0307, 0.0017, 0.0319, 0.0185, 0.0304, 0.0133, 0.0229,
+    0.0190, 0.0213, 0.0197, 0.0028, 0.0288, 0.0084, 0.0052, 0.0147,
+    0.0164, 0.0084, 0.0154, 0.0093, 0.0215, 0.0059, 0.0115, 0.0039,
+    0.0111, 0.0101, 0.0314, 0.0003, 0.0173, 0.0075, 0.0116, 0.0091,
+    0.0289, 0.0005, 0.0027, 0.0293, 0.0063, 0.0181, 0.0043, 0.0063,
+    0.0169, 0.0101, 0.0295, 0.0227, 0.0275, 0.0218, 0.0131, 0.0172,
+  };
+
+  for (unsigned i = 0; i < ss.Size(mps); ++i) {
+    mps.get()[i] = i;
+  }
+  for (uint64_t i = 0; i < size; ++i) {
+    auto r = std::sqrt(ps[i]);
+    ss.SetAmpl(mps, i, r * std::cos(i), r * std::sin(i));
+  }
+
+  auto samples = ss.Sample(mps, num_samples, 1);
+
+  EXPECT_EQ(samples.size(), num_samples);
+  std::vector<double> bins(size, 0);
+
+  for (auto sample : samples) {
+    ASSERT_LT(sample, size);
+    bins[sample] += 1;
+  }
+
+  for (uint64_t i = 0; i < size; ++i) {
+    EXPECT_NEAR(bins[i] / num_samples, ps[i], 4e-4);
+  }
+}
+
 }  // namespace
 }  // namespace mps
 }  // namespace qsim

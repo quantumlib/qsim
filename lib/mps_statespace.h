@@ -28,6 +28,7 @@
 #include <memory>
 
 #include "../eigen/Eigen/Dense"
+#include "util.h"
 
 namespace qsim {
 
@@ -92,6 +93,10 @@ class MPSStateSpace {
     unsigned bond_dim_;
   };
 
+  static uint64_t MinSize(unsigned num_qubits) {
+    return 2 * (uint64_t{1} << num_qubits);
+  };
+
   // Note: ForArgs are currently unused.
   template <typename... ForArgs>
   MPSStateSpace(ForArgs&&... args) : for_(args...) {}
@@ -150,10 +155,15 @@ class MPSStateSpace {
     return true;
   }
 
+  static void SetAllZeros(MPS& state) {
+    auto size = Size(state);
+    memset(state.get(), 0, sizeof(fp_type) * size);
+  }
+
   // Set the MPS to the |0> state.
   static void SetStateZero(MPS& state) {
     auto size = Size(state);
-    memset(state.get(), 0, sizeof(fp_type) * size);
+    SetAllZeros(state);
     auto block_size = 4 * state.bond_dim() * state.bond_dim();
     state.get()[0] = 1.0;
     for (unsigned i = 4 * state.bond_dim(); i < size; i += block_size) {
@@ -161,11 +171,67 @@ class MPSStateSpace {
     }
   }
 
+  static std::complex<fp_type> GetAmpl(const MPS& state, uint64_t i) {
+    uint64_t p = 2 * i;
+    return std::complex<fp_type>(state.get()[p], state.get()[p + 1]);
+  }
+
+  static void SetAmpl(
+      MPS& state, uint64_t i, const std::complex<fp_type>& ampl) {
+    uint64_t p = 2 * i;
+    state.get()[p] = std::real(ampl);
+    state.get()[p + 1] = std::imag(ampl);
+  }
+
+  static void SetAmpl(MPS& state, uint64_t i, fp_type re, fp_type im) {
+    uint64_t p = 2 * i;
+    state.get()[p] = re;
+    state.get()[p + 1] = im;
+  }
+
   // Computes Re{<state1 | state2 >} for two equal sized MPS.
   // Requires: state1.bond_dim() == state2.bond_dim() &&
   //           state1.num_qubits() == state2.num_qubits()
   static fp_type RealInnerProduct(MPS& state1, MPS& state2) {
     return InnerProduct(state1, state2).real();
+  }
+
+  // Generates the sampled bitstrings from the final w
+  template <typename DistrRealType = double>
+  std::vector<uint64_t> Sample(
+      const MPS& state, uint64_t num_samples, unsigned seed) const {
+    std::vector<uint64_t> bitstrings;
+
+    if (num_samples > 0) {
+      double norm = 0;
+      uint64_t size = MinSize(state.num_qubits()) / 2;
+
+      const fp_type* p = state.get();
+
+      for (uint64_t k = 0; k < size; ++k) {
+        auto re = p[2 * k];
+        auto im = p[2 * k + 1];
+        norm += re * re + im * im;
+      }
+
+      auto rs = GenerateRandomValues<DistrRealType>(num_samples, seed, norm);
+
+      uint64_t m = 0;
+      double csum = 0;
+      bitstrings.reserve(num_samples);
+
+      for (uint64_t k = 0; k < size; ++k) {
+        auto re = p[2 * k];
+        auto im = p[2 * k + 1];
+        csum += re * re + im * im;
+        while (rs[m] < csum && m < num_samples) {
+          bitstrings.emplace_back(k);
+          ++m;
+        }
+      }
+    }
+
+    return bitstrings;
   }
 
   // Computes <state1 | state2 > for two equal sized MPS.
