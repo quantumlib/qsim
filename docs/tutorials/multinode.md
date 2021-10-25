@@ -33,15 +33,18 @@ to delete the `qsim` directory with `rm -rf qsim` and rerun the clone command.
 ### Change directory
 
 Change directory to the tutorial:
+
 ``` bash
 cd qsim/docs/tutorials/multinode/terraform
 ```
+
 This is where you will use `terraform` to create the HTCondor cluster required to run your jobs.
 
 ### Edit `init.sh` file to match your environment
 
 Using your favorite text file editor, open the `init.sh` file. The first few
 lines should look like this:
+
 ```bash
 # ---- Edit below -----#
 
@@ -49,6 +52,7 @@ export TF_VAR_project=[USER_PROJECT]
 export TF_VAR_zone=us-east4-c
 export TF_VAR_region=us-east4
 ```
+
 Replace `[USER_PROJECT]` with the project name you chose on the
 `Before you begin` page.
 
@@ -63,9 +67,11 @@ your project will create new jobs.
 ### Source the `init.sh` file
 
 The edited `init.sh` file should be "sourced" in the cloud shell:
+
 ``` bash
 source init.sh
 ```
+
 Respond `Agree` to any pop-ups that request permissions on the Google Cloud platform.
 
 The final outcome of this script will include:
@@ -94,10 +100,13 @@ Terraform has been successfully initialized!
 
 For convenience, some terraform commands are prepared in a `Makefile`. This
 means you can now create your cluster, with a simple `make` command.
+
 ```bash
 make apply
 ```
+
 A successful run will show:
+
 ```
 Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 ```
@@ -111,10 +120,13 @@ commands to submit and monitor jobs on HTCondor.
 ### List VMs that were created by HTCondor
 
 To see the VMs created by HTCondor, run:
+
 ```bash
 gcloud compute instances list
 ```
+
 At this point in the tutorial, you will see two instances listed:
+
 ```
 NAME: c-manager
 ZONE: us-central1-a
@@ -145,14 +157,17 @@ complete.
 
 This new window is logged into your HTCondor cluster. You will see a command
 prompt that looks something like this:
+
 ```bash
 [mylogin@c-submit ~]$
 ```
+
 The following steps should be performed in this window.
 
 ### Checking the status
 
 You can run `condor_q` to verify if the HTCondor install is completed. The output should look something like this:
+
 ```
 -- Schedd: c-submit.c.quantum-htcondor-14.internal : <10.150.0.2:9618?... @ 08/18/21 18:37:50
 OWNER BATCH_NAME      SUBMITTED   DONE   RUN    IDLE   HOLD  TOTAL JOB_IDS
@@ -161,6 +176,7 @@ Total for query: 0 jobs; 0 completed, 0 removed, 0 idle, 0 running, 0 held, 0 su
 Total for drj: 0 jobs; 0 completed, 0 removed, 0 idle, 0 running, 0 held, 0 suspended
 Total for all users: 0 jobs; 0 completed, 0 removed, 0 idle, 0 running, 0 held, 0 suspended
 ```
+
 If you get `command not found`, you will need to wait a few minutes for the HTCondor install to complete.
 
 ## 4. Get the sample code and run it
@@ -172,10 +188,13 @@ sample jobs have been provided in the Github repo.
 
 On the submit node, you can clone the repo to get access to previously
 created submission files:
+
 ```bash
 git clone https://github.com/quantumlib/qsim.git
 ```
+
 Then cd to the tutorial directory.
+
 ```bash
 cd qsim/docs/tutorials/multinode
 ```
