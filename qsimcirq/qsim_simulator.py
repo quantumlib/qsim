@@ -332,10 +332,6 @@ class QSimSimulator(
             sampler_fn = self._sim_module.qsim_sample
 
         if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
-            print(
-                "Provided circuit has no intermediate measurements. "
-                + "Sampling repeatedly from final state vector."
-            )
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
             for i in range(len(program.moments)):
