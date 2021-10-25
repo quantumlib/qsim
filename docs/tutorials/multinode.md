@@ -22,9 +22,11 @@ tutorial, open the [Cloud Shell in the Cloud Console](https://console.cloud.goog
 ### Clone this repo
 
 In your Cloud Shell window, clone this Github repo.
+
 ``` bash
 git clone https://github.com/quantumlib/qsim.git
 ```
+
 If you get an error saying something like `qsim already exists`, you may need
 to delete the `qsim` directory with `rm -rf qsim` and rerun the clone command.
 
