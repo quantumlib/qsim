@@ -28,6 +28,17 @@ Sample circuits are provided in
 qsim_base computes all the amplitudes and just prints the first eight of them
 (or a smaller number for 1- or 2-qubit circuits).
 
+Verbosity levels are described in the following table.
+
+| Verbosity level | Description |
+|-----------------|-------------|
+| 0 | no additional information|
+| 1 | add total simulation runtime|
+| 2 | add initialization runtime and fuser runtime|
+| 3 | add basic fuser statistics|
+| 4 | add simulation runtime for each fused gate|
+| 5 | additional fuser information (qubit indices for each fused gate)|
+
 Example:
 ```
 ./qsim_base.x -c ../circuits/circuit_q24 -d 16 -t 8 -v 1
