@@ -823,7 +823,8 @@ TEST(MPSSimulator, ApplyFusedGateLeft) {
   auto gate3 = GateHd<float>::Create(0, 1);
 
   GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {0, 1}, &gate1,
-                                    {&gate2, &gate3}};
+                                    {&gate2, &gate3}, {}};
+  CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(3, 4);
   ss.SetStateZero(mps);
   ApplyFusedGate(sim, fgate1, mps);
@@ -857,7 +858,8 @@ TEST(MPSSimulator, ApplyFusedGateRight) {
   auto gate3 = GateHd<float>::Create(0, 2);
 
   GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {1, 2}, &gate1,
-                                    {&gate2, &gate3}};
+                                    {&gate2, &gate3}, {}};
+  CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(3, 4);
   ss.SetStateZero(mps);
   ApplyFusedGate(sim, fgate1, mps);
@@ -891,7 +893,8 @@ TEST(MPSSimulator, ApplyFusedGateMiddle) {
   auto gate3 = GateHd<float>::Create(0, 2);
 
   GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {1, 2}, &gate1,
-                                    {&gate2, &gate3}};
+                                    {&gate2, &gate3}, {}};
+  CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(4, 4);
   ss.SetStateZero(mps);
   ApplyFusedGate(sim, fgate1, mps);

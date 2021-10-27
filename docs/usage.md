@@ -22,11 +22,22 @@ Sample circuits are provided in
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
 |`-f max_fused_size` | maximum fused gate size|
-|`-v verbosity` | verbosity level (0,1,>1)|
+|`-v verbosity` | verbosity level (0,1,2,3,4,5)|
 |`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsim_base computes all the amplitudes and just prints the first eight of them
 (or a smaller number for 1- or 2-qubit circuits).
+
+Verbosity levels are described in the following table.
+
+| Verbosity level | Description |
+|-----------------|-------------|
+| 0 | no additional information|
+| 1 | add total simulation runtime|
+| 2 | add initialization runtime and fuser runtime|
+| 3 | add basic fuser statistics|
+| 4 | add simulation runtime for each fused gate|
+| 5 | additional fuser information (qubit indices for each fused gate)|
 
 Example:
 ```
@@ -46,7 +57,7 @@ Example:
 |`-d maxtime` | maximum time |
 |`-t num_threads` | number of threads to use|
 |`-f max_fused_size` | maximum fused gate size|
-|`-v verbosity` | verbosity level (0,1,>1)|
+|`-v verbosity` | verbosity level (0,1,2,3,4,5)|
 |`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsim_von_neumann computes all the amplitudes and calculates the von Neumann
@@ -77,7 +88,7 @@ Example:
 |`-o output_files` | comma-separated list of amplitude output files|
 |`-t num_threads` | number of threads to use|
 |`-f max_fused_size` | maximum fused gate size|
-|`-v verbosity` | verbosity level (0,1,>1)|
+|`-v verbosity` | verbosity level (0,1,2,3,4,5)|
 |`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsim_amplitudes reads input files of bitstrings, computes the corresponding
@@ -112,7 +123,7 @@ Example:
 |`-t traj0` | starting trajectory |
 |`-n num_trajectories ` | number of trajectories to run starting with `traj0` |
 |`-f max_fused_size` | maximum fused gate size|
-|`-v verbosity` | verbosity level (0,1)|
+|`-v verbosity` | verbosity level (0,1,2,3,4,5)|
 
 qsim_qtrajectory_cuda runs on GPUs. qsim_qtrajectory_cuda performs quantum
 trajactory simulations with amplitude damping and phase damping noise channels.
@@ -145,7 +156,7 @@ Example:
 |`-p num_prefix_gates` | number of prefix gates|
 |`-r num_root_gates` | number of root gates|
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level (0,>0)|
+|`-v verbosity` | verbosity level (0,1,4,5)|
 |`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsimh_base just computes and just prints the first eight amplitudes. The hybrid
@@ -226,7 +237,7 @@ maximum "time".
 |`-i input_file` | bitstring input file|
 |`-o output_file` | amplitude output file|
 |`-t num_threads` | number of threads to use|
-|`-v verbosity` | verbosity level (0,>0)|
+|`-v verbosity` | verbosity level (0,1,4,5)|
 |`-z` | set flush-to-zero and denormals-are-zeros MXCSR control flags|
 
 qsimh_amplitudes reads the input file of bitstrings, computes the corresponding
