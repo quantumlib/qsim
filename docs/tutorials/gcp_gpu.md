@@ -62,7 +62,7 @@ Use SSH in the `glcoud` tool to communicate with your VM.
 When the command completes successfully, your prompt changes from your local
 machine to your virtual machine.
 
-## 3. Enable your virutal machine to use the GPU
+## 3. Enable your virtual machine to use the GPU
 
 1.  Install the GPU driver. Complete the steps provided in the following
     sections of the [Installing GPU
@@ -75,7 +75,7 @@ machine to your virtual machine.
 2.  Install the CUDA toolkit.
 
     ```shell
-    sudo apt install -y nvidia-cuda-toolkit`
+    sudo apt install -y nvidia-cuda-toolkit
     ```
 
 3.  Add your CUDA toolkit to the environment search path.
