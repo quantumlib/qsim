@@ -305,7 +305,7 @@ class QSimSimulator(
         current_index = 0
         for op in measurement_ops:
             gate = op.gate
-            key = protocols.measurement_key(gate)
+            key = protocols.measurement_key_name(gate)
             meas_ops[key] = op
             if key in bounds:
                 raise ValueError(f"Duplicate MeasurementGate with key {key}")
