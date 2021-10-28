@@ -23,9 +23,9 @@ instance section, ensure that your VM has the following properties:
     1.   In the **Operating System** option, choose **Ubuntu**.
     2.   In the **Version** option, choose **20.04 LTS**.
     3.   In the **Size** field, enter **30** (minimum).
-    4.   This overrides step 3 through 5 in the [Create a Linux
-         VM instance](https://cloud.google.com/compute/docs/quickstart-linux)
-         Quickstart.
+*   The instructions above override steps 3 through 5 in the [Create a Linux VM
+    instance](https://cloud.google.com/compute/docs/quickstart-linux)
+    Quickstart.
 *   In the **Firewall** section, ensure that both the **Allow HTTP traffic**
     checkbox and the **Allow HTTPS traffic** checkboxs are selected.
 
