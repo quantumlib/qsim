@@ -126,8 +126,9 @@ class QSimOptions:
 
     Args:
         max_fused_gate_size: maximum number of qubits allowed per fused gate.
-            Depending on the capabilities of the device qsim runs on, this
-            usually has best performance when set to 3 or 4.
+            Circuits of less than 22 qubits usually perform best with this set
+            to 2 or 3, while larger circuits (with >= 22 qubits) typically
+            perform better with it set to 3 or 4.
         cpu_threads: number of threads to use when running on CPU. For best
             performance, this should equal the number of cores on the device.
         ev_noisy_repetitions: number of repetitions used for estimating
@@ -304,7 +305,7 @@ class QSimSimulator(
         current_index = 0
         for op in measurement_ops:
             gate = op.gate
-            key = protocols.measurement_key(gate)
+            key = protocols.measurement_key_name(gate)
             meas_ops[key] = op
             if key in bounds:
                 raise ValueError(f"Duplicate MeasurementGate with key {key}")
@@ -331,10 +332,6 @@ class QSimSimulator(
             sampler_fn = self._sim_module.qsim_sample
 
         if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
-            print(
-                "Provided circuit has no intermediate measurements. "
-                + "Sampling repeatedly from final state vector."
-            )
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
             for i in range(len(program.moments)):
@@ -454,6 +451,11 @@ class QSimSimulator(
         This method returns a result which allows access to the entire
         wave function. In contrast to simulate, this allows for sweeping
         over different parameter values.
+
+        Avoid using this method with `use_gpu=True` in the simulator options;
+        when used with GPU this method must copy state from device to host memory
+        multiple times, which can be very slow. This issue is not present in
+        `simulate_expectation_values_sweep`.
 
         Args:
             program: The circuit to simulate.

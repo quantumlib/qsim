@@ -50,6 +50,10 @@ struct GateFused {
    * Ordered list of component gates.
    */
   std::vector<const Gate*> gates;
+  /**
+   * Fused gate matrix.
+   */
+  Matrix<typename Gate::fp_type> matrix;
 };
 
 /**
@@ -134,16 +138,14 @@ class Fuser {
 /**
  * Multiplies component gate matrices of a fused gate.
  * @param gate Fused gate.
- * @return Matrix product of component matrices.
  */
-template <typename fp_type, typename FusedGate>
-inline Matrix<fp_type> CalculateFusedMatrix(const FusedGate& gate) {
-  Matrix<fp_type> matrix;
-  MatrixIdentity(unsigned{1} << gate.qubits.size(), matrix);
+template <typename FusedGate>
+inline void CalculateFusedMatrix(FusedGate& gate) {
+  MatrixIdentity(unsigned{1} << gate.qubits.size(), gate.matrix);
 
   for (auto pgate : gate.gates) {
     if (gate.qubits.size() == pgate->qubits.size()) {
-      MatrixMultiply(gate.qubits.size(), pgate->matrix, matrix);
+      MatrixMultiply(gate.qubits.size(), pgate->matrix, gate.matrix);
     } else {
       unsigned mask = 0;
 
@@ -157,11 +159,31 @@ inline Matrix<fp_type> CalculateFusedMatrix(const FusedGate& gate) {
       }
 
       MatrixMultiply(mask, pgate->qubits.size(), pgate->matrix,
-                     gate.qubits.size(), matrix);
+                     gate.qubits.size(), gate.matrix);
     }
   }
+}
 
-  return matrix;
+/**
+ * Multiplies component gate matrices for a range of fused gates.
+ * @param gbeg, gend The iterator range [gbeg, gend) of fused gates.
+ */
+template <typename Iterator>
+inline void CalculateFusedMatrices(Iterator gbeg, Iterator gend) {
+  for (auto g = gbeg; g != gend; ++g) {
+    if (g->kind != gate::kMeasurement) {
+      CalculateFusedMatrix(*g);
+    }
+  }
+}
+
+/**
+ * Multiplies component gate matrices for a vector of fused gates.
+ * @param gates The vector of fused gates.
+ */
+template <typename FusedGate>
+inline void CalculateFusedMatrices(std::vector<FusedGate>& gates) {
+  CalculateFusedMatrices(gates.begin(), gates.end());
 }
 
 }  // namespace qsim

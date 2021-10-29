@@ -123,8 +123,8 @@ std::complex<double> ExpectationValue(
         break;
       }
 
-      auto matrix = CalculateFusedMatrix<typename Simulator::fp_type>(fgate);
-      auto r = simulator.ExpectationValue(fgate.qubits, matrix.data(), state);
+      auto r = simulator.ExpectationValue(
+          fgate.qubits, fgate.matrix.data(), state);
       eval += str.weight * r;
     }
   }

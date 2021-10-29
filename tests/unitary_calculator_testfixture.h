@@ -425,8 +425,10 @@ void TestApplyFusedGate() {
   std::vector<Gate> gates = {Cirq::H<fp_type>::Create(0, 0),
                              Cirq::H<fp_type>::Create(1, 0)};
 
-  GateFused<Gate> fgate{Cirq::kH, 0, {0}, &gates[0], {&gates[0], &gates[1]}};
+  GateFused<Gate> fgate {Cirq::kH, 0, {0}, &gates[0],
+                         {&gates[0], &gates[1]}, {}};
 
+  CalculateFusedMatrix(fgate);
   ApplyFusedGate(uc, fgate, u);
 
   unsigned size = 1 << num_qubits;

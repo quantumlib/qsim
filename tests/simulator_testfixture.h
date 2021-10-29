@@ -224,7 +224,8 @@ void TestApplyGate5(const Factory& factory) {
   auto gate25 = GateRX<fp_type>::Create(11, 4, 0.3);
 
   GateFused<GateQSim<fp_type>> fgate1{kGateCZ, 2, {0, 1},  &gate11,
-      {&gate1, &gate2, &gate6, &gate7, &gate11, &gate12, &gate13}};
+      {&gate1, &gate2, &gate6, &gate7, &gate11, &gate12, &gate13}, {}};
+  CalculateFusedMatrix(fgate1);
   ApplyFusedGate(simulator, fgate1, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
@@ -245,7 +246,8 @@ void TestApplyGate5(const Factory& factory) {
   }
 
   GateFused<GateQSim<fp_type>> fgate2{kGateIS, 4, {1, 2}, &gate14,
-      {&gate3, &gate8, &gate14, &gate15, &gate16}};
+      {&gate3, &gate8, &gate14, &gate15, &gate16}, {}};
+  CalculateFusedMatrix(fgate2);
   ApplyFusedGate(simulator, fgate2, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
@@ -266,7 +268,8 @@ void TestApplyGate5(const Factory& factory) {
   }
 
   GateFused<GateQSim<fp_type>> fgate3{kGateCNot, 6, {2, 3}, &gate17,
-      {&gate4, &gate9, &gate17, &gate18, &gate19}};
+      {&gate4, &gate9, &gate17, &gate18, &gate19},{}};
+  CalculateFusedMatrix(fgate3);
   ApplyFusedGate(simulator, fgate3, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
@@ -287,7 +290,8 @@ void TestApplyGate5(const Factory& factory) {
   }
 
   GateFused<GateQSim<fp_type>> fgate4{kGateFS, 8, {3, 4}, &gate20,
-      {&gate5, &gate10, &gate20, &gate21, &gate22}};
+      {&gate5, &gate10, &gate20, &gate21, &gate22}, {}};
+  CalculateFusedMatrix(fgate4);
   ApplyFusedGate(simulator, fgate4, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
@@ -307,7 +311,9 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), -0.00987822, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate5{kGateCP, 10, {0, 1}, &gate23, {&gate23}};
+  GateFused<GateQSim<fp_type>> fgate5{kGateCP, 10, {0, 1}, &gate23,
+      {&gate23}, {}};
+  CalculateFusedMatrix(fgate5);
   ApplyFusedGate(simulator, fgate5, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
@@ -1224,13 +1230,10 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
   std::vector<fp_type> matrix;
   matrix.reserve(1 << (2 * max_target_qubits + 1));
 
-  std::vector<fp_type> vec;
-  vec.reserve(state_space.MinSize(max_qubits));
+  std::vector<fp_type> vec(state_space.MinSize(max_qubits));
 
   // Iterate over circuit size.
   for (unsigned num_qubits = 2; num_qubits <= max_qubits; ++num_qubits) {
-    vec.resize(state_space.MinSize(num_qubits));
-
     unsigned size = 1 << num_qubits;
     unsigned nmask = size - 1;
 

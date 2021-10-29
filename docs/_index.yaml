@@ -15,7 +15,7 @@
 book_path: /qsim/_book.yaml
 project_path: /qsim/_project.yaml
 description: >
-  Quantum circuit simulators qsim and qsimh.
+  Quantum circuit simulator qsim.
 landing_page:
   custom_css_path: /site-assets/css/style.css
   rows:
@@ -24,7 +24,7 @@ landing_page:
     - hero
     - description-50
     - padding-large
-    heading: qsim and qsimh
+    heading: qsim
     icon:
       path: /site-assets/images/icons/icon_qsim.png
     description: >
@@ -38,12 +38,6 @@ landing_page:
         OpenMP to achieve state of the art simulations of quantum circuits.
         qsim is integrated with Cirq and can be used to run simulations of up
         to 40 qubits on a 90 core Intel Xeon workstation.
-        </p>
-        <h4>qsimh</h4>
-        <p>
-        qsimh is a hybrid Schrödinger-Feynman simulator built for parallel
-        execution on a cluster of machines. It produces amplitudes for user-
-        specified output bitstrings.
         </p>
       buttons:
       - label: Get started with qsim on Cirq
@@ -64,9 +58,9 @@ landing_page:
 
         # Define a circuit to run
         # (Example is from the 2019 "Quantum Supremacy" experiement)
-        circuit = cirq.experiments.
+        circuit = (cirq.experiments.
             random_rotations_between_grid_interaction_layers_circuit(
-            qubits=qubits, depth=16)
+            qubits=qubits, depth=16))
 
         # Measure qubits at the end of the circuit
         circuit.append(cirq.measure(*qubits, key='all_qubits'))

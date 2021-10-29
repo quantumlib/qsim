@@ -46,6 +46,8 @@ enum GateKind {
   kGateIS,      // iSwap
   kGateFS,      // fSim
   kGateCP,      // control phase
+  kGateMatrix1, // One-qubit matrix gate.
+  kGateMatrix2, // Two-qubit matrix gate.
   kDecomp = gate::kDecomp,
   kMeasurement = gate::kMeasurement,
 };
@@ -317,6 +319,24 @@ struct GateS {
   }
 };
 
+/**
+ * A one-qubit gate defined entirely by its matrix.
+ */
+template <typename fp_type>
+struct GateMatrix1 {
+  static constexpr GateKind kind = kGateMatrix1;
+  static constexpr char name[] = "mat1";
+  static constexpr unsigned num_qubits = 1;
+  static constexpr bool symmetric = true;
+
+  static GateQSim<fp_type> Create(unsigned time, unsigned q0,
+                                  const Matrix<fp_type>& m) {
+    auto m2 = m;
+    return
+        CreateGate<GateQSim<fp_type>, GateMatrix1>(time, {q0}, std::move(m2));
+  }
+};
+
 // Two-qubit gates:
 
 /**
@@ -563,6 +583,29 @@ struct GateCP {
       {{1, 0, 0, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0, 1, 0}},
       {{0, 0, 0, 0, 0, 0, 1, 0}, {1, 0, 0, 0, 0, 0, cp, -sp}},
     };
+  }
+};
+
+/**
+ * A two-qubit gate defined entirely by its matrix.
+ */
+template <typename fp_type>
+struct GateMatrix2 {
+  static constexpr GateKind kind = kGateMatrix2;
+  static constexpr char name[] = "mat2";
+  static constexpr unsigned num_qubits = 2;
+  static constexpr bool symmetric = false;
+
+  template <typename M = Matrix<fp_type>>
+  static GateQSim<fp_type> Create(
+      unsigned time, unsigned q0, unsigned q1, M&& m) {
+    return CreateGate<GateQSim<fp_type>, GateMatrix2>(time, {q1, q0},
+                                                      std::forward<M>(m));
+  }
+
+  static schmidt_decomp_type<fp_type> SchmidtDecomp(fp_type phi) {
+    // Not implemented.
+    return schmidt_decomp_type<fp_type>{};
   }
 };
 

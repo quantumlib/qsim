@@ -40,6 +40,7 @@ struct HybridSimulator final {
   // Note that one can use "struct GateHybrid : public Gate {" in C++17.
   struct GateHybrid {
     using GateKind = HybridSimulator::GateKind;
+    using fp_type = HybridSimulator::fp_type;
 
     GateKind kind;
     unsigned time;
@@ -554,7 +555,13 @@ struct HybridSimulator final {
                          const Simulator& simulator,
                          typename Simulator::State& state) {
     for (std::size_t i = i0; i < i1; ++i) {
-      ApplyFusedGate(simulator, gates[i], state);
+      if (gates[i].matrix.size() > 0) {
+        ApplyFusedGate(simulator, gates[i], state);
+      } else {
+        auto gate = gates[i];
+        CalculateFusedMatrix(gate);
+        ApplyFusedGate(simulator, gate, state);
+      }
     }
   }
 
