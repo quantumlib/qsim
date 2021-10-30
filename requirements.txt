@@ -1,13 +1,5 @@
-# Runtime requirements for the python 3 version of cirq.
-
+absl-py
 cirq-core
 numpy~=1.16
-typing_extensions
-absl-py
-
-# Build and test requirements
-
-black==20.8b1
-flynt~=0.60
 pybind11
-pytest
+typing_extensions

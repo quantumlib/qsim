@@ -17,6 +17,12 @@ Prerequisites are included in the
 [`requirements.txt`](https://github.com/quantumlib/qsim/blob/master/requirements.txt)
 file, and will be automatically installed along with qsimcirq.
 
+If you'd like to develop qsimcirq, a separate set of dependencies are includes
+in the
+[`dev-requirements.txt`](https://github.com/quantumlib/qsim/blob/master/dev-requirements.txt)
+file. You can install them with `pip3 install -r dev-requirements.txt` or
+`pip3 install qsimcirq[dev]`.
+
 ## Linux installation
 
 We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{6,7,8,9}`.
