@@ -3,7 +3,7 @@
 In this tutorial, you configure and test a virtual machine (VM) to run GPU-based
 quantum simulations on Google Cloud.
 
-The later steps in this tutorial require you to enter several commands at the
+Note: The later steps in this tutorial require you to enter several commands at the
 command line. Some commands might require you to add `sudo` before the command.
 For example, if a step asks you to type `icecream -fancy`, you might need to
 type `sudo icecream -fancy`.
@@ -12,21 +12,22 @@ type `sudo icecream -fancy`.
 
 Follow the instructions in the
 [Quickstart using a Linux VM](https://cloud.google.com/compute/docs/quickstart-linux)
-guide to create a VM. In addition to the guidance under the Create a Linux VM
-instance heading, ensure that your VM has the following properties:
+guide to create a VM. In addition to the guidance specified in the Create a Linux VM
+instance section, ensure that your VM has the following properties:
 
-*   In the Machine Configuration section, in the Machine Family options, click
-    on the **GPU** filter.
-*   In the Machine Configuration section, in the Machine family options, in the
-    GPU type option, choose **NVIDIA Tesla A100**.
-    *   In the Number of GPUs option, choose **1**.
-*   In the Boot disk section, click the **Change** button.
-    *   In the Operating System option, choose **Ubuntu**.
-    *   In the Version option, choose **20.04 LTS**.
-    *   In the Size field, enter **30** (minimum).
-    *   This overrides step 3 through 5 in the Quickstart guide.
-*   In the Firewall section, ensure that both the **Allow HTTP traffic**
-    checkbox and **Allow HTTPS traffic** checkbox have marks.
+*   In the **Machine Configuration** section:
+    1.  Select the tab for the **GPU** machine family.
+    2.   In the **GPU type** option, choose **NVIDIA Tesla A100**.
+    3.   In the **Number of GPUs** option, choose **1**.
+*   In the **Boot disk** section, click the **Change** button:
+    1.   In the **Operating System** option, choose **Ubuntu**.
+    2.   In the **Version** option, choose **20.04 LTS**.
+    3.   In the **Size** field, enter **30** (minimum).
+*   The instructions above override steps 3 through 5 in the [Create a Linux VM
+    instance](https://cloud.google.com/compute/docs/quickstart-linux)
+    Quickstart.
+*   In the **Firewall** section, ensure that both the **Allow HTTP traffic**
+    checkbox and the **Allow HTTPS traffic** checkboxs are selected.
 
 When Google Cloud finishes creating the VM, you can see your VM listed in the
 [Compute Instances dashboard](https://pantheon.corp.google.com/compute/instances)
@@ -63,11 +64,13 @@ machine to your virtual machine.
 
 ## 3. Enable your virtual machine to use the GPU
 
-1.  Install the GPU driver. In the Google Cloud documentation, in the Installing
-    GPU drivers guide, follow the steps provided in the following sections:
+1.  Install the GPU driver. Complete the steps provided in the following
+    sections of the [Installing GPU
+    drivers](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu):
+    guide:
     *   [Examples](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#examples),
-        under the Ubuntu tab. Only follow the steps for Ubuntu 20.04 (steps 3a
-        through 3f).
+        under the **Ubuntu** tab. For step 3, only perform the steps for
+        **Ubuntu 20.04** (steps 3a through 3f).
     *   [Verifying the GPU driver install](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#verify-driver-install)
 2.  Install the CUDA toolkit.
 
@@ -123,7 +126,7 @@ sudo apt install cmake && sudo apt install pip && pip install pybind11
 3.  Run `make` to compile qsim. When make detects the CUDA toolkit during
     compilation, make builds the GPU version of qsim automatically.
 4.  Run `pip install .` to install your local version of qsimcirq.
-5.  Verify your installation.
+5.  Verify your qsim installation.
 
     ```shell
     python3 -c "import qsimcirq; print(qsimcirq.qsim_gpu)"
@@ -132,15 +135,15 @@ sudo apt install cmake && sudo apt install pip && pip install pybind11
     If the installation completed successfully, the output from the command
     should resemble the following:
 
-    ```shell
+    ```none
     <module 'qsimcirq.qsim_cuda' from '/home/user_org_com/qsim/qsimcirq/qsim_cuda.cpython-38-x86_64-linux-gnu.so'>
     ```
 
 
 ## 6. Verify your installation
 
-You can use the code below to verify that qsim uses your GPU. You can paste the
-code directly into the REPL, or paste the code in a file.
+You can use the following code to verify that qsim uses your GPU. You can paste
+the code directly into the REPL, or paste the code in a file.
 
 ```
 # Import Cirq and qsim
@@ -168,7 +171,7 @@ print(qsim_results)
 
 After a moment, you should see a result that looks similar to the following.
 
-```
+```none
 [(0.7071067690849304+0j), 0j]
 ```
 
