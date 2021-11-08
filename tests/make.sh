@@ -19,6 +19,7 @@
 
 path_to_include=googletest/googletest/include
 path_to_lib=googletest/lib
+path_to_lib=googletest/googletest/make/lib
 
 g++ -O3 -I$path_to_include -L$path_to_lib -o bitstring_test.x bitstring_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o channels_cirq_test.x channels_cirq_test.cc -lgtest -lpthread
@@ -54,3 +55,10 @@ nvcc -O3 -I$path_to_include -L$path_to_lib -o hybrid_cuda_test.x hybrid_cuda_tes
 nvcc -O3 -I$path_to_include -L$path_to_lib -o qtrajectory_cuda_test.x qtrajectory_cuda_test.cu -lgtest -lpthread
 nvcc -O3 -I$path_to_include -L$path_to_lib -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
 nvcc -O3 -I$path_to_include -L$path_to_lib -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread
+
+# CUQUANTUM_ROOT should be set.
+CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
+nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o hybrid_custatevec_test.x hybrid_custatevec_test.cu -lgtest -lpthread
+nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o qtrajectory_custatevec_test.x qtrajectory_custatevec_test.cu -lgtest -lpthread
+nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o simulator_custatevec_test.x simulator_custatevec_test.cu -lgtest -lpthread
+nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o statespace_custatevec_test.x statespace_custatevec_test.cu -lgtest -lpthread

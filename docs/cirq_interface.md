@@ -50,7 +50,7 @@ which invokes qsim through the qsim-Cirq interface.
 ## Interface design and operations
 
 The purpose of this interface is to provide a performant simulator for quantum
-circuits defined in Cirq. 
+circuits defined in Cirq.
 
 ### Classes
 
@@ -179,14 +179,18 @@ and run on a device with available NVIDIA GPUs.
 
 Compilation for GPU follows the same steps outlined in the
 [Compiling qsimcirq](./cirq_interface.md#compiling-qsimcirq) section.
+To compile with the NVIDIA cuStateVec library, set the environmment variable
+`CUQUANTUM_ROOT` to path to the root of the cuStateVec library.
 
-`QSimOptions` provides four parameters to configure GPU execution. Only
-`use_gpu` is required to enable GPU execution:
+`QSimOptions` provides five parameters to configure GPU execution. `use_gpu`
+is required to enable GPU execution:
 * `use_gpu`: if True, use GPU instead of CPU for simulation.
+* `gpu_mode`: use CUDA if set to 0 (default value) or use the NVIDIA cuStateVec
+library if set to any other value.
 
-The remaining parameters use default values which provide good performance in
-most cases, but can optionally be set to fine-tune perfomance for a specific
-device or circuit.
+If `use_gpu` is set and `gpu_mode` is set to 0, the remaining parameters can
+optionally be set to fine-tune perfomance for a specific device or circuit.
+In most cases, the default values provide good performance.
 * `gpu_sim_threads`: number of threads per CUDA block to use for the GPU
 Simulator. This must be a power of 2 in the range [32, 256].
 * `gpu_state_threads`: number of threads per CUDA block to use for the GPU
