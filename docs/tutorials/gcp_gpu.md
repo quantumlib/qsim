@@ -178,7 +178,14 @@ After a moment, you should see a result that looks similar to the following.
 ### Optional: Use the NVIDIA cuQuantum SDK 
 
 If you have the [NVIDIA cuQuantum SDK](https://developer.nvidia.com/cuquantum-sdk)
-installed, you can use it here by modifying the `gpu_options` line like so:
+installed, you can use it with this tutorial. Before building qsim in step 5,
+set the `CUQUANTUM_ROOT` environment variable from the command line:
+
+```bash
+CUQUANTUM_ROOT=[PATH_TO_CUQUANTUM_SDK]
+```
+
+Once you have built qsim, modify the `gpu_options` line like so:
 
 ```python
 gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
