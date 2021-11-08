@@ -41,6 +41,13 @@ else()
   include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
 
   cuda_add_library(qsim_decide MODULE decide.cpp)
+
+  if(DEFINED ENV{CUQUANTUM_ROOT})
+      target_compile_options(qsim_decide PRIVATE
+          $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
+      )
+  endif()
+
   set_target_properties(qsim_decide PROPERTIES
         PREFIX "${PYTHON_MODULE_PREFIX}"
         SUFFIX "${PYTHON_MODULE_EXTENSION}"

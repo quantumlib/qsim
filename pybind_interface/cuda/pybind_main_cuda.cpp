@@ -38,8 +38,8 @@ namespace qsim {
       return Simulator(sim_params);
     }
 
-    const StateSpace::Parameter ss_params;
-    const Simulator::Parameter sim_params;
+    StateSpace::Parameter ss_params;
+    Simulator::Parameter sim_params;
   };
 }
 
