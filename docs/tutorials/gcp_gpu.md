@@ -177,8 +177,8 @@ After a moment, you should see a result that looks similar to the following.
 
 ### Optional: Use the NVIDIA cuQuantum SDK 
 
-If you have the NVIDIA cuQuantum SDK installed, you can use it here by
-modifying the `gpu_options` line like so:
+If you have the [NVIDIA cuQuantum SDK](https://developer.nvidia.com/cuquantum-sdk)
+installed, you can use it here by modifying the `gpu_options` line like so:
 
 ```python
 gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
