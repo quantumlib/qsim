@@ -38,6 +38,7 @@ def _load_qsim_gpu():
         qsim_gpu = None
     return qsim_gpu
 
+
 def _load_qsim_custatevec():
     instr = qsim_decide.detect_custatevec()
     if instr == 1:
@@ -45,6 +46,7 @@ def _load_qsim_custatevec():
     else:
         qsim_custatevec = None
     return qsim_custatevec
+
 
 qsim = _load_simd_qsim()
 qsim_gpu = _load_qsim_gpu()
