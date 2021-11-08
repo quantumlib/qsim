@@ -1162,6 +1162,89 @@ def test_cirq_qsim_gpu_input_state():
     )
 
 
+def test_cirq_qsim_custatevec_amplitudes():
+    if qsimcirq.qsim_custatevec is None:
+        pytest.skip("cuStateVec library is not available for testing.")
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
+
+    # Enable GPU acceleration.
+    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
+    result = qsimGpuSim.compute_amplitudes(
+        cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11]
+    )
+    assert np.allclose(result, [0j, 0j, (1 + 0j), 0j])
+
+
+def test_cirq_qsim_custatevec_simulate():
+    if qsimcirq.qsim_custatevec is None:
+        pytest.skip("cuStateVec library is not available for testing.")
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
+
+    # Enable GPU acceleration.
+    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
+    result = qsimGpuSim.simulate(cirq_circuit)
+    assert result.state_vector().shape == (4,)
+
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector(), atol=1.0e-6
+    )
+
+
+def test_cirq_qsim_custatevec_expectation_values():
+    if qsimcirq.qsim_custatevec is None:
+        pytest.skip("cuStateVec library is not available for testing.")
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
+    obs = [cirq.Z(a) * cirq.Z(b)]
+
+    # Enable GPU acceleration.
+    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
+    result = qsimGpuSim.simulate_expectation_values(cirq_circuit, obs)
+
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate_expectation_values(cirq_circuit, obs)
+    assert np.allclose(result, cirq_result)
+
+
+def test_cirq_qsim_custatevec_input_state():
+    if qsimcirq.qsim_custatevec is None:
+        pytest.skip("cuStateVec library is not available for testing.")
+    # Pick qubits.
+    a, b = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+
+    # Create a circuit
+    cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
+
+    # Enable GPU acceleration.
+    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
+    initial_state = np.asarray([0.5] * 4, dtype=np.complex64)
+    result = qsimGpuSim.simulate(cirq_circuit, initial_state=initial_state)
+    assert result.state_vector().shape == (4,)
+
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate(cirq_circuit, initial_state=initial_state)
+    assert cirq.linalg.allclose_up_to_global_phase(
+        result.state_vector(), cirq_result.state_vector(), atol=1.0e-6
+    )
+
+
 def test_cirq_qsim_old_options():
     old_options = {"f": 3, "t": 4, "r": 100, "v": 1}
     old_sim = qsimcirq.QSimSimulator(qsim_options=old_options)
