@@ -108,6 +108,7 @@ setup(
         CMakeExtension("qsimcirq/qsim_sse"),
         CMakeExtension("qsimcirq/qsim_basic"),
         CMakeExtension("qsimcirq/qsim_cuda"),
+        CMakeExtension("qsimcirq/qsim_custatevec"),
         CMakeExtension("qsimcirq/qsim_decide"),
     ],
     cmdclass=dict(build_ext=CMakeBuild),

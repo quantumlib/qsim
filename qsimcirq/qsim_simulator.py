@@ -34,7 +34,7 @@ from cirq.sim.simulator import SimulatesExpectationValues
 
 import numpy as np
 
-from . import qsim, qsim_gpu
+from . import qsim, qsim_gpu, qsim_custatevec
 import qsimcirq.qsim_circuit as qsimc
 
 
@@ -136,6 +136,9 @@ class QSimOptions:
             simulation modes.
         use_gpu: whether to use GPU instead of CPU for simulation. The "gpu_*"
             arguments below are only considered if this is set to True.
+        gpu_mode: use CUDA if set to 0 (default value) or use the NVIDIA
+            cuStateVec library if set to any other value. The "gpu_*"
+            arguments below are only considered if this is set to 0.
         gpu_sim_threads: number of threads per CUDA block to use for the GPU
             Simulator. This must be a power of 2 in the range [32, 256].
         gpu_state_threads: number of threads per CUDA block to use for the GPU
@@ -152,6 +155,7 @@ class QSimOptions:
     cpu_threads: int = 1
     ev_noisy_repetitions: int = 1
     use_gpu: bool = False
+    gpu_mode: int = 0
     gpu_sim_threads: int = 256
     gpu_state_threads: int = 512
     gpu_data_blocks: int = 16
@@ -168,6 +172,7 @@ class QSimOptions:
             "t": self.cpu_threads,
             "r": self.ev_noisy_repetitions,
             "g": self.use_gpu,
+            "gmode": self.gpu_mode,
             "gsmt": self.gpu_sim_threads,
             "gsst": self.gpu_state_threads,
             "gdb": self.gpu_data_blocks,
@@ -220,13 +225,31 @@ class QSimSimulator(
         self._prng = value.parse_random_state(seed)
         self.qsim_options = QSimOptions().as_dict()
         self.qsim_options.update(qsim_options)
+
         # module to use for simulation
-        if self.qsim_options["g"] and qsim_gpu is None:
-            raise ValueError(
-                "GPU execution requested, but not supported. If your device "
-                "has GPU support, you may need to compile qsim locally."
-            )
-        self._sim_module = qsim_gpu if self.qsim_options["g"] else qsim
+        if self.qsim_options["g"]:
+            if self.qsim_options["gmode"] == 0:
+                if qsim_gpu is None:
+                    raise ValueError(
+                        "GPU execution requested, but not supported. If your "
+                        "device has GPU support, you may need to compile qsim "
+                        "locally."
+                    )
+                else:
+                    self._sim_module = qsim_gpu
+            else:
+                if qsim_custatevec is None:
+                    raise ValueError(
+                        "cuStateVec GPU execution requested, but not "
+                        "supported. If your device has GPU support and the "
+                        "NVIDIA cuStateVec library is installed, you may need "
+                        "to compile qsim locally."
+                    )
+                else:
+                    self._sim_module = qsim_custatevec
+        else:
+            self._sim_module = qsim
+
         # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
         self._translated_circuits = deque(maxlen=circuit_memoization_size)
 
