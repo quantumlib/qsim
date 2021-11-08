@@ -175,6 +175,20 @@ After a moment, you should see a result that looks similar to the following.
 [(0.7071067690849304+0j), 0j]
 ```
 
+### Optional: Use the NVIDIA cuQuantum SDK 
+
+If you have the NVIDIA cuQuantum SDK installed, you can use it here by
+modifying the `gpu_options` line like so:
+
+```python
+gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
+```
+
+This instructs qsim to make use of its cuQuantum integration, which provides
+improved performance on NVIDIA GPUs. If you experience issues with this
+option, please file an issue on the qsim repository.
+
+
 ## Next steps
 
 After you finish, don't forget to stop or delete your VM on the Compute
