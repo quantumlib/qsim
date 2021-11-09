@@ -78,7 +78,6 @@ class CMakeBuild(build_ext):
 
 
 requirements = open("requirements.txt").readlines()
-dev_requirements = open("dev-requirements.txt").readlines()
 
 description = "Schrödinger and Schrödinger-Feynman simulators for quantum circuits."
 
@@ -95,9 +94,6 @@ setup(
     author_email="devabathini92@gmail.com",
     python_requires=">=3.3.0",
     install_requires=requirements,
-    extras_require={
-        "dev": dev_requirements,
-    },
     license="Apache 2",
     description=description,
     long_description=long_description,
