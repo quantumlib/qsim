@@ -1,5 +1,13 @@
-absl-py
+# Runtime requirements for the python 3 version of cirq.
+
 cirq-core
 numpy~=1.16
-pybind11
 typing_extensions
+absl-py
+
+# Build and test requirements
+
+black==20.8b1
+flynt~=0.60
+pybind11
+pytest
