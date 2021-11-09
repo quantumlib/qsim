@@ -180,7 +180,7 @@ and run on a device with available NVIDIA GPUs.
 Compilation for GPU follows the same steps outlined in the
 [Compiling qsimcirq](./cirq_interface.md#compiling-qsimcirq) section.
 To compile with the NVIDIA cuStateVec library, set the environmment variable
-`CUQUANTUM_ROOT` to path to the root of the cuStateVec library.
+`CUQUANTUM_DIR` to the path to the cuStateVec library.
 
 `QSimOptions` provides five parameters to configure GPU execution. `use_gpu`
 is required to enable GPU execution:

@@ -175,14 +175,14 @@ After a moment, you should see a result that looks similar to the following.
 [(0.7071067690849304+0j), 0j]
 ```
 
-### Optional: Use the NVIDIA cuQuantum SDK 
+### Optional: Use the NVIDIA cuQuantum SDK
 
 If you have the [NVIDIA cuQuantum SDK](https://developer.nvidia.com/cuquantum-sdk)
 installed, you can use it with this tutorial. Before building qsim in step 5,
-set the `CUQUANTUM_ROOT` environment variable from the command line:
+set the `CUQUANTUM_DIR` environment variable from the command line:
 
 ```bash
-export CUQUANTUM_ROOT=[PATH_TO_CUQUANTUM_SDK]
+export CUQUANTUM_DIR=[PATH_TO_CUQUANTUM_SDK]
 ```
 
 Once you have built qsim, modify the `gpu_options` line like so:
