@@ -103,7 +103,7 @@ landing_page:
       description: >
         To help researchers and developers develop quantum algorithms today, we
         have made updates to qsim that make it more performant and intuitive,
-        and more “hardware-like”.
+        and more "hardware-like".
       buttons:
       - label: "Learn more"
         path: https://opensource.googleblog.com/2021/11/Upgrading%20qsim%20Google%20Quantum%20AIs%20Open%20Source%20Quantum%20Simulator%20.html?linkId=138925083
