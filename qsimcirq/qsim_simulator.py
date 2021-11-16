@@ -191,6 +191,7 @@ class QSimSimulator(
         self,
         qsim_options: Union[None, Dict, QSimOptions] = None,
         seed: value.RANDOM_STATE_OR_SEED_LIKE = None,
+        noise: "devices.NOISE_MODEL_LIKE" = None,
         circuit_memoization_size: int = 0,
     ):
         """Creates a new QSimSimulator using the given options and seed.
@@ -200,6 +201,8 @@ class QSimSimulator(
                 to use for all circuits run using this simulator. See the
                 QSimOptions class for details.
             seed: A random state or seed object, as defined in cirq.value.
+            noise: A cirq.NoiseModel to apply to all circuits simulated with
+                this simulator.
             circuit_memoization_size: The number of last translated circuits
                 to be memoized from simulation executions, to eliminate
                 translation overhead. Every simulation will perform a linear
