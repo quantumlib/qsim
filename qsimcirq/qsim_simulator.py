@@ -309,13 +309,15 @@ class QSimSimulator(
         """
 
         # Add noise to the circuit if a noise model was provided.
-        program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, sorted(program.all_qubits())),
-            device=program.device,
-        )
+        all_qubits = program.all_qubits()
+        if self.noise is not devices.NO_NOISE:
+            program = qsimc.QSimCircuit(
+                self.noise.noisy_moments(program, sorted(all_qubits)),
+                device=program.device,
+            )
 
         # Compute indices of measured qubits
-        ordered_qubits = ops.QubitOrder.DEFAULT.order_for(program.all_qubits())
+        ordered_qubits = ops.QubitOrder.DEFAULT.order_for(all_qubits)
         num_qubits = len(ordered_qubits)
 
         qubit_map = {qubit: index for index, qubit in enumerate(ordered_qubits)}
@@ -434,15 +436,15 @@ class QSimSimulator(
         """
 
         # Add noise to the circuit if a noise model was provided.
-        program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, sorted(program.all_qubits())),
-            device=program.device,
-        )
+        all_qubits = program.all_qubits()
+        if self.noise is not devices.NO_NOISE:
+            program = qsimc.QSimCircuit(
+                self.noise.noisy_moments(program, sorted(all_qubits)),
+                device=program.device,
+            )
 
         # qsim numbers qubits in reverse order from cirq
-        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-            program.all_qubits()
-        )
+        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
         num_qubits = len(cirq_order)
         bitstrings = [
             format(bitstring, "b").zfill(num_qubits)[::-1] for bitstring in bitstrings
@@ -516,19 +518,19 @@ class QSimSimulator(
             raise TypeError("initial_state must be an int or state vector.")
 
         # Add noise to the circuit if a noise model was provided.
-        program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, sorted(program.all_qubits())),
-            device=program.device,
-        )
+        all_qubits = program.all_qubits()
+        if self.noise is not devices.NO_NOISE:
+            program = qsimc.QSimCircuit(
+                self.noise.noisy_moments(program, sorted(all_qubits)),
+                device=program.device,
+            )
 
         options = {}
         options.update(self.qsim_options)
 
         param_resolvers = study.to_resolvers(params)
         # qsim numbers qubits in reverse order from cirq
-        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-            program.all_qubits()
-        )
+        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
         qsim_order = list(reversed(cirq_order))
         num_qubits = len(qsim_order)
         if isinstance(initial_state, np.ndarray):
@@ -626,9 +628,8 @@ class QSimSimulator(
             observables = [observables]
         psumlist = [ops.PauliSum.wrap(pslike) for pslike in observables]
 
-        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(
-            program.all_qubits()
-        )
+        all_qubits = program.all_qubits()
+        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
         qsim_order = list(reversed(cirq_order))
         num_qubits = len(qsim_order)
         qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
@@ -653,10 +654,11 @@ class QSimSimulator(
             raise TypeError("initial_state must be an int or state vector.")
 
         # Add noise to the circuit if a noise model was provided.
-        program = qsimc.QSimCircuit(
-            self.noise.noisy_moments(program, sorted(program.all_qubits())),
-            device=program.device,
-        )
+        if self.noise is not devices.NO_NOISE:
+            program = qsimc.QSimCircuit(
+                self.noise.noisy_moments(program, sorted(all_qubits)),
+                device=program.device,
+            )
 
         options = {}
         options.update(self.qsim_options)
