@@ -988,6 +988,37 @@ def test_noise_aggregation():
     assert cirq.approx_eq(qsim_evs, expected_evs, atol=0.05)
 
 
+def test_noise_model():
+    q0, q1 = cirq.LineQubit.range(2)
+
+    circuit = cirq.Circuit(cirq.X(q0), cirq.CNOT(q0, q1), cirq.measure(q0, q1, key="m"))
+    quiet_sim = qsimcirq.QSimSimulator()
+    quiet_results = quiet_sim.run(circuit, repetitions=100)
+    assert quiet_results.histogram(key="m")[0b11] == 100
+
+    class ReadoutError(cirq.NoiseModel):
+        def noisy_operation(self, operation: "cirq.Operation") -> "cirq.OP_TREE":
+            if isinstance(operation.gate, cirq.MeasurementGate):
+                return [cirq.X.on_each(*operation.qubits), operation]
+            return [operation]
+
+    noisy_sim = qsimcirq.QSimSimulator(noise=ReadoutError())
+    noisy_results = noisy_sim.run(circuit, repetitions=100)
+    # ReadoutError will flip both qubits.
+    assert noisy_results.histogram(key="m")[0b00] == 100
+
+    noisy_state = noisy_sim.simulate(circuit)
+    assert cirq.approx_eq(noisy_state.state_vector(), [1, 0, 0, 0])
+
+    obs = cirq.Z(q0) + cirq.Z(q1)
+    noisy_evs = noisy_sim.simulate_expectation_values(
+        circuit,
+        observables=obs,
+        permit_terminal_measurements=True,
+    )
+    assert noisy_evs == [2]
+
+
 def test_multi_qubit_fusion():
     q0, q1, q2, q3 = cirq.LineQubit.range(4)
     qubits = [q0, q1, q2, q3]
