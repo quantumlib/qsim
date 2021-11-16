@@ -45,6 +45,7 @@ jobs:
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
+      CIBW_TEST_COMMAND_LINUX: "which nvcc"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2
@@ -53,13 +54,15 @@ jobs:
       - uses: actions/setup-python@v2
 
       # Install NVCC on Ubuntu to include GPU in the wheel.
-      # TODO: open issues
+      # TODO: some remaining issues
       #   - `which nvcc` finds nothing? (need to add to path?)
       #     - nope, confirmed working at workflow level
       #     - might still be unavailable lower down? seems unlikely
       #     - still skipping GPU-based tests
       #     - checks suggest CUDA is on the path...what now?
       #     - might not be getting to CIBW
+      #     - tested CIBW_ENVIRONMENT: PATH=$PATH, no visible change
+      #     - new test: `which nvcc` in CIBW
       #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
@@ -81,7 +84,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_ENVIRONMENT: PATH=$PATH
+          CIBW_ENVIRONMENT: "PATH=$PATH"
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2
