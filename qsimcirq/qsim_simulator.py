@@ -310,11 +310,11 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         all_qubits = program.all_qubits()
-        if self.noise is not devices.NO_NOISE:
-            program = qsimc.QSimCircuit(
-                self.noise.noisy_moments(program, sorted(all_qubits)),
-                device=program.device,
-            )
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, sorted(all_qubits))
+            if self.noise is not devices.NO_NOISE else program,
+            device=program.device,
+        )
 
         # Compute indices of measured qubits
         ordered_qubits = ops.QubitOrder.DEFAULT.order_for(all_qubits)
@@ -437,11 +437,11 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         all_qubits = program.all_qubits()
-        if self.noise is not devices.NO_NOISE:
-            program = qsimc.QSimCircuit(
-                self.noise.noisy_moments(program, sorted(all_qubits)),
-                device=program.device,
-            )
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, sorted(all_qubits))
+            if self.noise is not devices.NO_NOISE else program,
+            device=program.device,
+        )
 
         # qsim numbers qubits in reverse order from cirq
         cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
@@ -519,11 +519,11 @@ class QSimSimulator(
 
         # Add noise to the circuit if a noise model was provided.
         all_qubits = program.all_qubits()
-        if self.noise is not devices.NO_NOISE:
-            program = qsimc.QSimCircuit(
-                self.noise.noisy_moments(program, sorted(all_qubits)),
-                device=program.device,
-            )
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, sorted(all_qubits))
+            if self.noise is not devices.NO_NOISE else program,
+            device=program.device,
+        )
 
         options = {}
         options.update(self.qsim_options)
@@ -654,11 +654,11 @@ class QSimSimulator(
             raise TypeError("initial_state must be an int or state vector.")
 
         # Add noise to the circuit if a noise model was provided.
-        if self.noise is not devices.NO_NOISE:
-            program = qsimc.QSimCircuit(
-                self.noise.noisy_moments(program, sorted(all_qubits)),
-                device=program.device,
-            )
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, sorted(all_qubits))
+            if self.noise is not devices.NO_NOISE else program,
+            device=program.device,
+        )
 
         options = {}
         options.update(self.qsim_options)
