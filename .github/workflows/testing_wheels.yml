@@ -73,11 +73,6 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         run: echo $PATH
 
-      - name: Third check
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
-        env:
-          CIBW_ENVIRONMENT: PATH=$PATH
-
       - name: Install cibuildwheel and twine
         run: python -m pip install cibuildwheel==1.11.0
 
@@ -85,6 +80,8 @@ jobs:
         run: bash build_tools/test_libs.sh
 
       - name: Build wheels
+        env:
+          CIBW_ENVIRONMENT: PATH=$PATH
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2
