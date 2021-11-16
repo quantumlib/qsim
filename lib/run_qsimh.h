@@ -39,6 +39,7 @@ struct QSimHRunner final {
    * Evaluates the amplitudes for a given circuit and set of output states.
    * @param param Options for gate fusion, parallelism and logging. Also
    *   specifies the size of the 'prefix' and 'root' sections of the lattice.
+   * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param parts Lattice sections to be simulated.
    * @param bitstrings List of output states to simulate, as bitstrings.
@@ -46,9 +47,9 @@ struct QSimHRunner final {
    *   will be populated with amplitudes for each state in 'bitstrings'.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  template <typename Circuit>
-  static bool Run(const Parameter& param, const Circuit& circuit,
-                  const std::vector<unsigned>& parts,
+  template <typename Factory, typename Circuit>
+  static bool Run(const Parameter& param, const Factory& factory,
+                  const Circuit& circuit, const std::vector<unsigned>& parts,
                   const std::vector<uint64_t>& bitstrings,
                   std::vector<std::complex<fp_type>>& results) {
     if (circuit.num_qubits != parts.size()) {
@@ -92,7 +93,7 @@ struct QSimHRunner final {
     }
 
     rc = HybridSimulator(param.num_threads).Run(
-        param, hd, parts, fgates0, fgates1, bitstrings, results);
+        param, factory, hd, parts, fgates0, fgates1, bitstrings, results);
 
     if (rc && param.verbosity > 0) {
       double t1 = GetTime();

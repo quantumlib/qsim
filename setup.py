@@ -38,6 +38,7 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
+            "-DCMAKE_CUDA_COMPILER=nvcc",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
         ]
@@ -102,6 +103,8 @@ setup(
         CMakeExtension("qsimcirq/qsim_avx2"),
         CMakeExtension("qsimcirq/qsim_sse"),
         CMakeExtension("qsimcirq/qsim_basic"),
+        CMakeExtension("qsimcirq/qsim_cuda"),
+        CMakeExtension("qsimcirq/qsim_custatevec"),
         CMakeExtension("qsimcirq/qsim_decide"),
     ],
     cmdclass=dict(build_ext=CMakeBuild),

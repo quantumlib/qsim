@@ -152,29 +152,29 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
   };
 
   /**
-   * Stores sets of gates that can be applied together. Note that
-   * gates fused with this method are not multiplied together until
-   * ApplyFusedGate is called on the output. To respect specific time
-   * boundaries while fusing gates, use the other version of this method below.
+   * Stores sets of gates that can be applied together. To respect specific
+   * time boundaries while fusing gates, use the other version of this method
+   * below.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
    * @param gates The gates (or pointers to the gates) to be fused.
    *   Gate times of the gates that act on the same qubits should be ordered.
    *   Gates that are out of time order should not cross the time boundaries
    *   set by measurement gates.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(const Parameter& param,
                                           unsigned num_qubits,
-                                          const std::vector<Gate>& gates) {
-    return FuseGates(param, num_qubits, gates.cbegin(), gates.cend(), {});
+                                          const std::vector<Gate>& gates,
+                                          bool fuse_matrix = true) {
+    return FuseGates(
+        param, num_qubits, gates.cbegin(), gates.cend(), {}, fuse_matrix);
   }
 
   /**
-   * Stores sets of gates that can be applied together. Note that
-   * gates fused with this method are not multiplied together until
-   * ApplyFusedGate is called on the output.
+   * Stores sets of gates that can be applied together.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by 'gates'.
    * @param gates The gates (or pointers to the gates) to be fused.
@@ -184,42 +184,43 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
    *   to separate fused gates. Each element of the output will contain gates
    *   from a single 'window' in this list.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
       const Parameter& param,
       unsigned num_qubits, const std::vector<Gate>& gates,
-      const std::vector<unsigned>& times_to_split_at) {
+      const std::vector<unsigned>& times_to_split_at,
+      bool fuse_matrix = true) {
     return FuseGates(param, num_qubits, gates.cbegin(), gates.cend(),
-                     times_to_split_at);
+                     times_to_split_at, fuse_matrix);
   }
 
   /**
-   * Stores sets of gates that can be applied together. Note that
-   * gates fused with this method are not multiplied together until
-   * ApplyFusedGate is called on the output. To respect specific time
-   * boundaries while fusing gates, use the other version of this method below.
+   * Stores sets of gates that can be applied together. To respect specific
+   * time boundaries while fusing gates, use the other version of this method
+   * below.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
    *   (or pointers to gates) in. Gate times of the gates that act on the same
    *   qubits should be ordered. Gates that are out of time order should not
    *   cross the time boundaries set by measurement gates.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
       const Parameter& param, unsigned num_qubits,
       typename std::vector<Gate>::const_iterator gfirst,
-      typename std::vector<Gate>::const_iterator glast) {
-    return FuseGates(param, num_qubits, gfirst, glast, {});
+      typename std::vector<Gate>::const_iterator glast,
+      bool fuse_matrix = true) {
+    return FuseGates(param, num_qubits, gfirst, glast, {}, fuse_matrix);
   }
 
   /**
-   * Stores sets of gates that can be applied together. Note that
-   * gates fused with this method are not multiplied together until
-   * ApplyFusedGate is called on the output.
+   * Stores sets of gates that can be applied together.
    * @param param Options for gate fusion.
    * @param num_qubits The number of qubits acted on by gates.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
@@ -230,6 +231,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
    *   to separate fused gates. Each element of the output will contain gates
    *   from a single 'window' in this list.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
@@ -237,7 +239,8 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
       const Parameter& param, unsigned num_qubits,
       typename std::vector<Gate>::const_iterator gfirst,
       typename std::vector<Gate>::const_iterator glast,
-      const std::vector<unsigned>& times_to_split_at) {
+      const std::vector<unsigned>& times_to_split_at,
+      bool fuse_matrix = true) {
     std::vector<GateFused> fused_gates;
 
     if (gfirst >= glast) return fused_gates;
@@ -393,17 +396,50 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
         FuseGateSequences(
             max_fused_size, num_qubits, scratch, gates_seq, stat, fused_gates);
       } else {
-        for (auto& fgate : gates_seq) {
-          if (fgate.gates.size() > 0) {
-            // Assume fgate.qubits (gate.qubits) are sorted.
-            fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
-                                   std::move(fgate.qubits), fgate.parent,
-                                   std::move(fgate.gates)});
+        unsigned prev_time = 0;
 
-            if (fgate.visited != kMeaCnt) {
-              ++stat.num_fused_gates;
+        std::vector<GateF*> orphaned_gates;
+        orphaned_gates.reserve(num_qubits);
+
+        for (auto& fgate : gates_seq) {
+          if (fgate.gates.size() == 0) continue;
+
+          if (prev_time != fgate.parent->time) {
+            if (orphaned_gates.size() > 0) {
+              FuseOrphanedGates(
+                  max_fused_size, stat, orphaned_gates, fused_gates);
+              orphaned_gates.resize(0);
             }
+
+            prev_time = fgate.parent->time;
           }
+
+          if (fgate.qubits.size() == 1 && max_fused_size > 1
+              && fgate.visited != kMeaCnt && !fgate.parent->unfusible) {
+            orphaned_gates.push_back(&fgate);
+            continue;
+          }
+
+          // Assume fgate.qubits (gate.qubits) are sorted.
+          fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
+                                 std::move(fgate.qubits), fgate.parent,
+                                 std::move(fgate.gates), {}});
+
+          if (fgate.visited != kMeaCnt) {
+            ++stat.num_fused_gates;
+          }
+        }
+
+        if (orphaned_gates.size() > 0) {
+          FuseOrphanedGates(max_fused_size, stat, orphaned_gates, fused_gates);
+        }
+      }
+    }
+
+    if (fuse_matrix) {
+      for (auto& fgate : fused_gates) {
+        if (fgate.kind != gate::kMeasurement && fgate.kind != gate::kDecomp) {
+          CalculateFusedMatrix(fgate);
         }
       }
     }
@@ -471,14 +507,14 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
       if (fgate.visited == kMeaCnt || fgate.qubits.size() >= max_fused_size
           || fgate.parent->unfusible) {
         if (fgate.visited != kMeaCnt) {
-           ++stat.num_fused_gates;
+          ++stat.num_fused_gates;
         }
 
         fgate.visited = kFinal;
 
         fused_gates.push_back({fgate.parent->kind, fgate.parent->time,
                                std::move(fgate.qubits), fgate.parent,
-                               std::move(fgate.gates)});
+                               std::move(fgate.gates), {}});
 
         continue;
       }
@@ -503,7 +539,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
 
           fused_gates.push_back({fgate->parent->kind, fgate->parent->time,
                                  std::move(fgate->qubits), fgate->parent,
-                                 std::move(fgate->gates)});
+                                 std::move(fgate->gates), {}});
 
           ++stat.num_fused_gates;
         }
@@ -564,7 +600,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
 
       fused_gates.push_back({ogate1->parent->kind, ogate1->parent->time,
                              std::move(ogate1->qubits), ogate1->parent,
-                             std::move(ogate1->gates)});
+                             std::move(ogate1->gates), {}});
 
       ++stat.num_fused_gates;
     }
@@ -963,7 +999,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
 
   static void PrintStat(unsigned verbosity, const Stat& stat,
                         const std::vector<GateFused>& fused_gates) {
-    if (verbosity == 0) return;
+    if (verbosity < 3) return;
 
     if (stat.num_controlled_gates > 0) {
       IO::messagef("%lu controlled gates\n", stat.num_controlled_gates);
@@ -992,7 +1028,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
 
     IO::messagef(" gates are fused into %lu gates\n", stat.num_fused_gates);
 
-    if (verbosity == 1) return;
+    if (verbosity < 5) return;
 
     IO::messagef("fused gate qubits:\n");
     for (const auto g : fused_gates) {

@@ -463,17 +463,18 @@ void TestNormAndInnerProductSmall(const Factory& factory) {
 
 template <typename Factory>
 void TestNormAndInnerProduct(const Factory& factory) {
-  unsigned depth = 8;
-
-  std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
-  circuit.gates.emplace_back(GateT<float>::Create(depth + 1, 0));
-
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using fp_type = typename StateSpace::fp_type;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+
+  unsigned depth = 8;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<fp_type>> circuit;
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
+  circuit.gates.emplace_back(GateT<fp_type>::Create(depth + 1, 0));
 
   StateSpace state_space = factory.CreateStateSpace();
   State state0 = state_space.Create(circuit.num_qubits);
@@ -557,18 +558,18 @@ void TestSamplingSmall(const Factory& factory) {
 
 template <typename Factory>
 void TestSamplingCrossEntropyDifference(const Factory& factory) {
-  unsigned depth = 30;
-  uint64_t num_samples = 2000000;
-
-  std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
-
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
   using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+
+  unsigned depth = 30;
+  uint64_t num_samples = 2000000;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<fp_type>> circuit;
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
 
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
@@ -586,9 +587,17 @@ void TestSamplingCrossEntropyDifference(const Factory& factory) {
   auto bitstrings = state_space.Sample(state, num_samples, 1);
   EXPECT_EQ(bitstrings.size(), num_samples);
 
+  std::vector<fp_type> vec(state_space.MinSize(circuit.num_qubits));
+
+  state_space.InternalToNormalOrder(state);
+  state_space.Copy(state, vec.data());
+
   double sum = 0;
   for (uint64_t i = 0; i < num_samples; ++i) {
-    double p = std::norm(state_space.GetAmpl(state, bitstrings[i]));
+    auto k = bitstrings[i];
+    auto re = vec[2 * k];
+    auto im = vec[2 * k + 1];
+    double p = re * re + im * im;
     sum += std::log(p);
   }
 
@@ -606,6 +615,9 @@ void TestOrdering(const Factory& factory) {
 
   StateSpace state_space = factory.CreateStateSpace();
 
+  std::vector<fp_type> vec;
+  vec.reserve(state_space.MinSize(9));
+
   for (unsigned num_qubits : {1, 2, 3, 4, 5, 6, 7, 8, 9}) {
     uint64_t size = uint64_t{1} << num_qubits;
 
@@ -616,9 +628,9 @@ void TestOrdering(const Factory& factory) {
       state_space.SetAmpl(state, i, std::complex<fp_type>(i + 1, size + i + 1));
     }
 
-    state_space.InternalToNormalOrder(state);
+    vec.resize(state_space.MinSize(num_qubits));
 
-    std::vector<fp_type> vec(state_space.MinSize(num_qubits));
+    state_space.InternalToNormalOrder(state);
     state_space.Copy(state, vec.data());
 
     for (uint64_t i = 0; i < size; ++i) {
@@ -637,14 +649,15 @@ void TestOrdering(const Factory& factory) {
 }
 
 template <typename Factory, typename RGen>
-void MeasureSmall(const Factory& factory,
-                  unsigned num_measurements, unsigned num_qubits,
+void MeasureSmall(const Factory& factory, unsigned num_measurements,
+                  double max_error, unsigned num_qubits,
                   const std::vector<unsigned>& qubits_to_measure,
-                  const std::vector<float>& ps, RGen& rgen) {
+                  const std::vector<double>& ps, RGen& rgen) {
   uint64_t size = uint64_t{1} << num_qubits;
 
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
 
   StateSpace state_space = factory.CreateStateSpace();
 
@@ -658,10 +671,16 @@ void MeasureSmall(const Factory& factory,
 
   std::vector<double> bins(size, 0);
 
-  for (uint64_t i = 0; i < size; ++i) {
-    float r = std::sqrt(ps[i]);
-    state_space.SetAmpl(state0, i, r * std::cos(i), r * std::sin(i));
+  std::vector<fp_type> vec(state_space.MinSize(num_qubits));
+
+  for (unsigned i = 0; i < size; ++i) {
+    fp_type r = std::sqrt(ps[i]);
+    vec[2 * i] = r * std::cos(i);
+    vec[2 * i + 1] = r * std::sin(i);
   }
+
+  state_space.Copy(vec.data(), state0);
+  state_space.NormalToInternalOrder(state0);
 
   std::vector<unsigned> measured_bits;
 
@@ -690,7 +709,7 @@ void MeasureSmall(const Factory& factory,
     mask |= uint64_t{1} << qubits_to_measure[k];
   }
 
-  std::vector<float> expected_ps(size, 0);
+  std::vector<double> expected_ps(size, 0);
 
   for (uint64_t i = 0; i < size; ++i) {
     expected_ps[i & mask] += ps[i];
@@ -700,45 +719,47 @@ void MeasureSmall(const Factory& factory,
     if (expected_ps[i] == 0) {
       EXPECT_EQ(bins[i], 0);
     } else {
-      auto p = bins[i] / num_measurements;
-      auto rel_error = (p - expected_ps[i]) / expected_ps[i];
-      EXPECT_LE(rel_error, 0.02);
+      double p = bins[i] / num_measurements;
+      double rel_error = (p - expected_ps[i]) / expected_ps[i];
+      EXPECT_LE(rel_error, max_error);
     }
   }
 }
 
 template <typename Factory>
-void TestMeasurementSmall(const Factory& factory) {
-  constexpr unsigned num_measurements = 200000;
+void TestMeasurementSmall(const Factory& factory, bool cuda = false) {
+  unsigned num_measurements = cuda ? 50000 : 200000;
+  double max_error = cuda ? 0.06 : 0.02;
 
   std::mt19937 rgen(1);
 
-  std::vector<float> ps1 = {0.37, 0.63};
-  MeasureSmall(factory, num_measurements, 1, {0}, ps1, rgen);
+  std::vector<double> ps1 = {0.37, 0.63};
+  MeasureSmall(factory, num_measurements, max_error, 1, {0}, ps1, rgen);
 
-  std::vector<float> ps2 = {0.22, 0.42, 0.15, 0.21};
-  MeasureSmall(factory, num_measurements, 2, {1}, ps2, rgen);
+  std::vector<double> ps2 = {0.22, 0.42, 0.15, 0.21};
+  MeasureSmall(factory, num_measurements, max_error, 2, {1}, ps2, rgen);
 
-  std::vector<float> ps3 = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
-  MeasureSmall(factory, num_measurements, 3, {2}, ps3, rgen);
-  MeasureSmall(factory, num_measurements, 3, {0, 1, 2}, ps3, rgen);
+  std::vector<double> ps3 = {0.1, 0.2, 0.13, 0.12, 0.18, 0.15, 0.07, 0.05};
+  MeasureSmall(factory, num_measurements, max_error, 3, {2}, ps3, rgen);
+  MeasureSmall(factory, num_measurements, max_error, 3, {0, 1, 2}, ps3, rgen);
 
-  std::vector<float> ps4 = {
+  std::vector<double> ps4 = {
     0.06, 0.10, 0.07, 0.06, 0.09, 0.08, 0.03, 0.03,
     0.03, 0.07, 0.11, 0.04, 0.05, 0.06, 0.07, 0.05
   };
-  MeasureSmall(factory, num_measurements, 4, {0, 3}, ps4, rgen);
+  MeasureSmall(factory, num_measurements, max_error, 4, {0, 3}, ps4, rgen);
 
-  std::vector<float> ps5 = {
+  std::vector<double> ps5 = {
     0.041, 0.043, 0.028, 0.042, 0.002, 0.008, 0.039, 0.020,
     0.017, 0.030, 0.020, 0.048, 0.020, 0.044, 0.032, 0.048,
     0.025, 0.050, 0.030, 0.001, 0.039, 0.045, 0.005, 0.051,
     0.030, 0.039, 0.012, 0.049, 0.034, 0.029, 0.050, 0.029
   };
-  MeasureSmall(factory, num_measurements, 5, {1, 3}, ps5, rgen);
-  MeasureSmall(factory, num_measurements, 5, {1, 2, 3, 4}, ps5, rgen);
+  MeasureSmall(factory, num_measurements, max_error, 5, {1, 3}, ps5, rgen);
+  MeasureSmall(
+      factory, num_measurements, max_error, 5, {1, 2, 3, 4}, ps5, rgen);
 
-  std::vector<float> ps6 = {
+  std::vector<double> ps6 = {
     0.0046, 0.0100, 0.0136, 0.0239, 0.0310, 0.0263, 0.0054, 0.0028,
     0.0129, 0.0128, 0.0319, 0.0023, 0.0281, 0.0185, 0.0284, 0.0175,
     0.0148, 0.0307, 0.0017, 0.0319, 0.0185, 0.0304, 0.0133, 0.0229,
@@ -748,21 +769,22 @@ void TestMeasurementSmall(const Factory& factory) {
     0.0289, 0.0005, 0.0027, 0.0293, 0.0063, 0.0181, 0.0043, 0.0063,
     0.0169, 0.0101, 0.0295, 0.0227, 0.0275, 0.0218, 0.0131, 0.0172,
   };
-  MeasureSmall(factory, num_measurements, 6, {2, 4, 5}, ps6, rgen);
+  MeasureSmall(factory, num_measurements, max_error, 6, {2, 4, 5}, ps6, rgen);
 }
 
 template <typename Factory>
 void TestMeasurementLarge(const Factory& factory) {
-  unsigned depth = 20;
-
-  std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
-
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using fp_type = typename StateSpace::fp_type;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+
+  unsigned depth = 20;
+
+  std::stringstream ss(circuit_string);
+  Circuit<GateQSim<fp_type>> circuit;
+  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
 
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
@@ -823,8 +845,13 @@ void TestCollapse(const Factory& factory) {
   MeasurementResult mr;
   StateSpace state_space = factory.CreateStateSpace();
 
+  std::vector<fp_type> vec;
+  vec.reserve(state_space.MinSize(6));
+
   for (unsigned num_qubits = 2; num_qubits <= 6; ++num_qubits) {
     State state = state_space.Create(num_qubits);
+
+    vec.resize(state_space.MinSize(num_qubits));
 
     unsigned size = 1 << num_qubits;
 
@@ -849,15 +876,16 @@ void TestCollapse(const Factory& factory) {
 
         EXPECT_NEAR(state_space.Norm(state), 1.0, 1e-6);
 
-        for (unsigned i = 0; i < size; ++i) {
-          auto a = state_space.GetAmpl(state, i);
+        state_space.InternalToNormalOrder(state);
+        state_space.Copy(state, vec.data());
 
+        for (unsigned i = 0; i < size; ++i) {
           if ((i & mask) != bits) {
-            EXPECT_NEAR(std::real(a), 0, 1e-6);
-            EXPECT_NEAR(std::imag(a), 0, 1e-6);
+            EXPECT_NEAR(vec[2 * i], 0, 1e-6);
+            EXPECT_NEAR(vec[2 * i + 1], 0, 1e-6);
           } else {
-            EXPECT_NEAR(std::real(a), r, 1e-6);
-            EXPECT_NEAR(std::imag(a), 0, 1e-6);
+            EXPECT_NEAR(vec[2 * i], r, 1e-6);
+            EXPECT_NEAR(vec[2 * i + 1], 0, 1e-6);
           }
         }
       }
@@ -895,9 +923,14 @@ void TestBulkSetAmplitude(const Factory& factory) {
 
   StateSpace state_space = factory.CreateStateSpace();
 
+  std::vector<fp_type> vec;
+  vec.reserve(state_space.MinSize(6));
+
   for (unsigned num_qubits = 2; num_qubits <= 6; ++num_qubits) {
     State state = state_space.Create(num_qubits);
     state_space.SetAllZeros(state);
+
+    vec.resize(state_space.MinSize(num_qubits));
 
     unsigned size = 1 << num_qubits;
 
@@ -906,18 +939,25 @@ void TestBulkSetAmplitude(const Factory& factory) {
         if ((mask | bits) != mask) continue;
 
         for (unsigned i = 0; i < size; ++i) {
-          state_space.SetAmpl(state, i, 1, 1);
+          vec[2 * i] = 1;
+          vec[2 * i + 1] = 1;
         }
+
+        state_space.Copy(vec.data(), state);
+        state_space.NormalToInternalOrder(state);
 
         state_space.BulkSetAmpl(state, mask, bits, 0, 0, false);
 
+        state_space.InternalToNormalOrder(state);
+        state_space.Copy(state, vec.data());
+
         for (unsigned i = 0; i < size; ++i) {
           if ((i & mask) == bits) {
-            EXPECT_EQ(
-                state_space.GetAmpl(state, i), std::complex<fp_type>(0, 0));
+            EXPECT_EQ(vec[2 * i], 0);
+            EXPECT_EQ(vec[2 * i + 1], 0);
           } else {
-            EXPECT_EQ(
-                state_space.GetAmpl(state, i), std::complex<fp_type>(1, 1));
+            EXPECT_EQ(vec[2 * i], 1);
+            EXPECT_EQ(vec[2 * i + 1], 1);
           }
         }
       }
@@ -933,9 +973,14 @@ void TestBulkSetAmplitudeExclusion(const Factory& factory) {
 
   StateSpace state_space = factory.CreateStateSpace();
 
+  std::vector<fp_type> vec;
+  vec.reserve(state_space.MinSize(6));
+
   for (unsigned num_qubits = 2; num_qubits <= 6; ++num_qubits) {
     State state = state_space.Create(num_qubits);
     state_space.SetAllZeros(state);
+
+    vec.resize(state_space.MinSize(num_qubits));
 
     unsigned size = 1 << num_qubits;
 
@@ -944,18 +989,25 @@ void TestBulkSetAmplitudeExclusion(const Factory& factory) {
         if ((mask | bits) != mask) continue;
 
         for (unsigned i = 0; i < size; ++i) {
-          state_space.SetAmpl(state, i, 1, 1);
+          vec[2 * i] = 1;
+          vec[2 * i + 1] = 1;
         }
+
+        state_space.Copy(vec.data(), state);
+        state_space.NormalToInternalOrder(state);
 
         state_space.BulkSetAmpl(state, mask, bits, 0, 0, true);
 
+        state_space.InternalToNormalOrder(state);
+        state_space.Copy(state, vec.data());
+
         for (unsigned i = 0; i < size; ++i) {
           if ((i & mask) != bits) {
-            EXPECT_EQ(state_space.GetAmpl(state, i),
-                      std::complex<fp_type>(0, 0));
+            EXPECT_EQ(vec[2 * i], 0);
+            EXPECT_EQ(vec[2 * i + 1], 0);
           } else {
-            EXPECT_EQ(state_space.GetAmpl(state, i),
-                      std::complex<fp_type>(1, 1));
+            EXPECT_EQ(vec[2 * i], 1);
+            EXPECT_EQ(vec[2 * i + 1], 1);
           }
         }
       }

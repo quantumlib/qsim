@@ -23,9 +23,9 @@ g++ -O3 -march=native -fopenmp -o qsim_amplitudes.x qsim_amplitudes.cc
 g++ -O3 -march=native -fopenmp -o qsimh_base.x qsimh_base.cc
 g++ -O3 -march=native -fopenmp -o qsimh_amplitudes.x qsimh_amplitudes.cc
 
-nvcc -gencode=arch=compute_60,code=sm_60 \
-     -gencode=arch=compute_61,code=sm_61 \
-     -gencode=arch=compute_62,code=sm_62 \
-     -gencode=arch=compute_70,code=sm_70 \
-     -gencode=arch=compute_75,code=sm_75 \
-     -O3 -x cu -o qsim_base_cuda.x qsim_base_cuda.cu
+nvcc -O3 -o qsim_base_cuda.x qsim_base_cuda.cu
+nvcc -O3 -o qsim_qtrajectory_cuda.x qsim_qtrajectory_cuda.cu
+
+# CUQUANTUM_DIR should be set.
+CUSTATEVECFLAGS="-I${CUQUANTUM_DIR}/include -L${CUQUANTUM_DIR}/lib64 -lcustatevec -lcublas"
+nvcc -O3 $CUSTATEVECFLAGS -o qsim_base_custatevec.x qsim_base_custatevec.cu

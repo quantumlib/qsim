@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import deque
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from cirq import (
@@ -32,7 +34,7 @@ from cirq.sim.simulator import SimulatesExpectationValues
 
 import numpy as np
 
-from . import qsim
+from . import qsim, qsim_gpu, qsim_custatevec
 import qsimcirq.qsim_circuit as qsimc
 
 
@@ -42,7 +44,8 @@ class QSimSimulatorState(sim.StateVectorSimulatorState):
         super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
-class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
+@value.value_equality(unhashable=True)
+class QSimSimulatorTrialResult(sim.StateVectorMixin, sim.SimulationTrialResult):
     def __init__(
         self,
         params: study.ParamResolver,
@@ -53,6 +56,47 @@ class QSimSimulatorTrialResult(sim.StateVectorTrialResult):
             params=params,
             measurements=measurements,
             final_simulator_state=final_simulator_state,
+        )
+
+    # The following methods are (temporarily) copied here from
+    # cirq.StateVectorTrialResult due to incompatibility with the
+    # intermediate state simulation support which that class requires.
+    # TODO: remove these methods once inheritance is restored.
+
+    @property
+    def final_state_vector(self):
+        return self._final_simulator_state.state_vector
+
+    def state_vector(self):
+        """Return the state vector at the end of the computation."""
+        return self._final_simulator_state.state_vector.copy()
+
+    def _value_equality_values_(self):
+        measurements = {k: v.tolist() for k, v in sorted(self.measurements.items())}
+        return (self.params, measurements, self._final_simulator_state)
+
+    def __str__(self) -> str:
+        samples = super().__str__()
+        final = self.state_vector()
+        if len([1 for e in final if abs(e) > 0.001]) < 16:
+            state_vector = self.dirac_notation(3)
+        else:
+            state_vector = str(final)
+        return f"measurements: {samples}\noutput vector: {state_vector}"
+
+    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
+        """Text output in Jupyter."""
+        if cycle:
+            # There should never be a cycle.  This is just in case.
+            p.text("StateVectorTrialResult(...)")
+        else:
+            p.text(str(self))
+
+    def __repr__(self) -> str:
+        return (
+            f"cirq.StateVectorTrialResult(params={self.params!r}, "
+            f"measurements={self.measurements!r}, "
+            f"final_simulator_state={self._final_simulator_state!r})"
         )
 
 
@@ -73,6 +117,70 @@ def _needs_trajectories(circuit: circuits.Circuit) -> bool:
     return False
 
 
+@dataclass
+class QSimOptions:
+    """Container for options to the QSimSimulator.
+
+    Options for the simulator can also be provided as a {string: value} dict,
+    using the format shown in the 'as_dict' function for this class.
+
+    Args:
+        max_fused_gate_size: maximum number of qubits allowed per fused gate.
+            Circuits of less than 22 qubits usually perform best with this set
+            to 2 or 3, while larger circuits (with >= 22 qubits) typically
+            perform better with it set to 3 or 4.
+        cpu_threads: number of threads to use when running on CPU. For best
+            performance, this should equal the number of cores on the device.
+        ev_noisy_repetitions: number of repetitions used for estimating
+            expectation values of a noisy circuit. Does not affect other
+            simulation modes.
+        use_gpu: whether to use GPU instead of CPU for simulation. The "gpu_*"
+            arguments below are only considered if this is set to True.
+        gpu_mode: use CUDA if set to 0 (default value) or use the NVIDIA
+            cuStateVec library if set to any other value. The "gpu_*"
+            arguments below are only considered if this is set to 0.
+        gpu_sim_threads: number of threads per CUDA block to use for the GPU
+            Simulator. This must be a power of 2 in the range [32, 256].
+        gpu_state_threads: number of threads per CUDA block to use for the GPU
+            StateSpace. This must be a power of 2 in the range [32, 1024].
+        gpu_data_blocks: number of data blocks to use on GPU. Below 16 data
+            blocks, performance is noticeably reduced.
+        verbosity: Logging verbosity.
+        denormals_are_zeros: if true, set flush-to-zero and denormals-are-zeros
+            MXCSR control flags. This prevents rare cases of performance
+            slowdown potentially at the cost of a tiny precision loss.
+    """
+
+    max_fused_gate_size: int = 2
+    cpu_threads: int = 1
+    ev_noisy_repetitions: int = 1
+    use_gpu: bool = False
+    gpu_mode: int = 0
+    gpu_sim_threads: int = 256
+    gpu_state_threads: int = 512
+    gpu_data_blocks: int = 16
+    verbosity: int = 0
+    denormals_are_zeros: bool = False
+
+    def as_dict(self):
+        """Generates an options dict from this object.
+
+        Options to QSimSimulator can also be provided in this format directly.
+        """
+        return {
+            "f": self.max_fused_gate_size,
+            "t": self.cpu_threads,
+            "r": self.ev_noisy_repetitions,
+            "g": self.use_gpu,
+            "gmode": self.gpu_mode,
+            "gsmt": self.gpu_sim_threads,
+            "gsst": self.gpu_state_threads,
+            "gdb": self.gpu_data_blocks,
+            "v": self.verbosity,
+            "z": self.denormals_are_zeros,
+        }
+
+
 class QSimSimulator(
     SimulatesSamples,
     SimulatesAmplitudes,
@@ -81,38 +189,70 @@ class QSimSimulator(
 ):
     def __init__(
         self,
-        qsim_options: dict = {},
+        qsim_options: Union[None, Dict, QSimOptions] = None,
         seed: value.RANDOM_STATE_OR_SEED_LIKE = None,
-        noise: "devices.NOISE_MODEL_LIKE" = None,
+        circuit_memoization_size: int = 0,
     ):
         """Creates a new QSimSimulator using the given options and seed.
 
         Args:
-            qsim_options: A map of circuit options for the simulator. These will be
-                applied to all circuits run using this simulator. Accepted keys and
-                their behavior are as follows:
-                    - 'f': int (> 0). Maximum size of fused gates. Default: 2.
-                    - 'r': int (> 0). Noisy repetitions (see below). Default: 1.
-                    - 't': int (> 0). Number of threads to run on. Default: 1.
-                    - 'v': int (>= 0). Log verbosity. Default: 0.
-                See qsim/docs/usage.md for more details on these options.
-                "Noisy repetitions" specifies how many repetitions to aggregate
-                over when calculating expectation values for a noisy circuit.
-                Note that this does not apply to other simulation types.
+            qsim_options: An options dict or QSimOptions object with options
+                to use for all circuits run using this simulator. See the
+                QSimOptions class for details.
             seed: A random state or seed object, as defined in cirq.value.
+            circuit_memoization_size: The number of last translated circuits
+                to be memoized from simulation executions, to eliminate
+                translation overhead. Every simulation will perform a linear
+                search through the list of memoized circuits using circuit
+                equality checks, so a large circuit_memoization_size with large
+                circuits will incur a significant runtime overhead.
+                Note that every resolved parameterization results in a separate
+                circuit to be memoized.
 
         Raises:
             ValueError if internal keys 'c', 'i' or 's' are included in 'qsim_options'.
         """
+        if isinstance(qsim_options, QSimOptions):
+            qsim_options = qsim_options.as_dict()
+        else:
+            qsim_options = qsim_options or {}
+
         if any(k in qsim_options for k in ("c", "i", "s")):
             raise ValueError(
                 'Keys {"c", "i", "s"} are reserved for internal use and cannot be '
                 "used in QSimCircuit instantiation."
             )
         self._prng = value.parse_random_state(seed)
-        self.qsim_options = {"t": 1, "f": 2, "v": 0, "r": 1}
+        self.qsim_options = QSimOptions().as_dict()
         self.qsim_options.update(qsim_options)
         self.noise = devices.NoiseModel.from_noise_model_like(noise)
+
+        # module to use for simulation
+        if self.qsim_options["g"]:
+            if self.qsim_options["gmode"] == 0:
+                if qsim_gpu is None:
+                    raise ValueError(
+                        "GPU execution requested, but not supported. If your "
+                        "device has GPU support, you may need to compile qsim "
+                        "locally."
+                    )
+                else:
+                    self._sim_module = qsim_gpu
+            else:
+                if qsim_custatevec is None:
+                    raise ValueError(
+                        "cuStateVec GPU execution requested, but not "
+                        "supported. If your device has GPU support and the "
+                        "NVIDIA cuStateVec library is installed, you may need "
+                        "to compile qsim locally."
+                    )
+                else:
+                    self._sim_module = qsim_custatevec
+        else:
+            self._sim_module = qsim
+
+        # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
+        self._translated_circuits = deque(maxlen=circuit_memoization_size)
 
     def get_seed(self):
         # Limit seed size to 32-bit integer for C++ conversion.
@@ -193,7 +333,7 @@ class QSimSimulator(
         current_index = 0
         for op in measurement_ops:
             gate = op.gate
-            key = protocols.measurement_key(gate)
+            key = protocols.measurement_key_name(gate)
             meas_ops[key] = op
             if key in bounds:
                 raise ValueError(f"Duplicate MeasurementGate with key {key}")
@@ -214,16 +354,12 @@ class QSimSimulator(
         noisy = _needs_trajectories(program)
         if noisy:
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            sampler_fn = qsim.qtrajectory_sample
+            sampler_fn = self._sim_module.qtrajectory_sample
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            sampler_fn = qsim.qsim_sample
+            sampler_fn = self._sim_module.qsim_sample
 
         if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
-            print(
-                "Provided circuit has no intermediate measurements. "
-                + "Sampling repeatedly from final state vector."
-            )
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
             for i in range(len(program.moments)):
@@ -233,9 +369,14 @@ class QSimSimulator(
                     else [ops.IdentityGate(1).on(q) for q in op.qubits]
                     for op in program.moments[i]
                 )
-            options["c"] = program.translate_cirq_to_qsim(ops.QubitOrder.DEFAULT)
+            translator_fn_name = "translate_cirq_to_qsim"
+            options["c"] = self._translate_circuit(
+                program,
+                translator_fn_name,
+                ops.QubitOrder.DEFAULT,
+            )
             options["s"] = self.get_seed()
-            final_state = qsim.qsim_simulate_fullstate(options, 0)
+            final_state = self._sim_module.qsim_simulate_fullstate(options, 0)
             full_results = sim.sample_state_vector(
                 final_state.view(np.complex64),
                 range(num_qubits),
@@ -249,8 +390,11 @@ class QSimSimulator(
                     for j, q in enumerate(meas_indices):
                         results[key][i][j] = full_results[i][q]
         else:
-            translator_fn = getattr(program, translator_fn_name)
-            options["c"] = translator_fn(ops.QubitOrder.DEFAULT)
+            options["c"] = self._translate_circuit(
+                program,
+                translator_fn_name,
+                ops.QubitOrder.DEFAULT,
+            )
             for i in range(repetitions):
                 options["s"] = self.get_seed()
                 measurements = sampler_fn(options)
@@ -309,15 +453,18 @@ class QSimSimulator(
         trials_results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            simulator_fn = qsim.qtrajectory_simulate
+            simulator_fn = self._sim_module.qtrajectory_simulate
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            simulator_fn = qsim.qsim_simulate
+            simulator_fn = self._sim_module.qsim_simulate
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
-            translator_fn = getattr(solved_circuit, translator_fn_name)
-            options["c"] = translator_fn(cirq_order)
+            options["c"] = self._translate_circuit(
+                solved_circuit,
+                translator_fn_name,
+                cirq_order,
+            )
             options["s"] = self.get_seed()
             amplitudes = simulator_fn(options)
             trials_results.append(amplitudes)
@@ -336,6 +483,11 @@ class QSimSimulator(
         This method returns a result which allows access to the entire
         wave function. In contrast to simulate, this allows for sweeping
         over different parameter values.
+
+        Avoid using this method with `use_gpu=True` in the simulator options;
+        when used with GPU this method must copy state from device to host memory
+        multiple times, which can be very slow. This issue is not present in
+        `simulate_expectation_values_sweep`.
 
         Args:
             program: The circuit to simulate.
@@ -389,15 +541,19 @@ class QSimSimulator(
         trials_results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            fullstate_simulator_fn = qsim.qtrajectory_simulate_fullstate
+            fullstate_simulator_fn = self._sim_module.qtrajectory_simulate_fullstate
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            fullstate_simulator_fn = qsim.qsim_simulate_fullstate
+            fullstate_simulator_fn = self._sim_module.qsim_simulate_fullstate
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
-            translator_fn = getattr(solved_circuit, translator_fn_name)
-            options["c"] = translator_fn(cirq_order)
+
+            options["c"] = self._translate_circuit(
+                solved_circuit,
+                translator_fn_name,
+                cirq_order,
+            )
             options["s"] = self.get_seed()
             qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
 
@@ -516,15 +672,18 @@ class QSimSimulator(
         results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            ev_simulator_fn = qsim.qtrajectory_simulate_expectation_values
+            ev_simulator_fn = self._sim_module.qtrajectory_simulate_expectation_values
         else:
             translator_fn_name = "translate_cirq_to_qsim"
-            ev_simulator_fn = qsim.qsim_simulate_expectation_values
+            ev_simulator_fn = self._sim_module.qsim_simulate_expectation_values
 
         for prs in param_resolvers:
             solved_circuit = protocols.resolve_parameters(program, prs)
-            translator_fn = getattr(solved_circuit, translator_fn_name)
-            options["c"] = translator_fn(cirq_order)
+            options["c"] = self._translate_circuit(
+                solved_circuit,
+                translator_fn_name,
+                cirq_order,
+            )
             options["s"] = self.get_seed()
 
             if isinstance(initial_state, int):
@@ -534,3 +693,24 @@ class QSimSimulator(
             results.append(evs)
 
         return results
+
+    def _translate_circuit(
+        self,
+        circuit: Any,
+        translator_fn_name: str,
+        qubit_order: ops.QubitOrderOrList,
+    ):
+        # If the circuit is memoized, reuse the corresponding translated
+        # circuit.
+        translated_circuit = None
+        for original, translated in self._translated_circuits:
+            if original == circuit:
+                translated_circuit = translated
+                break
+
+        if translated_circuit is None:
+            translator_fn = getattr(circuit, translator_fn_name)
+            translated_circuit = translator_fn(qubit_order)
+            self._translated_circuits.append((circuit, translated_circuit))
+
+        return translated_circuit

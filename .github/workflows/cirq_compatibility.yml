@@ -1,0 +1,22 @@
+name: Cirq Compatibility
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  consistency:
+    name: Nightly Compatibility
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
+          architecture: 'x64'
+      - name: Install Cirq nightly
+        run: pip3 install -U cirq --pre
+      - name: Install qsim requirements
+        run: pip3 install -r requirements.txt
+      - name: Run python tests
+        run: make run-py-tests

@@ -34,15 +34,16 @@ inline void ErrorAssert(cudaError_t code, const char* file, unsigned line) {
 
 template <typename T>
 struct Complex {
-  __device__ __forceinline__ Complex() {}
+  __host__ __device__ __forceinline__ Complex() {}
 
-  __device__ __forceinline__ Complex(const T& re) : re(re), im(0) {}
+  __host__ __device__ __forceinline__ Complex(const T& re) : re(re), im(0) {}
 
-  __device__ __forceinline__ Complex(const T& re, const T& im)
+  __host__ __device__ __forceinline__ Complex(const T& re, const T& im)
       : re(re), im(im) {}
 
   template <typename U>
-  __device__ __forceinline__ Complex<T>& operator=(const Complex<U>& r) {
+  __host__ __device__ __forceinline__ Complex<T>& operator=(
+      const Complex<U>& r) {
     re = r.re;
     im = r.im;
 
@@ -54,13 +55,13 @@ struct Complex {
 };
 
 template <typename T>
-__device__ __forceinline__ Complex<T> operator+(
+__host__ __device__ __forceinline__ Complex<T> operator+(
     const Complex<T>& l, const Complex<T>& r) {
   return Complex<T>(l.re + r.re, l.im + r.im);
 }
 
 template <typename T, typename U>
-__device__ __forceinline__ Complex<T> operator+(
+__host__ __device__ __forceinline__ Complex<T> operator+(
     const Complex<T>& l, const Complex<U>& r) {
   return Complex<T>(l.re + r.re, l.im + r.im);
 }
