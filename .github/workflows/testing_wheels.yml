@@ -52,6 +52,11 @@ jobs:
       # Used to host cibuildwheel
       - uses: actions/setup-python@v2
 
+      # Install NVCC on Ubuntu to include GPU in the wheel.
+      - name: cuda-toolkit
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        uses: Jimver/cuda-toolkit@v0.2.4
+
       - name: Install cibuildwheel and twine
         run: python -m pip install cibuildwheel==1.11.0
 
