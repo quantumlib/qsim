@@ -58,6 +58,8 @@ jobs:
       #     - nope, confirmed working at workflow level
       #     - might still be unavailable lower down? seems unlikely
       #     - still skipping GPU-based tests
+      #     - checks suggest CUDA is on the path...what now?
+      #     - might not be getting to CIBW
       #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
@@ -73,7 +75,8 @@ jobs:
 
       - name: Third check
         if: ${{ matrix.os == 'ubuntu-20.04' }}
-        run: PATH="${PATH}:${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+        env:
+          CIBW_ENVIRONMENT: PATH=$PATH
 
       - name: Install cibuildwheel and twine
         run: python -m pip install cibuildwheel==1.11.0
