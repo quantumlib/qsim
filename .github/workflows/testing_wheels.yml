@@ -65,7 +65,7 @@ jobs:
 
       - name: First check
         if: ${{ matrix.os == 'ubuntu-20.04' }}
-        run: echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+        run: echo "Cuda install location ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
 
       - name: Second check
         if: ${{ matrix.os == 'ubuntu-20.04' }}
