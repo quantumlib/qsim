@@ -45,6 +45,7 @@ jobs:
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
+      CIBW_TEST_COMMAND_LINUX: "echo $PATH"
       CIBW_TEST_COMMAND_LINUX: "which nvcc"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
@@ -62,7 +63,10 @@ jobs:
       #     - checks suggest CUDA is on the path...what now?
       #     - might not be getting to CIBW
       #     - tested CIBW_ENVIRONMENT: PATH=$PATH, no visible change
-      #     - new test: `which nvcc` in CIBW
+      #     - new test: `which nvcc` in CIBW (FAILED)
+      #     - next up:
+      #     - try https://github.com/OpenNMT/CTranslate2/blob/master/.github/workflows/ci.yml
+      #     - CIBW_BEFORE_ALL_LINUX: <script to install CUDA / add to PATH>
       #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
@@ -84,7 +88,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_ENVIRONMENT: "PATH=$PATH"
+          CIBW_ENVIRONMENT: "PATH=$PATH:/usr/local/cuda-11.2/bin"
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2
