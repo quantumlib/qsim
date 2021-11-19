@@ -18,9 +18,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import cirq
 
-# TODO: import from cirq directly when fix is released
-from cirq.sim.simulator import SimulatesExpectationValues
-
 import numpy as np
 
 from . import qsim, qsim_gpu, qsim_custatevec
@@ -174,7 +171,7 @@ class QSimSimulator(
     cirq.SimulatesSamples,
     cirq.SimulatesAmplitudes,
     cirq.SimulatesFinalState,
-    SimulatesExpectationValues,
+    cirq.SimulatesExpectationValues,
 ):
     def __init__(
         self,
