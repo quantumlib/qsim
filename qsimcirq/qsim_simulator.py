@@ -16,18 +16,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-from cirq import (
-    circuits,
-    devices,
-    ops,
-    protocols,
-    sim,
-    study,
-    value,
-    SimulatesAmplitudes,
-    SimulatesFinalState,
-    SimulatesSamples,
-)
+import cirq
 
 # TODO: import from cirq directly when fix is released
 from cirq.sim.simulator import SimulatesExpectationValues
@@ -38,17 +27,17 @@ from . import qsim, qsim_gpu, qsim_custatevec
 import qsimcirq.qsim_circuit as qsimc
 
 
-class QSimSimulatorState(sim.StateVectorSimulatorState):
-    def __init__(self, qsim_data: np.ndarray, qubit_map: Dict[ops.Qid, int]):
+class QSimSimulatorState(cirq.StateVectorSimulatorState):
+    def __init__(self, qsim_data: np.ndarray, qubit_map: Dict[cirq.Qid, int]):
         state_vector = qsim_data.view(np.complex64)
         super().__init__(state_vector=state_vector, qubit_map=qubit_map)
 
 
-@value.value_equality(unhashable=True)
-class QSimSimulatorTrialResult(sim.StateVectorMixin, sim.SimulationTrialResult):
+@cirq.value_equality(unhashable=True)
+class QSimSimulatorTrialResult(cirq.StateVectorMixin, cirq.SimulationTrialResult):
     def __init__(
         self,
-        params: study.ParamResolver,
+        params: cirq.ParamResolver,
         measurements: Dict[str, np.ndarray],
         final_simulator_state: QSimSimulatorState,
     ):
@@ -102,17 +91,17 @@ class QSimSimulatorTrialResult(sim.StateVectorMixin, sim.SimulationTrialResult):
 
 # This should probably live in Cirq...
 # TODO: update to support CircuitOperations.
-def _needs_trajectories(circuit: circuits.Circuit) -> bool:
+def _needs_trajectories(circuit: cirq.Circuit) -> bool:
     """Checks if the circuit requires trajectory simulation."""
     for op in circuit.all_operations():
         test_op = (
             op
-            if not protocols.is_parameterized(op)
-            else protocols.resolve_parameters(
-                op, {param: 1 for param in protocols.parameter_names(op)}
+            if not cirq.is_parameterized(op)
+            else cirq.resolve_parameters(
+                op, {param: 1 for param in cirq.parameter_names(op)}
             )
         )
-        if not (protocols.has_unitary(test_op) or protocols.is_measurement(test_op)):
+        if not (cirq.has_unitary(test_op) or cirq.is_measurement(test_op)):
             return True
     return False
 
@@ -182,16 +171,16 @@ class QSimOptions:
 
 
 class QSimSimulator(
-    SimulatesSamples,
-    SimulatesAmplitudes,
-    SimulatesFinalState,
+    cirq.SimulatesSamples,
+    cirq.SimulatesAmplitudes,
+    cirq.SimulatesFinalState,
     SimulatesExpectationValues,
 ):
     def __init__(
         self,
         qsim_options: Union[None, Dict, QSimOptions] = None,
-        seed: value.RANDOM_STATE_OR_SEED_LIKE = None,
-        noise: "devices.NOISE_MODEL_LIKE" = None,
+        seed: cirq.RANDOM_STATE_OR_SEED_LIKE = None,
+        noise: cirq.NOISE_MODEL_LIKE = None,
         circuit_memoization_size: int = 0,
     ):
         """Creates a new QSimSimulator using the given options and seed.
@@ -225,10 +214,10 @@ class QSimSimulator(
                 'Keys {"c", "i", "s"} are reserved for internal use and cannot be '
                 "used in QSimCircuit instantiation."
             )
-        self._prng = value.parse_random_state(seed)
+        self._prng = cirq.parse_random_state(seed)
         self.qsim_options = QSimOptions().as_dict()
         self.qsim_options.update(qsim_options)
-        self.noise = devices.NoiseModel.from_noise_model_like(noise)
+        self.noise = cirq.NoiseModel.from_noise_model_like(noise)
 
         # module to use for simulation
         if self.qsim_options["g"]:
@@ -263,8 +252,8 @@ class QSimSimulator(
 
     def _run(
         self,
-        circuit: circuits.Circuit,
-        param_resolver: study.ParamResolver,
+        circuit: cirq.Circuit,
+        param_resolver: cirq.ParamResolver,
         repetitions: int,
     ) -> Dict[str, np.ndarray]:
         """Run a simulation, mimicking quantum hardware.
@@ -278,14 +267,14 @@ class QSimSimulator(
             A dictionary from measurement gate key to measurement
             results.
         """
-        param_resolver = param_resolver or study.ParamResolver({})
-        solved_circuit = protocols.resolve_parameters(circuit, param_resolver)
+        param_resolver = param_resolver or cirq.ParamResolver({})
+        solved_circuit = cirq.resolve_parameters(circuit, param_resolver)
 
         return self._sample_measure_results(solved_circuit, repetitions)
 
     def _sample_measure_results(
         self,
-        program: circuits.Circuit,
+        program: cirq.Circuit,
         repetitions: int = 1,
     ) -> Dict[str, np.ndarray]:
         """Samples from measurement gates in the circuit.
@@ -312,13 +301,13 @@ class QSimSimulator(
         all_qubits = program.all_qubits()
         program = qsimc.QSimCircuit(
             self.noise.noisy_moments(program, sorted(all_qubits))
-            if self.noise is not devices.NO_NOISE
+            if self.noise is not cirq.NO_NOISE
             else program,
             device=program.device,
         )
 
         # Compute indices of measured qubits
-        ordered_qubits = ops.QubitOrder.DEFAULT.order_for(all_qubits)
+        ordered_qubits = cirq.QubitOrder.DEFAULT.order_for(all_qubits)
         num_qubits = len(ordered_qubits)
 
         qubit_map = {qubit: index for index, qubit in enumerate(ordered_qubits)}
@@ -330,16 +319,16 @@ class QSimSimulator(
         measurement_ops = [
             op
             for _, op, _ in program.findall_operations_with_gate_type(
-                ops.MeasurementGate
+                cirq.MeasurementGate
             )
         ]
-        measured_qubits = []  # type: List[ops.Qid]
+        measured_qubits = []  # type: List[cirq.Qid]
         bounds = {}  # type: Dict[str, Tuple]
         meas_ops = {}  # type: Dict[str, cirq.GateOperation]
         current_index = 0
         for op in measurement_ops:
             gate = op.gate
-            key = protocols.measurement_key_name(gate)
+            key = cirq.measurement_key_name(gate)
             meas_ops[key] = op
             if key in bounds:
                 raise ValueError(f"Duplicate MeasurementGate with key {key}")
@@ -369,21 +358,21 @@ class QSimSimulator(
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
             for i in range(len(program.moments)):
-                program.moments[i] = ops.Moment(
+                program.moments[i] = cirq.Moment(
                     op
-                    if not isinstance(op.gate, ops.MeasurementGate)
-                    else [ops.IdentityGate(1).on(q) for q in op.qubits]
+                    if not isinstance(op.gate, cirq.MeasurementGate)
+                    else [cirq.IdentityGate(1).on(q) for q in op.qubits]
                     for op in program.moments[i]
                 )
             translator_fn_name = "translate_cirq_to_qsim"
             options["c"] = self._translate_circuit(
                 program,
                 translator_fn_name,
-                ops.QubitOrder.DEFAULT,
+                cirq.QubitOrder.DEFAULT,
             )
             options["s"] = self.get_seed()
             final_state = self._sim_module.qsim_simulate_fullstate(options, 0)
-            full_results = sim.sample_state_vector(
+            full_results = cirq.sample_state_vector(
                 final_state.view(np.complex64),
                 range(num_qubits),
                 repetitions=repetitions,
@@ -399,7 +388,7 @@ class QSimSimulator(
             options["c"] = self._translate_circuit(
                 program,
                 translator_fn_name,
-                ops.QubitOrder.DEFAULT,
+                cirq.QubitOrder.DEFAULT,
             )
             for i in range(repetitions):
                 options["s"] = self.get_seed()
@@ -412,10 +401,10 @@ class QSimSimulator(
 
     def compute_amplitudes_sweep(
         self,
-        program: circuits.Circuit,
+        program: cirq.Circuit,
         bitstrings: Sequence[int],
-        params: study.Sweepable,
-        qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
+        params: cirq.Sweepable,
+        qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
     ) -> Sequence[Sequence[complex]]:
         """Computes the desired amplitudes using qsim.
 
@@ -440,13 +429,13 @@ class QSimSimulator(
         all_qubits = program.all_qubits()
         program = qsimc.QSimCircuit(
             self.noise.noisy_moments(program, sorted(all_qubits))
-            if self.noise is not devices.NO_NOISE
+            if self.noise is not cirq.NO_NOISE
             else program,
             device=program.device,
         )
 
         # qsim numbers qubits in reverse order from cirq
-        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
+        cirq_order = cirq.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
         num_qubits = len(cirq_order)
         bitstrings = [
             format(bitstring, "b").zfill(num_qubits)[::-1] for bitstring in bitstrings
@@ -455,7 +444,7 @@ class QSimSimulator(
         options = {"i": "\n".join(bitstrings)}
         options.update(self.qsim_options)
 
-        param_resolvers = study.to_resolvers(params)
+        param_resolvers = cirq.to_resolvers(params)
 
         trials_results = []
         if _needs_trajectories(program):
@@ -466,7 +455,7 @@ class QSimSimulator(
             simulator_fn = self._sim_module.qsim_simulate
 
         for prs in param_resolvers:
-            solved_circuit = protocols.resolve_parameters(program, prs)
+            solved_circuit = cirq.resolve_parameters(program, prs)
             options["c"] = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
@@ -480,9 +469,9 @@ class QSimSimulator(
 
     def simulate_sweep(
         self,
-        program: circuits.Circuit,
-        params: study.Sweepable,
-        qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
+        program: cirq.Circuit,
+        params: cirq.Sweepable,
+        qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
         initial_state: Optional[Union[int, np.ndarray]] = None,
     ) -> List["SimulationTrialResult"]:
         """Simulates the supplied Circuit.
@@ -523,7 +512,7 @@ class QSimSimulator(
         all_qubits = program.all_qubits()
         program = qsimc.QSimCircuit(
             self.noise.noisy_moments(program, sorted(all_qubits))
-            if self.noise is not devices.NO_NOISE
+            if self.noise is not cirq.NO_NOISE
             else program,
             device=program.device,
         )
@@ -531,9 +520,9 @@ class QSimSimulator(
         options = {}
         options.update(self.qsim_options)
 
-        param_resolvers = study.to_resolvers(params)
+        param_resolvers = cirq.to_resolvers(params)
         # qsim numbers qubits in reverse order from cirq
-        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
+        cirq_order = cirq.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
         qsim_order = list(reversed(cirq_order))
         num_qubits = len(qsim_order)
         if isinstance(initial_state, np.ndarray):
@@ -555,7 +544,7 @@ class QSimSimulator(
             fullstate_simulator_fn = self._sim_module.qsim_simulate_fullstate
 
         for prs in param_resolvers:
-            solved_circuit = protocols.resolve_parameters(program, prs)
+            solved_circuit = cirq.resolve_parameters(program, prs)
 
             options["c"] = self._translate_circuit(
                 solved_circuit,
@@ -583,10 +572,10 @@ class QSimSimulator(
 
     def simulate_expectation_values_sweep(
         self,
-        program: "cirq.Circuit",
-        observables: Union["cirq.PauliSumLike", List["cirq.PauliSumLike"]],
-        params: "study.Sweepable",
-        qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
+        program: cirq.Circuit,
+        observables: Union[cirq.PauliSumLike, List[cirq.PauliSumLike]],
+        params: cirq.Sweepable,
+        qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
         initial_state: Any = None,
         permit_terminal_measurements: bool = False,
     ) -> List[List[float]]:
@@ -629,10 +618,10 @@ class QSimSimulator(
             )
         if not isinstance(observables, List):
             observables = [observables]
-        psumlist = [ops.PauliSum.wrap(pslike) for pslike in observables]
+        psumlist = [cirq.PauliSum.wrap(pslike) for pslike in observables]
 
         all_qubits = program.all_qubits()
-        cirq_order = ops.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
+        cirq_order = cirq.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
         qsim_order = list(reversed(cirq_order))
         num_qubits = len(qsim_order)
         qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
@@ -659,7 +648,7 @@ class QSimSimulator(
         # Add noise to the circuit if a noise model was provided.
         program = qsimc.QSimCircuit(
             self.noise.noisy_moments(program, sorted(all_qubits))
-            if self.noise is not devices.NO_NOISE
+            if self.noise is not cirq.NO_NOISE
             else program,
             device=program.device,
         )
@@ -667,7 +656,7 @@ class QSimSimulator(
         options = {}
         options.update(self.qsim_options)
 
-        param_resolvers = study.to_resolvers(params)
+        param_resolvers = cirq.to_resolvers(params)
         if isinstance(initial_state, np.ndarray):
             if initial_state.dtype != np.complex64:
                 raise TypeError(f"initial_state vector must have dtype np.complex64.")
@@ -687,7 +676,7 @@ class QSimSimulator(
             ev_simulator_fn = self._sim_module.qsim_simulate_expectation_values
 
         for prs in param_resolvers:
-            solved_circuit = protocols.resolve_parameters(program, prs)
+            solved_circuit = cirq.resolve_parameters(program, prs)
             options["c"] = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
@@ -707,7 +696,7 @@ class QSimSimulator(
         self,
         circuit: Any,
         translator_fn_name: str,
-        qubit_order: ops.QubitOrderOrList,
+        qubit_order: cirq.QubitOrderOrList,
     ):
         # If the circuit is memoized, reuse the corresponding translated
         # circuit.

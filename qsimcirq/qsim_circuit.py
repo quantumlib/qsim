@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
 import warnings
+from typing import Dict, Union
 
 import cirq
+import numpy as np
+
 from . import qsim
-from typing import Dict, Union
 
 
 # List of parameter names that appear in valid Cirq protos.
@@ -300,7 +301,7 @@ class QSimCircuit(cirq.Circuit):
             return _cirq_gate_kind(op.gate) != None
 
         def to_matrix(op: cirq.ops.GateOperation):
-            mat = cirq.protocols.unitary(op.gate, None)
+            mat = cirq.unitary(op.gate, None)
             if mat is None:
                 return NotImplemented
 
