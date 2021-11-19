@@ -46,7 +46,6 @@ jobs:
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
       CIBW_TEST_COMMAND_LINUX: "echo $PATH"
-      CIBW_TEST_COMMAND_LINUX: "which nvcc"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2
