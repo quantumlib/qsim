@@ -214,7 +214,7 @@ class QSimSimulator(
                 'Keys {"c", "i", "s"} are reserved for internal use and cannot be '
                 "used in QSimCircuit instantiation."
             )
-        self._prng = cirq.parse_random_state(seed)
+        self._prng = cirq.value.parse_random_state(seed)
         self.qsim_options = QSimOptions().as_dict()
         self.qsim_options.update(qsim_options)
         self.noise = cirq.NoiseModel.from_noise_model_like(noise)
