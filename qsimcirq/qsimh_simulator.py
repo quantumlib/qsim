@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Sequence
+from typing import Sequence
 
-from cirq import study, ops, protocols, circuits, value, SimulatesAmplitudes
+import cirq
 
 from . import qsim
 import qsimcirq.qsim_circuit as qsimc
 
 
-class QSimhSimulator(SimulatesAmplitudes):
+class QSimhSimulator(cirq.SimulatesAmplitudes):
     def __init__(self, qsimh_options: dict = {}):
         """Creates a new QSimhSimulator using the given options.
 
@@ -41,10 +41,10 @@ class QSimhSimulator(SimulatesAmplitudes):
 
     def compute_amplitudes_sweep(
         self,
-        program: circuits.Circuit,
+        program: cirq.Circuit,
         bitstrings: Sequence[int],
-        params: study.Sweepable,
-        qubit_order: ops.QubitOrderOrList = ops.QubitOrder.DEFAULT,
+        params: cirq.Sweepable,
+        qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
     ) -> Sequence[Sequence[complex]]:
 
         if not isinstance(program, qsimc.QSimCircuit):
@@ -58,12 +58,12 @@ class QSimhSimulator(SimulatesAmplitudes):
 
         options = {"i": "\n".join(bitstrings)}
         options.update(self.qsimh_options)
-        param_resolvers = study.to_resolvers(params)
+        param_resolvers = cirq.to_resolvers(params)
 
         trials_results = []
         for prs in param_resolvers:
 
-            solved_circuit = protocols.resolve_parameters(program, prs)
+            solved_circuit = cirq.resolve_parameters(program, prs)
 
             options["c"] = solved_circuit.translate_cirq_to_qsim(qubit_order)
 
