@@ -379,8 +379,9 @@ class QSimSimulator(
             for i in range(repetitions):
                 for key, op in meas_ops.items():
                     meas_indices = [qubit_map[qubit] for qubit in op.qubits]
+                    invert_mask = op.gate.invert_mask
                     for j, q in enumerate(meas_indices):
-                        results[key][i][j] = full_results[i][q]
+                        results[key][i][j] = full_results[i][q] ^ invert_mask[j]
         else:
             options["c"] = self._translate_circuit(
                 program,
@@ -391,8 +392,11 @@ class QSimSimulator(
                 options["s"] = self.get_seed()
                 measurements = sampler_fn(options)
                 for key, bound in bounds.items():
+                    invert_mask = meas_ops[key].gate.invert_mask
                     for j in range(bound[1] - bound[0]):
-                        results[key][i][j] = int(measurements[bound[0] + j])
+                        results[key][i][j] = int(
+                            measurements[bound[0] + j] ^ invert_mask[j]
+                        )
 
         return results
 
