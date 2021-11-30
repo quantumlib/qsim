@@ -376,27 +376,38 @@ class QSimSimulator(
                 seed=self._prng,
             )
 
-            for i in range(repetitions):
-                for key, op in meas_ops.items():
-                    meas_indices = [qubit_map[qubit] for qubit in op.qubits]
-                    invert_mask = op.gate.full_invert_mask()
-                    for j, q in enumerate(meas_indices):
-                        results[key][i][j] = full_results[i][q] ^ invert_mask[j]
+            for key, op in meas_ops.items():
+                meas_indices = [qubit_map[qubit] for qubit in op.qubits]
+                invert_mask = op.gate.full_invert_mask()
+                for j, q in enumerate(meas_indices):
+                    results[key][:, j] = np.logical_xor(
+                        full_results[:, q],
+                        invert_mask[j],
+                    )
+
         else:
             options["c"] = self._translate_circuit(
                 program,
                 translator_fn_name,
                 cirq.QubitOrder.DEFAULT,
             )
+            measurements = np.empty(
+                shape=(
+                    repetitions,
+                    sum(cirq.num_qubits(op) for op in meas_ops.values())
+                )
+            )
             for i in range(repetitions):
                 options["s"] = self.get_seed()
-                measurements = sampler_fn(options)
-                for key, bound in bounds.items():
-                    invert_mask = meas_ops[key].gate.full_invert_mask()
-                    for j in range(bound[1] - bound[0]):
-                        results[key][i][j] = int(
-                            measurements[bound[0] + j] ^ invert_mask[j]
-                        )
+                measurements[i] = sampler_fn(options)
+
+            for key, bound in bounds.items():
+                invert_mask = meas_ops[key].gate.full_invert_mask()
+                for j in range(bound[1] - bound[0]):
+                    results[key][:, j] = np.logical_xor(
+                        measurements[:, bound[0] + j],
+                        invert_mask[j]
+                    )
 
         return results
 
