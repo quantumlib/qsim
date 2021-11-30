@@ -392,7 +392,7 @@ class QSimSimulator(
             measurements = np.empty(
                 shape=(
                     repetitions,
-                    sum(cirq.num_qubits(op) for op in meas_ops.values())
+                    sum(cirq.num_qubits(op) for op in meas_ops.values()),
                 )
             )
             for i in range(repetitions):
