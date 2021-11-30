@@ -379,11 +379,9 @@ class QSimSimulator(
             for key, op in meas_ops.items():
                 meas_indices = [qubit_map[qubit] for qubit in op.qubits]
                 invert_mask = op.gate.full_invert_mask()
-                for j, q in enumerate(meas_indices):
-                    results[key][:, j] = np.logical_xor(
-                        full_results[:, q],
-                        invert_mask[j],
-                    )
+                # Match result order to order in ops, then apply invert mask
+                permuted_results = full_results[:, meas_indices]
+                results[key] = np.logical_xor(permuted_results, invert_mask)
 
         else:
             options["c"] = self._translate_circuit(
