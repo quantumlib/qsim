@@ -42,6 +42,7 @@ jobs:
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
+      CIBW_BEFORE_BUILD: "pwd && ls"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
@@ -63,9 +64,11 @@ jobs:
       #     - might not be getting to CIBW
       #     - tested CIBW_ENVIRONMENT: PATH=$PATH, no visible change
       #     - new test: `which nvcc` in CIBW (FAILED)
+      #     - hardcoded PATH generates absurd errors?
+      #       - but the first wheel-build works. <===========
       #     - next up:
       #     - try https://github.com/OpenNMT/CTranslate2/blob/master/.github/workflows/ci.yml
-      #     - CIBW_BEFORE_ALL_LINUX: <script to install CUDA / add to PATH>
+      #       - CIBW_BEFORE_ALL_LINUX: <script to install CUDA / add to PATH>
       #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
