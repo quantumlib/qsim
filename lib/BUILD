@@ -40,6 +40,7 @@ cc_library(
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
+        "simulator.h",
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
@@ -97,6 +98,7 @@ cc_library(
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
+        "simulator.h",
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
@@ -149,6 +151,7 @@ cc_library(
         "run_qsim.h",
         "seqfor.h",
         "simmux.h",
+        "simulator.h",
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
@@ -194,6 +197,7 @@ cc_library(
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
+        "simulator.h",
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
@@ -466,10 +470,16 @@ cc_library(
 ### Simulator libraries ###
 
 cc_library(
+    name = "simulator_base",
+    hdrs = ["simulator.h"],
+    deps = [":bits"],
+)
+
+cc_library(
     name = "simulator_avx",
     hdrs = ["simulator_avx.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":statespace_avx",
     ],
 )
@@ -478,7 +488,7 @@ cc_library(
     name = "simulator_avx512",
     hdrs = ["simulator_avx512.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":statespace_avx512",
     ],
 )
@@ -487,7 +497,7 @@ cc_library(
     name = "simulator_basic",
     hdrs = ["simulator_basic.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":statespace_basic",
     ],
 )
@@ -496,7 +506,7 @@ cc_library(
     name = "simulator_sse",
     hdrs = ["simulator_sse.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":statespace_sse",
     ],
 )
