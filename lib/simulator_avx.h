@@ -926,11 +926,11 @@ class SimulatorAVX final : public SimulatorBase {
     __m256i idx[1 << L];
     __m256 w[1 << (1 + 2 * H + L)];
 
-    unsigned qmaskl = GetQMask<L>(qs);
+    auto m = GetMasks11<L>(qs);
 
     FillIndices<H, L>(state.num_qubits(), qs, ms, xss);
-    FillPermutationIndices<L>(qmaskl, idx);
-    FillMatrix<H, L, 3>(qmaskl, matrix, (fp_type*) w);
+    FillPermutationIndices<L>(m.qmaskl, idx);
+    FillMatrix<H, L, 3>(m.qmaskl, matrix, (fp_type*) w);
 
     unsigned r = 3 + H;
     unsigned n = state.num_qubits() > r ? state.num_qubits() - r : 0;
@@ -1315,11 +1315,11 @@ class SimulatorAVX final : public SimulatorBase {
     __m256i idx[1 << L];
     __m256 w[1 << (1 + 2 * H + L)];
 
-    unsigned qmaskl = GetQMask<L>(qs);
+    auto m = GetMasks11<L>(qs);
 
     FillIndices<H, L>(state.num_qubits(), qs, ms, xss);
-    FillPermutationIndices<L>(qmaskl, idx);
-    FillMatrix<H, L, 3>(qmaskl, matrix, (fp_type*) w);
+    FillPermutationIndices<L>(m.qmaskl, idx);
+    FillMatrix<H, L, 3>(m.qmaskl, matrix, (fp_type*) w);
 
     unsigned r = 3 + H;
     unsigned n = state.num_qubits() > r ? state.num_qubits() - r : 0;

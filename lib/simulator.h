@@ -26,6 +26,16 @@ namespace qsim {
  */
 class SimulatorBase {
  protected:
+  // The follwoing template parameters are used for functions below.
+  // H - the number of high (target) qubits.
+  // L - the number of low (target) qubits.
+  // R - SIMD register width in floats.
+
+  // Fills the table of masks (ms) that is used to calculate base state indices
+  // and the table of offset indices (xss) that is used to access the state
+  // vector entries in matrix-vector multiplication functions. This function is
+  // used in simulator_basic.h, simulator_sse.h and simulator_avx.h (no bmi2
+  // version).
   template <unsigned H, unsigned L = 0>
   static void FillIndices(unsigned num_qubits, const std::vector<unsigned>& qs,
                           uint64_t* ms, uint64_t* xss) {
@@ -50,6 +60,7 @@ class SimulatorBase {
     }
   }
 
+  // Fills gate matrix entries for gates with low qubits.
   template <unsigned H, unsigned L, unsigned R, typename fp_type>
   static void FillMatrix(unsigned qmaskl, const fp_type* matrix, fp_type* w) {
     constexpr unsigned gsize = 1 << (H + L);
@@ -78,6 +89,8 @@ class SimulatorBase {
     }
   }
 
+  // Fills gate matrix entries for controlled gates with high target qubits
+  // and low control qubits.
   template <unsigned H, unsigned R, typename fp_type>
   static void FillControlledMatrixH(uint64_t cvalsl, uint64_t cmaskl,
                                     const fp_type* matrix, fp_type* w) {
@@ -103,6 +116,8 @@ class SimulatorBase {
     }
   }
 
+  // Fills gate matrix entries for controlled gates with low target qubits
+  // and low control qubits.
   template <unsigned H, unsigned L, unsigned R, typename fp_type>
   static void FillControlledMatrixL(uint64_t cvalsl, uint64_t cmaskl,
                                     unsigned qmaskl, const fp_type* matrix,
@@ -134,6 +149,27 @@ class SimulatorBase {
       }
     }
   }
+
+/*
+  The GetMasks* functions below provide various masks and related values.
+  GetMasks1, GetMasks2, GetMasks3, GetMasks4, GetMasks5 and GetMasks6 are
+  used in simulator_avx.h (BMI2 version) and in simulator_avx512.h. GetMasks7,
+  GetMasks8, GetMasks9, GetMasks10 and GetMasks11 are used in simulator_avx.h
+  (no BMI2 version) and in simulator_sse.h.
+
+  imaskh - inverted mask of high qubits (high control and target qubits).
+  qmaskh - mask of high qubits (high target qubits).
+  cvalsh - control bit values of high control qubits placed in correct
+           positions.
+  cvalsl - control bit values of low control qubits placed in correct positions.
+  cmaskh - mask of high control qubits.
+  cmaskl - mask of low control qubits.
+  qmaskl - mask of low qubits (low target qubits).
+  cl - the number of low control qubits.
+
+  Note that imaskh, qmaskh and cvalsh are multiplied by two in GetMasks1,
+  GetMasks2, GetMasks3, GetMasks4, GetMasks5 and GetMasks6.
+*/
 
   struct Masks1 {
     uint64_t imaskh;
@@ -423,15 +459,19 @@ class SimulatorBase {
     return {cvalsh, cmaskh, cvalsl, cmaskl, qmaskl};
   }
 
+  struct Masks11 {
+    unsigned qmaskl;
+  };
+
   template <unsigned L>
-  static unsigned GetQMask(const std::vector<unsigned>& qs) {
+  static Masks11 GetMasks11(const std::vector<unsigned>& qs) {
     unsigned qmaskl = 0;
 
     for (unsigned i = 0; i < L; ++i) {
       qmaskl |= 1 << qs[i];
     }
 
-    return qmaskl;
+    return {qmaskl};
   }
 
   template <unsigned R>

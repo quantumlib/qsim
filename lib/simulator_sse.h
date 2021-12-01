@@ -431,10 +431,10 @@ class SimulatorSSE final : public SimulatorBase {
     uint64_t xss[1 << H];
     __m128 w[1 << (1 + 2 * H + L)];
 
-    unsigned qmaskl = GetQMask<L>(qs);
+    auto m = GetMasks11<L>(qs);
 
     FillIndices<H, L>(state.num_qubits(), qs, ms, xss);
-    FillMatrix<H, L, 2>(qmaskl, matrix, (fp_type*) w);
+    FillMatrix<H, L, 2>(m.qmaskl, matrix, (fp_type*) w);
 
     unsigned k = 2 + H;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
@@ -833,10 +833,10 @@ class SimulatorSSE final : public SimulatorBase {
     uint64_t xss[1 << H];
     __m128 w[1 << (1 + 2 * H + L)];
 
-    unsigned qmaskl = GetQMask<L>(qs);
+    auto m = GetMasks11<L>(qs);
 
     FillIndices<H, L>(state.num_qubits(), qs, ms, xss);
-    FillMatrix<H, L, 2>(qmaskl, matrix, (fp_type*) w);
+    FillMatrix<H, L, 2>(m.qmaskl, matrix, (fp_type*) w);
 
     unsigned k = 2 + H;
     unsigned n = state.num_qubits() > k ? state.num_qubits() - k : 0;
