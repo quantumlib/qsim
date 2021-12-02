@@ -44,8 +44,9 @@ g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o statespace_av
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx512f -mbmi2 -fopenmp -o statespace_avx512_test.x statespace_avx512_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o statespace_basic_test.x statespace_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o statespace_sse_test.x statespace_sse_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o unitary_calculator_avx_test.x unitary_calculator_avx_test.cc -lgtest -lpthread
-g++ -O3 -I$path_to_include -L$path_to_lib -mavx512f -mfma -fopenmp -o unitary_calculator_avx512_test.x unitary_calculator_avx512_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o unitary_calculator_avx_test.x unitary_calculator_avx_nobmi2_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -mbmi2 -fopenmp -o unitary_calculator_avx_test.x unitary_calculator_avx_test.cc -lgtest -lpthread
+g++ -O3 -I$path_to_include -L$path_to_lib -mavx512f -mbmi2 -mfma -fopenmp -o unitary_calculator_avx512_test.x unitary_calculator_avx512_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o unitary_calculator_basic_test.x unitary_calculator_basic_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o unitary_calculator_sse_test.x unitary_calculator_sse_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -mavx2 -mfma -fopenmp -o unitaryspace_avx_test.x unitaryspace_avx_test.cc -lgtest -lpthread
