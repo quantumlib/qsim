@@ -29,7 +29,7 @@ namespace qsim {
 namespace unitary {
 
 /**
- * Quantum circuit simulator with SSE vectorization.
+ * Quantum circuit unitary calculator with SSE vectorization.
  */
 template <typename For>
 class UnitaryCalculatorSSE final : public SimulatorBase {

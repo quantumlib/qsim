@@ -29,7 +29,7 @@ namespace qsim {
 namespace unitary {
 
 /**
- * Quantum circuit simulator with AVX vectorization.
+ * Quantum circuit unitary calculator with AVX vectorization.
  */
 template <typename For>
 class UnitaryCalculatorAVX final : public SimulatorBase {
