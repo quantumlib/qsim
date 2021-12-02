@@ -634,7 +634,7 @@ cc_library(
     name = "unitary_calculator_avx",
     hdrs = ["unitary_calculator_avx.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":unitaryspace_avx",
     ],
 )
@@ -643,7 +643,7 @@ cc_library(
     name = "unitary_calculator_avx512",
     hdrs = ["unitary_calculator_avx512.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":unitaryspace_avx512",
     ],
 )
@@ -652,7 +652,7 @@ cc_library(
     name = "unitary_calculator_basic",
     hdrs = ["unitary_calculator_basic.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":unitaryspace_basic",
     ],
 )
@@ -661,7 +661,7 @@ cc_library(
     name = "unitary_calculator_sse",
     hdrs = ["unitary_calculator_sse.h"],
     deps = [
-        ":bits",
+        ":simulator_base",
         ":unitaryspace_sse",
     ],
 )
