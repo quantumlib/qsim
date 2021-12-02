@@ -380,9 +380,7 @@ class QSimSimulator(
                 meas_indices = [qubit_map[qubit] for qubit in op.qubits]
                 invert_mask = op.gate.full_invert_mask()
                 # Apply invert mask to re-ordered results
-                results[key] = np.logical_xor(
-                    full_results[:, meas_indices], invert_mask
-                )
+                results[key] = full_results[:, meas_indices] ^ invert_mask
 
         else:
             options["c"] = self._translate_circuit(
@@ -394,7 +392,8 @@ class QSimSimulator(
                 shape=(
                     repetitions,
                     sum(cirq.num_qubits(op) for op in meas_ops.values()),
-                )
+                ),
+                dtype=int,
             )
             for i in range(repetitions):
                 options["s"] = self.get_seed()
@@ -402,7 +401,7 @@ class QSimSimulator(
 
             for key, (start, end) in bounds.items():
                 invert_mask = meas_ops[key].gate.full_invert_mask()
-                results[key] = np.logical_xor(measurements[:, start:end], invert_mask)
+                results[key] = measurements[:, start:end] ^ invert_mask
 
         return results
 
