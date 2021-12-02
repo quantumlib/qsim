@@ -379,9 +379,10 @@ class QSimSimulator(
             for key, op in meas_ops.items():
                 meas_indices = [qubit_map[qubit] for qubit in op.qubits]
                 invert_mask = op.gate.full_invert_mask()
-                # Match result order to order in ops, then apply invert mask
-                permuted_results = full_results[:, meas_indices]
-                results[key] = np.logical_xor(permuted_results, invert_mask)
+                # Apply invert mask to re-ordered results
+                results[key] = np.logical_xor(
+                    full_results[:, meas_indices], invert_mask
+                )
 
         else:
             options["c"] = self._translate_circuit(
@@ -399,11 +400,9 @@ class QSimSimulator(
                 options["s"] = self.get_seed()
                 measurements[i] = sampler_fn(options)
 
-            for key, bound in bounds.items():
+            for key, (start, end) in bounds.items():
                 invert_mask = meas_ops[key].gate.full_invert_mask()
-                permutation = list(range(bound[0], bound[1]))
-                permuted_measurements = measurements[:, permutation]
-                results[key] = np.logical_xor(permuted_measurements, invert_mask)
+                results[key] = np.logical_xor(measurements[:, start:end], invert_mask)
 
         return results
 
