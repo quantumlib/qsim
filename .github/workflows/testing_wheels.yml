@@ -67,6 +67,7 @@ jobs:
       #       - but the first wheel-build works.
       #       - reran with fixes and the result wheel didn't have GPU <===========
       #     - next up:
+      #     - CIBW_ENVIRONMENT_PASS_LINUX: env vars might not be going through?
       #     - try https://github.com/OpenNMT/CTranslate2/blob/master/.github/workflows/ci.yml
       #       - CIBW_BEFORE_ALL_LINUX: <script to install CUDA / add to PATH>
       #   - testing GPU on non-GPU machine will fail
@@ -90,7 +91,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_ENVIRONMENT: "PATH=$PATH:/usr/local/cuda-11.2/bin"
+          CIBW_ENVIRONMENT_PASS_LINUX: "PATH=$PATH:/usr/local/cuda-11.2/bin"
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2
