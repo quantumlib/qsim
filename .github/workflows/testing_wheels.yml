@@ -45,9 +45,6 @@ jobs:
       CIBW_BEFORE_BUILD: "pwd && ls"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
-      # TODO: this might be the culprit, /project/qsimcirq doesn't exist in second go-round
-      #   CIBW_TEST_COMMAND_LINUX was overriding CIBW_TEST_COMMAND
-      #   Still need to prevent GPU tests from trying to run?
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
@@ -67,7 +64,8 @@ jobs:
       #     - tested CIBW_ENVIRONMENT: PATH=$PATH, no visible change
       #     - new test: `which nvcc` in CIBW (FAILED)
       #     - hardcoded PATH generates absurd errors?
-      #       - but the first wheel-build works. <===========
+      #       - but the first wheel-build works.
+      #       - reran with fixes and the result wheel didn't have GPU <===========
       #     - next up:
       #     - try https://github.com/OpenNMT/CTranslate2/blob/master/.github/workflows/ci.yml
       #       - CIBW_BEFORE_ALL_LINUX: <script to install CUDA / add to PATH>
