@@ -73,7 +73,8 @@ jobs:
       #       - tries and fails to reboot
       #       - might be related to "drivers req'd outside container" issue
       #       - attempt fix w/pre-installed dependencies
-      #       - no luck, but might require separate out-of-container install? <==========
+      #       - no luck, but might require separate out-of-container install?
+      #       - failed again, trying OOC install + no pre-install <==========
       #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
