@@ -72,11 +72,12 @@ jobs:
       #     - CUDA install script in CIBW_BEFORE_ALL_LINUX
       #       - tries and fails to reboot
       #       - might be related to "drivers req'd outside container" issue
-      #       - attempt fix w/pre-installed dependencies <==========
+      #       - attempt fix w/pre-installed dependencies
+      #       - no luck, but might require separate out-of-container install? <==========
       #   - testing GPU on non-GPU machine will fail
-      # - name: cuda-toolkit
-      #   if: ${{ matrix.os == 'ubuntu-20.04' }}
-      #   uses: Jimver/cuda-toolkit@v0.2.4
+      - name: cuda-toolkit
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        uses: Jimver/cuda-toolkit@v0.2.4
 
       # - name: First check
       #   if: ${{ matrix.os == 'ubuntu-20.04' }}
