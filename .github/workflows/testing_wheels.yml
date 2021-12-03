@@ -69,7 +69,10 @@ jobs:
       #       - reran with fixes and the result wheel didn't have GPU
       #     - CIBW_ENVIRONMENT_PASS_LINUX: env vars might not be going through?
       #       - failed
-      #     - CUDA install script in CIBW_BEFORE_ALL_LINUX <==========
+      #     - CUDA install script in CIBW_BEFORE_ALL_LINUX
+      #       - tries and fails to reboot
+      #       - might be related to "drivers req'd outside container" issue
+      #       - attempt fix w/pre-installed dependencies <==========
       #   - testing GPU on non-GPU machine will fail
       # - name: cuda-toolkit
       #   if: ${{ matrix.os == 'ubuntu-20.04' }}
