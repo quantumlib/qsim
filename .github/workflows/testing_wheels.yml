@@ -41,6 +41,7 @@ jobs:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
+      CIBW_BEFORE_ALL_LINUX: "build_tools/cuda_install.sh"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       CIBW_BEFORE_BUILD: "pwd && ls"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
@@ -65,23 +66,22 @@ jobs:
       #     - new test: `which nvcc` in CIBW (FAILED)
       #     - hardcoded PATH generates absurd errors?
       #       - but the first wheel-build works.
-      #       - reran with fixes and the result wheel didn't have GPU <===========
-      #     - next up:
+      #       - reran with fixes and the result wheel didn't have GPU
       #     - CIBW_ENVIRONMENT_PASS_LINUX: env vars might not be going through?
-      #     - try https://github.com/OpenNMT/CTranslate2/blob/master/.github/workflows/ci.yml
-      #       - CIBW_BEFORE_ALL_LINUX: <script to install CUDA / add to PATH>
+      #       - failed
+      #     - CUDA install script in CIBW_BEFORE_ALL_LINUX <==========
       #   - testing GPU on non-GPU machine will fail
-      - name: cuda-toolkit
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
-        uses: Jimver/cuda-toolkit@v0.2.4
+      # - name: cuda-toolkit
+      #   if: ${{ matrix.os == 'ubuntu-20.04' }}
+      #   uses: Jimver/cuda-toolkit@v0.2.4
 
-      - name: First check
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
-        run: echo "Cuda install location ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+      # - name: First check
+      #   if: ${{ matrix.os == 'ubuntu-20.04' }}
+      #   run: echo "Cuda install location ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
 
-      - name: Second check
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
-        run: echo $PATH
+      # - name: Second check
+      #   if: ${{ matrix.os == 'ubuntu-20.04' }}
+      #   run: echo $PATH
 
       - name: Install cibuildwheel and twine
         run: python -m pip install cibuildwheel==1.11.0
@@ -90,8 +90,6 @@ jobs:
         run: bash build_tools/test_libs.sh
 
       - name: Build wheels
-        env:
-          CIBW_ENVIRONMENT_PASS_LINUX: "PATH=$PATH:/usr/local/cuda-11.2/bin"
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2
