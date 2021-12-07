@@ -28,6 +28,7 @@
 #include <memory>
 
 #include "../eigen/Eigen/Dense"
+#include "../eigen/unsupported/Eigen/CXX11/Tensor"
 
 namespace qsim {
 
@@ -180,8 +181,8 @@ class MPSStateSpace {
     fp_type* state2_raw = state2.get();
 
     // Contract leftmost blocks together, store result in state1 scratch.
-    ConstMatrixMap top((Complex*) state2_raw, 2, bond_dim);
-    ConstMatrixMap bot((Complex*) state1_raw, 2, bond_dim);
+    ConstMatrixMap top((Complex*)state2_raw, 2, bond_dim);
+    ConstMatrixMap bot((Complex*)state1_raw, 2, bond_dim);
     MatrixMap partial_contract((Complex*)(state1_raw + end), bond_dim,
                                bond_dim);
     MatrixMap partial_contract2(
@@ -230,6 +231,145 @@ class MPSStateSpace {
     partial_contract.noalias() = top.adjoint() * partial_contract2;
 
     return partial_contract(0, 0);
+  }
+
+  // Compute the 2x2 1-RDM of state on index. Result written to rdm.
+  // Requires: scratch and rdm to be allocated.
+  static void ReduceDensityMatrix(MPS& state, MPS& scratch, int index,
+                                  fp_type* rdm) {
+    const auto num_qubits = state.num_qubits();
+    const auto bond_dim = state.bond_dim();
+    const auto end = Size(state);
+    const bool last_index = (index == num_qubits - 1);
+    const auto right_dim = (last_index ? 1 : bond_dim);
+    auto offset = 0;
+    fp_type* state_raw = state.get();
+    fp_type* scratch_raw = scratch.get();
+    fp_type* state_raw_workspace = state_raw + end + 2 * bond_dim * bond_dim;
+    fp_type* scratch_raw_workspace =
+        scratch_raw + end + 2 * bond_dim * bond_dim;
+
+    Copy(state, scratch);
+
+    // Contract leftmost blocks together, store result in state scratch.
+    ConstMatrixMap top((Complex*)scratch_raw, 2, bond_dim);
+    ConstMatrixMap bot((Complex*)state_raw, 2, bond_dim);
+    MatrixMap partial_contract((Complex*)(state_raw + end), bond_dim, bond_dim);
+    MatrixMap partial_contract2((Complex*)(state_raw_workspace), bond_dim,
+                                2 * bond_dim);
+
+    partial_contract.setZero();
+    partial_contract(0, 0) = 1;
+    if (index > 0) {
+      partial_contract.noalias() = top.adjoint() * bot;
+    }
+
+    // Contract all internal blocks together.
+    for (unsigned i = 1; i < index; ++i) {
+      offset = GetBlockOffset(state, i);
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state_raw_workspace), bond_dim, 2 * bond_dim);
+
+      // Merge bot into left boundary merged tensor.
+      new (&bot) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
+                                2 * bond_dim);
+      partial_contract2.noalias() = partial_contract * bot;
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state_raw_workspace), 2 * bond_dim, bond_dim);
+
+      // Merge top into partial_contract2.
+      new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), 2 * bond_dim,
+                                bond_dim);
+      partial_contract.noalias() = top.adjoint() * partial_contract2;
+    }
+
+    // The [bond_dim, bond_dim] block in state_raw now contains the contraction
+    // up to, but not including index.
+    // Contract rightmost blocks.
+    offset = GetBlockOffset(state, num_qubits - 1);
+    new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), bond_dim, 2);
+    new (&bot) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim, 2);
+    new (&partial_contract)
+        MatrixMap((Complex*)(scratch_raw + end), bond_dim, bond_dim);
+    new (&partial_contract2)
+        MatrixMap((Complex*)(scratch_raw_workspace), bond_dim, 2 * bond_dim);
+
+    partial_contract.setZero();
+    partial_contract(0, 0) = 1;
+    if (index < num_qubits - 1) {
+      partial_contract.noalias() = top * bot.adjoint();
+    }
+
+    for (unsigned i = num_qubits - 2; i > index; --i) {
+      offset = GetBlockOffset(state, i);
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(scratch_raw_workspace), 2 * bond_dim, bond_dim);
+
+      // Merge bot into left boundary merged tensor.
+      new (&bot) ConstMatrixMap((Complex*)(state_raw + offset), 2 * bond_dim,
+                                bond_dim);
+      partial_contract2.noalias() = bot * partial_contract.adjoint();
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(scratch_raw_workspace), bond_dim, 2 * bond_dim);
+
+      // Merge top into partial_contract2.
+      new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), bond_dim,
+                                2 * bond_dim);
+      // [bd, bd] = [2bd, bd] @ [bd, 2bd]
+      partial_contract.noalias() = top * partial_contract2.adjoint();
+    }
+
+    // The [bond_dim, bond_dim] block in scratch_raw now contains the
+    // contraction down from the end, but not including the index. Begin final
+    // contraction steps.
+
+    // Get leftmost [bd, bd] contraction and contract with top.
+
+    offset = GetBlockOffset(state, index);
+    new (&partial_contract)
+        MatrixMap((Complex*)(state_raw + end), bond_dim, bond_dim);
+    new (&top)
+        ConstMatrixMap((Complex*)(state_raw + offset), bond_dim, 2 * right_dim);
+    new (&partial_contract2)
+        MatrixMap((Complex*)(scratch_raw_workspace), bond_dim, 2 * right_dim);
+    partial_contract2.noalias() = partial_contract * top.conjugate();
+    // copy the bottom contraction scratch_raw to state_raw to save space.
+    memcpy(state_raw + end, scratch_raw + end,
+           bond_dim * bond_dim * 2 * sizeof(fp_type));
+
+    // Contract top again for correct shape.
+    fp_type* contract3_target = (last_index ? rdm : scratch_raw);
+    MatrixMap partial_contract3((Complex*)contract3_target, 2 * right_dim,
+                                2 * right_dim);
+    partial_contract3.noalias() = top.transpose() * partial_contract2;
+
+    // If we are contracting the last index, all the needed transforms are done.
+    if (last_index) {
+      return;
+    }
+
+    // Conduct final tensor contraction operations. Cannot be easily compiled to
+    // matmul.
+    const Eigen::TensorMap<const Eigen::Tensor<Complex, 4, Eigen::RowMajor>>
+        t_4d((Complex*)scratch_raw, 2, bond_dim, 2, bond_dim);
+    const Eigen::TensorMap<const Eigen::Tensor<Complex, 2, Eigen::RowMajor>>
+        t_2d((Complex*)(state_raw + end), bond_dim, bond_dim);
+
+    const Eigen::array<Eigen::IndexPair<int>, 2> product_dims = {
+        Eigen::IndexPair<int>(1, 0),
+        Eigen::IndexPair<int>(3, 1),
+    };
+    Eigen::TensorMap<Eigen::Tensor<Complex, 2, Eigen::RowMajor>> out(
+        (Complex*)rdm, 2, 2);
+    out = t_4d.contract(t_2d, product_dims);
   }
 
   // Testing only. Convert the MPS to a wavefunction under "normal" ordering.
