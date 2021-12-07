@@ -851,7 +851,7 @@ TEST(MPSStateSpaceTest, ReduceDensityMatrixLarge){
   //-----------------------------------------
   // And so on.
 
-  float *rdm = new float[8];
+  float rdm[8];
   ss.ReduceDensityMatrix(mps, scratch, 0, rdm);
   EXPECT_NEAR(rdm[ 0 ], 0.43434495 , 1e-4);
   EXPECT_NEAR(rdm[ 1 ], 0.0 , 1e-4);
@@ -897,7 +897,6 @@ TEST(MPSStateSpaceTest, ReduceDensityMatrixLarge){
   EXPECT_NEAR(rdm[ 5 ], 0.082148254 , 1e-4);
   EXPECT_NEAR(rdm[ 6 ], 0.5277185 , 1e-4);
   EXPECT_NEAR(rdm[ 7 ], 0.0 , 1e-4);
-  delete[](rdm);
 
 }
 
