@@ -41,7 +41,7 @@ jobs:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
-      CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh"
+      CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh && echo $PATH"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       CIBW_BEFORE_BUILD: "pwd && ls"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
