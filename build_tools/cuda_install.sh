@@ -22,4 +22,7 @@ echo "# CUDA Toolkit settings" >> $CUDA_PROFILE
 echo "export PATH=/usr/local/cuda-11/bin:$PATH" >> $CUDA_PROFILE
 echo "export LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH" >> $CUDA_PROFILE
 
+export PATH=/usr/local/cuda-11/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
+
 set +x
