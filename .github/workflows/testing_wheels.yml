@@ -42,9 +42,11 @@ jobs:
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_ALL_LINUX: "source build_tools/cuda_install.sh && echo $PATH"
+      CIBW_ENVIRONMENT_LINUX: PATH=/usr/local/cuda-11/bin:$PATH
+      CIBW_ENVIRONMENT_PASS_LINUX: PATH
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       # *cuda.so was not built, suspect `which nvcc` is null
-      CIBW_BEFORE_BUILD: "echo $PATH && which nvcc"
+      CIBW_BEFORE_BUILD_LINUX: "echo $PATH && which nvcc"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
