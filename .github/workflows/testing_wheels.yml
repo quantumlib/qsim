@@ -43,7 +43,8 @@ jobs:
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_ALL_LINUX: "source build_tools/cuda_install.sh && echo $PATH"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
-      CIBW_BEFORE_BUILD: "pwd && ls"
+      # *cuda.so was not built, suspect `which nvcc` is null
+      CIBW_BEFORE_BUILD: "echo $PATH && which nvcc"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
@@ -78,7 +79,7 @@ jobs:
       #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
-        uses: Jimver/cuda-toolkit@v0.2.4
+        uses: Jimver/cuda-toolkit@v0.2.5
 
       # - name: First check
       #   if: ${{ matrix.os == 'ubuntu-20.04' }}
