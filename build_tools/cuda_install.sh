@@ -17,8 +17,9 @@ yum -y install cuda-drivers
 
 # post-install actions
 
-export PATH=/usr/local/cuda-11/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
+# commented to allow outer PATH-setting
+# export PATH=/usr/local/cuda-11/bin:$PATH
+# export LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
 
 # works here, does not escape to build process
 nvcc --version

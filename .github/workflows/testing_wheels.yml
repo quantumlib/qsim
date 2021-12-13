@@ -37,6 +37,22 @@ jobs:
             architecture: x64
             cibw:
               build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64"
+    env:
+      # Note: Location of env does not matter.
+      CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
+      CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
+      CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh && echo $PATH"
+      # overwriting PATH is breaking Python - need to add to PATH somehow?
+      CIBW_ENVIRONMENT_LINUX: PATH=/usr/local/cuda-11/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
+      CIBW_ENVIRONMENT_PASS_LINUX: PATH LD_LIBRARY_PATH
+      CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
+      # *cuda.so was not built, suspect `which nvcc` is null
+      CIBW_BEFORE_BUILD_LINUX: "echo $PATH && which nvcc"
+      CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
+      # due to package and module name conflict have to temporarily move it away to run tests
+      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
+      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2
 
@@ -85,21 +101,6 @@ jobs:
       #   run: bash build_tools/test_libs.sh
 
       - name: Build wheels
-        env:
-          CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
-          CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
-          CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
-          CIBW_BEFORE_ALL_LINUX: "source build_tools/cuda_install.sh && echo $PATH"
-          CIBW_ENVIRONMENT_LINUX: PATH=/usr/local/cuda-11/bin:$PATH
-          # overwriting PATH is breaking Python - need to add to PATH somehow?
-          CIBW_ENVIRONMENT_PASS_LINUX: PATH
-          CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
-          # *cuda.so was not built, suspect `which nvcc` is null
-          CIBW_BEFORE_BUILD_LINUX: "echo $PATH && which nvcc"
-          CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
-          # due to package and module name conflict have to temporarily move it away to run tests
-          CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
-          CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2
