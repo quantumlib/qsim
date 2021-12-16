@@ -90,6 +90,7 @@ exec(open("qsimcirq/_version.py").read())
 setup(
     name="qsimcirq",
     version=__version__,
+    url="https://github.com/quantumlib/qsim",
     author="Vamsi Krishna Devabathini",
     author_email="devabathini92@gmail.com",
     python_requires=">=3.3.0",
