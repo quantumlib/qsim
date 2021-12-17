@@ -25,7 +25,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
+#include <random>
 
 #include "../eigen/Eigen/Dense"
 #include "../eigen/unsupported/Eigen/CXX11/Tensor"
@@ -370,6 +372,68 @@ class MPSStateSpace {
     Eigen::TensorMap<Eigen::Tensor<Complex, 2, Eigen::RowMajor>> out(
         (Complex*)rdm, 2, 2);
     out = t_4d.contract(t_2d, product_dims);
+  }
+
+  // Draw a single bitstring sample from state using scratch and scratch2
+  // as working space.
+  static void SampleOnce(MPS& state, MPS& scratch, MPS& scratch2,
+                         std::mt19937* random_gen, std::vector<bool>* sample) {
+    const auto bond_dim = state.bond_dim();
+    const auto num_qubits = state.num_qubits();
+    std::default_random_engine generator;
+    fp_type* scratch_raw = scratch.get();
+    fp_type rdm[8];
+
+    sample->reserve(num_qubits);
+    Copy(state, scratch);
+    Copy(state, scratch2);
+
+    // Sample left block.
+    ReduceDensityMatrix(scratch, scratch2, 0, rdm);
+    auto p0 = rdm[0] / (rdm[0] + rdm[6]);
+    std::bernoulli_distribution distribution(1 - p0);
+    auto bit_val = distribution(*random_gen);
+
+    sample->push_back(bit_val);
+    MatrixMap tensor_block((Complex*)scratch_raw, 2, bond_dim);
+    tensor_block.row(!bit_val).setZero();
+    tensor_block.imag() *= -1;
+
+    // Sample internal blocks.
+    for (unsigned i = 1; i < num_qubits - 1; i++) {
+      ReduceDensityMatrix(scratch, scratch2, i, rdm);
+      p0 = rdm[0] / (rdm[0] + rdm[6]);
+      distribution = std::bernoulli_distribution(1 - p0);
+      bit_val = distribution(*random_gen);
+
+      sample->push_back(bit_val);
+      const auto mem_start = GetBlockOffset(scratch, i);
+      new (&tensor_block) MatrixMap((Complex*)(scratch_raw + mem_start),
+                                    bond_dim * 2, bond_dim);
+      for (unsigned j = !bit_val; j < 2 * bond_dim; j += 2) {
+        tensor_block.row(j).setZero();
+      }
+      tensor_block.imag() *= -1;
+    }
+
+    // Sample right block.
+    ReduceDensityMatrix(scratch, scratch2, num_qubits - 1, rdm);
+    p0 = rdm[0] / (rdm[0] + rdm[6]);
+    distribution = std::bernoulli_distribution(1 - p0);
+    bit_val = distribution(*random_gen);
+    sample->push_back(bit_val);
+  }
+
+  // Draw num_samples bitstring samples from state and store the result
+  // bit vectors in results. Uses scratch and scratch2 as workspace.
+  static void Sample(MPS& state, MPS& scratch, MPS& scratch2,
+                     unsigned num_samples, unsigned seed,
+                     std::vector<std::vector<bool>>* results) {
+    std::mt19937 rand_source(seed);
+    results->reserve(num_samples);
+    for (unsigned i = 0; i < num_samples; i++) {
+      SampleOnce(state, scratch, scratch2, &rand_source, &(*results)[i]);
+    }
   }
 
   // Testing only. Convert the MPS to a wavefunction under "normal" ordering.
