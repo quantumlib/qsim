@@ -16,7 +16,6 @@
 
 #include "../lib/formux.h"
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace qsim {
 
@@ -915,8 +914,9 @@ TEST(MPSStateSpaceTest, SampleOnceSimple){
   mps.get()[0] = 0;
   mps.get()[8] = 1;
   ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
-  ASSERT_THAT(results, testing::ElementsAre(1, 0, 0));
-  //EXPECT_EQ(1,2);
+  EXPECT_EQ(results[0], 1);
+  EXPECT_EQ(results[1], 0);
+  EXPECT_EQ(results[2], 0);
 
   // Set to |010>.
   results.clear();
@@ -924,7 +924,9 @@ TEST(MPSStateSpaceTest, SampleOnceSimple){
   mps.get()[16] = 0;
   mps.get()[24] = 1;
   ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
-  ASSERT_THAT(results, testing::ElementsAre(0, 1, 0));
+  EXPECT_EQ(results[0], 0);
+  EXPECT_EQ(results[1], 1);
+  EXPECT_EQ(results[2], 0);
 
   // Set to |001>.
   results.clear();
@@ -932,7 +934,9 @@ TEST(MPSStateSpaceTest, SampleOnceSimple){
   mps.get()[80] = 0;
   mps.get()[82] = 1;
   ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
-  ASSERT_THAT(results, testing::ElementsAre(0, 0, 1));
+  EXPECT_EQ(results[0], 0);
+  EXPECT_EQ(results[1], 0);
+  EXPECT_EQ(results[2], 1);
 
   // Set to |101>.
   results.clear();
@@ -942,7 +946,9 @@ TEST(MPSStateSpaceTest, SampleOnceSimple){
   mps.get()[80] = 0;
   mps.get()[82] = 1;
   ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
-  ASSERT_THAT(results, testing::ElementsAre(1, 0, 1));
+  EXPECT_EQ(results[0], 1);
+  EXPECT_EQ(results[1], 0);
+  EXPECT_EQ(results[2], 1);
 }
 
 TEST(MPSStateSpaceTest, SampleGHZ){
@@ -965,8 +971,10 @@ TEST(MPSStateSpaceTest, SampleGHZ){
   float count = 0;
   ss.Sample(mps, scratch, scratch2, num_samples, 1234, &results);
   for(int i = 0 ; i < num_samples; i++){
-    ASSERT_THAT(results[i], testing::AnyOf(testing::ElementsAre(1, 1, 1),
-                                           testing::ElementsAre(0, 0, 0)));
+    bool all_same = 1;
+    all_same &= results[i][0] == results[i][1];
+    all_same &= results[i][1] == results[i][2];
+    EXPECT_EQ(all_same, 1);
     count += results[i][0];
   }
   EXPECT_NEAR(count / float(num_samples), 0.5, 1e-2);
