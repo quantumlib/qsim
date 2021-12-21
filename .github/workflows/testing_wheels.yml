@@ -38,17 +38,13 @@ jobs:
             cibw:
               build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64"
     env:
-      # Note: Location of env does not matter.
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh && echo $PATH"
-      # overwriting PATH is breaking Python - need to add to PATH somehow?
       CIBW_ENVIRONMENT_LINUX: PATH=$PATH:/usr/local/cuda-11/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11/lib64
-      CIBW_ENVIRONMENT_PASS_LINUX: PATH
+      CIBW_ENVIRONMENT_PASS_LINUX: PATH LD_LIBRARY_PATH
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
-      # *cuda.so was not built, suspect `which nvcc` is null
-      # CIBW_BEFORE_BUILD_LINUX: "echo $PATH && which nvcc"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
@@ -60,38 +56,9 @@ jobs:
       - uses: actions/setup-python@v2
 
       # Install NVCC on Ubuntu to include GPU in the wheel.
-      # TODO: some remaining issues
-      #   - `which nvcc` finds nothing? (need to add to path?)
-      #     - nope, confirmed working at workflow level
-      #     - might still be unavailable lower down? seems unlikely
-      #     - still skipping GPU-based tests
-      #     - checks suggest CUDA is on the path...what now?
-      #     - might not be getting to CIBW
-      #     - tested CIBW_ENVIRONMENT: PATH=$PATH, no visible change
-      #     - new test: `which nvcc` in CIBW (FAILED)
-      #     - hardcoded PATH generates absurd errors?
-      #       - but the first wheel-build works.
-      #       - reran with fixes and the result wheel didn't have GPU
-      #     - CIBW_ENVIRONMENT_PASS_LINUX: env vars might not be going through?
-      #       - failed
-      #     - CUDA install script in CIBW_BEFORE_ALL_LINUX
-      #       - tries and fails to reboot
-      #       - might be related to "drivers req'd outside container" issue
-      #       - attempt fix w/pre-installed dependencies
-      #       - no luck, but might require separate out-of-container install?
-      #       - failed again, trying OOC install + no pre-install <==========
-      #   - testing GPU on non-GPU machine will fail
       - name: cuda-toolkit
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         uses: Jimver/cuda-toolkit@v0.2.5
-
-      # - name: First check
-      #   if: ${{ matrix.os == 'ubuntu-20.04' }}
-      #   run: echo "Cuda install location ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-
-      # - name: Second check
-      #   if: ${{ matrix.os == 'ubuntu-20.04' }}
-      #   run: echo $PATH
 
       - name: Install cibuildwheel and twine
         run: python -m pip install cibuildwheel==1.11.0
