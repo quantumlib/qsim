@@ -22,9 +22,11 @@
 #include <malloc.h>
 #endif
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <random>
 
@@ -324,7 +326,7 @@ class MPSStateSpace {
       // Merge top into partial_contract2.
       new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), bond_dim,
                                 2 * bond_dim);
-      // [bd, bd] = [2bd, bd] @ [bd, 2bd]
+      // [bd, bd] = [bd, 2bd] @ [bd, 2bd]
       partial_contract.noalias() = top * partial_contract2.adjoint();
     }
 
@@ -377,46 +379,165 @@ class MPSStateSpace {
   // as working space.
   static void SampleOnce(MPS& state, MPS& scratch, MPS& scratch2,
                          std::mt19937* random_gen, std::vector<bool>* sample) {
+    // TODO: carefully profile with perf and optimize temp storage
+    //  locations for cache friendliness.
     const auto bond_dim = state.bond_dim();
     const auto num_qubits = state.num_qubits();
+    const auto end = Size(state);
+    const auto left_frontier_offset = GetBlockOffset(state, num_qubits + 1);
     std::default_random_engine generator;
+    fp_type* state_raw = state.get();
     fp_type* scratch_raw = scratch.get();
+    fp_type* scratch2_raw = scratch2.get();
     fp_type rdm[8];
 
     sample->reserve(num_qubits);
     Copy(state, scratch);
     Copy(state, scratch2);
 
-    // Sample left block.
-    ReduceDensityMatrix(scratch, scratch2, 0, rdm);
+    // Store prefix contractions in scratch2.
+    auto offset = GetBlockOffset(state, num_qubits - 1);
+    ConstMatrixMap top((Complex*)(state_raw + offset), bond_dim, 2);
+    ConstMatrixMap bot((Complex*)(scratch_raw + offset), bond_dim, 2);
+    MatrixMap partial_contract((Complex*)(scratch2_raw + offset), bond_dim,
+                               bond_dim);
+    MatrixMap partial_contract2((Complex*)(scratch_raw + end), bond_dim,
+                                2 * bond_dim);
+    partial_contract.noalias() = top * bot.adjoint();
+
+    for (unsigned i = num_qubits - 2; i > 0; --i) {
+      offset = GetBlockOffset(state, i);
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(scratch_raw + end), 2 * bond_dim, bond_dim);
+
+      // Merge bot into left boundary merged tensor.
+      new (&bot) ConstMatrixMap((Complex*)(scratch_raw + offset), 2 * bond_dim,
+                                bond_dim);
+      partial_contract2.noalias() = bot * partial_contract.adjoint();
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(scratch_raw + end), bond_dim, 2 * bond_dim);
+
+      // Merge top into partial_contract2.
+      new (&top) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
+                                2 * bond_dim);
+
+      // merge into partial_contract -> scracth2_raw.
+      new (&partial_contract)
+          MatrixMap((Complex*)(scratch2_raw + offset), bond_dim, bond_dim);
+      partial_contract.noalias() = top * partial_contract2.adjoint();
+    }
+
+    // Compute RDM-0 and draw first sample.
+    offset = GetBlockOffset(state, 1);
+    new (&top) ConstMatrixMap((Complex*)state_raw, 2, bond_dim);
+    new (&bot) ConstMatrixMap((Complex*)scratch_raw, 2, bond_dim);
+    new (&partial_contract)
+        MatrixMap((Complex*)(scratch2_raw + offset), bond_dim, bond_dim);
+    new (&partial_contract2)
+        MatrixMap((Complex*)(scratch_raw + end), 2, bond_dim);
+
+    partial_contract2.noalias() = bot * partial_contract.adjoint();
+
+    new (&partial_contract) MatrixMap((Complex*)rdm, 2, 2);
+    partial_contract.noalias() = top * partial_contract2.adjoint();
     auto p0 = rdm[0] / (rdm[0] + rdm[6]);
     std::bernoulli_distribution distribution(1 - p0);
     auto bit_val = distribution(*random_gen);
-
     sample->push_back(bit_val);
-    MatrixMap tensor_block((Complex*)scratch_raw, 2, bond_dim);
-    tensor_block.row(!bit_val).setZero();
-    tensor_block.imag() *= -1;
 
-    // Sample internal blocks.
+    // collapse state.
+    new (&partial_contract) MatrixMap((Complex*)scratch_raw, 2, bond_dim);
+    partial_contract.row(!bit_val).setZero();
+
+    // Prepare left contraction frontier.
+    new (&partial_contract2) MatrixMap(
+        (Complex*)(scratch2_raw + left_frontier_offset), bond_dim, bond_dim);
+    partial_contract2.noalias() =
+        partial_contract.transpose() * partial_contract.conjugate();
+
+    // Compute RDM-i and draw internal tensor samples.
     for (unsigned i = 1; i < num_qubits - 1; i++) {
-      ReduceDensityMatrix(scratch, scratch2, i, rdm);
+      // Get leftmost [bd, bd] contraction and contract with top.
+      offset = GetBlockOffset(state, i);
+      new (&partial_contract) MatrixMap(
+          (Complex*)(scratch2_raw + left_frontier_offset), bond_dim, bond_dim);
+      new (&top) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
+                                2 * bond_dim);
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state_raw + end), bond_dim, 2 * bond_dim);
+      partial_contract2.noalias() = partial_contract * top.conjugate();
+
+      // Contract top again for correct shape.
+      MatrixMap partial_contract3((Complex*)(scratch_raw + end), 2 * bond_dim,
+                                  2 * bond_dim);
+      partial_contract3.noalias() = top.transpose() * partial_contract2;
+
+      // Conduct final tensor contraction operations. Cannot be easily compiled
+      // to matmul. Perf reports shows only ~6% of runtime spent here on large
+      // systems.
+      offset = GetBlockOffset(state, i + 1);
+      const Eigen::TensorMap<const Eigen::Tensor<Complex, 4, Eigen::RowMajor>>
+          t_4d((Complex*)(scratch_raw + end), 2, bond_dim, 2, bond_dim);
+      const Eigen::TensorMap<const Eigen::Tensor<Complex, 2, Eigen::RowMajor>>
+          t_2d((Complex*)(scratch2_raw + offset), bond_dim, bond_dim);
+
+      const Eigen::array<Eigen::IndexPair<int>, 2> product_dims = {
+          Eigen::IndexPair<int>(1, 0),
+          Eigen::IndexPair<int>(3, 1),
+      };
+      Eigen::TensorMap<Eigen::Tensor<Complex, 2, Eigen::RowMajor>> out(
+          (Complex*)rdm, 2, 2);
+      out = t_4d.contract(t_2d, product_dims);
+
+      // Sample bit and collapse state.
       p0 = rdm[0] / (rdm[0] + rdm[6]);
       distribution = std::bernoulli_distribution(1 - p0);
       bit_val = distribution(*random_gen);
 
       sample->push_back(bit_val);
-      const auto mem_start = GetBlockOffset(scratch, i);
-      new (&tensor_block) MatrixMap((Complex*)(scratch_raw + mem_start),
-                                    bond_dim * 2, bond_dim);
+      offset = GetBlockOffset(state, i);
+      new (&partial_contract)
+          MatrixMap((Complex*)(scratch_raw + offset), bond_dim * 2, bond_dim);
       for (unsigned j = !bit_val; j < 2 * bond_dim; j += 2) {
-        tensor_block.row(j).setZero();
+        partial_contract.row(j).setZero();
       }
-      tensor_block.imag() *= -1;
+
+      // Update left frontier.
+      new (&partial_contract) MatrixMap(
+          (Complex*)(scratch2_raw + left_frontier_offset), bond_dim, bond_dim);
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state_raw + end), bond_dim, 2 * bond_dim);
+
+      // Merge bot into left boundary merged tensor.
+      new (&bot) ConstMatrixMap((Complex*)(scratch_raw + offset), bond_dim,
+                                2 * bond_dim);
+      partial_contract2.noalias() = partial_contract * bot.conjugate();
+
+      // reshape:
+      new (&partial_contract2)
+          MatrixMap((Complex*)(state_raw + end), 2 * bond_dim, bond_dim);
+
+      // Merge top into partial_contract2.
+      new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), 2 * bond_dim,
+                                bond_dim);
+      partial_contract.noalias() = top.transpose() * partial_contract2;
     }
 
-    // Sample right block.
-    ReduceDensityMatrix(scratch, scratch2, num_qubits - 1, rdm);
+    // Compute RDM-(n-1) and sample.
+    offset = GetBlockOffset(state, num_qubits - 1);
+    new (&partial_contract2)
+        MatrixMap((Complex*)(state_raw + end), bond_dim, 2);
+
+    new (&top) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim, 2);
+    partial_contract2.noalias() = partial_contract * top.conjugate();
+    new (&partial_contract) MatrixMap((Complex*)rdm, 2, 2);
+    partial_contract.noalias() = top.transpose() * partial_contract2;
+
     p0 = rdm[0] / (rdm[0] + rdm[6]);
     distribution = std::bernoulli_distribution(1 - p0);
     bit_val = distribution(*random_gen);
