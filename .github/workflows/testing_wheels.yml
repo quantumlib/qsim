@@ -44,8 +44,7 @@ jobs:
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh && echo $PATH"
       # overwriting PATH is breaking Python - need to add to PATH somehow?
-      # CIBW_ENVIRONMENT_LINUX: PATH=/usr/local/cuda-11/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
-      # TEST: pass in PATH without changing it
+      CIBW_ENVIRONMENT_LINUX: PATH=$PATH:/usr/local/cuda-11/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11/lib64
       CIBW_ENVIRONMENT_PASS_LINUX: PATH
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       # *cuda.so was not built, suspect `which nvcc` is null
