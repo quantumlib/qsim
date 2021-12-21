@@ -7,9 +7,10 @@ yum clean all
 yum install -y kernel
 yum install -y kernel-devel-${kernel_version} kernel-headers-${kernel_version} pciutils
 
-# install CUDA toolkit
+# install python and CUDA toolkit
 
 yum install -y yum-utils epel-release
+yum install -y python3-devel.x86_64
 yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
 yum clean all
 yum -y install nvidia-driver-latest-dkms cuda
