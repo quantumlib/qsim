@@ -42,7 +42,9 @@ jobs:
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh && echo $PATH"
-      CIBW_ENVIRONMENT_LINUX: PATH=$PATH:/usr/local/cuda-11/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11/lib64
+      # Testing: wrong immintrin headers may be due to PATH priority order.
+      # Switched new CUDA paths to front in attempt to fix.
+      CIBW_ENVIRONMENT_LINUX: PATH=/usr/local/cuda-11/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
       CIBW_ENVIRONMENT_PASS_LINUX: PATH LD_LIBRARY_PATH
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
