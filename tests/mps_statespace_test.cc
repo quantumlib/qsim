@@ -900,6 +900,220 @@ TEST(MPSStateSpaceTest, ReduceDensityMatrixLarge){
 
 }
 
+TEST(MPSStateSpaceTest, SampleOnceSimple){
+  auto ss = MPSStateSpace<For, float>(1);
+  auto mps = ss.Create(3, 4);
+  auto scratch = ss.Create(3, 4);
+  auto scratch2 = ss.Create(3, 4);
+  std::mt19937 rand_source(1234);
+  std::vector<bool> results;
+
+  // Set to |100>.
+  results.clear();
+  ss.SetStateZero(mps);
+  mps.get()[0] = 0;
+  mps.get()[8] = 1;
+  ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
+  EXPECT_EQ(results[0], 1);
+  EXPECT_EQ(results[1], 0);
+  EXPECT_EQ(results[2], 0);
+
+  // Set to |010>.
+  results.clear();
+  ss.SetStateZero(mps);
+  mps.get()[16] = 0;
+  mps.get()[24] = 1;
+  ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
+  EXPECT_EQ(results[0], 0);
+  EXPECT_EQ(results[1], 1);
+  EXPECT_EQ(results[2], 0);
+
+  // Set to |001>.
+  results.clear();
+  ss.SetStateZero(mps);
+  mps.get()[80] = 0;
+  mps.get()[82] = 1;
+  ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
+  EXPECT_EQ(results[0], 0);
+  EXPECT_EQ(results[1], 0);
+  EXPECT_EQ(results[2], 1);
+
+  // Set to |101>.
+  results.clear();
+  ss.SetStateZero(mps);
+  mps.get()[0] = 0;
+  mps.get()[8] = 1;
+  mps.get()[80] = 0;
+  mps.get()[82] = 1;
+  ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
+  EXPECT_EQ(results[0], 1);
+  EXPECT_EQ(results[1], 0);
+  EXPECT_EQ(results[2], 1);
+}
+
+TEST(MPSStateSpaceTest, SampleGHZ){
+  const int num_samples = 10000;
+  auto ss = MPSStateSpace<For, float>(1);
+  auto mps = ss.Create(3, 4);
+  auto scratch = ss.Create(3, 4);
+  auto scratch2 = ss.Create(3, 4);
+  std::vector<std::vector<bool>> results(
+    num_samples, std::vector<bool>({}));
+
+  memset(mps.get(), 0, ss.RawSize(mps));
+  mps.get()[0] = 1;
+  mps.get()[10] = 1;
+  mps.get()[16] = 1;
+  mps.get()[42] = -1;
+  mps.get()[80] = 0.70710677;
+  mps.get()[86] = -0.70710677;
+
+  float count = 0;
+  ss.Sample(mps, scratch, scratch2, num_samples, 1234, &results);
+  for(int i = 0 ; i < num_samples; i++){
+    bool all_same = 1;
+    all_same &= results[i][0] == results[i][1];
+    all_same &= results[i][1] == results[i][2];
+    EXPECT_EQ(all_same, 1);
+    count += results[i][0];
+    EXPECT_EQ(results[i].size(), 3);
+  }
+  EXPECT_NEAR(count / float(num_samples), 0.5, 1e-2);
+}
+
+TEST(MPSStateSpaceTest, SampleComplex){
+  const int num_samples = 10000;
+  auto ss = MPSStateSpace<For, float>(1);
+  auto mps = ss.Create(4, 4);
+  auto scratch = ss.Create(4, 4);
+  auto scratch2 = ss.Create(4, 4);
+  std::vector<std::vector<bool>> results(
+    num_samples, std::vector<bool>({}));
+
+  memset(mps.get(), 0, ss.RawSize(mps));
+  mps.get()[ 0 ] = -0.4917038696869799 ;
+  mps.get()[ 1 ] = 0.016731957658280873 ;
+  mps.get()[ 2 ] = 0.86132663373237 ;
+  mps.get()[ 3 ] = 0.12674293823327035 ;
+  mps.get()[ 8 ] = -0.5023020703950029 ;
+  mps.get()[ 9 ] = -0.711083648814302 ;
+  mps.get()[ 10 ] = -0.20727818303023368 ;
+  mps.get()[ 11 ] = -0.4461932766843352 ;
+  mps.get()[ 16 ] = 0.15655121570640956 ;
+  mps.get()[ 17 ] = 0.4732738079187066 ;
+  mps.get()[ 18 ] = -0.08511634068671248 ;
+  mps.get()[ 19 ] = 0.4509108800471812 ;
+  mps.get()[ 20 ] = 0.3399824326377983 ;
+  mps.get()[ 21 ] = 0.26456637633430585 ;
+  mps.get()[ 22 ] = 0.5923848721836553 ;
+  mps.get()[ 23 ] = -0.06659540240231236 ;
+  mps.get()[ 24 ] = 0.3386920440520109 ;
+  mps.get()[ 25 ] = -0.5078386788732782 ;
+  mps.get()[ 26 ] = -0.5938438138167242 ;
+  mps.get()[ 27 ] = -0.2253530600030204 ;
+  mps.get()[ 28 ] = -0.08439705180650249 ;
+  mps.get()[ 29 ] = 0.18289872169116567 ;
+  mps.get()[ 30 ] = 0.33989833066754255 ;
+  mps.get()[ 31 ] = -0.2604753706869852 ;
+  mps.get()[ 32 ] = 0.3013840839514031 ;
+  mps.get()[ 33 ] = -0.10757629710841352 ;
+  mps.get()[ 34 ] = -0.043855659850960294 ;
+  mps.get()[ 35 ] = -0.0999497956398576 ;
+  mps.get()[ 36 ] = 0.6336147397284169 ;
+  mps.get()[ 37 ] = 0.43658807519265264 ;
+  mps.get()[ 38 ] = -0.448346536528476 ;
+  mps.get()[ 39 ] = 0.30428652791930944 ;
+  mps.get()[ 40 ] = 0.2954131683108271 ;
+  mps.get()[ 41 ] = -0.4349910681437736 ;
+  mps.get()[ 42 ] = 0.35640542464599323 ;
+  mps.get()[ 43 ] = 0.4970533197510696 ;
+  mps.get()[ 44 ] = -0.37101487814696105 ;
+  mps.get()[ 45 ] = 0.2100308254832807 ;
+  mps.get()[ 46 ] = 0.10591704897593116 ;
+  mps.get()[ 47 ] = 0.3955295090226334 ;
+  mps.get()[ 80 ] = -0.24953341864058454 ;
+  mps.get()[ 81 ] = 0.0 ;
+  mps.get()[ 82 ] = -0.5480093086703182 ;
+  mps.get()[ 83 ] = -0.20497358945530025 ;
+  mps.get()[ 84 ] = -1.1887516198406813e-16 ;
+  mps.get()[ 85 ] = 3.714848812002129e-18 ;
+  mps.get()[ 88 ] = 0.6045663379213811 ;
+  mps.get()[ 89 ] = -0.3501271865840065 ;
+  mps.get()[ 90 ] = -0.29968140886676936 ;
+  mps.get()[ 91 ] = 0.40493683779718603 ;
+  mps.get()[ 96 ] = 0.3073334814703704 ;
+  mps.get()[ 97 ] = 0.0 ;
+  mps.get()[ 98 ] = 0.07297353820052123 ;
+  mps.get()[ 99 ] = -0.2859132301813451 ;
+  mps.get()[ 100 ] = -1.7214471606144266e-16 ;
+  mps.get()[ 101 ] = 5.379522376920083e-18 ;
+  mps.get()[ 104 ] = -0.18689238699414557 ;
+  mps.get()[ 105 ] = -0.4911602105890581 ;
+  mps.get()[ 106 ] = -0.30326863844349566 ;
+  mps.get()[ 107 ] = -0.22667282775953723 ;
+  mps.get()[ 112 ] = -0.10881711525857803 ;
+  mps.get()[ 113 ] = 0.0 ;
+  mps.get()[ 114 ] = -0.146152770590198 ;
+  mps.get()[ 115 ] = 0.2149415742117364 ;
+  mps.get()[ 116 ] = -4.72314539505504e-16 ;
+  mps.get()[ 117 ] = 1.1519866817207415e-17 ;
+  mps.get()[ 120 ] = -0.01567698028444534 ;
+  mps.get()[ 121 ] = 0.013440646849502781 ;
+  mps.get()[ 122 ] = -0.17367051562799563 ;
+  mps.get()[ 123 ] = -0.24954843447516284 ;
+  mps.get()[ 128 ] = 0.24030153622040965 ;
+  mps.get()[ 129 ] = 0.0 ;
+  mps.get()[ 130 ] = -0.08309837568058188 ;
+  mps.get()[ 131 ] = 0.07924116582885271 ;
+  mps.get()[ 132 ] = -7.075275311738327e-17 ;
+  mps.get()[ 133 ] = 3.930708506521293e-18 ;
+  mps.get()[ 136 ] = 0.0725269370009367 ;
+  mps.get()[ 137 ] = 0.06123701427497634 ;
+  mps.get()[ 138 ] = -0.006630682493419155 ;
+  mps.get()[ 139 ] = 0.015491880670142021 ;
+  mps.get()[ 144 ] = -0.021403127627426542 ;
+  mps.get()[ 145 ] = 0.04422341855596844 ;
+  mps.get()[ 146 ] = 0.27602112861704176 ;
+  mps.get()[ 147 ] = 0.7790060986745896 ;
+  mps.get()[ 148 ] = 0.25252680029727903 ;
+  mps.get()[ 149 ] = 0.49967041792054084 ;
+  mps.get()[ 150 ] = -0.031679241045523554 ;
+  mps.get()[ 151 ] = -0.010202895067710558 ;
+
+  ss.Sample(mps, scratch, scratch2, num_samples, 12345, &results);
+  std::vector<float> expected({
+    0.036801,
+    0.040697,
+    0.002013,
+    0.064595,
+    0.014892,
+    0.082028,
+    0.008521,
+    0.168310,
+    0.022078,
+    0.005907,
+    0.024806,
+    0.189074,
+    0.090056,
+    0.023125,
+    0.116683,
+    0.110406
+  });
+  std::vector<float> hist(16, 0);
+  for(int i =0;i<num_samples;i++){
+    int index = 0;
+    index += 8 * results[i][0];
+    index += 4 * results[i][1];
+    index += 2 * results[i][2];
+    index += 1 * results[i][3];
+    hist[index] += 1;
+  }
+  for(int i =0;i<16;i++){
+    EXPECT_NEAR(hist[i] / float(num_samples), expected[i], 1e-2);
+  }
+
+}
+
 }  // namespace
 }  // namespace mps
 }  // namespace qsim
