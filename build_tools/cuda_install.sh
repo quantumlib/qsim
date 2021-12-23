@@ -8,6 +8,7 @@ yum install -y kernel
 yum install -y kernel-devel-${kernel_version} kernel-headers-${kernel_version} pciutils
 
 # install python and CUDA toolkit
+# TODO: need to pin version
 
 yum install -y yum-utils epel-release
 yum install -y python3-devel.x86_64
