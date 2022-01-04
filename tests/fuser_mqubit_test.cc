@@ -982,6 +982,41 @@ TEST(FuserMultiQubitTest, InvalidTimeOrder) {
   }
 }
 
+TEST(FuserMultiQubitTest, QubitsOutOfRange) {
+  using Fuser = MultiQubitGateFuser<IO, DummyGate>;
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  {
+    unsigned num_qubits = 3;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 3}),
+      CreateDummyGate(0, {1, 2}),
+    };
+
+    param.max_fused_size = 2;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 3;
+    std::vector<DummyGate> circuit = {
+      CreateDummyGate(0, {0, 1}),
+      CreateDummyControlledGate(0, {2}, {3}),
+    };
+
+    param.max_fused_size = 2;
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+}
+
 TEST(FuserMultiQubitTest, OrphanedGates) {
   using Fuser = MultiQubitGateFuser<IO, DummyGate>;
 
