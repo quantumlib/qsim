@@ -1055,24 +1055,26 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
                            const GatesLat& gates_lat) {
     for (unsigned q : gate.qubits) {
       if (q >= max_qubit1) {
-        IO::errorf("gate qubits are out of range.\n");
+        IO::errorf("fuser: gate qubit %u is out of range "
+                   "(should be smaller than %u).\n", q, max_qubit1);
         return false;
       }
       if (gates_lat[q] != nullptr
           && gate.time <= gates_lat[q]->val->parent->time) {
-        IO::errorf("gate is out of time order.\n");
+        IO::errorf("fuser: gate at time %u is out of time order.\n", gate.time);
         return false;
       }
     }
 
     for (unsigned q : gate.controlled_by) {
       if (q >= max_qubit1) {
-        IO::errorf("gate qubits are out of range.\n");
+        IO::errorf("fuser: gate qubit %u is out of range "
+                   "(should be smaller than %u).\n", q, max_qubit1);
         return false;
       }
       if (gates_lat[q] != nullptr
           && gate.time <= gates_lat[q]->val->parent->time) {
-        IO::errorf("gate is out of time order.\n");
+        IO::errorf("fuser: gate at time %u is out of time order.\n", gate.time);
         return false;
       }
     }
