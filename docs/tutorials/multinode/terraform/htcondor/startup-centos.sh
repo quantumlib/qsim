@@ -101,8 +101,8 @@ eval $CONDOR_STARTUP_CMD
 ##############################################################
 # Install and configure logging agent for StackDriver
 ##############################################################
-curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
-bash install-logging-agent.sh
+curl -sSO https://dl.google.com/cloudagents/add-logging-agent-repo.sh
+bash add-logging-agent-repo.sh --also-install
 
 # Install Custom Metric Plugin:
 google-fluentd-gem install fluent-plugin-stackdriver-monitoring

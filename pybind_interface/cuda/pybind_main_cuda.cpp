@@ -41,6 +41,9 @@ namespace qsim {
     StateSpace::Parameter ss_params;
     Simulator::Parameter sim_params;
   };
+
+  inline void SetFlushToZeroAndDenormalsAreZeros() {}
+  inline void ClearFlushToZeroAndDenormalsAreZeros() {}
 }
 
 #include "../pybind_main.cpp"

@@ -53,6 +53,9 @@ struct Factory {
   custatevecHandle_t custatevec_handle;
 };
 
+inline void SetFlushToZeroAndDenormalsAreZeros() {}
+inline void ClearFlushToZeroAndDenormalsAreZeros() {}
+
 }
 
 #include "../pybind_main.cpp"
