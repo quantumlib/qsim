@@ -42,15 +42,14 @@ jobs:
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_ALL_LINUX: "bash build_tools/cuda_install.sh && echo $PATH"
-      # Testing: wrong immintrin headers may be due to PATH priority order.
-      # Switched new CUDA paths to front in attempt to fix.
       CIBW_ENVIRONMENT_LINUX: PATH=/usr/local/cuda-11/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:$LD_LIBRARY_PATH
       CIBW_ENVIRONMENT_PASS_LINUX: PATH LD_LIBRARY_PATH
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
-      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+      # prevent GPU tests (no GPU on GHA runners)
+      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py -k 'not gpu' && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2
 
@@ -66,10 +65,6 @@ jobs:
 
       - name: Install cibuildwheel and twine
         run: python -m pip install cibuildwheel==1.11.0
-
-      # temporary
-      # - name: Run C++ tests
-      #   run: bash build_tools/test_libs.sh
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
