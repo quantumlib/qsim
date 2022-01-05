@@ -30,6 +30,7 @@
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
+#include "../lib/util_cpu.h"
 
 constexpr char usage[] = "usage:\n  ./qsim_amplitudes -c circuit_file "
                          "-d times_to_save_results -i input_files "

@@ -30,6 +30,7 @@
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
+#include "../lib/util_cpu.h"
 
 constexpr char usage[] = "usage:\n  ./qsimh_amplitudes -c circuit_file "
                          "-d maxtime -k part1_qubits "

@@ -15,10 +15,6 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
-#ifdef __SSE__
-# include <immintrin.h>
-#endif
-
 #include <algorithm>
 #include <chrono>
 #include <random>
@@ -86,23 +82,6 @@ inline std::vector<DistrRealType> GenerateRandomValues(
   rs.emplace_back(max_value);
 
   return rs;
-}
-
-// This function sets flush-to-zero and denormals-are-zeros MXCSR control
-// flags. This prevents rare cases of performance slowdown potentially at
-// the cost of a tiny precision loss.
-inline void SetFlushToZeroAndDenormalsAreZeros() {
-#ifdef __SSE2__
-  _mm_setcsr(_mm_getcsr() | 0x8040);
-#endif
-}
-
-// This function clears flush-to-zero and denormals-are-zeros MXCSR control
-// flags.
-inline void ClearFlushToZeroAndDenormalsAreZeros() {
-#ifdef __SSE2__
-  _mm_setcsr(_mm_getcsr() & ~unsigned{0x8040});
-#endif
 }
 
 }  // namespace qsim
