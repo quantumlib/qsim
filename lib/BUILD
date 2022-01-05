@@ -61,6 +61,7 @@ cc_library(
         "unitary_calculator_basic.h",
         "unitary_calculator_sse.h",
         "util.h",
+        "util_cpu.h",
         "vectorspace.h",
     ],
 )
@@ -123,6 +124,7 @@ cc_library(
         "unitary_calculator_basic.h",
         "unitary_calculator_sse.h",
         "util.h",
+        "util_cpu.h",
         "util_cuda.h",
         "vectorspace.h",
         "vectorspace_cuda.h",
@@ -170,6 +172,7 @@ cc_library(
         "unitary_calculator_basic.h",
         "unitary_calculator_sse.h",
         "util.h",
+        "util_cpu.h",
         "vectorspace.h",
     ],
 )
@@ -208,6 +211,7 @@ cc_library(
         "statespace_basic.h",
         "statespace_sse.h",
         "util.h",
+        "util_cpu.h",
         "vectorspace.h",
     ],
 )
@@ -236,6 +240,11 @@ cc_library(
 cc_library(
     name = "util",
     hdrs = ["util.h"],
+)
+
+cc_library(
+    name = "util_cpu",
+    hdrs = ["util_cpu.h"],
 )
 
 # cuda_library

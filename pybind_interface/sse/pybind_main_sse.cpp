@@ -16,6 +16,7 @@
 
 #include "../../lib/formux.h"
 #include "../../lib/simulator_sse.h"
+#include "../../lib/util_cpu.h"
 
 namespace qsim {
   template <typename For>

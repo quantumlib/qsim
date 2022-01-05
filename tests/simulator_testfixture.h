@@ -27,7 +27,7 @@
 #include "../lib/gate_appl.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
-#include "../lib/util.h"
+#include "../lib/util_cpu.h"
 
 namespace qsim {
 
