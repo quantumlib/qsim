@@ -49,7 +49,7 @@ jobs:
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
       # prevent GPU tests (no GPU on GHA runners)
-      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py -k 'not gpu' && mv /tmp/qsimcirq {package}"
+      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py -k \"not gpu\" && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2
 
