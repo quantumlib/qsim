@@ -279,7 +279,7 @@ class QuantumTrajectorySimulator {
 
       NormalizeState(!unitary, state_space, unitary, state);
 
-      if (state_space.IsNull(scratch)) {
+      if (state_space.IsNull(scratch) || scratch.num_qubits() < num_qubits) {
         scratch = CreateState(num_qubits, state_space);
         if (state_space.IsNull(scratch)) {
           return false;

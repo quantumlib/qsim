@@ -692,9 +692,11 @@ class SimulatorHelper {
       if (opsum_qubits <= 6) {
         results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
       } else {
-        Fuser::Parameter param;
-        results.push_back(ExpectationValue<Fuser>(
-            param, opsum, state_space, simulator, state, scratch));
+        Fuser::Parameter params;
+        params.max_fused_size = max_fused_size;
+        params.verbosity = verbosity;
+        results.push_back(ExpectationValue<IO, Fuser>(
+            params, opsum, state_space, simulator, state, scratch));
       }
     }
     return results;

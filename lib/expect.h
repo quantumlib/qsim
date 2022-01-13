@@ -42,18 +42,27 @@ struct OpString {
  * @param ket Temporary state vector.
  * @return The computed expectation value.
  */
-template <typename Fuser, typename Simulator, typename Gate>
+template <typename IO, typename Fuser, typename Gate, typename Simulator>
 std::complex<double> ExpectationValue(
     const typename Fuser::Parameter& param,
     const std::vector<OpString<Gate>>& strings,
-    const typename Simulator::StateSpace& ss, const Simulator& simulator,
-    const typename Simulator::State& state, typename Simulator::State& ket) {
+    const typename Simulator::StateSpace& state_space,
+    const Simulator& simulator, const typename Simulator::State& state,
+    typename Simulator::State& ket) {
   std::complex<double> eval = 0;
+
+  if (state_space.IsNull(ket) || ket.num_qubits() < state.num_qubits()) {
+    ket = state_space.Create(state.num_qubits());
+    if (state_space.IsNull(ket)) {
+      IO::errorf("not enough memory: is the number of qubits too large?\n");
+      return eval;
+    }
+  }
 
   for (const auto& str : strings) {
     if (str.ops.size() == 0) continue;
 
-    ss.Copy(state, ket);
+    state_space.Copy(state, ket);
 
     if (str.ops.size() == 1) {
       const auto& op = str.ops[0];
@@ -70,7 +79,7 @@ std::complex<double> ExpectationValue(
       }
     }
 
-    eval += str.weight * ss.InnerProduct(state, ket);
+    eval += str.weight * state_space.InnerProduct(state, ket);
   }
 
   return eval;
@@ -88,7 +97,7 @@ std::complex<double> ExpectationValue(
  * @param state The state of the system.
  * @return The computed expectation value.
  */
-template <typename IO, typename Fuser, typename Simulator, typename Gate>
+template <typename IO, typename Fuser, typename Gate, typename Simulator>
 std::complex<double> ExpectationValue(
     const std::vector<OpString<Gate>>& strings,
     const Simulator& simulator, const typename Simulator::State& state) {
