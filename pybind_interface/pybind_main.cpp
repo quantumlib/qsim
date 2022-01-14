@@ -559,6 +559,71 @@ class SimulatorHelper {
     return results;
   }
 
+  template <typename StateType>
+  static std::vector<std::vector<std::complex<double>>>
+  simulate_moment_expectation_values(
+      const py::dict &options,
+      const std::vector<std::tuple<uint64_t, std::vector<
+        std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+      >>>& opsums_and_qubit_counts,
+      bool is_noisy, const StateType& input_state) {
+    auto helper = SimulatorHelper(options, is_noisy);
+    if (!helper.is_valid) {
+      return {};
+    }
+    std::vector<std::vector<std::complex<double>>> results(
+      opsums_and_qubit_counts.size()
+    );
+    if (!is_noisy) {
+      // Init outside of simulation to enable stepping.
+      helper.init_state(input_state);
+      uint64_t begin = 0;
+      for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
+        auto& pair = opsums_and_qubit_counts[i];
+        uint64_t end = std::get<0>(pair);
+        auto& counts = std::get<1>(pair);
+        if (!helper.simulate_subcircuit(begin, end)) {
+          return {};
+        }
+        results[i] = helper.get_expectation_value(counts);
+        begin = end;
+      }
+      return results;
+    }
+
+    // Aggregate expectation values for noisy circuits.
+    // TODO: split over steps
+    for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
+      auto& counts = std::get<1>(opsums_and_qubit_counts[i]);
+      results[i] = std::vector<std::complex<double>>(counts.size(), 0);
+    }
+    for (unsigned rep = 0; rep < helper.noisy_reps; ++rep) {
+      // Init outside of simulation to enable stepping.
+      helper.init_state(input_state);
+      uint64_t begin = 0;
+      for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
+        auto& pair = opsums_and_qubit_counts[i];
+        uint64_t end = std::get<0>(pair);
+        auto& counts = std::get<1>(pair);
+        if (!helper.simulate_subcircuit(begin, end)) {
+          return {};
+        }
+        auto evs = helper.get_expectation_value(counts);
+        for (unsigned j = 0; j < evs.size(); ++j) {
+          results[i][j] += evs[j];
+        }
+        begin = end;
+      }
+    }
+    double inverse_num_reps = 1.0 / helper.noisy_reps;
+    for (unsigned i = 0; i < results.size(); ++i) {
+      for (unsigned j = 0; j < results[i].size(); ++j) {
+        results[i][j] *= inverse_num_reps;
+      }
+    }
+    return results;
+  }
+
  private:
   SimulatorHelper(const py::dict &options, bool noisy)
       : factory(Factory(1, 1, 1)),
@@ -653,6 +718,37 @@ class SimulatorHelper {
                                     simulator, scratch, state, stat);
     } else {
       result = Runner::Run(get_params(), factory, circuit, state);
+    }
+    seed += 1;
+    return result;
+  }
+
+  bool simulate_subcircuit(uint64_t begin, uint64_t end) {
+    bool result = false;
+
+    if (is_noisy) {
+      std::vector<uint64_t> stat;
+      auto params = get_noisy_params();
+      NoisyCircuit<Gate> subncircuit;
+      subncircuit.num_qubits = ncircuit.num_qubits;
+      subncircuit.channels = std::vector<Channel<Gate>>(
+        ncircuit.channels.begin() + begin,
+        ncircuit.channels.begin() + end
+      );
+
+      Simulator simulator = factory.CreateSimulator();
+      StateSpace state_space = factory.CreateStateSpace();
+
+      result = NoisyRunner::RunOnce(params, subncircuit, seed, state_space,
+                                    simulator, scratch, state, stat);
+    } else {
+      Circuit<Gate> subcircuit;
+      subcircuit.num_qubits = circuit.num_qubits;
+      subcircuit.gates = std::vector<Gate>(
+        circuit.gates.begin() + begin,
+        circuit.gates.begin() + end
+      );
+      result = Runner::Run(get_params(), factory, subcircuit, state);
     }
     seed += 1;
     return result;
@@ -770,6 +866,28 @@ std::vector<std::complex<double>> qsim_simulate_expectation_values(
     options, opsums_and_qubit_counts, false, input_vector);
 }
 
+std::vector<std::vector<std::complex<double>>>
+qsim_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    uint64_t input_state) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, false, input_state);
+}
+
+std::vector<std::vector<std::complex<double>>>
+qsim_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, false, input_vector);
+}
+
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
@@ -787,6 +905,28 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
   return SimulatorHelper::simulate_expectation_values(
+    options, opsums_and_qubit_counts, true, input_vector);
+}
+
+std::vector<std::vector<std::complex<double>>>
+qtrajectory_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    uint64_t input_state) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, true, input_state);
+}
+
+std::vector<std::vector<std::complex<double>>>
+qtrajectory_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector) {
+  return SimulatorHelper::simulate_moment_expectation_values(
     options, opsums_and_qubit_counts, true, input_vector);
 }
 

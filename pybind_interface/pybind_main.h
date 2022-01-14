@@ -116,6 +116,24 @@ std::vector<std::complex<double>> qsim_simulate_expectation_values(
                               qsim::Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector);
+std::vector<std::vector<std::complex<double>>>
+qsim_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<
+        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        unsigned
+    >>>>& opsums_and_qubit_counts,
+    uint64_t input_state);
+std::vector<std::vector<std::complex<double>>>
+qsim_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<
+        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        unsigned
+    >>>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector);
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
@@ -129,6 +147,24 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
                           std::vector<qsim::OpString<
                               qsim::Cirq::GateCirq<float>>>,
                           unsigned>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector);
+std::vector<std::vector<std::complex<double>>>
+qtrajectory_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<
+        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        unsigned
+    >>>>& opsums_and_qubit_counts,
+    uint64_t input_state);
+std::vector<std::vector<std::complex<double>>>
+qtrajectory_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<
+        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        unsigned
+    >>>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector);
 
 // Hybrid simulator.
@@ -186,6 +222,25 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
               &qsim_simulate_expectation_values),                                     \
             "Call the qsim simulator for expectation value simulation");              \
                                                                                       \
+      m.def("qsim_simulate_moment_expectation_values",                                \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                uint64_t)>(                                                           \
+              &qsim_simulate_moment_expectation_values),                              \
+            "Call the qsim simulator for step-by-step expectation value simulation"); \
+      m.def("qsim_simulate_moment_expectation_values",                                \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                const py::array_t<float>&)>(                                          \
+              &qsim_simulate_moment_expectation_values),                              \
+            "Call the qsim simulator for step-by-step expectation value simulation"); \
+                                                                                      \
       m.def("qtrajectory_simulate_expectation_values",                                \
             static_cast<std::vector<std::complex<double>>(*)(                         \
                 const py::dict&,                                                      \
@@ -201,9 +256,31 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
               &qtrajectory_simulate_expectation_values),                              \
             "Call the qtrajectory simulator for expectation value simulation");       \
                                                                                       \
+      m.def("qtrajectory_simulate_moment_expectation_values",                         \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                uint64_t)>(                                                           \
+              &qtrajectory_simulate_moment_expectation_values),                       \
+            "Call the qtrajectory simulator for step-by-step "                        \
+            "expectation value simulation");                                          \
+      m.def("qtrajectory_simulate_moment_expectation_values",                         \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                const py::array_t<float>&)>(                                          \
+              &qtrajectory_simulate_moment_expectation_values),                       \
+            "Call the qtrajectory simulator for step-by-step "                        \
+            "expectation value simulation");                                          \
+                                                                                      \
       /* Method for hybrid simulation */                                              \
       m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");           \
                                                                                       \
+      using KrausOperator = qsim::KrausOperator<GateCirq>;                            \
       using GateKind = qsim::Cirq::GateKind;                                          \
       using Circuit = qsim::Circuit<GateCirq>;                                        \
       using NoisyCircuit = qsim::NoisyCircuit<GateCirq>;                              \
@@ -222,6 +299,12 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
         .def(py::init<>())                                                            \
         .def_readwrite("weight", &OpString::weight)                                   \
         .def_readwrite("ops", &OpString::ops);                                        \
+                                                                                      \
+      py::class_<KrausOperator>(m, "KrausOperator")                                   \
+        .def(py::init<>());                                                           \
+                                                                                      \
+      py::class_<GateCirq>(m, "GateCirq")                                             \
+        .def(py::init<>());                                                           \
                                                                                       \
       py::enum_<GateKind>(m, "GateKind")                                              \
         .value("kI1", GateKind::kI1)                                                  \
@@ -346,6 +429,26 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
               &qsim_simulate_expectation_values),                                     \
             "Call the qsim simulator for expectation value simulation");              \
                                                                                       \
+      m.def("qsim_simulate_moment_expectation_values",                                \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                uint64_t)>(                                                           \
+              &qsim_simulate_moment_expectation_values),                              \
+            "Call the qsim simulator for step-by-step expectation value simulation"); \
+      m.def("qsim_simulate_moment_expectation_values",                                \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                const py::array_t<float>&)>(                                          \
+              &qsim_simulate_moment_expectation_values),                              \
+            "Call the qsim simulator for step-by-step expectation value simulation"); \
+                                                                                      \
+                                                                                      \
       m.def("qtrajectory_simulate_expectation_values",                                \
             static_cast<std::vector<std::complex<double>>(*)(                         \
                 const py::dict&,                                                      \
@@ -360,6 +463,27 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
                 const py::array_t<float>&)>(                                          \
               &qtrajectory_simulate_expectation_values),                              \
             "Call the qtrajectory simulator for expectation value simulation");       \
+                                                                                      \
+      m.def("qtrajectory_simulate_moment_expectation_values",                         \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                uint64_t)>(                                                           \
+              &qtrajectory_simulate_moment_expectation_values),                       \
+            "Call the qtrajectory simulator for step-by-step "                        \
+            "expectation value simulation");                                          \
+      m.def("qtrajectory_simulate_moment_expectation_values",                         \
+            static_cast<std::vector<std::vector<std::complex<double>>>(*)(            \
+                const py::dict&,                                                      \
+                const std::vector<std::tuple<uint64_t, std::vector<                   \
+                  std::tuple<std::vector<OpString>, unsigned>                         \
+                >>>&,                                                                 \
+                const py::array_t<float>&)>(                                          \
+              &qtrajectory_simulate_moment_expectation_values),                       \
+            "Call the qtrajectory simulator for step-by-step "                        \
+            "expectation value simulation");                                          \
                                                                                       \
       /* Method for hybrid simulation */                                              \
       m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");
