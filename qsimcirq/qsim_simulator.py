@@ -872,6 +872,8 @@ class QSimSimulator(
             corresponding to moment boundaries.
         """
         reindex = [0]
+        full_circuit = qsim.NoisyCircuit() if is_noisy else qsim.Circuit()
+        full_circuit.num_qubits = len(circuit.all_qubits())
         for moment in circuit:
             subc = self._translate_circuit(
                 qsimc.QSimCircuit(cirq.Circuit(moment)),
@@ -879,6 +881,9 @@ class QSimSimulator(
                 qubit_order,
             )
             reindex.append(len(subc.channels if is_noisy else subc.gates) + reindex[-1])
+            if is_noisy:
+                qsim.compose_noisy_circuits(full_circuit, subc)
+            else:
+                qsim.compose_circuits(full_circuit, subc)
 
-        full_circuit = self._translate_circuit(circuit, translator_fn_name, qubit_order)
         return full_circuit, reindex[1:]

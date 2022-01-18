@@ -488,7 +488,7 @@ def test_moment_expectation_values(mode: str):
         circuit, psum, params
     )
     # Omit noise trigger element
-    results = [r[0] for r in qsim_result][:20]
+    results = [r[0] for r in qsim_result][:steps]
     assert np.allclose(
         [result.real for result in results],
         [np.cos(np.pi * (i + 1) / 20) for i in range(steps)],

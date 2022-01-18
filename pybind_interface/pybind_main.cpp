@@ -273,6 +273,25 @@ void control_last_gate(const std::vector<unsigned>& qubits,
   MakeControlledGate(qubits, values, circuit->gates.back());
 }
 
+void compose_circuits(Circuit<Cirq::GateCirq<float>>* target,
+                      Circuit<Cirq::GateCirq<float>>* suffix) {
+  // Consumes 'suffix' and composes it onto the end of 'target'.
+  // After calling this method, 'suffix' should be discarded.
+  unsigned target_time = 0;
+  for (const auto& gate : target->gates) {
+    if (gate.time >= target_time) {
+      // Target duration is the max gate time, plus one.
+      target_time = gate.time + 1;
+    }
+  }
+  for (auto& gate : suffix->gates) {
+    gate.time += target_time;
+  }
+  target->gates.insert(target->gates.end(),
+                       std::make_move_iterator(suffix->gates.begin()),
+                       std::make_move_iterator(suffix->gates.end()));
+}
+
 template <typename Gate>
 Channel<Gate> create_single_gate_channel(Gate gate) {
   auto gate_kind = KrausOperator<Gate>::kNormal;
@@ -340,6 +359,33 @@ void add_channel(const unsigned time,
     });
   }
   ncircuit->channels.push_back(channel);
+}
+
+void compose_noisy_circuits(NoisyCircuit<Cirq::GateCirq<float>>* target,
+                            NoisyCircuit<Cirq::GateCirq<float>>* suffix) {
+  // Consumes 'suffix' and composes it onto the end of 'target'.
+  // After calling this method, 'suffix' should be discarded.
+  unsigned target_time = 0;
+  for (const auto& channel : target->channels) {
+    for (const auto& kraus_op : channel) {
+      for (const auto& op : kraus_op.ops) {
+        if (op.time >= target_time) {
+          // Target duration is the max gate time, plus one.
+          target_time = op.time + 1;
+        }
+      }
+    }
+  }
+  for (auto& channel : suffix->channels) {
+    for (auto& kraus_op : channel) {
+      for (auto& op : kraus_op.ops) {
+        op.time += target_time;
+      }
+    }
+  }
+  target->channels.insert(target->channels.end(),
+                          std::make_move_iterator(suffix->channels.begin()),
+                          std::make_move_iterator(suffix->channels.end()));
 }
 
 void add_gate_to_opstring(const Cirq::GateKind gate_kind,

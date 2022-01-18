@@ -47,6 +47,9 @@ void control_last_gate(const std::vector<unsigned>& qubits,
                        const std::vector<unsigned>& values,
                        qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
 
+void compose_circuits(qsim::Circuit<qsim::Cirq::GateCirq<float>>* target,
+                      qsim::Circuit<qsim::Cirq::GateCirq<float>>* suffix);
+
 // Methods for mutating noisy circuits.
 void add_gate_channel(
     const qsim::Cirq::GateKind gate_kind,
@@ -74,6 +77,10 @@ void add_channel(const unsigned time,
                  const std::vector<std::tuple<float, std::vector<float>, bool>>&
                      prob_matrix_unitary_triples,
                  qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+
+void compose_noisy_circuits(
+  qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* target,
+  qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* suffix);
 
 // Method for populating opstrings.
 void add_gate_to_opstring(
@@ -361,6 +368,8 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
             "Adds a matrix-defined gate to the given circuit.");                      \
       m.def("control_last_gate", &control_last_gate,                                  \
             "Applies controls to the final gate of a circuit.");                      \
+      m.def("compose_circuits", &compose_circuits,                                    \
+            "Composes target and suffix circuits into a single circuit.");            \
                                                                                       \
       m.def("add_gate_channel", &add_gate_channel,                                    \
             "Adds a gate to the given noisy circuit.");                               \
@@ -373,6 +382,8 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
                                                                                       \
       m.def("add_channel", &add_channel,                                              \
             "Adds a channel to the given noisy circuit.");                            \
+      m.def("compose_noisy_circuits", &compose_noisy_circuits,                        \
+            "Composes target and suffix noisy circuits into a single noisy circuit.");\
                                                                                       \
       m.def("add_gate_to_opstring", &add_gate_to_opstring,                            \
             "Adds a gate to the given opstring.");
