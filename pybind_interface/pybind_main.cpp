@@ -729,18 +729,15 @@ class SimulatorHelper {
     if (is_noisy) {
       std::vector<uint64_t> stat;
       auto params = get_noisy_params();
-      NoisyCircuit<Gate> subncircuit;
-      subncircuit.num_qubits = ncircuit.num_qubits;
-      subncircuit.channels = std::vector<Channel<Gate>>(
-        ncircuit.channels.begin() + begin,
-        ncircuit.channels.begin() + end
-      );
-
       Simulator simulator = factory.CreateSimulator();
       StateSpace state_space = factory.CreateStateSpace();
 
-      result = NoisyRunner::RunOnce(params, subncircuit, seed, state_space,
-                                    simulator, scratch, state, stat);
+      result = NoisyRunner::RunOnce(
+        params, ncircuit.num_qubits,
+        ncircuit.channels.begin() + begin,
+        ncircuit.channels.begin() + end,
+        seed, state_space, simulator, scratch, state, stat
+      );
     } else {
       Circuit<Gate> subcircuit;
       subcircuit.num_qubits = circuit.num_qubits;
