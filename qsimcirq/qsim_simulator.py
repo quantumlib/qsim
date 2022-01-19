@@ -241,7 +241,11 @@ class QSimSimulator(
         else:
             self._sim_module = qsim
 
-        # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
+        # Deque of (
+        #   <original cirq circuit>,
+        #   <translated qsim circuit>,
+        #   <moment_gate_indices>
+        # ) tuples.
         self._translated_circuits = deque(maxlen=circuit_memoization_size)
 
     def get_seed(self):
@@ -363,7 +367,7 @@ class QSimSimulator(
                     for op in program.moments[i]
                 )
             translator_fn_name = "translate_cirq_to_qsim"
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 program,
                 translator_fn_name,
                 cirq.QubitOrder.DEFAULT,
@@ -384,7 +388,7 @@ class QSimSimulator(
                 results[key] = full_results[:, meas_indices] ^ invert_mask
 
         else:
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 program,
                 translator_fn_name,
                 cirq.QubitOrder.DEFAULT,
@@ -463,7 +467,7 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = cirq.resolve_parameters(program, prs)
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
                 cirq_order,
@@ -553,7 +557,7 @@ class QSimSimulator(
         for prs in param_resolvers:
             solved_circuit = cirq.resolve_parameters(program, prs)
 
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
                 cirq_order,
@@ -684,7 +688,7 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = cirq.resolve_parameters(program, prs)
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
                 cirq_order,
@@ -820,11 +824,10 @@ class QSimSimulator(
             ev_simulator_fn = self._sim_module.qsim_simulate_moment_expectation_values
 
         solved_circuit = cirq.resolve_parameters(program, param_resolver)
-        options["c"], opsum_reindex = self._translate_moments(
+        options["c"], opsum_reindex = self._translate_circuit(
             solved_circuit,
             translator_fn_name,
             cirq_order,
-            is_noisy,
         )
         opsums_and_qubit_counts = []
         for m, opsum_qc in opsums_and_qcount_map.items():
@@ -846,44 +849,17 @@ class QSimSimulator(
         # If the circuit is memoized, reuse the corresponding translated
         # circuit.
         translated_circuit = None
-        for original, translated in self._translated_circuits:
+        for original, translated, m_indices in self._translated_circuits:
             if original == circuit:
                 translated_circuit = translated
+                moment_indices = m_indices
                 break
 
         if translated_circuit is None:
             translator_fn = getattr(circuit, translator_fn_name)
-            translated_circuit = translator_fn(qubit_order)
-            self._translated_circuits.append((circuit, translated_circuit))
-
-        return translated_circuit
-
-    def _translate_moments(
-        self,
-        circuit: Any,
-        translator_fn_name: str,
-        qubit_order: cirq.QubitOrderOrList,
-        is_noisy: bool,
-    ):
-        """Translates a circuit by moments.
-
-        Returns:
-            A tuple containing the translated circuit and the gate indices
-            corresponding to moment boundaries.
-        """
-        reindex = [0]
-        full_circuit = qsim.NoisyCircuit() if is_noisy else qsim.Circuit()
-        full_circuit.num_qubits = len(circuit.all_qubits())
-        for moment in circuit:
-            subc = self._translate_circuit(
-                qsimc.QSimCircuit(cirq.Circuit(moment)),
-                translator_fn_name,
-                qubit_order,
+            translated_circuit, moment_indices = translator_fn(qubit_order)
+            self._translated_circuits.append(
+                (circuit, translated_circuit, moment_indices)
             )
-            reindex.append(len(subc.channels if is_noisy else subc.gates) + reindex[-1])
-            if is_noisy:
-                qsim.compose_noisy_circuits(full_circuit, subc)
-            else:
-                qsim.compose_circuits(full_circuit, subc)
 
-        return full_circuit, reindex[1:]
+        return translated_circuit, moment_indices

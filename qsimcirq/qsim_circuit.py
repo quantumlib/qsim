@@ -285,7 +285,8 @@ class QSimCircuit(cirq.Circuit):
         """
         Translates this Cirq circuit to the qsim representation.
         :qubit_order: Ordering of qubits
-        :return: a C++ qsim Circuit object
+        :return: a tuple of (C++ qsim Circuit object, moment boundary
+            gate indices)
         """
 
         qsim_circuit = qsim.Circuit()
@@ -309,6 +310,7 @@ class QSimCircuit(cirq.Circuit):
 
         qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
         time_offset = 0
+        moment_indices = []
         for moment in self:
             ops_by_gate = [
                 cirq.decompose(op, fallback_decomposer=to_matrix, keep=has_qsim_kind)
@@ -326,8 +328,9 @@ class QSimCircuit(cirq.Circuit):
                     gate_kind = _cirq_gate_kind(qsim_op.gate)
                     add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_circuit)
             time_offset += moment_length
+            moment_indices.append(len(qsim_circuit.gates))
 
-        return qsim_circuit
+        return qsim_circuit, moment_indices
 
     def translate_cirq_to_qtrajectory(
         self, qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT
@@ -335,7 +338,8 @@ class QSimCircuit(cirq.Circuit):
         """
         Translates this noisy Cirq circuit to the qsim representation.
         :qubit_order: Ordering of qubits
-        :return: a C++ qsim NoisyCircuit object
+        :return: a tuple of (C++ qsim NoisyCircuit object, moment boundary
+            gate indices)
         """
         qsim_ncircuit = qsim.NoisyCircuit()
         ordered_qubits = cirq.ops.QubitOrder.as_qubit_order(qubit_order).order_for(
@@ -359,6 +363,7 @@ class QSimCircuit(cirq.Circuit):
 
         qubit_to_index_dict = {q: i for i, q in enumerate(ordered_qubits)}
         time_offset = 0
+        moment_indices = []
         for moment in self:
             moment_length = 0
             ops_by_gate = []
@@ -419,5 +424,6 @@ class QSimCircuit(cirq.Circuit):
                     qubits = [qubit_to_index_dict[q] for q in channel.qubits]
                     qsim.add_channel(time_offset, qubits, chdata, qsim_ncircuit)
             time_offset += moment_length
+            moment_indices.append(len(qsim_ncircuit.channels))
 
-        return qsim_ncircuit
+        return qsim_ncircuit, moment_indices

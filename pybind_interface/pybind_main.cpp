@@ -638,7 +638,6 @@ class SimulatorHelper {
     }
 
     // Aggregate expectation values for noisy circuits.
-    // TODO: split over steps
     for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
       auto& counts = std::get<1>(opsums_and_qubit_counts[i]);
       results[i] = std::vector<std::complex<double>>(counts.size(), 0);
