@@ -280,7 +280,6 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
       /* Method for hybrid simulation */                                              \
       m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");           \
                                                                                       \
-      using KrausOperator = qsim::KrausOperator<GateCirq>;                            \
       using GateKind = qsim::Cirq::GateKind;                                          \
       using Circuit = qsim::Circuit<GateCirq>;                                        \
       using NoisyCircuit = qsim::NoisyCircuit<GateCirq>;                              \
@@ -299,12 +298,6 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
         .def(py::init<>())                                                            \
         .def_readwrite("weight", &OpString::weight)                                   \
         .def_readwrite("ops", &OpString::ops);                                        \
-                                                                                      \
-      py::class_<KrausOperator>(m, "KrausOperator")                                   \
-        .def(py::init<>());                                                           \
-                                                                                      \
-      py::class_<GateCirq>(m, "GateCirq")                                             \
-        .def(py::init<>());                                                           \
                                                                                       \
       py::enum_<GateKind>(m, "GateKind")                                              \
         .value("kI1", GateKind::kI1)                                                  \
