@@ -14,7 +14,8 @@
 
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from xml.etree.ElementPath import ops
 
 import cirq
 
@@ -240,7 +241,11 @@ class QSimSimulator(
         else:
             self._sim_module = qsim
 
-        # Deque of (<original cirq circuit>, <translated qsim circuit>) tuples.
+        # Deque of (
+        #   <original cirq circuit>,
+        #   <translated qsim circuit>,
+        #   <moment_gate_indices>
+        # ) tuples.
         self._translated_circuits = deque(maxlen=circuit_memoization_size)
 
     def get_seed(self):
@@ -362,7 +367,7 @@ class QSimSimulator(
                     for op in program.moments[i]
                 )
             translator_fn_name = "translate_cirq_to_qsim"
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 program,
                 translator_fn_name,
                 cirq.QubitOrder.DEFAULT,
@@ -383,7 +388,7 @@ class QSimSimulator(
                 results[key] = full_results[:, meas_indices] ^ invert_mask
 
         else:
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 program,
                 translator_fn_name,
                 cirq.QubitOrder.DEFAULT,
@@ -462,7 +467,7 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = cirq.resolve_parameters(program, prs)
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
                 cirq_order,
@@ -552,7 +557,7 @@ class QSimSimulator(
         for prs in param_resolvers:
             solved_circuit = cirq.resolve_parameters(program, prs)
 
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
                 cirq_order,
@@ -595,7 +600,7 @@ class QSimSimulator(
         Args:
             program: The circuit to simulate.
             observables: An observable or list of observables.
-            param_resolver: Parameters to run with the program.
+            params: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This
                 is often used in specifying the initial state, i.e. the
                 ordering of the computational basis states.
@@ -683,7 +688,7 @@ class QSimSimulator(
 
         for prs in param_resolvers:
             solved_circuit = cirq.resolve_parameters(program, prs)
-            options["c"] = self._translate_circuit(
+            options["c"], _ = self._translate_circuit(
                 solved_circuit,
                 translator_fn_name,
                 cirq_order,
@@ -698,6 +703,143 @@ class QSimSimulator(
 
         return results
 
+    def simulate_moment_expectation_values(
+        self,
+        program: cirq.Circuit,
+        indexed_observables: Union[
+            Dict[int, Union[cirq.PauliSumLike, List[cirq.PauliSumLike]]],
+            cirq.PauliSumLike,
+            List[cirq.PauliSumLike],
+        ],
+        param_resolver: cirq.ParamResolver,
+        qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
+        initial_state: Any = None,
+    ) -> List[List[float]]:
+        """Calculates expectation values at each moment of a circuit.
+
+        Args:
+            program: The circuit to simulate.
+            indexed_observables: A map of moment indices to an observable
+                or list of observables to calculate after that moment. As a
+                convenience, users can instead pass in a single observable
+                or observable list to calculate after ALL moments.
+            param_resolver: Parameters to run with the program.
+            qubit_order: Determines the canonical ordering of the qubits. This
+                is often used in specifying the initial state, i.e. the
+                ordering of the computational basis states.
+            initial_state: The initial state for the simulation. The form of
+                this state depends on the simulation implementation. See
+                documentation of the implementing class for details.
+            permit_terminal_measurements: If the provided circuit ends with
+                measurement(s), this method will generate an error unless this
+                is set to True. This is meant to prevent measurements from
+                ruining expectation value calculations.
+
+        Returns:
+            A list of expectation values for each moment m in the circuit,
+            where value `n` corresponds to `indexed_observables[m][n]`.
+
+        Raises:
+            ValueError if 'program' has terminal measurement(s) and
+            'permit_terminal_measurements' is False. (Note: We cannot test this
+            until Cirq's `are_any_measurements_terminal` is released.)
+        """
+        if not isinstance(indexed_observables, Dict):
+            if not isinstance(indexed_observables, List):
+                indexed_observables = [
+                    (i, [indexed_observables]) for i, _ in enumerate(program)
+                ]
+            else:
+                indexed_observables = [
+                    (i, indexed_observables) for i, _ in enumerate(program)
+                ]
+        else:
+            indexed_observables = [
+                (i, obs) if isinstance(obs, List) else (i, [obs])
+                for i, obs in indexed_observables.items()
+            ]
+        indexed_observables.sort(key=lambda x: x[0])
+        psum_pairs = [
+            (i, [cirq.PauliSum.wrap(pslike) for pslike in obs_list])
+            for i, obs_list in indexed_observables
+        ]
+
+        all_qubits = program.all_qubits()
+        cirq_order = cirq.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
+        qsim_order = list(reversed(cirq_order))
+        num_qubits = len(qsim_order)
+        qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
+
+        opsums_and_qcount_map = {}
+        for i, psumlist in psum_pairs:
+            opsums_and_qcount_map[i] = []
+            for psum in psumlist:
+                opsum = []
+                opsum_qubits = set()
+                for pstr in psum:
+                    opstring = qsim.OpString()
+                    opstring.weight = pstr.coefficient
+                    for q, pauli in pstr.items():
+                        op = pauli.on(q)
+                        opsum_qubits.add(q)
+                        qsimc.add_op_to_opstring(op, qubit_map, opstring)
+                    opsum.append(opstring)
+                opsums_and_qcount_map[i].append((opsum, len(opsum_qubits)))
+
+        if initial_state is None:
+            initial_state = 0
+        if not isinstance(initial_state, (int, np.ndarray)):
+            raise TypeError("initial_state must be an int or state vector.")
+
+        # Add noise to the circuit if a noise model was provided.
+        program = qsimc.QSimCircuit(
+            self.noise.noisy_moments(program, sorted(all_qubits))
+            if self.noise is not cirq.NO_NOISE
+            else program,
+            device=program.device,
+        )
+
+        options = {}
+        options.update(self.qsim_options)
+
+        param_resolver = cirq.to_resolvers(param_resolver)
+        if isinstance(initial_state, np.ndarray):
+            if initial_state.dtype != np.complex64:
+                raise TypeError(f"initial_state vector must have dtype np.complex64.")
+            input_vector = initial_state.view(np.float32)
+            if len(input_vector) != 2 ** num_qubits * 2:
+                raise ValueError(
+                    f"initial_state vector size must match number of qubits."
+                    f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
+                )
+
+        is_noisy = _needs_trajectories(program)
+        if is_noisy:
+            translator_fn_name = "translate_cirq_to_qtrajectory"
+            ev_simulator_fn = (
+                self._sim_module.qtrajectory_simulate_moment_expectation_values
+            )
+        else:
+            translator_fn_name = "translate_cirq_to_qsim"
+            ev_simulator_fn = self._sim_module.qsim_simulate_moment_expectation_values
+
+        solved_circuit = cirq.resolve_parameters(program, param_resolver)
+        options["c"], opsum_reindex = self._translate_circuit(
+            solved_circuit,
+            translator_fn_name,
+            cirq_order,
+        )
+        opsums_and_qubit_counts = []
+        for m, opsum_qc in opsums_and_qcount_map.items():
+            pair = (opsum_reindex[m], opsum_qc)
+            opsums_and_qubit_counts.append(pair)
+        options["s"] = self.get_seed()
+
+        if isinstance(initial_state, int):
+            return ev_simulator_fn(options, opsums_and_qubit_counts, initial_state)
+        elif isinstance(initial_state, np.ndarray):
+            return ev_simulator_fn(options, opsums_and_qubit_counts, input_vector)
+
     def _translate_circuit(
         self,
         circuit: Any,
@@ -707,14 +849,17 @@ class QSimSimulator(
         # If the circuit is memoized, reuse the corresponding translated
         # circuit.
         translated_circuit = None
-        for original, translated in self._translated_circuits:
+        for original, translated, m_indices in self._translated_circuits:
             if original == circuit:
                 translated_circuit = translated
+                moment_indices = m_indices
                 break
 
         if translated_circuit is None:
             translator_fn = getattr(circuit, translator_fn_name)
-            translated_circuit = translator_fn(qubit_order)
-            self._translated_circuits.append((circuit, translated_circuit))
+            translated_circuit, moment_indices = translator_fn(qubit_order)
+            self._translated_circuits.append(
+                (circuit, translated_circuit, moment_indices)
+            )
 
-        return translated_circuit
+        return translated_circuit, moment_indices

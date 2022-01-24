@@ -471,6 +471,60 @@ def test_expectation_values(mode: str):
     assert cirq.approx_eq(qsim_result, cirq_result, atol=1e-6)
 
 
+@pytest.mark.parametrize("mode", ["noiseless", "noisy"])
+def test_moment_expectation_values(mode: str):
+    # Perform a single-pass Rabi oscillation, measuring Z at each step.
+    q0 = cirq.LineQubit(0)
+    steps = 20
+    circuit = cirq.Circuit(*[cirq.X(q0) ** 0.05 for _ in range(steps)])
+    psum = cirq.Z(q0)
+    params = {}
+
+    if mode == "noisy":
+        circuit.append(NoiseTrigger().on(q0))
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.simulate_moment_expectation_values(
+        circuit, psum, params
+    )
+    # Omit noise trigger element
+    results = [r[0] for r in qsim_result][:steps]
+    assert np.allclose(
+        [result.real for result in results],
+        [np.cos(np.pi * (i + 1) / 20) for i in range(steps)],
+        atol=1e-6,
+    )
+
+
+@pytest.mark.parametrize("mode", ["noiseless", "noisy"])
+def test_select_moment_expectation_values(mode: str):
+    # Measure different observables after specified steps.
+    q0, q1 = cirq.LineQubit.range(2)
+    circuit = cirq.Circuit(
+        cirq.Moment(cirq.X(q0), cirq.H(q1)),
+        cirq.Moment(cirq.H(q0), cirq.Z(q1)),
+        cirq.Moment(cirq.Z(q0), cirq.H(q1)),
+        cirq.Moment(cirq.H(q0), cirq.X(q1)),
+    )
+    psum_map = {
+        0: cirq.Z(q0),
+        1: [cirq.X(q0), cirq.Z(q1)],
+        3: [cirq.Z(q0), cirq.Z(q1)],
+    }
+    params = {}
+
+    if mode == "noisy":
+        circuit.append(NoiseTrigger().on(q0))
+
+    qsim_simulator = qsimcirq.QSimSimulator()
+    qsim_result = qsim_simulator.simulate_moment_expectation_values(
+        circuit, psum_map, params
+    )
+    expected_results = [[-1], [-1, 0], [1, 1]]
+    for i, result in enumerate(qsim_result):
+        assert np.allclose(result, expected_results[i])
+
+
 def test_expectation_values_terminal_measurement_check():
     a, b = [
         cirq.GridQubit(0, 0),

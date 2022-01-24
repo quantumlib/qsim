@@ -65,7 +65,7 @@ class QSimhSimulator(cirq.SimulatesAmplitudes):
 
             solved_circuit = cirq.resolve_parameters(program, prs)
 
-            options["c"] = solved_circuit.translate_cirq_to_qsim(qubit_order)
+            options["c"], _ = solved_circuit.translate_cirq_to_qsim(qubit_order)
 
             options.update(self.qsimh_options)
             amplitudes = qsim.qsimh_simulate(options)
