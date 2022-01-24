@@ -594,7 +594,7 @@ class SimulatorHelper {
     // Aggregate expectation values for noisy circuits.
     for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
       auto& counts = std::get<1>(opsums_and_qubit_counts[i]);
-      results[i] = std::vector<std::complex<double>>(counts.size(), 0);
+      results[i].resize(counts.size(), 0);
     }
     for (unsigned rep = 0; rep < helper.noisy_reps; ++rep) {
       // Init outside of simulation to enable stepping.
