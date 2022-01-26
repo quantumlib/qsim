@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.11)
 
-execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
-if(has_nvcc STREQUAL "")
-  project(qsim)
-else()
+if(ENV{QSIMCIRQ_PROJECT} STREQUAL "qsimcirq-gpu")
   project(qsim LANGUAGES CXX CUDA)
+else()
+  project(qsim)
 endif()
 
 IF (WIN32)
@@ -32,9 +31,7 @@ if(NOT pybind11_POPULATED)
   add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif()
 
-if(has_nvcc STREQUAL "")
-  pybind11_add_module(qsim_decide decide.cpp)
-else()
+if(ENV{QSIMCIRQ_PROJECT} STREQUAL "qsimcirq-gpu")
   find_package(PythonLibs 3.6 REQUIRED)
   find_package(CUDA REQUIRED)
 
@@ -53,4 +50,6 @@ else()
         SUFFIX "${PYTHON_MODULE_EXTENSION}"
   )
   set_source_files_properties(decide.cpp PROPERTIES LANGUAGE CUDA)
+else()
+  pybind11_add_module(qsim_decide decide.cpp)
 endif()

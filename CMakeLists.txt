@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 3.11)
 
-execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
-if(has_nvcc STREQUAL "")
-    project(qsim)
-else()
+if(ENV{QSIMCIRQ_PROJECT} STREQUAL "qsimcirq-gpu")
     project(qsim LANGUAGES CXX CUDA)
     ADD_SUBDIRECTORY(pybind_interface/cuda)
     if(DEFINED ENV{CUQUANTUM_DIR})
         ADD_SUBDIRECTORY(pybind_interface/custatevec)
     endif()
+else()
+    project(qsim)
 endif()
 
 ADD_SUBDIRECTORY(pybind_interface/sse)
