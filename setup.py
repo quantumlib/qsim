@@ -9,7 +9,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
 
-project_name = os.environ.get('QSIMCIRQ_PROJECT', 'qsimcirq')
+project_name = os.environ.get("QSIMCIRQ_PROJECT", "qsimcirq")
 
 
 class CMakeExtension(Extension):
@@ -97,7 +97,7 @@ cmake_exts = [
     CMakeExtension("qsimcirq/qsim_basic"),
     CMakeExtension("qsimcirq/qsim_decide"),
 ]
-if 'gpu' in project_name:
+if "gpu" in project_name:
     cmake_exts += [
         CMakeExtension("qsimcirq/qsim_cuda"),
         CMakeExtension("qsimcirq/qsim_custatevec"),
