@@ -116,7 +116,6 @@ class QuantumTrajectorySimulator {
     gates.reserve(4 * std::size_t(cend - cbeg));
 
     State state = state_space.Null();
-    State scratch = state_space.Null();
 
     std::vector<uint64_t> stat;
 
@@ -126,7 +125,7 @@ class QuantumTrajectorySimulator {
       }
 
       if (!RunIteration(param, num_qubits, cbeg, cend, r,
-                        state_space, simulator, gates, scratch, state, stat)) {
+                        state_space, simulator, gates, state, stat)) {
         return false;
       }
 
@@ -144,7 +143,6 @@ class QuantumTrajectorySimulator {
    * @param state_space StateSpace object required to manipulate state vector.
    * @param simulator Simulator object. Provides specific implementations for
    *   applying gates.
-   * @param scratch A temporary state vector. Used for samping Kraus operators.
    * @param state The state of the system, to be updated by this method.
    * @param stat Statistics of sampled Kraus operator indices and/or measured
    *   bitstrings, to be populated by this method.
@@ -153,11 +151,10 @@ class QuantumTrajectorySimulator {
   static bool RunOnce(const Parameter& param,
                       const NoisyCircuit<Gate>& circuit, uint64_t r,
                       const StateSpace& state_space, const Simulator& simulator,
-                      State& scratch, State& state,
-                      std::vector<uint64_t>& stat) {
+                      State& state, std::vector<uint64_t>& stat) {
     return RunOnce(param, circuit.num_qubits, circuit.channels.begin(),
                    circuit.channels.end(), r, state_space, simulator,
-                   scratch, state, stat);
+                   state, stat);
   }
 
   /**
@@ -170,7 +167,6 @@ class QuantumTrajectorySimulator {
    * @param state_space StateSpace object required to manipulate state vector.
    * @param simulator Simulator object. Provides specific implementations for
    *   applying gates.
-   * @param scratch A temporary state vector. Used for samping Kraus operators.
    * @param state The state of the system, to be updated by this method.
    * @param stat Statistics of sampled Kraus operator indices and/or measured
    *   bitstrings, to be populated by this method.
@@ -180,13 +176,13 @@ class QuantumTrajectorySimulator {
                       ncircuit_iterator<Gate> cbeg,
                       ncircuit_iterator<Gate> cend,
                       uint64_t r, const StateSpace& state_space,
-                      const Simulator& simulator, State& scratch, State& state,
+                      const Simulator& simulator, State& state,
                       std::vector<uint64_t>& stat) {
     std::vector<const Gate*> gates;
     gates.reserve(4 * std::size_t(cend - cbeg));
 
     if (!RunIteration(param, num_qubits, cbeg, cend, r,
-                      state_space, simulator, gates, scratch, state, stat)) {
+                      state_space, simulator, gates, state, stat)) {
       return false;
     }
 
@@ -199,7 +195,7 @@ class QuantumTrajectorySimulator {
                            ncircuit_iterator<Gate> cend,
                            uint64_t rep, const StateSpace& state_space,
                            const Simulator& simulator,
-                           std::vector<const Gate*>& gates, State& scratch,
+                           std::vector<const Gate*>& gates,
                            State& state, std::vector<uint64_t>& stat) {
     if (param.collect_kop_stat || param.collect_mea_stat) {
       stat.reserve(std::size_t(cend - cbeg));
@@ -279,14 +275,8 @@ class QuantumTrajectorySimulator {
 
       NormalizeState(!unitary, state_space, unitary, state);
 
-      if (state_space.IsNull(scratch) || scratch.num_qubits() < num_qubits) {
-        scratch = CreateState(num_qubits, state_space);
-        if (state_space.IsNull(scratch)) {
-          return false;
-        }
-      }
-
-      state_space.Copy(state, scratch);
+      double max_prob = 0;
+      std::size_t max_prob_index = 0;
 
       // Perform sampling of Kraus operators using norms of updated states.
       for (std::size_t i = 0; i < channel.size(); ++i) {
@@ -294,35 +284,29 @@ class QuantumTrajectorySimulator {
 
         if (kop.unitary) continue;
 
-        // Apply the Kraus operator.
-        if (kop.ops.size() == 1) {
-          ApplyGate(simulator, kop.ops[0], state);
-        } else {
-          DeferOps(kop.ops, gates);
+        double prob = std::real(
+            simulator.ExpectationValue(kop.qubits, kop.kd_k.data(), state));
 
-          if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
-            return false;
-          }
+        if (prob > max_prob) {
+          max_prob = prob;
+          max_prob_index = i;
         }
 
-        double n2 = state_space.Norm(state);
-
-        cp += n2 - kop.prob;
+        cp += prob - kop.prob;
 
         if (r < cp || i == channel.size() - 1) {
           // Sample ith Kraus operator if r < cp
-          // Sample the first Kraus operator if r is greater than the sum of
-          // all probablities due to round-off errors.
-          uint64_t k = r < cp ? i : 0;
+          // Sample the highest probability Kraus operator if r is greater
+          // than the sum of all probablities due to round-off errors.
+          uint64_t k = r < cp ? i : max_prob_index;
 
+          DeferOps(channel[k].ops, gates);
           CollectStat(param.collect_kop_stat, k, stat);
 
           unitary = false;
 
           break;
         }
-
-        state_space.Copy(scratch, state);
       }
     }
 

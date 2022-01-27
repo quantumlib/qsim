@@ -21,6 +21,7 @@
 
 #include "gtest/gtest.h"
 
+#include "../lib/channel.h"
 #include "../lib/channels_cirq.h"
 #include "../lib/circuit_noisy.h"
 #include "../lib/fuser_mqubit.h"
@@ -104,6 +105,10 @@ void AddGenAmplDumpNoise1(
        {normal, 0, p2, {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})}},
        {normal, 0, p3, {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})}},
        {normal, 0, p3, {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+
+  for (auto& kop : ncircuit.channels.back()) {
+    kop.CalculateKdKMatrix();
+  }
 }
 
 template <typename Gate>
@@ -134,11 +139,103 @@ void AddGenAmplDumpNoise2(
        {normal, 0, p2, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0})}},
        {normal, 0, p3, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0})}},
        {normal, 0, p3, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+
+  for (auto& kop : ncircuit.channels.back()) {
+    kop.CalculateKdKMatrix();
+  }
+
   ncircuit.channels.push_back(
       {{normal, 0, p1, {M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
        {normal, 0, p2, {M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
        {normal, 0, p3, {M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
        {normal, 0, p3, {M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+
+  for (auto& kop : ncircuit.channels.back()) {
+    kop.CalculateKdKMatrix();
+  }
+}
+
+// Adds the same channel as in AddGenAmplDumpNoise2 above.
+template <typename Gate>
+void AddGenAmplDumpNoise2Alt(
+    unsigned time, double g, NoisyCircuit<Gate>& ncircuit) {
+  using fp_type = typename Gate::fp_type;
+
+  // Probability of exchanging energy with the environment.
+  double p = 0.5;
+
+  double p1 = p * (1 - g);
+  double p2 = (1 - p) * (1 - g);
+  double p3 = 0;
+
+  fp_type t1 = std::sqrt(p);
+  fp_type r1 = std::sqrt(p * (1 - g));
+  fp_type s1 = std::sqrt(p * g);
+  fp_type t2 = std::sqrt(1 - p);
+  fp_type r2 = std::sqrt((1 - p) * (1 - g));
+  fp_type s2 = std::sqrt((1 - p) * g);
+
+  auto normal = KrausOperator<Gate>::kNormal;
+
+  using M = Cirq::MatrixGate1<fp_type>;
+
+  ncircuit.channels.push_back(
+      {{normal, 0, p1 * p1,
+        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+       {normal, 0, p1 * p2,
+        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+       {normal, 0, p1 * p3,
+        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+       {normal, 0, p1 * p3,
+        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+
+       {normal, 0, p2 * p1,
+        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+       {normal, 0, p2 * p2,
+        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+       {normal, 0, p2 * p3,
+        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+       {normal, 0, p2 * p3,
+        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+
+       {normal, 0, p3 * p1,
+        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+       {normal, 0, p3 * p2,
+        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+       {normal, 0, p3 * p3,
+        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+       {normal, 0, p3 * p3,
+        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+
+       {normal, 0, p3 * p1,
+        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+       {normal, 0, p3 * p2,
+        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+       {normal, 0, p3 * p3,
+        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+       {normal, 0, p3 * p3,
+        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+      });
+
+  for (auto& kop : ncircuit.channels.back()) {
+    kop.CalculateKdKMatrix();
+  }
 }
 
 template <typename Gate, typename AddNoise1, typename AddNoise2>
@@ -234,7 +331,6 @@ void RunOnceRepeatedly(const Factory& factory,
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();
 
-  State scratch = state_space.Null();
   State state = state_space.Create(num_qubits);
   EXPECT_FALSE(state_space.IsNull(state));
 
@@ -251,7 +347,7 @@ void RunOnceRepeatedly(const Factory& factory,
     state_space.SetStateZero(state);
 
     EXPECT_TRUE(QTSimulator::RunOnce(
-        param, ncircuit, i, state_space, simulator, scratch, state, stat));
+        param, ncircuit, i, state_space, simulator, state, stat));
 
     EXPECT_EQ(state_pointer, state.get());
 
@@ -361,9 +457,17 @@ for key, val in sorted(res.histogram(key='m').items()):
 
   using Gate = Cirq::GateCirq<typename Factory::fp_type>;
 
-  auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
-                                             AddGenAmplDumpNoise2<Gate>);
-  RunOnceRepeatedly(factory, ncircuit, expected_results);
+  {
+    auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
+                                               AddGenAmplDumpNoise2<Gate>);
+    RunOnceRepeatedly(factory, ncircuit, expected_results);
+  }
+
+  {
+    auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
+                                               AddGenAmplDumpNoise2Alt<Gate>);
+    RunOnceRepeatedly(factory, ncircuit, expected_results);
+  }
 }
 
 template <typename Factory>
@@ -508,7 +612,6 @@ void TestCleanCircuit(const Factory& factory) {
     ApplyGate(simulator, gate, state);
   }
 
-  State scratch = state_space.Null();
   State nstate = state_space.Create(num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(nstate));
@@ -522,7 +625,7 @@ void TestCleanCircuit(const Factory& factory) {
   // Run quantum trajectory simulator.
   EXPECT_TRUE(QTSimulator::RunOnce(param, num_qubits, ncircuit.channels.begin(),
                                    ncircuit.channels.end(), 0, state_space,
-                                   simulator, scratch, nstate, stat));
+                                   simulator, nstate, stat));
 
   EXPECT_EQ(stat.size(), 0);
 
@@ -565,7 +668,6 @@ void TestInitialState(const Factory& factory) {
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();
 
-  State scratch = state_space.Null();
   State state = state_space.Create(num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(state));
@@ -578,7 +680,7 @@ void TestInitialState(const Factory& factory) {
   }
 
   EXPECT_TRUE(QTSimulator::RunOnce(
-      param, ncircuit, 0, state_space, simulator, scratch, state, stat));
+      param, ncircuit, 0, state_space, simulator, state, stat));
 
   // Expect reversed order of amplitudes.
   for (unsigned i = 0; i < 8; ++i) {
@@ -625,7 +727,6 @@ void TestUncomputeFinalState(const Factory& factory) {
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();
 
-  State scratch = state_space.Null();
   State state = state_space.Create(num_qubits);
 
   EXPECT_FALSE(state_space.IsNull(state));
@@ -638,8 +739,8 @@ void TestUncomputeFinalState(const Factory& factory) {
   std::vector<uint64_t> stat;
 
   // Run one trajectory.
-  EXPECT_TRUE(QTSimulator::RunOnce(param, ncircuit, 0, state_space, simulator,
-                                   scratch, state, stat));
+  EXPECT_TRUE(QTSimulator::RunOnce(
+      param, ncircuit, 0, state_space, simulator, state, stat));
 
   EXPECT_EQ(ncircuit.channels.size(), stat.size());
 

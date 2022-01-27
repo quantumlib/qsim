@@ -42,8 +42,15 @@ struct AmplitudeDampingChannel {
     using M = GateMatrix1<fp_type>;
     auto normal = KrausOperator<GateQSim<fp_type>>::kNormal;
 
-    return {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-            {normal, 0, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})}}};
+    return {{normal, 0, p1,
+             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
+            },
+            {normal, 0, p2,
+             {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})},
+             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
+            },
+           };
   }
 
   Channel<GateQSim<fp_type>> Create(unsigned time, unsigned q) const {
@@ -79,8 +86,15 @@ struct PhaseDampingChannel {
     using M = GateMatrix1<fp_type>;
     auto normal = KrausOperator<GateQSim<fp_type>>::kNormal;
 
-    return {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-            {normal, 0, p2, {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})}}};
+    return {{normal, 0, p1,
+             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
+            },
+            {normal, 0, p2,
+             {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})},
+             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
+            },
+           };
   }
 
   Channel<GateQSim<fp_type>> Create(unsigned time, unsigned q) const {

@@ -561,7 +561,10 @@ cc_library(
 cc_library(
     name = "channel",
     hdrs = ["channel.h"],
-    deps = [":gate"],
+    deps = [
+        ":gate",
+        ":matrix",
+    ],
 )
 
 cc_library(

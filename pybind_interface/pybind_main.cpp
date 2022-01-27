@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "../lib/bitstring.h"
+#include "../lib/channel.h"
 #include "../lib/expect.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
@@ -338,6 +339,9 @@ void add_channel(const unsigned time,
     channel.emplace_back(KrausOperator<Gate>{
       KrausOperator<Gate>::kNormal, is_unitary, prob, {gate}
     });
+    if (!is_unitary) {
+      channel.back().CalculateKdKMatrix();
+    }
   }
   ncircuit->channels.push_back(channel);
 }
@@ -714,7 +718,7 @@ class SimulatorHelper {
       StateSpace state_space = factory.CreateStateSpace();
 
       result = NoisyRunner::RunOnce(params, ncircuit, seed, state_space,
-                                    simulator, scratch, state, stat);
+                                    simulator, state, stat);
     } else {
       result = Runner::Run(get_params(), factory, circuit, state);
     }
@@ -735,7 +739,7 @@ class SimulatorHelper {
         params, ncircuit.num_qubits,
         ncircuit.channels.begin() + begin,
         ncircuit.channels.begin() + end,
-        seed, state_space, simulator, scratch, state, stat
+        seed, state_space, simulator, state, stat
       );
     } else {
       Circuit<Gate> subcircuit;

@@ -38,10 +38,7 @@ below](#5_consider_multiple_compute_nodes).
 ### 2. Estimate your memory requirements
 
 You can estimate your memory requirements with the following rule of thumb:
-
-*   Noiseless simulation: $ memory\ required = 8 \cdot 2^N bytes $ for an N-qubit
-    circuit
-*   Noisy simulation: $ memory\ required = 16 \cdot 2^N bytes $ for an N-qubit circuit
+$ memory\ required = 8 \cdot 2^N bytes $ for an N-qubit circuit
 
 In addition to memory size, consider the bandwidth of your memory. qsim performs
 best when it can use the maximum number of threads. Multi-threaded simulation
@@ -121,8 +118,7 @@ depth beyond 20 qubits.
     *   How you can represent your noise model using Kraus operator formalism:
         *   Performance is best in the case where all Kraus operators are
             proportional to unitary matrices, such as when using only a
-            depolarizing channel. In this case, memory requirements are equal to
-            noiseless memory requirements (8\*2^n bytes).
+            depolarizing channel.
         *   Using noise which cannot be represented with Kraus operators
             proportional to unitary matrices, can slow down simulations by a
             factor of up to 6** **compared to using a depolarizing channel only

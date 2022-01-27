@@ -237,11 +237,22 @@ struct GeneralizedAmplitudeDampingChannel {
     using M = Cirq::MatrixGate1<fp_type>;
     auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-
-    return {{normal, 0, p1, {M::Create(time, q, {t1, 0,  0, 0,  0, 0, r1, 0})}},
-            {normal, 0, p2, {M::Create(time, q, {r2, 0,  0, 0,  0, 0, t2, 0})}},
-            {normal, 0, p3, {M::Create(time, q, { 0, 0, s1, 0,  0,  0, 0, 0})}},
-            {normal, 0, p3, {M::Create(time, q, { 0, 0,  0, 0, s2, 0,  0, 0})}},
+    return {{normal, 0, p1,
+             {M::Create(time, q, {t1, 0, 0, 0, 0, 0, r1, 0})},
+             {t1 * t1, 0, 0, 0, 0, 0, r1 * r1, 0}, {q},
+            },
+            {normal, 0, p2,
+             {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})},
+             {r2 * r2, 0, 0, 0, 0, 0, t2 * t2, 0}, {q},
+            },
+            {normal, 0, p3,
+             {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})},
+             {0, 0, 0, 0, 0, 0, s1 * s1, 0}, {q},
+            },
+            {normal, 0, p3,
+             {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})},
+             {s2 * s2, 0, 0, 0, 0, 0, 0, 0}, {q},
+            },
            };
   }
 
@@ -281,8 +292,14 @@ struct AmplitudeDampingChannel {
     using M = Cirq::MatrixGate1<fp_type>;
     auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-            {normal, 0, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})}},
+    return {{normal, 0, p1,
+             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
+            },
+            {normal, 0, p2,
+             {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})},
+             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
+            },
            };
   }
 
@@ -320,8 +337,14 @@ struct PhaseDampingChannel {
     using M = Cirq::MatrixGate1<fp_type>;
     auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-            {normal, 0, p2, {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})}},
+    return {{normal, 0, p1,
+             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
+            },
+            {normal, 0, p2,
+             {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})},
+             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
+            },
            };
   }
 
@@ -351,8 +374,14 @@ struct ResetChannel {
     using M = Cirq::MatrixGate1<fp_type>;
     auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, 0, {M::Create(time, q, {1, 0, 0, 0, 0, 0, 0, 0})}},
-            {normal, 0, 0, {M::Create(time, q, {0, 0, 1, 0, 0, 0, 0, 0})}},
+    return {{normal, 0, 0,
+             {M::Create(time, q, {1, 0, 0, 0, 0, 0, 0, 0})},
+             {1, 0, 0, 0, 0, 0, 0, 0}, {q},
+            },
+            {normal, 0, 0,
+             {M::Create(time, q, {0, 0, 1, 0, 0, 0, 0, 0})},
+             {0, 0, 0, 0, 0, 0, 1, 0}, {q},
+            },
            };
   }
 };
