@@ -242,7 +242,6 @@ int main(int argc, char* argv[]) {
   StateSpace state_space = factory.CreateStateSpace();
 
   State state = state_space.Create(circuit.num_qubits);
-  State scratch = state_space.Null();
 
   if (state_space.IsNull(state)) {
     IO::errorf("not enough memory: is the number of qubits too large?\n");
@@ -274,8 +273,7 @@ int main(int argc, char* argv[]) {
     for (unsigned s = 0; s < noisy_circuits.size(); ++s) {
       std::vector<uint64_t> stat;
       if (!QTSimulator::RunOnce(param3, noisy_circuits[s], seed++,
-                                state_space, simulator, scratch, state,
-                                stat)) {
+                                state_space, simulator, state, stat)) {
         return 1;
       }
 
