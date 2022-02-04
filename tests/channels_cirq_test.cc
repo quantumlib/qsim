@@ -68,10 +68,10 @@ void RunBatch(const NoisyCircuit<Gate>& ncircuit,
   unsigned num_threads = 1;
 
   auto measure = [](uint64_t r, const State& state,
-                    const std::vector<uint64_t>& stat,
+                    const QTSimulator::Stat& stat,
                     std::vector<unsigned>& histogram) {
-    ASSERT_EQ(stat.size(), 1);
-    ++histogram[stat[0]];
+    ASSERT_EQ(stat.samples.size(), 1);
+    ++histogram[stat.samples[0]];
   };
 
   std::vector<unsigned> histogram(1 << num_qubits, 0);

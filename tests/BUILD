@@ -217,6 +217,7 @@ cc_library(
         "//lib:channel",
         "//lib:channels_cirq",
         "//lib:circuit_noisy",
+        "//lib:expect",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_cirq",

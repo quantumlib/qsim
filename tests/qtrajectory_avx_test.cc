@@ -44,6 +44,10 @@ TEST(QTrajectoryAVXTest, GenDump) {
   TestGenDump(qsim::Factory<SequentialFor>());
 }
 
+TEST(QTrajectoryAVXTest, ReusingResults) {
+  TestReusingResults(qsim::Factory<SequentialFor>());
+}
+
 TEST(QTrajectoryAVXTest, CollectKopStat) {
   TestCollectKopStat(qsim::Factory<SequentialFor>());
 }

@@ -59,6 +59,10 @@ TEST(QTrajectoryCuStateVecTest, GenDump) {
   TestGenDump(qsim::Factory<float>());
 }
 
+TEST(QTrajectoryCuStateVecTest, ReusingResults) {
+  TestReusingResults(qsim::Factory<float>());
+}
+
 TEST(QTrajectoryCuStateVecTest, CollectKopStat) {
   TestCollectKopStat(qsim::Factory<float>());
 }

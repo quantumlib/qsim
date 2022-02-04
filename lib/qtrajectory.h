@@ -55,6 +55,29 @@ class QuantumTrajectorySimulator {
      * If true, normalize the state vector before performing measurements.
      */
     bool normalize_before_mea_gates = true;
+    /**
+     * If false, do not apply deferred operators after the main loop.
+     * This can be used to speed up simulations of circuits with weak noise
+     * and without measurements by reusing the results for the "primary" noise
+     * realization, that is the noise realization in which the  "primary"
+     * (highest probability) Kraus operators are sampled in each channel.
+     * The primary Kraus operators should be first in their respective channels.
+     */
+    bool apply_last_deferred_ops = true;
+  };
+
+  /**
+   * Struct with statistics to populate by RunBatch and RunOnce methods.
+   */
+  struct Stat {
+    /**
+     * Indices of sampled Kraus operator indices and/or measured bitstrings.
+     */
+    std::vector<uint64_t> samples;
+    /**
+     * True if the "primary" noise realization is sampled, false otherwise.
+     */
+    bool primary;
   };
 
   /**
@@ -70,8 +93,7 @@ class QuantumTrajectorySimulator {
    *   computing expectation values, etc). This function should have three
    *   required parameters [repetition ID (uint64_t), final state vector
    *   (const State&), statistics of sampled Kraus operator indices and/or
-   *   measured bitstrings (const std::vector<uint64_t>&)] and any number of
-   *   optional parameters.
+   *   measured bitstrings (const Stat&)] and any number of optional parameters.
    * @param args Optional arguments for the 'measure' function.
    * @return True if the simulation completed successfully; false otherwise.
    */
@@ -100,8 +122,7 @@ class QuantumTrajectorySimulator {
    *   computing expectation values, etc). This function should have three
    *   required parameters [repetition ID (uint64_t), final state vector
    *   (const State&), statistics of sampled Kraus operator indices and/or
-   *   measured bitstrings (const std::vector<uint64_t>&)] and any number of
-   *   optional parameters.
+   *   measured bitstrings (const Stat&)] and any number of optional parameters.
    * @param args Optional arguments for the 'measure' function.
    * @return True if the simulation completed successfully; false otherwise.
    */
@@ -117,16 +138,24 @@ class QuantumTrajectorySimulator {
 
     State state = state_space.Null();
 
-    std::vector<uint64_t> stat;
+    Stat stat;
+    bool had_primary_realization = false;
 
     for (uint64_t r = r0; r < r1; ++r) {
       if (!state_space.IsNull(state)) {
         state_space.SetStateZero(state);
       }
 
-      if (!RunIteration(param, num_qubits, cbeg, cend, r,
-                        state_space, simulator, gates, state, stat)) {
+      bool apply_last_deferred_ops =
+          param.apply_last_deferred_ops || !had_primary_realization;
+
+      if (!RunIteration(param, apply_last_deferred_ops, num_qubits, cbeg, cend,
+                        r, state_space, simulator, gates, state, stat)) {
         return false;
+      }
+
+      if (stat.primary && !had_primary_realization) {
+        had_primary_realization = true;
       }
 
       measure(r, state, stat, args...);
@@ -151,7 +180,7 @@ class QuantumTrajectorySimulator {
   static bool RunOnce(const Parameter& param,
                       const NoisyCircuit<Gate>& circuit, uint64_t r,
                       const StateSpace& state_space, const Simulator& simulator,
-                      State& state, std::vector<uint64_t>& stat) {
+                      State& state, Stat& stat) {
     return RunOnce(param, circuit.num_qubits, circuit.channels.begin(),
                    circuit.channels.end(), r, state_space, simulator,
                    state, stat);
@@ -176,13 +205,12 @@ class QuantumTrajectorySimulator {
                       ncircuit_iterator<Gate> cbeg,
                       ncircuit_iterator<Gate> cend,
                       uint64_t r, const StateSpace& state_space,
-                      const Simulator& simulator, State& state,
-                      std::vector<uint64_t>& stat) {
+                      const Simulator& simulator, State& state, Stat& stat) {
     std::vector<const Gate*> gates;
     gates.reserve(4 * std::size_t(cend - cbeg));
 
-    if (!RunIteration(param, num_qubits, cbeg, cend, r,
-                      state_space, simulator, gates, state, stat)) {
+    if (!RunIteration(param, param.apply_last_deferred_ops, num_qubits, cbeg,
+                      cend, r, state_space, simulator, gates, state, stat)) {
       return false;
     }
 
@@ -190,16 +218,17 @@ class QuantumTrajectorySimulator {
   }
 
  private:
-  static bool RunIteration(const Parameter& param, unsigned num_qubits,
+  static bool RunIteration(const Parameter& param,
+                           bool apply_last_deferred_ops, unsigned num_qubits,
                            ncircuit_iterator<Gate> cbeg,
                            ncircuit_iterator<Gate> cend,
                            uint64_t rep, const StateSpace& state_space,
                            const Simulator& simulator,
                            std::vector<const Gate*>& gates,
-                           State& state, std::vector<uint64_t>& stat) {
+                           State& state, Stat& stat) {
     if (param.collect_kop_stat || param.collect_mea_stat) {
-      stat.reserve(std::size_t(cend - cbeg));
-      stat.resize(0);
+      stat.samples.reserve(std::size_t(cend - cbeg));
+      stat.samples.resize(0);
     }
 
     if (state_space.IsNull(state)) {
@@ -212,12 +241,12 @@ class QuantumTrajectorySimulator {
     }
 
     gates.resize(0);
-    stat.resize(0);
 
     RGen rgen(rep);
     std::uniform_real_distribution<double> distr(0.0, 1.0);
 
     bool unitary = true;
+    stat.primary = true;
 
     for (auto it = cbeg; it != cend; ++it) {
       const auto& channel = *it;
@@ -242,6 +271,8 @@ class QuantumTrajectorySimulator {
         }
 
         CollectStat(param.collect_mea_stat, mresult.bits, stat);
+
+        stat.primary = false;
 
         continue;
       }
@@ -310,11 +341,13 @@ class QuantumTrajectorySimulator {
       }
     }
 
-    if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
-      return false;
-    }
+    if (apply_last_deferred_ops || !stat.primary) {
+      if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
+        return false;
+      }
 
-    NormalizeState(!unitary, state_space, unitary, state);
+      NormalizeState(!unitary, state_space, unitary, state);
+    }
 
     return true;
   }
@@ -368,10 +401,13 @@ class QuantumTrajectorySimulator {
     }
   }
 
-  static void CollectStat(bool collect_stat, uint64_t i,
-                          std::vector<uint64_t>& stat) {
+  static void CollectStat(bool collect_stat, uint64_t i, Stat& stat) {
     if (collect_stat) {
-      stat.push_back(i);
+      stat.samples.push_back(i);
+    }
+
+    if (i != 0) {
+      stat.primary = false;
     }
   }
 
