@@ -357,10 +357,10 @@ class QSimSimulator(
             sampler_fn = self._sim_module.qsim_sample
 
         if (
-            not noisy and
-            program.are_all_measurements_terminal() and
-            repetitions > 1 and
-            num_qubits <= 32  # max length of ndarray.shape
+            not noisy
+            and program.are_all_measurements_terminal()
+            and repetitions > 1
+            and num_qubits <= 32  # max length of ndarray.shape
         ):
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
