@@ -99,7 +99,7 @@ def _needs_trajectories(circuit: cirq.Circuit) -> bool:
                 op, {param: 1 for param in cirq.parameter_names(op)}
             )
         )
-        if not (cirq.has_unitary(test_op) or cirq.is_measurement(test_op)):
+        if not (cirq.is_measurement(test_op) or cirq.has_unitary(test_op)):
             return True
     return False
 
@@ -356,7 +356,12 @@ class QSimSimulator(
             translator_fn_name = "translate_cirq_to_qsim"
             sampler_fn = self._sim_module.qsim_sample
 
-        if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
+        if (
+            not noisy and
+            program.are_all_measurements_terminal() and
+            repetitions > 1 and
+            num_qubits <= 32  # max length of ndarray.shape
+        ):
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
             for i in range(len(program.moments)):
