@@ -56,12 +56,18 @@ class QuantumTrajectorySimulator {
      */
     bool normalize_before_mea_gates = true;
     /**
-     * If false, do not apply deferred operators after the main loop.
-     * This can be used to speed up simulations of circuits with weak noise
-     * and without measurements by reusing the results for the "primary" noise
-     * realization, that is the noise realization in which the  "primary"
-     * (highest probability) Kraus operators are sampled in each channel.
-     * The primary Kraus operators should be first in their respective channels.
+     * If false, do not apply deferred operators after the main loop for
+     * the "primary" noise trajectory, that is the trajectory in which
+     * the primary (the first operators in their respective channels) Kraus
+     * operators are sampled for each channel and there are no measurements
+     * in the computational basis. This can be used to speed up simulations
+     * of circuits with weak noise and without measurements by reusing
+     * the primary trajectory results. It is the client's responsibility
+     * to collect the primary trajectory results and to reuse them. There is
+     * an additional condition for RunBatch. In this case, the deferred
+     * operators after the main loop are still applied for the first occurence
+     * of the primary trajectory. The primary Kraus operators should have
+     * the highest sampling probabilities to achieve the highest speedup.
      */
     bool apply_last_deferred_ops = true;
   };
@@ -75,7 +81,7 @@ class QuantumTrajectorySimulator {
      */
     std::vector<uint64_t> samples;
     /**
-     * True if the "primary" noise realization is sampled, false otherwise.
+     * True if the "primary" noise trajectory is sampled, false otherwise.
      */
     bool primary;
   };
