@@ -62,12 +62,14 @@ class QuantumTrajectorySimulator {
      * operators are sampled for each channel and there are no measurements
      * in the computational basis. This can be used to speed up simulations
      * of circuits with weak noise and without measurements by reusing
-     * the primary trajectory results. It is the client's responsibility
-     * to collect the primary trajectory results and to reuse them. There is
-     * an additional condition for RunBatch. In this case, the deferred
-     * operators after the main loop are still applied for the first occurence
-     * of the primary trajectory. The primary Kraus operators should have
-     * the highest sampling probabilities to achieve the highest speedup.
+     * the primary trajectory results. There is an additional condition for
+     * RunBatch. In this case, the deferred operators after the main loop are
+     * still applied for the first occurence of the primary trajectory.
+     * The primary Kraus operators should have the highest sampling
+     * probabilities to achieve the highest speedup.
+     *
+     * It is the client's responsibility to collect the primary trajectory
+     * results and to reuse them.
      */
     bool apply_last_deferred_ops = true;
   };
