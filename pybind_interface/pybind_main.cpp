@@ -481,8 +481,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
   StateSpace state_space = factory.CreateStateSpace();
 
   auto measure = [&bitstrings, &ncircuit, &amplitudes, &state_space](
-                  unsigned k, const State &state,
-                  std::vector<uint64_t>& stat) {
+                  unsigned k, const State &state, Runner::Stat& stat) {
     for (const auto &b : bitstrings) {
       amplitudes.push_back(state_space.GetAmpl(state, b));
     }
@@ -720,7 +719,7 @@ class SimulatorHelper {
     bool result = false;
 
     if (is_noisy) {
-      std::vector<uint64_t> stat;
+      NoisyRunner::Stat stat;
       auto params = get_noisy_params();
 
       Simulator simulator = factory.CreateSimulator();
@@ -739,7 +738,7 @@ class SimulatorHelper {
     bool result = false;
 
     if (is_noisy) {
-      std::vector<uint64_t> stat;
+      NoisyRunner::Stat stat;
       auto params = get_noisy_params();
       Simulator simulator = factory.CreateSimulator();
       StateSpace state_space = factory.CreateStateSpace();
@@ -1075,24 +1074,23 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   std::vector<std::vector<unsigned>> results;
 
   auto measure = [&results, &ncircuit, &state_space](
-                  unsigned k, const State &state,
-                  std::vector<uint64_t>& stat) {
+                  unsigned k, const State& state, Runner::Stat& stat) {
     // Converts stat (which matches the MeasurementResult 'bits' field) into
     // bitstrings matching the MeasurementResult 'bitstring' field.
     unsigned idx = 0;
     for (const auto& channel : ncircuit.channels) {
       if (channel[0].kind != gate::kMeasurement)
         continue;
-      for (const auto &op : channel[0].ops) {
+      for (const auto& op : channel[0].ops) {
         std::vector<unsigned> bitstring;
-        uint64_t val = stat[idx];
-        for (const auto &q : op.qubits) {
+        uint64_t val = stat.samples[idx];
+        for (const auto& q : op.qubits) {
           bitstring.push_back((val >> q) & 1);
         }
         results.push_back(bitstring);
 
         idx += 1;
-        if (idx >= stat.size())
+        if (idx >= stat.samples.size())
           return;
       }
     }

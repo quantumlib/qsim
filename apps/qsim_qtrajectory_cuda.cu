@@ -251,6 +251,7 @@ int main(int argc, char* argv[]) {
   typename QTSimulator::Parameter param3;
   param3.max_fused_size = opt.max_fused_size;
   param3.verbosity = opt.verbosity;
+  param3.apply_last_deferred_ops = true;
 
   auto channel1 = AmplitudeDampingChannel<fp_type>(opt.amplitude_damp_const);
   auto channel2 = PhaseDampingChannel<fp_type>(opt.phase_damp_const);
@@ -262,6 +263,11 @@ int main(int argc, char* argv[]) {
   std::vector<std::vector<std::vector<std::complex<double>>>> results;
   results.reserve(opt.num_trajectories);
 
+  QTSimulator::Stat stat;
+
+  using CleanResults = std::vector<std::vector<std::complex<double>>>;
+  CleanResults primary_results(noisy_circuits.size());
+
   for (unsigned i = 0; i < opt.num_trajectories; ++i) {
     results.push_back({});
     results[i].reserve(noisy_circuits.size());
@@ -271,7 +277,6 @@ int main(int argc, char* argv[]) {
     auto seed = noisy_circuits.size() * (i + opt.traj0);
 
     for (unsigned s = 0; s < noisy_circuits.size(); ++s) {
-      std::vector<uint64_t> stat;
       if (!QTSimulator::RunOnce(param3, noisy_circuits[s], seed++,
                                 state_space, simulator, state, stat)) {
         return 1;
@@ -280,9 +285,22 @@ int main(int argc, char* argv[]) {
       results[i].push_back({});
       results[i][s].reserve(observables.size());
 
-      for (const auto& obs : observables) {
-        results[i][s].push_back(
-            ExpectationValue<IO, Fuser>(obs, simulator, state));
+      primary_results[s].reserve(observables.size());
+
+      if (stat.primary && !primary_results[s].empty()) {
+        for (std::size_t k = 0; k < observables.size(); ++k) {
+          results[i][s].push_back(primary_results[s][k]);
+        }
+      } else {
+        for (const auto& obs : observables) {
+          auto result = ExpectationValue<IO, Fuser>(obs, simulator, state);
+          results[i][s].push_back(result);
+
+          if (stat.primary) {
+            primary_results[s].push_back(result);
+            param3.apply_last_deferred_ops = false;
+          }
+        }
       }
     }
   }

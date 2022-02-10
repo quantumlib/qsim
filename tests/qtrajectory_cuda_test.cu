@@ -58,6 +58,14 @@ TEST(QTrajectoryCUDATest, GenDump) {
   TestGenDump(factory);
 }
 
+TEST(QTrajectoryCUDATest, ReusingResults) {
+  using Factory = qsim::Factory<float>;
+  Factory::StateSpace::Parameter param1;
+  Factory::Simulator::Parameter param2;
+  Factory factory(param1, param2);
+  TestReusingResults(factory);
+}
+
 TEST(QTrajectoryCUDATest, CollectKopStat) {
   using Factory = qsim::Factory<float>;
   Factory::StateSpace::Parameter param1;
