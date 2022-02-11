@@ -349,19 +349,7 @@ class QSimSimulator(
             )
 
         noisy = _needs_trajectories(program)
-        if noisy:
-            translator_fn_name = "translate_cirq_to_qtrajectory"
-            sampler_fn = self._sim_module.qtrajectory_sample
-        else:
-            translator_fn_name = "translate_cirq_to_qsim"
-            sampler_fn = self._sim_module.qsim_sample
-
-        if (
-            not noisy
-            and program.are_all_measurements_terminal()
-            and repetitions > 1
-            and num_qubits <= 32  # max length of ndarray.shape
-        ):
+        if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
             for i in range(len(program.moments)):
@@ -378,12 +366,12 @@ class QSimSimulator(
                 cirq.QubitOrder.DEFAULT,
             )
             options["s"] = self.get_seed()
-            final_state = self._sim_module.qsim_simulate_fullstate(options, 0)
-            full_results = cirq.sample_state_vector(
-                final_state.view(np.complex64),
-                range(num_qubits),
-                repetitions=repetitions,
-                seed=self._prng,
+            raw_results = self._sim_module.qsim_sample_final(options, repetitions)
+            full_results = np.array(
+                [
+                    [bool(result & (1 << q)) for q in reversed(range(num_qubits))]
+                    for result in raw_results
+                ]
             )
 
             for key, op in meas_ops.items():
@@ -393,6 +381,13 @@ class QSimSimulator(
                 results[key] = full_results[:, meas_indices] ^ invert_mask
 
         else:
+            if noisy:
+                translator_fn_name = "translate_cirq_to_qtrajectory"
+                sampler_fn = self._sim_module.qtrajectory_sample
+            else:
+                translator_fn_name = "translate_cirq_to_qsim"
+                sampler_fn = self._sim_module.qsim_sample
+
             options["c"], _ = self._translate_circuit(
                 program,
                 translator_fn_name,

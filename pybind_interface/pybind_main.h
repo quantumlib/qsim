@@ -90,6 +90,8 @@ py::array_t<float> qsim_simulate_fullstate(
       const py::dict &options, const py::array_t<float> &input_vector);
 
 std::vector<unsigned> qsim_sample(const py::dict &options);
+std::vector<uint64_t> qsim_sample_final(
+  const py::dict &options, uint64_t num_samples);
 
 // Methods for simulating noisy circuits.
 std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options);
@@ -100,6 +102,8 @@ py::array_t<float> qtrajectory_simulate_fullstate(
       const py::dict &options, const py::array_t<float> &input_vector);
 
 std::vector<unsigned> qtrajectory_sample(const py::dict &options);
+std::vector<uint64_t> qtrajectory_sample_final(
+  const py::dict &options, uint64_t num_samples);
 
 // As above, but returning expectation values instead.
 std::vector<std::complex<double>> qsim_simulate_expectation_values(
@@ -200,8 +204,12 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
                                                                                       \
       /* Methods for returning samples */                                             \
       m.def("qsim_sample", &qsim_sample, "Call the qsim sampler");                    \
+      m.def("qsim_sample_final", &qsim_sample_final,                                  \
+            "Call the qsim final-state sampler");                                     \
       m.def("qtrajectory_sample", &qtrajectory_sample,                                \
             "Call the qtrajectory sampler");                                          \
+      m.def("qtrajectory_sample_final", &qtrajectory_sample_final,                    \
+            "Call the qtrajectory final-state sampler");                              \
                                                                                       \
       using GateCirq = qsim::Cirq::GateCirq<float>;                                   \
       using OpString = qsim::OpString<GateCirq>;                                      \
@@ -400,8 +408,12 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
                                                                                       \
       /* Methods for returning samples */                                             \
       m.def("qsim_sample", &qsim_sample, "Call the qsim sampler");                    \
+      m.def("qsim_sample_final", &qsim_sample_final,                                  \
+            "Call the qsim final-state sampler");                                     \
       m.def("qtrajectory_sample", &qtrajectory_sample,                                \
             "Call the qtrajectory sampler");                                          \
+      m.def("qtrajectory_sample_final", &qtrajectory_sample_final,                    \
+            "Call the qtrajectory final-state sampler");                              \
                                                                                       \
       using GateCirq = qsim::Cirq::GateCirq<float>;                                   \
       using OpString = qsim::OpString<GateCirq>;                                      \

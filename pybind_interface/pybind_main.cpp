@@ -525,6 +525,15 @@ class SimulatorHelper {
     return helper.release_state_to_python();
   }
 
+  static std::vector<uint64_t> sample_final_state(
+      const py::dict &options, bool is_noisy, uint64_t num_samples) {
+    auto helper = SimulatorHelper(options, is_noisy);
+    if (!helper.is_valid || !helper.simulate(0)) {
+      return {};
+    }
+    return helper.sample(num_samples);
+  }
+
   template <typename StateType>
   static std::vector<std::complex<double>> simulate_expectation_values(
       const py::dict &options,
@@ -753,6 +762,11 @@ class SimulatorHelper {
     return result;
   }
 
+  std::vector<uint64_t> sample(uint64_t num_samples) {
+    StateSpace state_space = factory.CreateStateSpace();
+    return state_space.Sample(state, num_samples, seed);
+  }
+
   py::array_t<float> release_state_to_python() {
     StateSpace state_space = factory.CreateStateSpace();
     state_space.InternalToNormalOrder(state);
@@ -930,6 +944,16 @@ qtrajectory_simulate_moment_expectation_values(
 }
 
 // Methods for sampling.
+
+std::vector<uint64_t> qsim_sample_final(
+    const py::dict &options, uint64_t num_samples) {
+  return SimulatorHelper::sample_final_state(options, false, num_samples);
+}
+
+std::vector<uint64_t> qtrajectory_sample_final(
+    const py::dict &options, uint64_t num_samples) {
+  return SimulatorHelper::sample_final_state(options, true, num_samples);
+}
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
