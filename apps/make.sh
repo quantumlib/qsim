@@ -27,5 +27,5 @@ nvcc -O3 -o qsim_base_cuda.x qsim_base_cuda.cu
 nvcc -O3 -o qsim_qtrajectory_cuda.x qsim_qtrajectory_cuda.cu
 
 # CUQUANTUM_DIR should be set.
-CUSTATEVECFLAGS="-I${CUQUANTUM_DIR}/include -L${CUQUANTUM_DIR}/lib64 -lcustatevec -lcublas"
+CUSTATEVECFLAGS="-I${CUQUANTUM_DIR}/include -L${CUQUANTUM_DIR}/lib -L${CUQUANTUM_DIR}/lib64 -lcustatevec -lcublas"
 nvcc -O3 $CUSTATEVECFLAGS -o qsim_base_custatevec.x qsim_base_custatevec.cu

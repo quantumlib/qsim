@@ -12,7 +12,7 @@ ARCHFLAGS = -march=native
 NVCCFLAGS = -O3
 
 # CUQUANTUM_DIR should be set.
-CUSTATEVECFLAGS = -I$(CUQUANTUM_DIR)/include -L$(CUQUANTUM_DIR)/lib64 -lcustatevec -lcublas
+CUSTATEVECFLAGS = -I$(CUQUANTUM_DIR)/include -L${CUQUANTUM_DIR}/lib -L$(CUQUANTUM_DIR)/lib64 -lcustatevec -lcublas
 
 PYBIND11 = true
 
