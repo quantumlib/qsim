@@ -9,6 +9,9 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
 
+project_name = os.environ.get("QSIMCIRQ_PROJECT", "qsimcirq")
+
+
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
@@ -87,27 +90,32 @@ long_description = open("README.md", encoding="utf-8").read()
 __version__ = ""
 exec(open("qsimcirq/_version.py").read())
 
+cmake_exts = [
+    CMakeExtension("qsimcirq/qsim_avx512"),
+    CMakeExtension("qsimcirq/qsim_avx2"),
+    CMakeExtension("qsimcirq/qsim_sse"),
+    CMakeExtension("qsimcirq/qsim_basic"),
+    CMakeExtension("qsimcirq/qsim_decide"),
+]
+if "gpu" in project_name:
+    cmake_exts += [
+        CMakeExtension("qsimcirq/qsim_cuda"),
+        CMakeExtension("qsimcirq/qsim_custatevec"),
+    ]
+
 setup(
-    name="qsimcirq",
+    name=project_name,
     version=__version__,
     url="https://github.com/quantumlib/qsim",
-    author="Vamsi Krishna Devabathini",
-    author_email="devabathini92@gmail.com",
-    python_requires=">=3.3.0",
+    author="The qsim Developers",
+    author_email="qsim-qsimh-dev@googlegroups.com",
+    python_requires=">=3.6.0",
     install_requires=requirements,
     license="Apache 2",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    ext_modules=[
-        CMakeExtension("qsimcirq/qsim_avx512"),
-        CMakeExtension("qsimcirq/qsim_avx2"),
-        CMakeExtension("qsimcirq/qsim_sse"),
-        CMakeExtension("qsimcirq/qsim_basic"),
-        CMakeExtension("qsimcirq/qsim_cuda"),
-        CMakeExtension("qsimcirq/qsim_custatevec"),
-        CMakeExtension("qsimcirq/qsim_decide"),
-    ],
+    ext_modules=cmake_exts,
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     packages=["qsimcirq"],
