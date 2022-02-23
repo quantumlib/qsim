@@ -957,7 +957,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
                   } else {
                     // Comparator needs to be irreflexive to get a strict weak ordering.
                     return ln != nullptr && rn == nullptr;
-                  } else {
+                  }
                 });
 
       for (auto link : links) {
