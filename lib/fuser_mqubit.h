@@ -954,12 +954,10 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
 
                   if (ln != nullptr && rn != nullptr) {
                     return R()(ln->val->parent->time, rn->val->parent->time);
-                  } else if (ln != rn) {
-                    return ln != nullptr || rn == nullptr;
                   } else {
                     // Comparator needs to be irreflexive to get a strict weak ordering.
-                    return false;
-                  }
+                    return ln != nullptr && rn == nullptr;
+                  } else {
                 });
 
       for (auto link : links) {
