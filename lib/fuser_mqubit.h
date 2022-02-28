@@ -955,7 +955,9 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
                   if (ln != nullptr && rn != nullptr) {
                     return R()(ln->val->parent->time, rn->val->parent->time);
                   } else {
-                    return ln != nullptr || rn == nullptr;
+                    // nullptrs are larger than everything else and
+                    // equivalent among each other.
+                    return ln != nullptr;
                   }
                 });
 
