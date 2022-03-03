@@ -16,6 +16,7 @@
 #define QTRAJECTORY_H_
 
 #include <cmath>
+#include <complex>
 #include <cstdint>
 #include <random>
 #include <vector>
