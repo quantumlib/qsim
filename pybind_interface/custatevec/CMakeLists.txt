@@ -27,23 +27,11 @@ if(APPLE)
     link_directories("/usr/local/lib" "/usr/local/opt/llvm/lib")
 endif()
 
-include(FetchContent)
-
-FetchContent_Declare(
-  pybind11
-  GIT_REPOSITORY https://github.com/pybind/pybind11
-  GIT_TAG v2.2.4
-)
-FetchContent_GetProperties(pybind11)
-if(NOT pybind11_POPULATED)
-  FetchContent_Populate(pybind11)
-  add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
-endif()
-
+INCLUDE(../GetPybind11.cmake)
 find_package(PythonLibs 3.6 REQUIRED)
 find_package(CUDA REQUIRED)
 
-include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
+include_directories(${pybind11_INCLUDE_DIRS})
 
 include_directories($ENV{CUQUANTUM_DIR}/include)
 link_directories($ENV{CUQUANTUM_DIR}/lib $ENV{CUQUANTUM_DIR}/lib64)
