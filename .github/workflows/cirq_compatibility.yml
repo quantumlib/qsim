@@ -18,5 +18,7 @@ jobs:
         run: pip3 install -U cirq --pre
       - name: Install qsim requirements
         run: pip3 install -r requirements.txt
+      - name: Install test requirements
+        run: pip3 install -r dev-requirements.txt
       - name: Run python tests
         run: make run-py-tests
