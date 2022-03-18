@@ -4,10 +4,10 @@ USER root
 
 # Centos 8 has reach end of life: https://www.centos.org/centos-linux-eol/
 # Configuration must be loaded from the vault.
-RUN pushd /etc/yum.repos.d/
-RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-RUN sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-RUN popd
+RUN pushd /etc/yum.repos.d/ && \
+	sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+	sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
+	popd
 
 # Install baseline
 RUN yum -y update && \
