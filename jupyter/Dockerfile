@@ -1,8 +1,15 @@
 # Base OS
 FROM centos:8
 USER root
-# Install baseline
 
+# Centos 8 has reach end of life: https://www.centos.org/centos-linux-eol/
+# Configuration must be loaded from the vault.
+RUN pushd /etc/yum.repos.d/
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+RUN sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+RUN popd
+
+# Install baseline
 RUN yum -y update && \
 	yum install -y epel-release && \
 	yum group install -y "Development Tools" && \
