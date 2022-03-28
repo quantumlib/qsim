@@ -252,18 +252,17 @@ class QSimCircuit(cirq.Circuit):
     def __init__(
         self,
         cirq_circuit: cirq.Circuit,
-        device: cirq.devices = cirq.devices.UNCONSTRAINED_DEVICE,
         allow_decomposition: bool = False,
     ):
 
         if allow_decomposition:
-            super().__init__([], device=device)
+            super().__init__()
             for moment in cirq_circuit:
                 for op in moment:
                     # This should call decompose on the gates
                     self.append(op)
         else:
-            super().__init__(cirq_circuit, device=device)
+            super().__init__(cirq_circuit)
 
     def __eq__(self, other):
         if not isinstance(other, QSimCircuit):
@@ -274,10 +273,7 @@ class QSimCircuit(cirq.Circuit):
     def _resolve_parameters_(
         self, param_resolver: cirq.study.ParamResolver, recursive: bool = True
     ):
-        return QSimCircuit(
-            cirq.resolve_parameters(super(), param_resolver, recursive),
-            device=self.device,
-        )
+        return QSimCircuit(cirq.resolve_parameters(super(), param_resolver, recursive))
 
     def translate_cirq_to_qsim(
         self, qubit_order: cirq.ops.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT

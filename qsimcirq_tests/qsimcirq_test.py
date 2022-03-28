@@ -271,10 +271,11 @@ def test_invalid_params():
     x, y = sympy.Symbol("x"), sympy.Symbol("y")
     circuit = cirq.Circuit(cirq.X(q0) ** x, cirq.H(q0) ** y)
     prs = [{x: np.int64(0), y: np.int64(1)}, {x: np.int64(1), y: "z"}]
+    sweep = cirq.ListSweep(prs)
 
     qsim_simulator = qsimcirq.QSimSimulator()
     with pytest.raises(ValueError, match="Parameters must be numeric"):
-        _ = qsim_simulator.simulate_sweep(circuit, params=prs)
+        _ = qsim_simulator.simulate_sweep(circuit, params=sweep)
 
 
 def test_iterable_qubit_order():
@@ -1154,10 +1155,10 @@ def test_cirq_qsim_simulate_random_unitary(mode: str):
             qubits=[q0, q1], n_moments=8, op_density=0.99, random_state=iter
         )
 
-        cirq.ConvertToCzAndSingleGates().optimize_circuit(
-            random_circuit
-        )  # cannot work with params
-        cirq.ExpandComposite().optimize_circuit(random_circuit)
+        random_circuit = cirq.optimize_for_target_gateset(
+            random_circuit, gateset=cirq.CZTargetGateset()
+        )
+        random_circuit = cirq.expand_composite(random_circuit)
         if mode == "noisy":
             random_circuit.append(NoiseTrigger().on(q0))
 

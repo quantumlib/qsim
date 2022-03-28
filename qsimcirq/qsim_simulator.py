@@ -305,7 +305,6 @@ class QSimSimulator(
             self.noise.noisy_moments(program, sorted(all_qubits))
             if self.noise is not cirq.NO_NOISE
             else program,
-            device=program.device,
         )
 
         # Compute indices of measured qubits
@@ -324,14 +323,15 @@ class QSimSimulator(
                 cirq.MeasurementGate
             )
         ]
-        measured_qubits = []  # type: List[cirq.Qid]
-        bounds = {}  # type: Dict[str, Tuple]
-        meas_ops = {}  # type: Dict[str, cirq.GateOperation]
+        measured_qubits: List[cirq.Qid] = []
+        bounds: Dict[str, Tuple] = {}
+        meas_ops: Dict[str, List[cirq.GateOperation]] = {}
         current_index = 0
         for op in measurement_ops:
             gate = op.gate
             key = cirq.measurement_key_name(gate)
-            meas_ops[key] = op
+            meas_ops.setdefault(key, [])
+            meas_ops[key].append(op)
             if key in bounds:
                 raise ValueError(f"Duplicate MeasurementGate with key {key}")
             bounds[key] = (current_index, current_index + len(op.qubits))
@@ -345,7 +345,7 @@ class QSimSimulator(
         results = {}
         for key, bound in bounds.items():
             results[key] = np.ndarray(
-                shape=(repetitions, bound[1] - bound[0]), dtype=int
+                shape=(repetitions, len(meas_ops[key]), bound[1] - bound[0]), dtype=int
             )
 
         noisy = _needs_trajectories(program)
@@ -374,11 +374,12 @@ class QSimSimulator(
                 ]
             )
 
-            for key, op in meas_ops.items():
-                meas_indices = [qubit_map[qubit] for qubit in op.qubits]
-                invert_mask = op.gate.full_invert_mask()
-                # Apply invert mask to re-ordered results
-                results[key] = full_results[:, meas_indices] ^ invert_mask
+            for key, oplist in meas_ops.items():
+                for i, op in enumerate(oplist):
+                    meas_indices = [qubit_map[qubit] for qubit in op.qubits]
+                    invert_mask = op.gate.full_invert_mask()
+                    # Apply invert mask to re-ordered results
+                    results[key][:, i, :] = full_results[:, meas_indices] ^ invert_mask
 
         else:
             if noisy:
@@ -396,7 +397,7 @@ class QSimSimulator(
             measurements = np.empty(
                 shape=(
                     repetitions,
-                    sum(cirq.num_qubits(op) for op in meas_ops.values()),
+                    sum(cirq.num_qubits(op) for oplist in meas_ops.values() for op in oplist),
                 ),
                 dtype=int,
             )
@@ -405,8 +406,9 @@ class QSimSimulator(
                 measurements[i] = sampler_fn(options)
 
             for key, (start, end) in bounds.items():
-                invert_mask = meas_ops[key].gate.full_invert_mask()
-                results[key] = measurements[:, start:end] ^ invert_mask
+                for i, op in enumerate(meas_ops[key]):
+                    invert_mask = op.gate.full_invert_mask()
+                    results[key][:, i, :] = measurements[:, start:end] ^ invert_mask
 
         return results
 
@@ -442,7 +444,6 @@ class QSimSimulator(
             self.noise.noisy_moments(program, sorted(all_qubits))
             if self.noise is not cirq.NO_NOISE
             else program,
-            device=program.device,
         )
 
         # qsim numbers qubits in reverse order from cirq
@@ -525,7 +526,6 @@ class QSimSimulator(
             self.noise.noisy_moments(program, sorted(all_qubits))
             if self.noise is not cirq.NO_NOISE
             else program,
-            device=program.device,
         )
 
         options = {}
@@ -661,7 +661,6 @@ class QSimSimulator(
             self.noise.noisy_moments(program, sorted(all_qubits))
             if self.noise is not cirq.NO_NOISE
             else program,
-            device=program.device,
         )
 
         options = {}
@@ -796,7 +795,6 @@ class QSimSimulator(
             self.noise.noisy_moments(program, sorted(all_qubits))
             if self.noise is not cirq.NO_NOISE
             else program,
-            device=program.device,
         )
 
         options = {}
