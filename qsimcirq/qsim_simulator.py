@@ -250,7 +250,7 @@ class QSimSimulator(
 
     def get_seed(self):
         # Limit seed size to 32-bit integer for C++ conversion.
-        return self._prng.randint(2**31 - 1)
+        return self._prng.randint(2 ** 31 - 1)
 
     def _run(
         self,
@@ -397,7 +397,11 @@ class QSimSimulator(
             measurements = np.empty(
                 shape=(
                     repetitions,
-                    sum(cirq.num_qubits(op) for oplist in meas_ops.values() for op in oplist),
+                    sum(
+                        cirq.num_qubits(op)
+                        for oplist in meas_ops.values()
+                        for op in oplist
+                    ),
                 ),
                 dtype=int,
             )
@@ -540,7 +544,7 @@ class QSimSimulator(
             if initial_state.dtype != np.complex64:
                 raise TypeError(f"initial_state vector must have dtype np.complex64.")
             input_vector = initial_state.view(np.float32)
-            if len(input_vector) != 2**num_qubits * 2:
+            if len(input_vector) != 2 ** num_qubits * 2:
                 raise ValueError(
                     f"initial_state vector size must match number of qubits."
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
@@ -671,7 +675,7 @@ class QSimSimulator(
             if initial_state.dtype != np.complex64:
                 raise TypeError(f"initial_state vector must have dtype np.complex64.")
             input_vector = initial_state.view(np.float32)
-            if len(input_vector) != 2**num_qubits * 2:
+            if len(input_vector) != 2 ** num_qubits * 2:
                 raise ValueError(
                     f"initial_state vector size must match number of qubits."
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
@@ -805,7 +809,7 @@ class QSimSimulator(
             if initial_state.dtype != np.complex64:
                 raise TypeError(f"initial_state vector must have dtype np.complex64.")
             input_vector = initial_state.view(np.float32)
-            if len(input_vector) != 2**num_qubits * 2:
+            if len(input_vector) != 2 ** num_qubits * 2:
                 raise ValueError(
                     f"initial_state vector size must match number of qubits."
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"

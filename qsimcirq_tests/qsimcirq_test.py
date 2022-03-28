@@ -287,11 +287,14 @@ def test_iterable_qubit_order():
     )
     qsim_simulator = qsimcirq.QSimSimulator()
 
-    assert qsim_simulator.compute_amplitudes(
-        circuit,
-        bitstrings=[0b00, 0b01],
-        qubit_order=reversed([q1, q0]),
-    ) == qsim_simulator.compute_amplitudes(circuit, bitstrings=[0b00, 0b01])
+    assert (
+        qsim_simulator.compute_amplitudes(
+            circuit,
+            bitstrings=[0b00, 0b01],
+            qubit_order=reversed([q1, q0]),
+        )
+        == qsim_simulator.compute_amplitudes(circuit, bitstrings=[0b00, 0b01])
+    )
 
     assert qsim_simulator.simulate(
         circuit, qubit_order=reversed([q1, q0])
