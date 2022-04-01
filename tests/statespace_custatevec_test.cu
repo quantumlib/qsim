@@ -96,7 +96,6 @@ TYPED_TEST(StateSpaceCuStateVecTest, MeasurementLarge) {
 }
 
 TYPED_TEST(StateSpaceCuStateVecTest, Collapse) {
-//  This test fails.
   TestCollapse(qsim::Factory<TypeParam>());
 }
 

@@ -179,7 +179,8 @@ After a moment, you should see a result that looks similar to the following.
 
 If you have the [NVIDIA cuQuantum SDK](https://developer.nvidia.com/cuquantum-sdk)
 installed (instructions are provided
-[here](https://docs.nvidia.com/cuda/cuquantum/custatevec/html/getting_started.html#installation-and-compilation)),
+[here](https://docs.nvidia.com/cuda/cuquantum/custatevec/html/getting_started.html#installation-and-compilation),
+cuStateVec v1.0.0 or higher is required),
 you can use it with this tutorial. Before building qsim in step 5,
 set the `CUQUANTUM_DIR` environment variable from the command line:
 
