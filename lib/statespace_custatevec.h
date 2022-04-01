@@ -247,15 +247,15 @@ class StateSpaceCuStateVec :
       size_t workspace_size;
       custatevecSamplerDescriptor_t sampler;
 
-      ErrorCheck(custatevecSampler_create(
+      ErrorCheck(custatevecSamplerCreate(
                      custatevec_handle_, state.get(), kStateType,
                      state.num_qubits(), &sampler, num_samples,
                      &workspace_size));
 
       AllocWorkSpace(workspace_size);
 
-      ErrorCheck(custatevecSampler_preprocess(
-                     custatevec_handle_, &sampler, workspace_, workspace_size));
+      ErrorCheck(custatevecSamplerPreprocess(
+                     custatevec_handle_, sampler, workspace_, workspace_size));
 
       std::vector<custatevecIndex_t> bitstrings0(num_samples);
       std::vector<int32_t> bitordering;
@@ -265,8 +265,8 @@ class StateSpaceCuStateVec :
         bitordering.push_back(i);
       }
 
-      ErrorCheck(custatevecSampler_sample(
-                     custatevec_handle_, &sampler, bitstrings0.data(),
+      ErrorCheck(custatevecSamplerSample(
+                     custatevec_handle_, sampler, bitstrings0.data(),
                      bitordering.data(), state.num_qubits(), rs.data(),
                      num_samples, CUSTATEVEC_SAMPLER_OUTPUT_RANDNUM_ORDER));
 

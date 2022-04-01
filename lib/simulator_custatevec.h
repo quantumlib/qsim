@@ -65,7 +65,7 @@ class SimulatorCuStateVec final {
     ErrorCheck(custatevecApplyMatrix(
                    handle_, state.get(), kStateType, state.num_qubits(),
                    matrix, kMatrixType, kMatrixLayout, 0,
-                   (int32_t*) qs.data(), qs.size(), nullptr, 0, nullptr,
+                   (int32_t*) qs.data(), qs.size(), nullptr, nullptr, 0,
                    kComputeType, workspace_, workspace_size));
   }
 
@@ -95,7 +95,7 @@ class SimulatorCuStateVec final {
                    handle_, state.get(), kStateType, state.num_qubits(),
                    matrix, kMatrixType, kMatrixLayout, 0,
                    (int32_t*) qs.data(), qs.size(),
-                   (int32_t*) cqs.data(), cqs.size(), control_bits.data(),
+                   (int32_t*) cqs.data(), control_bits.data(), cqs.size(),
                    kComputeType, workspace_, workspace_size));
   }
 
@@ -116,7 +116,7 @@ class SimulatorCuStateVec final {
 
     cuDoubleComplex eval;
 
-    ErrorCheck(custatevecExpectation(
+    ErrorCheck(custatevecComputeExpectation(
                    handle_, state.get(), kStateType, state.num_qubits(),
                    &eval, kExpectType, nullptr, matrix, kMatrixType,
                    kMatrixLayout, (int32_t*) qs.data(), qs.size(),
@@ -138,7 +138,7 @@ class SimulatorCuStateVec final {
       const fp_type* matrix) const {
     size_t size;
 
-    ErrorCheck(custatevecApplyMatrix_bufferSize(
+    ErrorCheck(custatevecApplyMatrixGetWorkspaceSize(
                    handle_, kStateType, num_qubits, matrix, kMatrixType,
                    kMatrixLayout, 0, num_targets, num_controls, kComputeType,
                    &size));
@@ -150,7 +150,7 @@ class SimulatorCuStateVec final {
       unsigned num_qubits, unsigned num_targets, const fp_type* matrix) const {
     size_t size;
 
-    ErrorCheck(custatevecExpectation_bufferSize(
+    ErrorCheck(custatevecComputeExpectationGetWorkspaceSize(
                    handle_, kStateType, num_qubits, matrix, kMatrixType,
                    kMatrixLayout, num_targets, kComputeType, &size));
 
