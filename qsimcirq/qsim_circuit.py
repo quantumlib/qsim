@@ -38,11 +38,6 @@ def _translate_ControlledGate(gate: cirq.ControlledGate):
     return _cirq_gate_kind(gate.sub_gate)
 
 
-def _translate_IdentityGate(gate: cirq.IdentityGate):
-    # Identity gates will decompose to no-ops.
-    pass
-
-
 def _translate_XPowGate(gate: cirq.XPowGate):
     # cirq.rx also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:
@@ -175,7 +170,6 @@ def _translate_MeasurementGate(gate: cirq.MeasurementGate):
 
 TYPE_TRANSLATOR = {
     cirq.ControlledGate: _translate_ControlledGate,
-    cirq.IdentityGate: _translate_IdentityGate,
     cirq.XPowGate: _translate_XPowGate,
     cirq.YPowGate: _translate_YPowGate,
     cirq.ZPowGate: _translate_ZPowGate,
@@ -210,6 +204,8 @@ def _cirq_gate_kind(gate: cirq.Gate):
 
 
 def _has_cirq_gate_kind(op: cirq.Operation):
+    if isinstance(op, cirq.ControlledOperation):
+        return _has_cirq_gate_kind(op.sub_operation)
     return any(t in TYPE_TRANSLATOR for t in type(op.gate).mro())
 
 
