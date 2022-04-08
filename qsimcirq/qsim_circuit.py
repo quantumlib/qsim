@@ -33,21 +33,30 @@ GATE_PARAMS = [
     "theta",
 ]
 
+
 def _translate_ControlledGate(gate: cirq.ControlledGate):
     return _cirq_gate_kind(gate.sub_gate)
+
+
 def _translate_IdentityGate(gate: cirq.IdentityGate):
     # Identity gates will decompose to no-ops.
     pass
+
+
 def _translate_XPowGate(gate: cirq.XPowGate):
     # cirq.rx also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kX
     return qsim.kXPowGate
+
+
 def _translate_YPowGate(gate: cirq.YPowGate):
     # cirq.ry also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kY
     return qsim.kYPowGate
+
+
 def _translate_ZPowGate(gate: cirq.ZPowGate):
     # cirq.rz also uses this path.
     if gate.global_shift == 0:
@@ -58,62 +67,98 @@ def _translate_ZPowGate(gate: cirq.ZPowGate):
         if gate.exponent == 0.25:
             return qsim.kT
     return qsim.kZPowGate
+
+
 def _translate_HPowGate(gate: cirq.HPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kH
     return qsim.kHPowGate
+
+
 def _translate(gate: cirq.CZPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kCZ
     return qsim.kCZPowGate
+
+
 def _translate_CXPowGate(gate: cirq.CXPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kCX
     return qsim.kCXPowGate
+
+
 def _translate_PhasedXPowGate(gate: cirq.PhasedXPowGate):
     return qsim.kPhasedXPowGate
+
+
 def _translate_PhasedXZGate(gate: cirq.PhasedXZGate):
     return qsim.kPhasedXZGate
+
+
 def _translate_XXPowGate(gate: cirq.XXPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kXX
     return qsim.kXXPowGate
+
+
 def _translate_YYPowGate(gate: cirq.YYPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kYY
     return qsim.kYYPowGate
+
+
 def _translate_ZZPowGate(gate: cirq.ZZPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kZZ
     return qsim.kZZPowGate
+
+
 def _translate_SwapPowGate(gate: cirq.SwapPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kSWAP
     return qsim.kSwapPowGate
+
+
 def _translate_ISwapPowGate(gate: cirq.ISwapPowGate):
     # cirq.riswap also uses this path.
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kISWAP
     return qsim.kISwapPowGate
+
+
 def _translate_PhasedISwapPowGate(gate: cirq.PhasedISwapPowGate):
     # cirq.givens also uses this path.
     return qsim.kPhasedISwapPowGate
+
+
 def _translate_FSimGate(gate: cirq.FSimGate):
     return qsim.kFSimGate
+
+
 def _translate_TwoQubitDiagonalGate(gate: cirq.TwoQubitDiagonalGate):
     return qsim.kTwoQubitDiagonalGate
+
+
 def _translate_ThreeQubitDiagonalGate(gate: cirq.ThreeQubitDiagonalGate):
     return qsim.kThreeQubitDiagonalGate
+
+
 def _translate_CCZPowGate(gate: cirq.CCZPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kCCZ
     return qsim.kCCZPowGate
+
+
 def _translate_CCXPowGate(gate: cirq.CCXPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kCCX
     return qsim.kCCXPowGate
+
+
 def _translate_CSwapGate(gate: cirq.CSwapGate):
     return qsim.kCSwapGate
+
+
 def _translate_MatrixGate(gate: cirq.MatrixGate):
     if gate.num_qubits() <= 6:
         return qsim.kMatrixGate
@@ -121,6 +166,8 @@ def _translate_MatrixGate(gate: cirq.MatrixGate):
         f"Received matrix on {gate.num_qubits()} qubits; "
         + "only up to 6-qubit gates are supported."
     )
+
+
 def _translate_MeasurementGate(gate: cirq.MeasurementGate):
     # needed to inherit SimulatesSamples in sims
     return qsim.kMeasurement
@@ -347,7 +394,9 @@ class QSimCircuit(cirq.Circuit):
         moment_indices = []
         for moment in self:
             ops_by_gate = [
-                cirq.decompose(op, fallback_decomposer=to_matrix, keep=_has_cirq_gate_kind)
+                cirq.decompose(
+                    op, fallback_decomposer=to_matrix, keep=_has_cirq_gate_kind
+                )
                 for op in moment
             ]
             moment_length = max((len(gate_ops) for gate_ops in ops_by_gate), default=0)
