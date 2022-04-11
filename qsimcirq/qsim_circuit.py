@@ -70,7 +70,7 @@ def _translate_HPowGate(gate: cirq.HPowGate):
     return qsim.kHPowGate
 
 
-def _translate(gate: cirq.CZPowGate):
+def _translate_CZPowGate(gate: cirq.CZPowGate):
     if gate.exponent == 1 and gate.global_shift == 0:
         return qsim.kCZ
     return qsim.kCZPowGate
@@ -174,6 +174,7 @@ TYPE_TRANSLATOR = {
     cirq.YPowGate: _translate_YPowGate,
     cirq.ZPowGate: _translate_ZPowGate,
     cirq.HPowGate: _translate_HPowGate,
+    cirq.CZPowGate: _translate_CZPowGate,
     cirq.CXPowGate: _translate_CXPowGate,
     cirq.PhasedXPowGate: _translate_PhasedXPowGate,
     cirq.PhasedXZGate: _translate_PhasedXZGate,
