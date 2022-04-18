@@ -48,7 +48,7 @@ class QSimhSimulator(cirq.SimulatesAmplitudes):
     ) -> Sequence[Sequence[complex]]:
 
         if not isinstance(program, qsimc.QSimCircuit):
-            program = qsimc.QSimCircuit(program, device=program.device)
+            program = qsimc.QSimCircuit(program)
 
         n_qubits = len(program.all_qubits())
         # qsim numbers qubits in reverse order from cirq
