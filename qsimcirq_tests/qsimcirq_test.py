@@ -19,7 +19,7 @@ import pytest
 import qsimcirq
 
 
-class NoiseTrigger(cirq.SingleQubitGate):
+class NoiseTrigger(cirq.Gate):
     """A no-op gate with no _unitary_ method defined.
 
     Appending this gate to a circuit will force it to use qtrajectory, but the
@@ -28,6 +28,9 @@ class NoiseTrigger(cirq.SingleQubitGate):
 
     # def _mixture_(self):
     #   return ((1.0, np.asarray([1, 0, 0, 1])),)
+
+    def _num_qubits_(self) -> int:
+        return 1
 
     def _kraus_(self):
         return (np.asarray([1, 0, 0, 1]),)
