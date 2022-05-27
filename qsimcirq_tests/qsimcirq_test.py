@@ -57,6 +57,22 @@ def test_empty_moment(mode: str):
     assert result.final_state_vector.shape == (4,)
 
 
+def test_repeated_keys():
+    q = cirq.LineQubit(0)
+    circuit = cirq.Circuit(
+        cirq.measure(q, key='m'),
+        cirq.X(q),
+        cirq.measure(q, key='m'),
+        cirq.X(q),
+        cirq.measure(q, key='m'),
+    )
+    result = qsimcirq.QSimSimulator().simulate(circuit, repetitions=10)
+    assert result.records['m'] == (10, 3, 1)
+    assert np.all(result.records['m'][:, 0, :] == 0)
+    assert np.all(result.records['m'][:, 1, :] == 1)
+    assert np.all(result.records['m'][:, 2, :] == 0)
+
+
 def test_cirq_too_big_gate():
     # Pick qubits.
     a, b, c, d, e, f, g = [

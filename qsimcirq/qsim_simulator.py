@@ -323,8 +323,8 @@ class QSimSimulator(
                 cirq.MeasurementGate
             )
         ]
-        measured_qubits: List[cirq.Qid] = []
-        bounds: Dict[str, Tuple] = {}
+        num_qubits_by_key: Dict[str, int] = {}
+        bounds: Dict[str, Tuple[int, int]] = {}
         meas_ops: Dict[str, List[cirq.GateOperation]] = {}
         current_index = 0
         for op in measurement_ops:
@@ -332,21 +332,26 @@ class QSimSimulator(
             key = cirq.measurement_key_name(gate)
             meas_ops.setdefault(key, [])
             meas_ops[key].append(op)
-            if key in bounds:
-                raise ValueError(f"Duplicate MeasurementGate with key {key}")
-            bounds[key] = (current_index, current_index + len(op.qubits))
-            measured_qubits.extend(op.qubits)
-            current_index += len(op.qubits)
+            n = len(op.qubits)
+            if key in num_qubits_by_key:
+                if n != num_qubits_by_key[key]:
+                    raise ValueError(
+                        f'repeated key {key!r} with different numbers of qubits: '
+                        f'{num_qubits_by_key[key]} != {n}'
+                    )
+            else:
+                num_qubits_by_key[key] = n
+            if key not in bounds:
+                bounds[key] = (current_index, current_index + n)
+            current_index += n
 
         # Set qsim options
-        options = {}
-        options.update(self.qsim_options)
+        options = {**self.qsim_options}
 
-        results = {}
-        for key, bound in bounds.items():
-            results[key] = np.ndarray(
-                shape=(repetitions, len(meas_ops[key]), bound[1] - bound[0]), dtype=int
-            )
+        results = {
+            key: np.ndarray(shape=(repetitions, len(meas_ops[key]), n), dtype=int)
+            for key, n in num_qubits_by_key.items()
+        }
 
         noisy = _needs_trajectories(program)
         if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
