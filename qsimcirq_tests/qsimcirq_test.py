@@ -66,7 +66,7 @@ def test_repeated_keys():
         cirq.X(q),
         cirq.measure(q, key="m"),
     )
-    result = qsimcirq.QSimSimulator().simulate(circuit, repetitions=10)
+    result = qsimcirq.QSimSimulator().run(circuit, repetitions=10)
     assert result.records["m"] == (10, 3, 1)
     assert np.all(result.records["m"][:, 0, :] == 0)
     assert np.all(result.records["m"][:, 1, :] == 1)
