@@ -336,8 +336,8 @@ class QSimSimulator(
             if key in num_qubits_by_key:
                 if n != num_qubits_by_key[key]:
                     raise ValueError(
-                        f'repeated key {key!r} with different numbers of qubits: '
-                        f'{num_qubits_by_key[key]} != {n}'
+                        f"repeated key {key!r} with different numbers of qubits: "
+                        f"{num_qubits_by_key[key]} != {n}"
                     )
             else:
                 num_qubits_by_key[key] = n
