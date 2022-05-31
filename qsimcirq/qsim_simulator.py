@@ -324,7 +324,7 @@ class QSimSimulator(
             )
         ]
         num_qubits_by_key: Dict[str, int] = {}
-        bounds: Dict[str, Tuple[int, int]] = {}
+        bounds: List[Tuple[str, int, int]] = []
         meas_ops: Dict[str, List[cirq.GateOperation]] = {}
         current_index = 0
         for op in measurement_ops:
@@ -341,8 +341,7 @@ class QSimSimulator(
                     )
             else:
                 num_qubits_by_key[key] = n
-            if key not in bounds:
-                bounds[key] = (current_index, current_index + n)
+            bounds.append((key, current_index, current_index + n))
             current_index += n
 
         # Set qsim options
@@ -414,7 +413,7 @@ class QSimSimulator(
                 options["s"] = self.get_seed()
                 measurements[i] = sampler_fn(options)
 
-            for key, (start, end) in bounds.items():
+            for key, start, end in bounds:
                 for i, op in enumerate(meas_ops[key]):
                     invert_mask = op.gate.full_invert_mask()
                     results[key][:, i, :] = measurements[:, start:end] ^ invert_mask
