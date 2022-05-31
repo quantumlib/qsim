@@ -313,10 +313,13 @@ class QSimSimulator(
 
         qubit_map = {qubit: index for index, qubit in enumerate(ordered_qubits)}
 
-        # Computes
-        # - the list of qubits to be measured
-        # - the start (inclusive) and end (exclusive) indices of each measurement
-        # - a mapping from measurement key to measurement gate
+        # Compute:
+        # - number of qubits for each measurement key.
+        # - measurement ops for each measurement key.
+        # - info about each measurement, including the key, instance (for repeated keys),
+        #   start (inclusive) and end (exclusive) indices in the qsim output, and
+        #   invert mask.
+        # - total number of measured bits.
         measurement_ops = [
             op
             for _, op, _ in program.findall_operations_with_gate_type(
@@ -324,13 +327,14 @@ class QSimSimulator(
             )
         ]
         num_qubits_by_key: Dict[str, int] = {}
-        bounds: List[Tuple[str, int, int]] = []
         meas_ops: Dict[str, List[cirq.GateOperation]] = {}
-        current_index = 0
+        info: List[Tuple[str, int, Tuple[bool, ...], int, int]] = []
+        num_bits = 0
         for op in measurement_ops:
             gate = op.gate
             key = cirq.measurement_key_name(gate)
             meas_ops.setdefault(key, [])
+            i = len(meas_ops[key])
             meas_ops[key].append(op)
             n = len(op.qubits)
             if key in num_qubits_by_key:
@@ -341,8 +345,8 @@ class QSimSimulator(
                     )
             else:
                 num_qubits_by_key[key] = n
-            bounds.append((key, current_index, current_index + n))
-            current_index += n
+            info.append((key, i, gate.full_invert_mask(), num_bits, num_bits + n))
+            num_bits += n
 
         # Set qsim options
         options = {**self.qsim_options}
@@ -398,25 +402,13 @@ class QSimSimulator(
                 translator_fn_name,
                 cirq.QubitOrder.DEFAULT,
             )
-            measurements = np.empty(
-                shape=(
-                    repetitions,
-                    sum(
-                        cirq.num_qubits(op)
-                        for oplist in meas_ops.values()
-                        for op in oplist
-                    ),
-                ),
-                dtype=int,
-            )
+            measurements = np.empty(shape=(repetitions, num_bits), dtype=int)
             for i in range(repetitions):
                 options["s"] = self.get_seed()
                 measurements[i] = sampler_fn(options)
 
-            for key, start, end in bounds:
-                for i, op in enumerate(meas_ops[key]):
-                    invert_mask = op.gate.full_invert_mask()
-                    results[key][:, i, :] = measurements[:, start:end] ^ invert_mask
+            for key, i, invert_mask, start, end in info:
+                results[key][:, i, :] = measurements[:, start:end] ^ invert_mask
 
         return results
 
