@@ -14,8 +14,7 @@
 
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
-from xml.etree.ElementPath import ops
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import cirq
 
