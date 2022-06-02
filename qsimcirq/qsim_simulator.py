@@ -167,6 +167,25 @@ class QSimOptions:
         }
 
 
+@dataclass
+class MeasInfo:
+    """Info about each measure operation in the circuit being simulated.
+
+    Attributes:
+        key: The measurement key.
+        idx: The "instance" of a possibly-repeated measurement key.
+        invert_mask: True for any measurement bits that should be inverted.
+        start: Start index in qsim's output array for this measurement.
+        end: End index (non-inclusive) in qsim's output array.
+    """
+
+    key: str
+    idx: int
+    invert_mask: Tuple[bool, ...]
+    start: int
+    end: int
+
+
 class QSimSimulator(
     cirq.SimulatesSamples,
     cirq.SimulatesAmplitudes,
@@ -315,9 +334,7 @@ class QSimSimulator(
         # Compute:
         # - number of qubits for each measurement key.
         # - measurement ops for each measurement key.
-        # - info about each measurement, including the key, instance (for repeated keys),
-        #   start (inclusive) and end (exclusive) indices in the qsim output, and
-        #   invert mask.
+        # - measurement info for each measurement.
         # - total number of measured bits.
         measurement_ops = [
             op
@@ -327,7 +344,7 @@ class QSimSimulator(
         ]
         num_qubits_by_key: Dict[str, int] = {}
         meas_ops: Dict[str, List[cirq.GateOperation]] = {}
-        info: List[Tuple[str, int, Tuple[bool, ...], int, int]] = []
+        meas_infos: List[MeasInfo] = []
         num_bits = 0
         for op in measurement_ops:
             gate = op.gate
@@ -344,7 +361,15 @@ class QSimSimulator(
                     )
             else:
                 num_qubits_by_key[key] = n
-            info.append((key, i, gate.full_invert_mask(), num_bits, num_bits + n))
+            meas_infos.append(
+                MeasInfo(
+                    key=key,
+                    idx=i,
+                    invert_mask=gate.full_invert_mask(),
+                    start=num_bits,
+                    end=num_bits + n,
+                )
+            )
             num_bits += n
 
         # Set qsim options
@@ -406,8 +431,10 @@ class QSimSimulator(
                 options["s"] = self.get_seed()
                 measurements[i] = sampler_fn(options)
 
-            for key, i, invert_mask, start, end in info:
-                results[key][:, i, :] = measurements[:, start:end] ^ invert_mask
+            for m in meas_infos:
+                results[m.key][:, m.idx, :] = (
+                    measurements[:, m.start : m.end] ^ m.invert_mask
+                )
 
         return results
 

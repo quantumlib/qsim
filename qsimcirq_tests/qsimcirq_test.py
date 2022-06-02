@@ -58,19 +58,46 @@ def test_empty_moment(mode: str):
 
 
 def test_repeated_keys():
-    q = cirq.LineQubit(0)
+    q0, q1 = cirq.LineQubit.range(2)
     circuit = cirq.Circuit(
-        cirq.measure(q, key="m"),
-        cirq.X(q),
-        cirq.measure(q, key="m"),
-        cirq.X(q),
-        cirq.measure(q, key="m"),
+        cirq.Moment(cirq.measure(q0, key="m")),
+        cirq.Moment(cirq.X(q1)),
+        cirq.Moment(cirq.measure(q1, key="m")),
+        cirq.Moment(cirq.X(q0)),
+        cirq.Moment(cirq.measure(q0, key="m")),
+        cirq.Moment(cirq.X(q1)),
+        cirq.Moment(cirq.measure(q1, key="m")),
     )
     result = qsimcirq.QSimSimulator().run(circuit, repetitions=10)
-    assert result.records["m"].shape == (10, 3, 1)
+    assert result.records["m"].shape == (10, 4, 1)
     assert np.all(result.records["m"][:, 0, :] == 0)
     assert np.all(result.records["m"][:, 1, :] == 1)
-    assert np.all(result.records["m"][:, 2, :] == 0)
+    assert np.all(result.records["m"][:, 2, :] == 1)
+    assert np.all(result.records["m"][:, 3, :] == 0)
+
+
+def test_repeated_keys_same_moment():
+    q0, q1 = cirq.LineQubit.range(2)
+    circuit = cirq.Circuit(
+        cirq.Moment(cirq.X(q1)),
+        cirq.Moment(cirq.measure(q0, key="m"), cirq.measure(q1, key="m")),
+    )
+    result = qsimcirq.QSimSimulator().run(circuit, repetitions=10)
+    assert result.records["m"].shape == (10, 2, 1)
+    assert np.all(result.records["m"][:, 0, :] == 0)
+    assert np.all(result.records["m"][:, 1, :] == 1)
+
+
+def test_repeated_keys_different_numbers_of_qubits():
+    q0, q1 = cirq.LineQubit.range(2)
+    circuit = cirq.Circuit(
+        cirq.measure(q0, key="m"),
+        cirq.measure(q0, q1, key="m"),
+    )
+    with pytest.raises(
+        ValueError, match="repeated key 'm' with different numbers of qubits"
+    ):
+        _ = qsimcirq.QSimSimulator().run(circuit, repetitions=10)
 
 
 def test_cirq_too_big_gate():
