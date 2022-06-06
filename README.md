@@ -85,12 +85,14 @@ located in [tests](https://github.com/quantumlib/qsim/tree/master/tests).
 Python tests use pytest, and are located in
 [qsimcirq_tests](https://github.com/quantumlib/qsim/tree/master/qsimcirq_tests).
 
-To build and run all tests, navigate to the test directory and run:
+To build and run all tests, run:
 ```
-make run-all
+make run-tests
 ```
 This will compile all test binaries to files with `.x` extensions, and run each
-test in series. Testing will stop early if a test fails.
+test in series. Testing will stop early if a test fails. It will also run tests
+of the `qsimcirq` python interface. To run C++ or python tests only, run
+`make run-cxx-tests` or `make run-py-tests`, respectively.
 
 To clean up generated test files, run `make clean` from the test directory.
 
