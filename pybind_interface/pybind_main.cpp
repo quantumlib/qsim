@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "../lib/bitstring.h"
+#include "../lib/channel.h"
 #include "../lib/expect.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
@@ -30,28 +31,10 @@
 #include "../lib/qtrajectory.h"
 #include "../lib/run_qsim.h"
 #include "../lib/run_qsimh.h"
-#include "../lib/util.h"
 
 using namespace qsim;
 
 namespace {
-
-struct Factory {
-  Factory(unsigned num_threads) : num_threads(num_threads) {}
-
-  using Simulator = qsim::Simulator<For>;
-  using StateSpace = Simulator::StateSpace;
-
-  StateSpace CreateStateSpace() const {
-    return StateSpace(num_threads);
-  }
-
-  Simulator CreateSimulator() const {
-    return Simulator(num_threads);
-  }
-
-  unsigned num_threads;
-};
 
 template <typename T>
 T parseOptions(const py::dict &options, const char *key) {
@@ -356,6 +339,9 @@ void add_channel(const unsigned time,
     channel.emplace_back(KrausOperator<Gate>{
       KrausOperator<Gate>::kNormal, is_unitary, prob, {gate}
     });
+    if (!is_unitary) {
+      channel.back().CalculateKdKMatrix();
+    }
   }
   ncircuit->channels.push_back(channel);
 }
@@ -399,10 +385,24 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
                             Factory>;
 
-  unsigned num_threads;
+  bool use_gpu;
+  bool denormals_are_zeros;
+  unsigned gpu_mode;
+  unsigned num_sim_threads = 0;
+  unsigned num_state_threads = 0;
+  unsigned num_dblocks = 0;
   Runner::Parameter param;
   try {
-    num_threads = parseOptions<unsigned>(options, "t\0");
+    use_gpu = parseOptions<unsigned>(options, "g\0");
+    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
+    if (use_gpu == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "t\0");
+    } else if (gpu_mode == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
+      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
+      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    }
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
@@ -410,7 +410,16 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     IO::errorf(exp.what());
     return {};
   }
-  Runner::Run(param, Factory(num_threads), circuit, measure);
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
+
+  Runner::Run(
+    param, Factory(num_sim_threads, num_state_threads, num_dblocks), circuit,
+    measure);
   return amplitudes;
 }
 
@@ -427,7 +436,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     return {};
   }
 
-  using Simulator = qsim::Simulator<For>;
+  using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
@@ -440,11 +449,25 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
                                                   Simulator>;
 
   Runner::Parameter param;
-  unsigned num_threads;
+  bool use_gpu;
+  bool denormals_are_zeros;
+  unsigned gpu_mode;
+  unsigned num_sim_threads = 0;
+  unsigned num_state_threads = 0;
+  unsigned num_dblocks = 0;
   uint64_t seed;
 
   try {
-    num_threads = parseOptions<unsigned>(options, "t\0");
+    use_gpu = parseOptions<unsigned>(options, "g\0");
+    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
+    if (use_gpu == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "t\0");
+    } else if (gpu_mode == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
+      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
+      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    }
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     seed = parseOptions<unsigned>(options, "s\0");
@@ -453,16 +476,22 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     return {};
   }
 
-  Simulator simulator = Factory(num_threads).CreateSimulator();
-  StateSpace state_space = Factory(num_threads).CreateStateSpace();
+  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   auto measure = [&bitstrings, &ncircuit, &amplitudes, &state_space](
-                  unsigned k, const State &state,
-                  std::vector<uint64_t>& stat) {
+                  unsigned k, const State &state, Runner::Stat& stat) {
     for (const auto &b : bitstrings) {
       amplitudes.push_back(state_space.GetAmpl(state, b));
     }
   };
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
 
   if (!Runner::RunBatch(param, ncircuit, seed, seed + 1, state_space,
                         simulator, measure)) {
@@ -476,7 +505,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
 class SimulatorHelper {
  public:
   using Simulator = Factory::Simulator;
-  using StateSpace = Simulator::StateSpace;
+  using StateSpace = Factory::StateSpace;
   using State = StateSpace::State;
 
   using Gate = Cirq::GateCirq<float>;
@@ -494,6 +523,15 @@ class SimulatorHelper {
       return {};
     }
     return helper.release_state_to_python();
+  }
+
+  static std::vector<uint64_t> sample_final_state(
+      const py::dict &options, bool is_noisy, uint64_t num_samples) {
+    auto helper = SimulatorHelper(options, is_noisy);
+    if (!helper.is_valid || !helper.simulate(0)) {
+      return {};
+    }
+    return helper.sample(num_samples);
   }
 
   template <typename StateType>
@@ -533,10 +571,76 @@ class SimulatorHelper {
     return results;
   }
 
+  template <typename StateType>
+  static std::vector<std::vector<std::complex<double>>>
+  simulate_moment_expectation_values(
+      const py::dict &options,
+      const std::vector<std::tuple<uint64_t, std::vector<
+        std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+      >>>& opsums_and_qubit_counts,
+      bool is_noisy, const StateType& input_state) {
+    auto helper = SimulatorHelper(options, is_noisy);
+    if (!helper.is_valid) {
+      return {};
+    }
+    std::vector<std::vector<std::complex<double>>> results(
+      opsums_and_qubit_counts.size()
+    );
+    if (!is_noisy) {
+      // Init outside of simulation to enable stepping.
+      helper.init_state(input_state);
+      uint64_t begin = 0;
+      for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
+        auto& pair = opsums_and_qubit_counts[i];
+        uint64_t end = std::get<0>(pair);
+        auto& counts = std::get<1>(pair);
+        if (!helper.simulate_subcircuit(begin, end)) {
+          return {};
+        }
+        results[i] = helper.get_expectation_value(counts);
+        begin = end;
+      }
+      return results;
+    }
+
+    // Aggregate expectation values for noisy circuits.
+    for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
+      auto& counts = std::get<1>(opsums_and_qubit_counts[i]);
+      results[i].resize(counts.size(), 0);
+    }
+    for (unsigned rep = 0; rep < helper.noisy_reps; ++rep) {
+      // Init outside of simulation to enable stepping.
+      helper.init_state(input_state);
+      uint64_t begin = 0;
+      for (unsigned i = 0; i < opsums_and_qubit_counts.size(); ++i) {
+        auto& pair = opsums_and_qubit_counts[i];
+        uint64_t end = std::get<0>(pair);
+        auto& counts = std::get<1>(pair);
+        if (!helper.simulate_subcircuit(begin, end)) {
+          return {};
+        }
+        auto evs = helper.get_expectation_value(counts);
+        for (unsigned j = 0; j < evs.size(); ++j) {
+          results[i][j] += evs[j];
+        }
+        begin = end;
+      }
+    }
+    double inverse_num_reps = 1.0 / helper.noisy_reps;
+    for (unsigned i = 0; i < results.size(); ++i) {
+      for (unsigned j = 0; j < results[i].size(); ++j) {
+        results[i][j] *= inverse_num_reps;
+      }
+    }
+    return results;
+  }
+
  private:
   SimulatorHelper(const py::dict &options, bool noisy)
-      : state_space(Factory(1).CreateStateSpace()), state(StateSpace::Null()),
+      : factory(Factory(1, 1, 1)),
+        state(StateSpace::Null()),
         scratch(StateSpace::Null()) {
+    bool denormals_are_zeros;
     is_valid = false;
     is_noisy = noisy;
     try {
@@ -548,14 +652,34 @@ class SimulatorHelper {
         circuit = getCircuit(options);
         num_qubits = circuit.num_qubits;
       }
-      num_threads = parseOptions<unsigned>(options, "t\0");
+
+      use_gpu = parseOptions<unsigned>(options, "g\0");
+      gpu_mode = parseOptions<unsigned>(options, "gmode\0");
+      denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
+      if (use_gpu == 0) {
+        num_sim_threads = parseOptions<unsigned>(options, "t\0");
+      } else if (gpu_mode == 0) {
+        num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
+        num_state_threads = parseOptions<unsigned>(options, "gsst\0");
+        num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+      }
       max_fused_size = parseOptions<unsigned>(options, "f\0");
       verbosity = parseOptions<unsigned>(options, "v\0");
       seed = parseOptions<unsigned>(options, "s\0");
 
-      state_space = Factory(num_threads).CreateStateSpace();
+      if (use_gpu == 0 || gpu_mode == 0) {
+        factory = Factory(num_sim_threads, num_state_threads, num_dblocks);
+      }
+
+      StateSpace state_space = factory.CreateStateSpace();
       state = state_space.Create(num_qubits);
       is_valid = true;
+
+      if (denormals_are_zeros) {
+        SetFlushToZeroAndDenormalsAreZeros();
+      } else {
+        ClearFlushToZeroAndDenormalsAreZeros();
+      }
     } catch (const std::invalid_argument &exp) {
       // If this triggers, is_valid is false.
       IO::errorf(exp.what());
@@ -563,17 +687,14 @@ class SimulatorHelper {
   }
 
   void init_state(uint64_t input_state) {
+    StateSpace state_space = factory.CreateStateSpace();
     state_space.SetAllZeros(state);
     state_space.SetAmpl(state, input_state, 1, 0);
   }
 
   void init_state(const py::array_t<float> &input_vector) {
-    const float* ptr = input_vector.data();
-    auto f = [](unsigned n, unsigned m, uint64_t i, const float* ptr,
-                float* fsv) {
-      fsv[i] = ptr[i];
-    };
-    For(num_threads).Run(input_vector.size(), f, ptr, state.get());
+    StateSpace state_space = factory.CreateStateSpace();
+    state_space.Copy(input_vector.data(), state);
     state_space.NormalToInternalOrder(state);
   }
 
@@ -596,35 +717,80 @@ class SimulatorHelper {
   bool simulate(const StateType& input_state) {
     init_state(input_state);
     bool result = false;
+
     if (is_noisy) {
-      std::vector<uint64_t> stat;
+      NoisyRunner::Stat stat;
       auto params = get_noisy_params();
 
-      Simulator simulator = Factory(num_threads).CreateSimulator();
-      StateSpace state_space = Factory(num_threads).CreateStateSpace();
+      Simulator simulator = factory.CreateSimulator();
+      StateSpace state_space = factory.CreateStateSpace();
 
       result = NoisyRunner::RunOnce(params, ncircuit, seed, state_space,
-                                    simulator, scratch, state, stat);
+                                    simulator, state, stat);
     } else {
-      result = Runner::Run(get_params(), Factory(num_threads), circuit, state);
+      result = Runner::Run(get_params(), factory, circuit, state);
     }
     seed += 1;
     return result;
   }
 
+  bool simulate_subcircuit(uint64_t begin, uint64_t end) {
+    bool result = false;
+
+    if (is_noisy) {
+      NoisyRunner::Stat stat;
+      auto params = get_noisy_params();
+      Simulator simulator = factory.CreateSimulator();
+      StateSpace state_space = factory.CreateStateSpace();
+
+      result = NoisyRunner::RunOnce(
+        params, ncircuit.num_qubits,
+        ncircuit.channels.begin() + begin,
+        ncircuit.channels.begin() + end,
+        seed, state_space, simulator, state, stat
+      );
+    } else {
+      Circuit<Gate> subcircuit;
+      subcircuit.num_qubits = circuit.num_qubits;
+      subcircuit.gates = std::vector<Gate>(
+        circuit.gates.begin() + begin,
+        circuit.gates.begin() + end
+      );
+      result = Runner::Run(get_params(), factory, subcircuit, state);
+    }
+    seed += 1;
+    return result;
+  }
+
+  std::vector<uint64_t> sample(uint64_t num_samples) {
+    StateSpace state_space = factory.CreateStateSpace();
+    return state_space.Sample(state, num_samples, seed);
+  }
+
   py::array_t<float> release_state_to_python() {
+    StateSpace state_space = factory.CreateStateSpace();
     state_space.InternalToNormalOrder(state);
     uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
-    float* fsv = state.release();
-    auto capsule = py::capsule(
-        fsv, [](void *data) { detail::free(data); });
-    return py::array_t<float>(fsv_size, fsv, capsule);
+    if (state.requires_copy_to_host()) {
+      auto* fsv = new float[state_space.MinSize(state.num_qubits())];
+      state_space.Copy(state, fsv);
+      // Cast on delete to silence warnings.
+      auto capsule = py::capsule(
+        fsv, [](void *data) { delete [] (float*)data; });
+      return py::array_t<float>(fsv_size, fsv, capsule);
+    } else {
+      float* fsv = state.release();
+      auto capsule = py::capsule(
+          fsv, [](void *data) { detail::free(data); });
+      return py::array_t<float>(fsv_size, fsv, capsule);
+    }
   }
 
   std::vector<std::complex<double>> get_expectation_value(
       const std::vector<std::tuple<std::vector<OpString<Gate>>,
                                    unsigned>>& opsums_and_qubit_counts) {
-    Simulator simulator = Factory(num_threads).CreateSimulator();
+    Simulator simulator = factory.CreateSimulator();
+    StateSpace state_space = factory.CreateStateSpace();
     using Fuser = MultiQubitGateFuser<IO, Gate>;
 
     std::vector<std::complex<double>> results;
@@ -635,9 +801,11 @@ class SimulatorHelper {
       if (opsum_qubits <= 6) {
         results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
       } else {
-        Fuser::Parameter param;
-        results.push_back(ExpectationValue<Fuser>(
-            param, opsum, state_space, simulator, state, scratch));
+        Fuser::Parameter params;
+        params.max_fused_size = max_fused_size;
+        params.verbosity = verbosity;
+        results.push_back(ExpectationValue<IO, Fuser>(
+            params, opsum, state_space, simulator, state, scratch));
       }
     }
     return results;
@@ -648,12 +816,16 @@ class SimulatorHelper {
   Circuit<Gate> circuit;
   NoisyCircuit<Gate> ncircuit;
 
-  StateSpace state_space;
+  Factory factory;
   State state;
   State scratch;
 
+  bool use_gpu;
+  unsigned gpu_mode;
   unsigned num_qubits;
-  unsigned num_threads;
+  unsigned num_sim_threads;
+  unsigned num_state_threads;
+  unsigned num_dblocks;
   unsigned noisy_reps;
   unsigned max_fused_size;
   unsigned verbosity;
@@ -707,6 +879,28 @@ std::vector<std::complex<double>> qsim_simulate_expectation_values(
     options, opsums_and_qubit_counts, false, input_vector);
 }
 
+std::vector<std::vector<std::complex<double>>>
+qsim_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    uint64_t input_state) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, false, input_state);
+}
+
+std::vector<std::vector<std::complex<double>>>
+qsim_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, false, input_vector);
+}
+
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
@@ -727,7 +921,39 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     options, opsums_and_qubit_counts, true, input_vector);
 }
 
+std::vector<std::vector<std::complex<double>>>
+qtrajectory_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    uint64_t input_state) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, true, input_state);
+}
+
+std::vector<std::vector<std::complex<double>>>
+qtrajectory_simulate_moment_expectation_values(
+    const py::dict &options,
+    const std::vector<std::tuple<uint64_t, std::vector<
+      std::tuple<std::vector<OpString<Cirq::GateCirq<float>>>, unsigned>
+    >>>& opsums_and_qubit_counts,
+    const py::array_t<float> &input_vector) {
+  return SimulatorHelper::simulate_moment_expectation_values(
+    options, opsums_and_qubit_counts, true, input_vector);
+}
+
 // Methods for sampling.
+
+std::vector<uint64_t> qsim_sample_final(
+    const py::dict &options, uint64_t num_samples) {
+  return SimulatorHelper::sample_final_state(options, false, num_samples);
+}
+
+std::vector<uint64_t> qtrajectory_sample_final(
+    const py::dict &options, uint64_t num_samples) {
+  return SimulatorHelper::sample_final_state(options, true, num_samples);
+}
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {
   Circuit<Cirq::GateCirq<float>> circuit;
@@ -745,10 +971,24 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Cirq::GateCirq<float>>,
                             Factory>;
 
-  unsigned num_threads;
+  bool use_gpu;
+  bool denormals_are_zeros;
+  unsigned gpu_mode;
+  unsigned num_sim_threads = 0;
+  unsigned num_state_threads = 0;
+  unsigned num_dblocks = 0;
   Runner::Parameter param;
   try {
-    num_threads = parseOptions<unsigned>(options, "t\0");
+    use_gpu = parseOptions<unsigned>(options, "g\0");
+    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
+    if (use_gpu == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "t\0");
+    } else if (gpu_mode == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
+      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
+      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    }
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
@@ -758,11 +998,18 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   }
 
   std::vector<MeasurementResult> results;
-  StateSpace state_space = Factory(num_threads).CreateStateSpace();
+  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+  StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
   state_space.SetStateZero(state);
 
-  if (!Runner::Run(param, Factory(num_threads), circuit, state, results)) {
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
+
+  if (!Runner::Run(param, factory, circuit, state, results)) {
     IO::errorf("qsim sampling of the circuit errored out.\n");
     return {};
   }
@@ -792,11 +1039,25 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
                                                   Simulator>;
 
   Runner::Parameter param;
-  unsigned num_threads;
+  bool use_gpu;
+  bool denormals_are_zeros;
+  unsigned gpu_mode;
+  unsigned num_sim_threads = 0;
+  unsigned num_state_threads = 0;
+  unsigned num_dblocks = 0;
   uint64_t seed;
 
   try {
-    num_threads = parseOptions<unsigned>(options, "t\0");
+    use_gpu = parseOptions<unsigned>(options, "g\0");
+    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
+    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
+    if (use_gpu == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "t\0");
+    } else if (gpu_mode == 0) {
+      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
+      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
+      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    }
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     seed = parseOptions<unsigned>(options, "s\0");
@@ -806,34 +1067,40 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     return {};
   }
 
-  Simulator simulator = Factory(num_threads).CreateSimulator();
-  StateSpace state_space = Factory(num_threads).CreateStateSpace();
+  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
+  Simulator simulator = factory.CreateSimulator();
+  StateSpace state_space = factory.CreateStateSpace();
 
   std::vector<std::vector<unsigned>> results;
 
   auto measure = [&results, &ncircuit, &state_space](
-                  unsigned k, const State &state,
-                  std::vector<uint64_t>& stat) {
+                  unsigned k, const State& state, Runner::Stat& stat) {
     // Converts stat (which matches the MeasurementResult 'bits' field) into
     // bitstrings matching the MeasurementResult 'bitstring' field.
     unsigned idx = 0;
     for (const auto& channel : ncircuit.channels) {
       if (channel[0].kind != gate::kMeasurement)
         continue;
-      for (const auto &op : channel[0].ops) {
+      for (const auto& op : channel[0].ops) {
         std::vector<unsigned> bitstring;
-        uint64_t val = stat[idx];
-        for (const auto &q : op.qubits) {
+        uint64_t val = stat.samples[idx];
+        for (const auto& q : op.qubits) {
           bitstring.push_back((val >> q) & 1);
         }
         results.push_back(bitstring);
 
         idx += 1;
-        if (idx >= stat.size())
+        if (idx >= stat.samples.size())
           return;
       }
     }
   };
+
+  if (denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  } else {
+    ClearFlushToZeroAndDenormalsAreZeros();
+  }
 
   if (!Runner::RunBatch(param, ncircuit, seed, seed + 1,
                         state_space, simulator, measure)) {
@@ -888,7 +1155,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   // Define container for amplitudes
   std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
 
-  Factory factory(param.num_threads);
+  Factory factory(param.num_threads, 0, 0);
 
   if (Runner::Run(param, factory, circuit, parts, bitstrings, amplitudes)) {
     return amplitudes;

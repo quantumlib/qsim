@@ -94,7 +94,7 @@ TEST(ExpectTest, ExpectationValue) {
   Fuser::Parameter param;
   param.max_fused_size = 4;
 
-  State tmp_state = state_space.Create(num_qubits);
+  State tmp_state = state_space.Null();
 
   for (unsigned k = 1; k <= 6; ++k) {
     std::vector<OpString<GateQSim<fp_type>>> strings;
@@ -120,8 +120,12 @@ TEST(ExpectTest, ExpectationValue) {
       }
     }
 
-    auto evala = ExpectationValue<Fuser>(param, strings, state_space, simulator,
-                                         state, tmp_state);
+    if (k == 2) {
+      tmp_state = state_space.Create(num_qubits - 2);
+    }
+
+    auto evala = ExpectationValue<IO, Fuser>(param, strings, state_space,
+                                             simulator, state, tmp_state);
 
     EXPECT_NEAR(std::real(evala), expected_real[k - 1], 1e-6);
     EXPECT_NEAR(std::imag(evala), 0, 1e-8);

@@ -53,31 +53,31 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused. Gates fused with this method are not
-   * multiplied together until ApplyFusedGate is called on the output.
-   * To respect specific time boundaries while fusing gates, use the other
-   * version of this method below.
+   * two-qubit gates will get fused. To respect specific time boundaries while
+   * fusing gates, use the other version of this method below.
    * @param param Options for gate fusion.
-   * @param num_qubits The number of qubits acted on by 'gates'.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
    * @param gates The gates (or pointers to the gates) to be fused.
    *   Gate times of the gates that act on the same qubits should be ordered.
    *   Gates that are out of time order should not cross the time boundaries
    *   set by measurement gates.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(const Parameter& param,
-                                          unsigned num_qubits,
-                                          const std::vector<Gate>& gates) {
-    return FuseGates(param, num_qubits, gates.cbegin(), gates.cend(), {});
+                                          unsigned max_qubit1,
+                                          const std::vector<Gate>& gates,
+                                          bool fuse_matrix = true) {
+    return FuseGates(
+        param, max_qubit1, gates.cbegin(), gates.cend(), {}, fuse_matrix);
   }
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused. Gates fused with this method are not
-   * multiplied together until ApplyFusedGate is called on the output.
+   * two-qubit gates will get fused.
    * @param param Options for gate fusion.
-   * @param num_qubits The number of qubits acted on by 'gates'.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
    * @param gates The gates (or pointers to the gates) to be fused.
    *   Gate times of the gates that act on the same qubits should be ordered.
    *   Gates that are out of time order should not cross the time boundaries
@@ -85,45 +85,46 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
    *   to separate fused gates. Each element of the output will contain gates
    *   from a single 'window' in this list.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
       const Parameter& param,
-      unsigned num_qubits, const std::vector<Gate>& gates,
-      const std::vector<unsigned>& times_to_split_at) {
-    return FuseGates(param, num_qubits, gates.cbegin(), gates.cend(),
-                     times_to_split_at);
+      unsigned max_qubit1, const std::vector<Gate>& gates,
+      const std::vector<unsigned>& times_to_split_at,
+      bool fuse_matrix = true) {
+    return FuseGates(param, max_qubit1, gates.cbegin(), gates.cend(),
+                     times_to_split_at, fuse_matrix);
   }
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused. Gates fused with this method are not
-   * multiplied together until ApplyFusedGate is called on the output.
-   * To respect specific time boundaries while fusing gates, use the other
-   * version of this method below.
+   * two-qubit gates will get fused. To respect specific time boundaries while
+   * fusing gates, use the other version of this method below.
    * @param param Options for gate fusion.
-   * @param num_qubits The number of qubits acted on by gates.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
    *   (or pointers to gates) in. Gate times of the gates that act on the same
    *   qubits should be ordered. Gates that are out of time order should not
    *   cross the time boundaries set by measurement gates.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
-      const Parameter& param, unsigned num_qubits,
+      const Parameter& param, unsigned max_qubit1,
       typename std::vector<Gate>::const_iterator gfirst,
-      typename std::vector<Gate>::const_iterator glast) {
-    return FuseGates(param, num_qubits, gfirst, glast, {});
+      typename std::vector<Gate>::const_iterator glast,
+      bool fuse_matrix = true) {
+    return FuseGates(param, max_qubit1, gfirst, glast, {}, fuse_matrix);
   }
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused. Gates fused with this method are not
-   * multiplied together until ApplyFusedGate is called on the output.
+   * two-qubit gates will get fused.
    * @param param Options for gate fusion.
-   * @param num_qubits The number of qubits acted on by gates.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
    *   (or pointers to gates) in. Gate times of the gates that act on the same
    *   qubits should be ordered. Gates that are out of time order should not
@@ -132,14 +133,16 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
    *   to separate fused gates. Each element of the output will contain gates
    *   from a single 'window' in this list.
+   * @param fuse_matrix If true, multiply gate matrices together.
    * @return A vector of fused gate objects. Each element is a set of gates
    *   acting on a specific pair of qubits which can be applied as a group.
    */
   static std::vector<GateFused> FuseGates(
-      const Parameter& param, unsigned num_qubits,
+      const Parameter& param, unsigned max_qubit1,
       typename std::vector<Gate>::const_iterator gfirst,
       typename std::vector<Gate>::const_iterator glast,
-      const std::vector<unsigned>& times_to_split_at) {
+      const std::vector<unsigned>& times_to_split_at,
+      bool fuse_matrix = true) {
     std::vector<GateFused> gates_fused;
 
     if (gfirst >= glast) return gates_fused;
@@ -159,7 +162,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
     std::vector<const RGate*> gates_seq;
 
     // Lattice of gates: qubits "hyperplane" and time direction.
-    std::vector<std::vector<const RGate*>> gates_lat(num_qubits);
+    std::vector<std::vector<const RGate*>> gates_lat(max_qubit1);
 
     // Current unfused gate.
     auto gate_it = gfirst;
@@ -168,7 +171,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
       gates_seq.resize(0);
       gates_seq.reserve(num_gates);
 
-      for (unsigned k = 0; k < num_qubits; ++k) {
+      for (unsigned k = 0; k < max_qubit1; ++k) {
         gates_lat[k].resize(0);
         gates_lat[k].reserve(128);
       }
@@ -179,9 +182,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
         if (gate.time > times[l]) break;
 
-        if (GateIsOutOfOrder(gate.time, gate.qubits, gates_lat)
-            || GateIsOutOfOrder(gate.time, gate.controlled_by, gates_lat)) {
-          IO::errorf("gate is out of time order.\n");
+        if (!ValidateGate(gate, max_qubit1, gates_lat)) {
           gates_fused.resize(0);
           return gates_fused;
         }
@@ -190,7 +191,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
           auto& mea_gates_at_time = measurement_gates[gate.time];
           if (mea_gates_at_time.size() == 0) {
             gates_seq.push_back(&gate);
-            mea_gates_at_time.reserve(num_qubits);
+            mea_gates_at_time.reserve(max_qubit1);
           }
 
           mea_gates_at_time.push_back(&gate);
@@ -214,7 +215,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
         }
       }
 
-      std::vector<unsigned> last(num_qubits, 0);
+      std::vector<unsigned> last(max_qubit1, 0);
 
       const RGate* delayed_measurement_gate = nullptr;
 
@@ -243,11 +244,11 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
           }
 
           gates_fused.push_back({pgate->kind, pgate->time, pgate->qubits,
-                                 pgate, {pgate}});
+                                 pgate, {pgate}, {}});
         } else if (pgate->qubits.size() == 1) {
           unsigned q0 = pgate->qubits[0];
 
-          GateFused gate_f = {pgate->kind, pgate->time, {q0}, pgate, {}};
+          GateFused gate_f = {pgate->kind, pgate->time, {q0}, pgate, {}, {}};
 
           last[q0] = Advance(last[q0], gates_lat[q0], gate_f.gates);
           gate_f.gates.push_back(gates_lat[q0][last[q0]]);
@@ -260,7 +261,8 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
           if (Done(last[q0], pgate->time, gates_lat[q0])) continue;
 
-          GateFused gate_f = {pgate->kind, pgate->time, {q0, q1}, pgate, {}};
+          GateFused gate_f =
+              {pgate->kind, pgate->time, {q0, q1}, pgate, {}, {}};
 
           do {
             last[q0] = Advance(last[q0], gates_lat[q0], gate_f.gates);
@@ -277,7 +279,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
         }
       }
 
-      for (unsigned q = 0; q < num_qubits; ++q) {
+      for (unsigned q = 0; q < max_qubit1; ++q) {
         auto l = last[q];
         if (l == gates_lat[q].size()) continue;
 
@@ -290,7 +292,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
         const auto& mea_gates_at_time = measurement_gates[pgate->time];
 
-        GateFused gate_f = {pgate->kind, pgate->time, {}, pgate, {}};
+        GateFused gate_f = {pgate->kind, pgate->time, {}, pgate, {}, {}};
         gate_f.gates.reserve(mea_gates_at_time.size());
 
         // Fuse measurement gates with equal times.
@@ -305,6 +307,14 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
       }
 
       if (gate_it == glast) break;
+    }
+
+    if (fuse_matrix) {
+      for (auto& gate_f : gates_fused) {
+        if (gate_f.kind != gate::kMeasurement && gate_f.kind != gate::kDecomp) {
+          CalculateFusedMatrix(gate_f);
+        }
+      }
     }
 
     return gates_fused;
@@ -338,7 +348,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
                                    std::vector<GateFused>& gates_fused) {
     auto pgate = gates_lat[q][k];
 
-    GateFused gate_f = {pgate->kind, pgate->time, {q}, pgate, {}};
+    GateFused gate_f = {pgate->kind, pgate->time, {q}, pgate, {}, {}};
     gate_f.gates.push_back(pgate);
 
     k = Advance(k + 1, gates_lat[q], gate_f.gates);
@@ -348,17 +358,34 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
     return k;
   }
 
-  template <typename GatesLat>
-  static bool GateIsOutOfOrder(unsigned time,
-                               const std::vector<unsigned>& qubits,
-                               const GatesLat& gates_lat) {
-    for (unsigned q : qubits) {
-      if (!gates_lat[q].empty() && time <= gates_lat[q].back()->time) {
-        return true;
+  template <typename Gate2, typename GatesLat>
+  static bool ValidateGate(const Gate2& gate, unsigned max_qubit1,
+                           const GatesLat& gates_lat) {
+    for (unsigned q : gate.qubits) {
+      if (q >= max_qubit1) {
+        IO::errorf("fuser: gate qubit %u is out of range "
+                   "(should be smaller than %u).\n", q, max_qubit1);
+        return false;
+      }
+      if (!gates_lat[q].empty() && gate.time <= gates_lat[q].back()->time) {
+        IO::errorf("fuser: gate at time %u is out of time order.\n", gate.time);
+        return false;
       }
     }
 
-    return false;
+    for (unsigned q : gate.controlled_by) {
+      if (q >= max_qubit1) {
+        IO::errorf("fuser: gate qubit %u is out of range "
+                   "(should be smaller than %u).\n", q, max_qubit1);
+        return false;
+      }
+      if (!gates_lat[q].empty() && gate.time <= gates_lat[q].back()->time) {
+        IO::errorf("fuser: gate at time %u is out of time order.\n", gate.time);
+        return false;
+      }
+    }
+
+    return true;
   }
 };
 

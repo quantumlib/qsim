@@ -14,16 +14,5 @@ if(APPLE)
     link_directories("/usr/local/lib" "/usr/local/opt/llvm/lib")
 endif()
 
-include(FetchContent)
-
-FetchContent_Declare(
-  pybind11
-  GIT_REPOSITORY https://github.com/pybind/pybind11
-  GIT_TAG v2.2.4
-)
-FetchContent_GetProperties(pybind11)
-if(NOT pybind11_POPULATED)
-  FetchContent_Populate(pybind11)
-  add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
-endif()
+INCLUDE(../GetPybind11.cmake)
 pybind11_add_module(qsim_sse pybind_main_sse.cpp)

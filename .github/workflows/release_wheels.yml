@@ -26,7 +26,7 @@ jobs:
             name: win_amd64
             architecture: x64
             cibw:
-              build: "cp*win_amd64"
+              build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64"
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
@@ -36,7 +36,8 @@ jobs:
       # to install latest delocate package
       CIBW_DEPENDENCY_VERSIONS: "latest"
       # due to package and module name conflict have to temporarily move it away to run tests
-      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
+      CIBW_BEFORE_TEST: mv {package}/qsimcirq /tmp
+      CIBW_TEST_EXTRAS: "dev"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v2

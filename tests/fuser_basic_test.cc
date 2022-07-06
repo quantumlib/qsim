@@ -1438,6 +1438,41 @@ TEST(FuserBasicTest, InvalidTimeOrder) {
   }
 }
 
+TEST(FuserBasicTest, QubitsOutOfRange) {
+  using Gate = GateQSim<float>;
+  using Fuser = BasicGateFuser<IO, Gate>;
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  {
+    unsigned num_qubits = 3;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 3),
+      GateCZ<float>::Create(0, 1, 2),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 3;
+    auto gate = GateZ<float>::Create(0, 2);
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      MakeControlledGate({3}, gate),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+}
+
 }  // namespace qsim
 
 int main(int argc, char** argv) {

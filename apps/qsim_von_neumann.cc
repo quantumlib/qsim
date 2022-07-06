@@ -28,6 +28,11 @@
 #include "../lib/io_file.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
+#include "../lib/util_cpu.h"
+
+constexpr char usage[] = "usage:\n  ./qsim_von_neumann -c circuit -d maxtime "
+                         "-s seed -t threads -f max_fused_size "
+                         "-v verbosity -z\n";
 
 struct Options {
   std::string circuit_file;
@@ -36,18 +41,15 @@ struct Options {
   unsigned num_threads = 1;
   unsigned max_fused_size = 2;
   unsigned verbosity = 0;
+  bool denormals_are_zeros = false;
 };
 
 Options GetOptions(int argc, char* argv[]) {
-  constexpr char usage[] = "usage:\n  ./qsim_von_neumann -c circuit -d maxtime "
-                           "-s seed -t threads -f max_fused_size "
-                           "-v verbosity\n";
-
   Options opt;
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:s:t:f:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:v:z")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -67,6 +69,9 @@ Options GetOptions(int argc, char* argv[]) {
       case 'v':
         opt.verbosity = std::atoi(optarg);
         break;
+      case 'z':
+        opt.denormals_are_zeros = true;
+        break;
       default:
         qsim::IO::errorf(usage);
         exit(1);
@@ -79,6 +84,7 @@ Options GetOptions(int argc, char* argv[]) {
 bool ValidateOptions(const Options& opt) {
   if (opt.circuit_file.empty()) {
     qsim::IO::errorf("circuit file is not provided.\n");
+    qsim::IO::errorf(usage);
     return false;
   }
 
@@ -97,6 +103,10 @@ int main(int argc, char* argv[]) {
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
                                            circuit)) {
     return 1;
+  }
+
+  if (opt.denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
   }
 
   struct Factory {

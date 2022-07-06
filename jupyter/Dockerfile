@@ -1,8 +1,15 @@
 # Base OS
 FROM centos:8
 USER root
-# Install baseline
 
+# Centos 8 has reach end of life: https://www.centos.org/centos-linux-eol/
+# Configuration must be loaded from the vault.
+RUN pushd /etc/yum.repos.d/ && \
+	sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+	sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
+	popd
+
+# Install baseline
 RUN yum -y update && \
 	yum install -y epel-release && \
 	yum group install -y "Development Tools" && \
@@ -22,6 +29,5 @@ RUN  jupyter serverextension enable --py jupyter_http_over_ws
 CMD ["jupyter-notebook", "--port=8888", "--no-browser",\
       "--ip=0.0.0.0", "--allow-root", \
 	  "--NotebookApp.allow_origin='*'", \
-      "--NotebookApp.port_retries=0"]
-
-	  #"--NotebookApp.allow_origin='https://colab.research.google.com'", \
+      "--NotebookApp.port_retries=0", \
+	  "--NotebookApp.token=''"]

@@ -24,9 +24,7 @@ jobs:
         with:
           python-version: '3.7'
           architecture: 'x64'
-      - name: Install flynt
-        run: cat requirements.txt | grep flynt | xargs pip install
-      - name: Install black
-        run: cat requirements.txt | grep black | xargs pip install
+      - name: Install dev requirements
+        run: pip install -r dev-requirements.txt
       - name: Format
         run: check/format-incremental

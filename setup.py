@@ -38,6 +38,7 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
+            "-DCMAKE_CUDA_COMPILER=nvcc",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
         ]
@@ -49,7 +50,7 @@ class CMakeBuild(build_ext):
             cmake_args += [
                 "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir)
             ]
-            if sys.maxsize > 2 ** 32:
+            if sys.maxsize > 2**32:
                 cmake_args += ["-A", "x64"]
             build_args += ["--", "/m"]
         else:
@@ -77,6 +78,7 @@ class CMakeBuild(build_ext):
 
 
 requirements = open("requirements.txt").readlines()
+dev_requirements = open("dev-requirements.txt").readlines()
 
 description = "Schrödinger and Schrödinger-Feynman simulators for quantum circuits."
 
@@ -89,10 +91,14 @@ exec(open("qsimcirq/_version.py").read())
 setup(
     name="qsimcirq",
     version=__version__,
+    url="https://github.com/quantumlib/qsim",
     author="Vamsi Krishna Devabathini",
     author_email="devabathini92@gmail.com",
     python_requires=">=3.3.0",
     install_requires=requirements,
+    extras_require={
+        "dev": dev_requirements,
+    },
     license="Apache 2",
     description=description,
     long_description=long_description,
@@ -102,6 +108,8 @@ setup(
         CMakeExtension("qsimcirq/qsim_avx2"),
         CMakeExtension("qsimcirq/qsim_sse"),
         CMakeExtension("qsimcirq/qsim_basic"),
+        CMakeExtension("qsimcirq/qsim_cuda"),
+        CMakeExtension("qsimcirq/qsim_custatevec"),
         CMakeExtension("qsimcirq/qsim_decide"),
     ],
     cmdclass=dict(build_ext=CMakeBuild),

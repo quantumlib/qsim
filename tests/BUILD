@@ -32,6 +32,23 @@ cc_test(
 )
 
 cc_test(
+    name = "channel_test",
+    srcs = ["channel_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "//lib:channel",
+        "//lib:formux",
+        "//lib:gates_cirq",
+        "//lib:matrix",
+        "//lib:simulator",
+    ],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+)
+
+cc_test(
     name = "channels_cirq_test",
     srcs = ["channels_cirq_test.cc"],
     deps = [
@@ -197,8 +214,10 @@ cc_library(
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
+        "//lib:channel",
         "//lib:channels_cirq",
         "//lib:circuit_noisy",
+        "//lib:expect",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_cirq",
@@ -265,6 +284,7 @@ cc_library(
         "//lib:gate_appl",
         "//lib:gates_qsim",
         "//lib:io",
+        "//lib:util_cpu",
     ],
     testonly = 1,
 )
@@ -612,6 +632,7 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//lib:gate_appl",
         "//lib:gates_cirq",
+        "//lib:gates_qsim",
         "//lib:mps_simulator",
         "//lib:formux",
     ],

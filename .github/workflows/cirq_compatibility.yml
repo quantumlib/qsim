@@ -7,7 +7,7 @@ on:
 jobs:
   consistency:
     name: Nightly Compatibility
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
@@ -18,5 +18,7 @@ jobs:
         run: pip3 install -U cirq --pre
       - name: Install qsim requirements
         run: pip3 install -r requirements.txt
+      - name: Install test requirements
+        run: pip3 install -r dev-requirements.txt
       - name: Run python tests
         run: make run-py-tests

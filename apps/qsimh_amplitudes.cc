@@ -30,12 +30,13 @@
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
+#include "../lib/util_cpu.h"
 
 constexpr char usage[] = "usage:\n  ./qsimh_amplitudes -c circuit_file "
                          "-d maxtime -k part1_qubits "
                          "-w prefix -p num_prefix_gates -r num_root_gates "
                          "-i input_file -o output_file -t num_threads "
-                         "-v verbosity\n";
+                         "-v verbosity -z\n";
 
 struct Options {
   std::string circuit_file;
@@ -48,6 +49,7 @@ struct Options {
   unsigned num_root_gatexs = 0;
   unsigned num_threads = 1;
   unsigned verbosity = 0;
+  bool denormals_are_zeros = false;
 };
 
 Options GetOptions(int argc, char* argv[]) {
@@ -59,7 +61,7 @@ Options GetOptions(int argc, char* argv[]) {
     return std::atoi(word.c_str());
   };
 
-  while ((k = getopt(argc, argv, "c:d:k:w:p:r:i:o:t:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:k:w:p:r:i:o:t:v:z")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -90,6 +92,9 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
+        break;
+      case 'z':
+        opt.denormals_are_zeros = true;
         break;
       default:
         qsim::IO::errorf(usage);
@@ -179,6 +184,10 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   auto parts = GetParts(circuit.num_qubits, opt.part1);
+
+  if (opt.denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
+  }
 
   std::vector<Bitstring> bitstrings;
   auto num_qubits = circuit.num_qubits;

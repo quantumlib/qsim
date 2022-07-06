@@ -8,8 +8,11 @@ CXX_TARGETS = $(shell\
 )
 CXX_TARGETS := $(CXX_TARGETS:%.cc=%.x)
 
-CUDA_TARGETS = $(shell find . -maxdepth 1 -name "*_test.cu")
-CUDA_TARGETS := $(CUDA_TARGETS:%.cu=%.x)
+CUDA_TARGETS = $(shell find . -maxdepth 1 -name "*cuda_test.cu")
+CUDA_TARGETS := $(CUDA_TARGETS:%cuda_test.cu=%cuda_test.x)
+
+CUSTATEVEC_TARGETS = $(shell find . -maxdepth 1 -name "*custatevec_test.cu")
+CUSTATEVEC_TARGETS := $(CUSTATEVEC_TARGETS:%custatevec_test.cu=%custatevec_test.x)
 
 GTEST_DIR = $(CURDIR)/googletest/googletest
 GMOCK_DIR = $(CURDIR)/googletest/googlemock
@@ -24,6 +27,9 @@ cxx-tests: $(CXX_TARGETS)
 .PHONY: cuda-tests
 cuda-tests: $(CUDA_TARGETS)
 
+.PHONY: custatevec-tests
+custatevec-tests: $(CUSTATEVEC_TARGETS)
+
 .PHONY: run-cxx-tests
 run-cxx-tests: cxx-tests
 	for exe in $(CXX_TARGETS); do if ! ./$$exe; then exit 1; fi; done
@@ -31,6 +37,10 @@ run-cxx-tests: cxx-tests
 .PHONY: run-cuda-tests
 run-cuda-tests: cuda-tests
 	for exe in $(CUDA_TARGETS); do if ! ./$$exe; then exit 1; fi; done
+
+.PHONY: run-custatevec-tests
+run-custatevec-tests: custatevec-tests
+	for exe in $(CUSTATEVEC_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 $(GTEST_DIR)/make:
 	-git submodule update --init --recursive googletest
@@ -40,8 +50,11 @@ $(GTEST_DIR)/make:
 %.x: %.cc $(GTEST_DIR)/make
 	$(CXX) -o ./$@ $< $(TESTFLAGS) $(CXXFLAGS) $(ARCHFLAGS)
 
-%.x: %.cu $(GTEST_DIR)/make
+%cuda_test.x: %cuda_test.cu $(GTEST_DIR)/make
 	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS)
+
+%custatevec_test.x: %custatevec_test.cu $(GTEST_DIR)/make
+	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS) $(CUSTATEVECFLAGS)
 
 .PHONY: clean
 clean:
