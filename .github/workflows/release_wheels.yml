@@ -46,7 +46,7 @@ jobs:
       - uses: actions/setup-python@v2
 
       - name: Install cibuildwheel and twine
-        run: python -m pip install cibuildwheel==2.8.0
+        run: python -m pip install cibuildwheel==2.0.1
 
       - name: Run C++ tests
         run: bash build_tools/test_libs.sh
