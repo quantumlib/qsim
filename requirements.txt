@@ -1,5 +1,5 @@
 absl-py
 cirq-core
-numpy==1.16.5
+numpy~=1.21
 pybind11
 typing_extensions
