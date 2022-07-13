@@ -34,6 +34,7 @@ jobs:
               build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64 cp310-win_amd64"
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
+      CIBW_SKIP: "*musllinux*"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp llvm"
@@ -51,7 +52,7 @@ jobs:
       - uses: actions/setup-python@v2
 
       - name: Install cibuildwheel and twine
-        run: python -m pip install cibuildwheel==2.0.1
+        run: python -m pip install cibuildwheel==2.2.2
 
       - name: Run C++ tests
         run: bash build_tools/test_libs.sh
