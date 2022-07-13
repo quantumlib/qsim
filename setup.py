@@ -46,6 +46,7 @@ class CMakeBuild(build_ext):
         cfg = "Debug" if self.debug else "Release"
         build_args = ["--config", cfg]
 
+        env = os.environ.copy()
         if platform.system() == "Windows":
             cmake_args += [
                 "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir)
@@ -64,7 +65,6 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++",
             ]
 
-        env = os.environ.copy()
         env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(
             env.get("CXXFLAGS", ""), self.distribution.get_version()
         )
