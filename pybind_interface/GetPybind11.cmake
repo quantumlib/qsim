@@ -1,6 +1,6 @@
 include(FetchContent)
 
-set(MIN_PYBIND_VERSION "2.2.4")
+set(MIN_PYBIND_VERSION "2.8.1")
 FetchContent_Declare(
   pybind11
   GIT_REPOSITORY https://github.com/pybind/pybind11
