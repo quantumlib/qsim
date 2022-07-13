@@ -52,7 +52,7 @@ class CMakeBuild(build_ext):
             ]
             if sys.maxsize > 2**32:
                 cmake_args += ["-A", "x64"]
-            env["CXXFLAGS"] += " -DMS_WIN64"
+            env["CXXFLAGS"] = f'{env.get("CXXFLAGS", "")} -DMS_WIN64'
             build_args += ["--", "/m"]
         else:
             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
@@ -65,7 +65,9 @@ class CMakeBuild(build_ext):
             ]
 
         env = os.environ.copy()
-        env["CXXFLAGS"] += f' -DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
+        env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(
+            env.get("CXXFLAGS", ""), self.distribution.get_version()
+        )
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(
