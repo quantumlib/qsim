@@ -15,18 +15,18 @@ jobs:
           - os: macos-10.15
             name: mac
             cibw:
-              build: "cp36* cp37* cp38* cp39* cp310*"
+              build: "cp37* cp38* cp39* cp310*"
           - os: ubuntu-20.04
             name: manylinux2014
             cibw:
               arch: x86_64
-              build: "cp36* cp37* cp38* cp39* cp310*"
+              build: "cp37* cp38* cp39* cp310*"
               manylinux_image: manylinux2014
           - os: windows-2019
             name: win_amd64
             architecture: x64
             cibw:
-              build: "cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64 cp310-win_amd64"
+              build: "cp37-win_amd64 cp38-win_amd64 cp39-win_amd64 cp310-win_amd64"
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_SKIP: "*musllinux*"

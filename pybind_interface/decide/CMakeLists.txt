@@ -24,7 +24,7 @@ INCLUDE(../GetPybind11.cmake)
 if(has_nvcc STREQUAL "")
   pybind11_add_module(qsim_decide decide.cpp)
 else()
-  find_package(PythonLibs 3.6 REQUIRED)
+  find_package(PythonLibs 3.7 REQUIRED)
   find_package(CUDA REQUIRED)
 
   include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
