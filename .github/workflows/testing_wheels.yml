@@ -34,6 +34,7 @@ jobs:
               build: "cp310-win_amd64"
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
+      CIBW_SKIP: "*musllinux*"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_BEFORE_BUILD_MACOS: "brew install libomp llvm"
