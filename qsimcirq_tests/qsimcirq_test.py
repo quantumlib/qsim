@@ -814,9 +814,10 @@ def test_control_values():
         cirq.X(qubits[2]).controlled_by(*qubits[:2], control_values=[1, 2]),
     )
     qsimSim = qsimcirq.QSimSimulator()
-    with pytest.warns(RuntimeWarning, match="Gate has no valid control value"):
-        result = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
-    assert result.state_vector()[0] == 1
+    with pytest.raises(
+        ValueError, match="Cannot translate control values other than 0 and 1"
+    ):
+        _ = qsimSim.simulate(cirq_circuit, qubit_order=qubits)
 
 
 def test_control_limits():
@@ -1634,7 +1635,7 @@ def test_cirq_qsim_all_supported_gates():
     qsim_result = qsim_simulator.simulate(circuit)
 
     assert cirq.linalg.allclose_up_to_global_phase(
-        qsim_result.state_vector(), cirq_result.state_vector()
+        qsim_result.state_vector(), cirq_result.state_vector(), atol=1e-5
     )
 
 
