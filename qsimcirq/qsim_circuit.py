@@ -482,6 +482,9 @@ class QSimCircuit(cirq.Circuit):
                     time = time_offset + gi
                     add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_ncircuit)
                     gate_count += 1
+                # Only gates decompose to multiple time steps.
+                if gi > 0:
+                    continue
                 # Handle mixture output.
                 for mixture in ops_by_mix:
                     mixdata = []
