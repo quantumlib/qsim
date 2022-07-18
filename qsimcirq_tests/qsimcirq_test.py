@@ -176,7 +176,7 @@ def test_noise_alongside_multistep_decompose():
     )
     qsim_sim = qsimcirq.QSimSimulator()
     # Only need to verify that this succeeds, not precision of results.
-    result = qsim_sim.run(circuit)
+    result = qsim_sim.run(circuit, repetitions=100)
     result_hist = result.histogram(key="m")
     assert result_hist[0] > 0
     assert result_hist[1] > 0
