@@ -14,7 +14,7 @@
 
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import cirq
 
@@ -22,68 +22,6 @@ import numpy as np
 
 from . import qsim, qsim_gpu, qsim_custatevec
 import qsimcirq.qsim_circuit as qsimc
-
-
-class QSimSimulatorState(cirq.StateVectorSimulatorState):
-    def __init__(self, qsim_data: np.ndarray, qubit_map: Dict[cirq.Qid, int]):
-        state_vector = qsim_data.view(np.complex64)
-        super().__init__(state_vector=state_vector, qubit_map=qubit_map)
-
-
-@cirq.value_equality(unhashable=True)
-class QSimSimulatorTrialResult(cirq.StateVectorMixin, cirq.SimulationTrialResult):
-    def __init__(
-        self,
-        params: cirq.ParamResolver,
-        measurements: Dict[str, np.ndarray],
-        final_simulator_state: QSimSimulatorState,
-    ):
-        super().__init__(
-            params=params,
-            measurements=measurements,
-            final_simulator_state=final_simulator_state,
-        )
-
-    # The following methods are (temporarily) copied here from
-    # cirq.StateVectorTrialResult due to incompatibility with the
-    # intermediate state simulation support which that class requires.
-    # TODO: remove these methods once inheritance is restored.
-
-    @property
-    def final_state_vector(self):
-        return self._final_simulator_state.state_vector
-
-    def state_vector(self):
-        """Return the state vector at the end of the computation."""
-        return self._final_simulator_state.state_vector.copy()
-
-    def _value_equality_values_(self):
-        measurements = {k: v.tolist() for k, v in sorted(self.measurements.items())}
-        return (self.params, measurements, self._final_simulator_state)
-
-    def __str__(self) -> str:
-        samples = super().__str__()
-        final = self.state_vector()
-        if len([1 for e in final if abs(e) > 0.001]) < 16:
-            state_vector = self.dirac_notation(3)
-        else:
-            state_vector = str(final)
-        return f"measurements: {samples}\noutput vector: {state_vector}"
-
-    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
-        """Text output in Jupyter."""
-        if cycle:
-            # There should never be a cycle.  This is just in case.
-            p.text("StateVectorTrialResult(...)")
-        else:
-            p.text(str(self))
-
-    def __repr__(self) -> str:
-        return (
-            f"cirq.StateVectorTrialResult(params={self.params!r}, "
-            f"measurements={self.measurements!r}, "
-            f"final_simulator_state={self._final_simulator_state!r})"
-        )
 
 
 # This should probably live in Cirq...
@@ -189,7 +127,7 @@ class MeasInfo:
 class QSimSimulator(
     cirq.SimulatesSamples,
     cirq.SimulatesAmplitudes,
-    cirq.SimulatesFinalState,
+    cirq.SimulatesFinalState[cirq.StateVectorTrialResult],
     cirq.SimulatesExpectationValues,
 ):
     def __init__(
@@ -438,13 +376,13 @@ class QSimSimulator(
 
         return results
 
-    def compute_amplitudes_sweep(
+    def compute_amplitudes_sweep_iter(
         self,
         program: cirq.Circuit,
         bitstrings: Sequence[int],
         params: cirq.Sweepable,
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
-    ) -> Sequence[Sequence[complex]]:
+    ) -> Iterator[Sequence[complex]]:
         """Computes the desired amplitudes using qsim.
 
         The initial state is assumed to be the all zeros state.
@@ -460,8 +398,8 @@ class QSimSimulator(
               often used in specifying the initial state, i.e. the ordering of the
               computational basis states.
 
-        Returns:
-            List of amplitudes.
+        Yields:
+            Amplitudes.
         """
 
         # Add noise to the circuit if a noise model was provided.
@@ -484,7 +422,6 @@ class QSimSimulator(
 
         param_resolvers = cirq.to_resolvers(params)
 
-        trials_results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
             simulator_fn = self._sim_module.qtrajectory_simulate
@@ -500,18 +437,15 @@ class QSimSimulator(
                 cirq_order,
             )
             options["s"] = self.get_seed()
-            amplitudes = simulator_fn(options)
-            trials_results.append(amplitudes)
+            yield simulator_fn(options)
 
-        return trials_results
-
-    def simulate_sweep(
+    def simulate_sweep_iter(
         self,
         program: cirq.Circuit,
         params: cirq.Sweepable,
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
         initial_state: Optional[Union[int, np.ndarray]] = None,
-    ) -> List["SimulationTrialResult"]:
+    ) -> Iterator[cirq.StateVectorTrialResult]:
         """Simulates the supplied Circuit.
 
         This method returns a result which allows access to the entire
@@ -572,7 +506,6 @@ class QSimSimulator(
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
                 )
 
-        trials_results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
             fullstate_simulator_fn = self._sim_module.qtrajectory_simulate_fullstate
@@ -589,7 +522,6 @@ class QSimSimulator(
                 cirq_order,
             )
             options["s"] = self.get_seed()
-            qubit_map = {qubit: index for index, qubit in enumerate(qsim_order)}
 
             if isinstance(initial_state, int):
                 qsim_state = fullstate_simulator_fn(options, initial_state)
@@ -597,17 +529,17 @@ class QSimSimulator(
                 qsim_state = fullstate_simulator_fn(options, input_vector)
             assert qsim_state.dtype == np.float32
             assert qsim_state.ndim == 1
-            final_state = QSimSimulatorState(qsim_state, qubit_map)
+
+            final_state = cirq.StateVectorSimulationState(
+                initial_state=qsim_state.view(np.complex64), qubits=cirq_order
+            )
             # create result for this parameter
             # TODO: We need to support measurements.
-            result = QSimSimulatorTrialResult(
+            yield cirq.StateVectorTrialResult(
                 params=prs, measurements={}, final_simulator_state=final_state
             )
-            trials_results.append(result)
 
-        return trials_results
-
-    def simulate_expectation_values_sweep(
+    def simulate_expectation_values_sweep_iter(
         self,
         program: cirq.Circuit,
         observables: Union[cirq.PauliSumLike, List[cirq.PauliSumLike]],
@@ -615,7 +547,7 @@ class QSimSimulator(
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
         initial_state: Any = None,
         permit_terminal_measurements: bool = False,
-    ) -> List[List[float]]:
+    ) -> Iterator[List[float]]:
         """Simulates the supplied circuit and calculates exact expectation
         values for the given observables on its final state.
 
@@ -638,8 +570,8 @@ class QSimSimulator(
                 is set to True. This is meant to prevent measurements from
                 ruining expectation value calculations.
 
-        Returns:
-            A list of expectation values, with the value at index `n`
+        Yields:
+            Lists of expectation values, with the value at index `n`
             corresponding to `observables[n]` from the input.
 
         Raises:
@@ -703,7 +635,6 @@ class QSimSimulator(
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
                 )
 
-        results = []
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
             ev_simulator_fn = self._sim_module.qtrajectory_simulate_expectation_values
@@ -724,9 +655,7 @@ class QSimSimulator(
                 evs = ev_simulator_fn(options, opsums_and_qubit_counts, initial_state)
             elif isinstance(initial_state, np.ndarray):
                 evs = ev_simulator_fn(options, opsums_and_qubit_counts, input_vector)
-            results.append(evs)
-
-        return results
+            yield evs
 
     def simulate_moment_expectation_values(
         self,
@@ -870,20 +799,13 @@ class QSimSimulator(
         translator_fn_name: str,
         qubit_order: cirq.QubitOrderOrList,
     ):
-        # If the circuit is memoized, reuse the corresponding translated
-        # circuit.
-        translated_circuit = None
-        for original, translated, m_indices in self._translated_circuits:
+        # If the circuit is memoized, reuse the corresponding translated circuit.
+        for original, translated, moment_indices in self._translated_circuits:
             if original == circuit:
-                translated_circuit = translated
-                moment_indices = m_indices
-                break
+                return translated, moment_indices
 
-        if translated_circuit is None:
-            translator_fn = getattr(circuit, translator_fn_name)
-            translated_circuit, moment_indices = translator_fn(qubit_order)
-            self._translated_circuits.append(
-                (circuit, translated_circuit, moment_indices)
-            )
+        translator_fn = getattr(circuit, translator_fn_name)
+        translated, moment_indices = translator_fn(qubit_order)
+        self._translated_circuits.append((circuit, translated, moment_indices))
 
-        return translated_circuit, moment_indices
+        return translated, moment_indices
