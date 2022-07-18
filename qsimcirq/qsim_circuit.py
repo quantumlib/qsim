@@ -216,7 +216,7 @@ def _control_details(
     control_qubits: List[cirq.Qid] = []
     control_values: List[int] = []
     # TODO: support qudit control
-    assignments = list(gate.control_values)
+    assignments = list(gate.control_values.expand())
     if len(qubits) > 1 and len(assignments) > 1:
         raise ValueError(
             f"Cannot translate controlled gate with multiple assignments for multiple qubits: {gate}"
