@@ -11,165 +11,21 @@ Objectives of this tutorial:
 * Query cluster information and monitor running jobs in HTCondor
 * Use `terraform` to destroy the cluster
 
-## 1. Configure your environment
-
-Although this tutorial can be run from your local computer, we recommend the use
-of [Google Cloud Shell](https://cloud.google.com/shell). Cloud Shell has many useful tools pre-installed.
+## 1. Deploy your HTCondor cluster
 
 Once you have completed the [Before you begin](./gcp_before_you_begin.md)
-tutorial, open the [Cloud Shell in the Cloud Console](https://console.cloud.google.com/home/dashboard?cloudshell=true).
-
-### Clone this repo
-
-In your Cloud Shell window, clone this Github repo.
-
-``` bash
-git clone https://github.com/quantumlib/qsim.git
-```
-
-If you get an error saying something like `qsim already exists`, you may need
-to delete the `qsim` directory with `rm -rf qsim` and rerun the clone command.
-
-### Change directory
-
-Change directory to the tutorial:
-
-``` bash
-cd qsim/docs/tutorials/multinode/terraform
-```
-
-This is where you will use `terraform` to create the HTCondor cluster required to run your jobs.
-
-### Edit `init.sh` file to match your environment
-
-Using your favorite text file editor, open the `init.sh` file. The first few
-lines should look like this:
-
-```bash
-# ---- Edit below -----#
-
-export TF_VAR_project=[USER_PROJECT]
-export TF_VAR_zone=us-east4-c
-export TF_VAR_region=us-east4
-```
-
-Replace `[USER_PROJECT]` with the project name you chose on the
-`Before you begin` page.
-
-The other lines can optionally be modified to adjust your environment.
-* The `TF_VAR_zone` and `TF_VAR_region` lines can be modified to select where
-your project will create new jobs.
-
-#### Find out more
-
-* [Choosing a zone and region](https://cloud.google.com/compute/docs/regions-zones)
-
-### Source the `init.sh` file
-
-The edited `init.sh` file should be "sourced" in the cloud shell:
-
-``` bash
-source init.sh
-```
-
-Respond `Agree` to any pop-ups that request permissions on the Google Cloud platform.
-
-The final outcome of this script will include:
-
-* A gcloud config setup correctly
-* A service account created
-* The appropriate permissions assigned to the service account
-* A key file created to enable the use of Google Cloud automation.
-
-This will take up to 60 seconds. At the end you will see output about
-permissions and the configuration of the account.
-
-## 2. Run terraform
-
-After the previous steps are completed, you can initialize `terraform` to begin
-your cluster creation. The first step is to initialize the `terraform` state.
-``` bash
-terraform init
-```
-A successful result will contain the text:
-```
-Terraform has been successfully initialized!
-```
-
-### Run the `make` command
-
-For convenience, some terraform commands are prepared in a `Makefile`. This
-means you can now create your cluster, with a simple `make` command.
-
-```bash
-make apply
-```
-
-A successful run will show:
-
-```
-Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
-```
-
-## 3. Connect to the submit node for HTCondor
-
-Although there are ways to run HTCondor commands from your local machine, 
-the normal path  is to login to the submit node. From there you can run 
-commands to submit and monitor jobs on HTCondor.
-
-### List VMs that were created by HTCondor
-
-To see the VMs created by HTCondor, run:
-
-```bash
-gcloud compute instances list
-```
-
-At this point in the tutorial, you will see two instances listed:
-
-```
-NAME: c-manager
-ZONE: us-central1-a
-MACHINE_TYPE: n1-standard-1
-PREEMPTIBLE:
-INTERNAL_IP: X.X.X.X
-EXTERNAL_IP: X.X.X.X
-STATUS: RUNNING
-
-NAME: c-submit
-ZONE: us-central1-a
-MACHINE_TYPE: n1-standard-1
-PREEMPTIBLE:
-INTERNAL_IP: X.X.X.X
-EXTERNAL_IP: X.X.X.X
-STATUS: RUNNING
-```
-
-### Connecting to the submit node
-
-To connect to the submit node, click the `Compute Engine` item on the Cloud
-dashboard. This will open the VM Instances page, where you should see the two
-instances listed above. In the `c-submit` row, click on the `SSH` button to
-open a new window connected to the submit node. During this step, you may see a
-prompt that reads `Connection via Cloud Identity-Aware Proxy Failed`; simply
-click on `Connect without Identity-Aware Proxy` and the connection should
-complete.
-
-This new window is logged into your HTCondor cluster. You will see a command
-prompt that looks something like this:
-
-```bash
-[mylogin@c-submit ~]$
-```
-
-The following steps should be performed in this window.
+tutorial, follow steps 1-6 of the HPC Toolkit
+[HTCondor Tutorial](https://github.com/GoogleCloudPlatform/hpc-toolkit/blob/develop/docs/tutorials/README.md#htcondor-tutorial){:.external}
+to set up a HTCondor cluster in your GCP project. Keep this window open - both
+the Cloud Shell and the remaining steps will be used in this tutorial.
 
 ### Checking the status
 
-You can run `condor_q` to verify if the HTCondor install is completed. The output should look something like this:
+You can run `condor_q` from the access point to verify if the HTCondor install
+is completed. The output should look something like this:
 
 ```
--- Schedd: c-submit.c.quantum-htcondor-14.internal : <10.150.0.2:9618?... @ 08/18/21 18:37:50
+-- Schedd: access-point-0.c.quantum-htcondor-14.internal : <10.150.0.2:9618?... @ 08/18/21 18:37:50
 OWNER BATCH_NAME      SUBMITTED   DONE   RUN    IDLE   HOLD  TOTAL JOB_IDS
 
 Total for query: 0 jobs; 0 completed, 0 removed, 0 idle, 0 running, 0 held, 0 suspended
@@ -179,14 +35,14 @@ Total for all users: 0 jobs; 0 completed, 0 removed, 0 idle, 0 running, 0 held, 
 
 If you get `command not found`, you will need to wait a few minutes for the HTCondor install to complete.
 
-## 4. Get the sample code and run it
+## 2. Get the sample code and run it
 
 The HTCondor cluster is now ready for your jobs to be run. For this tutorial,
 sample jobs have been provided in the Github repo.
 
 ###  Clone the repo on your cluster
 
-On the submit node, you can clone the repo to get access to previously
+On the access point, you can clone the repo to get access to previously
 created submission files:
 
 ```bash
@@ -202,7 +58,10 @@ cd qsim/docs/tutorials/multinode
 ### Submit a job
 
 Now it is possible to submit a job:
-```
+```bash
+# create output directory if it doesn't exist
+mkdir -p ./out
+# submit the job
 condor_submit noiseless.sub
 ```
 This job will run the code in `noiseless3.py`, which executes a simple circuit and prints the results as a histogram. If successful, the output will be:
@@ -222,7 +81,7 @@ compute node, installing the HTCondor system and running the job. When complete,
 To view one of these files in the shell, you can run `cat out/[FILE]`,
 replacing `[FILE]` with the name of the file to be viewed.
 
-## 5. Run multinode noise simulations
+## 3. Run multinode noise simulations
 
 Noise simulations make use of a [Monte Carlo
 method](https://en.wikipedia.org/wiki/Monte_Carlo_method) for [quantum
@@ -249,8 +108,11 @@ log                     = out/log.$(Cluster)-$(Process)
 request_memory          = 10GB
 queue 50
 ```
-The job can be submitted with the `condor_submit` command.
-```
+The job can be submitted from the access point with the `condor_submit` command.
+```bash
+# create output directory if it doesn't exist
+mkdir -p ./out
+# submit the job
 condor_submit noise.sub
 ```
 The output should look like this:
@@ -260,7 +122,7 @@ Submitting job(s)..................................................
 ```
 To monitor the ongoing process of jobs running, you can take advantage of the
 Linux `watch` command to run `condor_q` repeatedly:
-```
+```bash
 watch "condor_q; condor_status"
 ```
 The output of this command will show you the jobs in the queue as well as the
@@ -271,7 +133,7 @@ When the queue is empty, the command can be stopped with CTRL-C.
 
 The output from all trajectories will be stored in the `out` directory. To see
 the results of all simulations together, you can run:
-```
+```bash
 cat out/out.2-*
 ```
 The output should look something like this:
@@ -289,28 +151,12 @@ Counter({3: 466, 0: 442, 2: 51, 1: 41})
 .
 ```
 
-## 6. Shutting down
+## 4. Shutting down
 
 **IMPORTANT**:  To avoid excess billing for this project, it is important to
-shut down the cluster. Return to the Cloud dashboard window for the steps below.
-
-If your Cloud Shell is still open, simply run:
-```
-make destroy
-```
-If your Cloud Shell closed at any point, you'll need to re-initialize it.
-[Open a new shell](https://console.cloud.google.com/home/dashboard?cloudshell=true)
-and run:
-```
-cd qsim/docs/tutorials/multinode/terraform
-source init.sh
-make destroy
-```
-After these commands complete, check the Compute Instances dashboard to verify
-that all VMs have been shut down. This tutorial makes use of an experimental
-[autoscaling script](./terraform/htcondor/autoscaler.py) to bring up and turn
-down VMs as needed. If any VMs remain after several minutes, you may need to
-shut them down manually, as described in the next section.
+shut down the cluster. Return to steps 7-8 of the HPC Toolkit
+[HTCondor Tutorial](https://github.com/GoogleCloudPlatform/hpc-toolkit/blob/main/docs/tutorials/README.md#htcondor-tutorial)
+for instructions on how to accomplish this.
 
 ## Next steps
 
