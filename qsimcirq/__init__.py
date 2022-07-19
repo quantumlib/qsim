@@ -53,12 +53,7 @@ qsim_gpu = _load_qsim_gpu()
 qsim_custatevec = _load_qsim_custatevec()
 
 from .qsim_circuit import add_op_to_opstring, add_op_to_circuit, QSimCircuit
-from .qsim_simulator import (
-    QSimOptions,
-    QSimSimulatorState,
-    QSimSimulatorTrialResult,
-    QSimSimulator,
-)
+from .qsim_simulator import QSimOptions, QSimSimulator
 from .qsimh_simulator import QSimhSimulator
 
 from qsimcirq._version import (

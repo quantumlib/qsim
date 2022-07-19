@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import warnings
-from typing import Dict, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import cirq
 import numpy as np
@@ -210,26 +210,33 @@ def _has_cirq_gate_kind(op: cirq.Operation):
     return any(t in TYPE_TRANSLATOR for t in type(op.gate).mro())
 
 
-def _control_details(gate: cirq.ControlledGate, qubits):
-    control_qubits = []
-    control_values = []
+def _control_details(
+    gate: cirq.ControlledGate, qubits: Sequence[cirq.Qid]
+) -> Tuple[List[cirq.Qid], List[int]]:
+    control_qubits: List[cirq.Qid] = []
+    control_values: List[int] = []
     # TODO: support qudit control
-    for i, cvs in enumerate(gate.control_values):
+    assignments = list(gate.control_values.expand())
+    if len(qubits) > 1 and len(assignments) > 1:
+        raise ValueError(
+            f"Cannot translate controlled gate with multiple assignments for multiple qubits: {gate}"
+        )
+    for q, cvs in zip(qubits, zip(*assignments)):
         if 0 in cvs and 1 in cvs:
             # This qubit does not affect control.
             continue
-        elif 0 not in cvs and 1 not in cvs:
-            # This gate will never trigger.
-            warnings.warn(f"Gate has no valid control value: {gate}", RuntimeWarning)
-            return (None, None)
+        elif any(cv not in (0, 1) for cv in cvs):
+            raise ValueError(
+                f"Cannot translate control values other than 0 and 1: cvs={cvs}"
+            )
         # Either 0 or 1 is in cvs, but not both.
-        control_qubits.append(qubits[i])
+        control_qubits.append(q)
         if 0 in cvs:
             control_values.append(0)
         elif 1 in cvs:
             control_values.append(1)
 
-    return (control_qubits, control_values)
+    return control_qubits, control_values
 
 
 def add_op_to_opstring(
@@ -271,7 +278,9 @@ def add_op_to_circuit(
     qsim_qubits = qubits
     is_controlled = isinstance(qsim_gate, cirq.ControlledGate)
     if is_controlled:
-        control_qubits, control_values = _control_details(qsim_gate, qubits)
+        control_qubits, control_values = _control_details(
+            qsim_gate, qubits[: qsim_gate.num_controls()]
+        )
         if control_qubits is None:
             # This gate has no valid control, and will be omitted.
             return
@@ -473,6 +482,9 @@ class QSimCircuit(cirq.Circuit):
                     time = time_offset + gi
                     add_op_to_circuit(qsim_op, time, qubit_to_index_dict, qsim_ncircuit)
                     gate_count += 1
+                # Only gates decompose to multiple time steps.
+                if gi > 0:
+                    continue
                 # Handle mixture output.
                 for mixture in ops_by_mix:
                     mixdata = []
