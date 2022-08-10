@@ -1147,16 +1147,17 @@ void TestMultiQubitGates(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
+  unsigned max_gate_qubits = 6;
   unsigned max_num_qubits = 10 + std::log2(Simulator::SIMDRegisterSize());
 
   StateSpace state_space = factory.CreateStateSpace();
   Simulator simulator = factory.CreateSimulator();
 
   std::vector<fp_type> matrix;
-  matrix.reserve(1 << (2 * 6 + 1));
+  matrix.reserve(1 << (2 * max_gate_qubits + 1));
 
   std::vector<unsigned> qubits;
-  qubits.reserve(6);
+  qubits.reserve(max_gate_qubits);
 
   std::vector<fp_type> vec(state_space.MinSize(max_num_qubits));
 
@@ -1165,9 +1166,9 @@ void TestMultiQubitGates(const Factory& factory) {
 
     unsigned size = 1 << num_qubits;
     fp_type inorm = std::sqrt(1.0 / (1 << num_qubits));
-    unsigned max_gate_qubits = std::min(6U, num_qubits);
+    unsigned max_gate_qubits2 = std::min(max_gate_qubits, num_qubits);
 
-    for (unsigned q = 1; q <= max_gate_qubits; ++q) {
+    for (unsigned q = 1; q <= max_gate_qubits2; ++q) {
 
       unsigned size1 = 1 << q;
       unsigned size2 = size1 * size1;
@@ -1363,25 +1364,26 @@ void TestExpectationValue1(const Factory& factory) {
   using fp_type = typename StateSpace::fp_type;
 
   unsigned rsize = std::log2(Simulator::SIMDRegisterSize());
+  unsigned max_gate_qubits = 6;
   unsigned max_num_qubits = 10 + rsize;
 
   StateSpace state_space = factory.CreateStateSpace();
   Simulator simulator = factory.CreateSimulator();
 
   std::vector<fp_type> matrix;
-  matrix.reserve(1 << (2 * 6 + 1));
+  matrix.reserve(1 << (2 * max_gate_qubits + 1));
 
   std::vector<unsigned> qubits;
-  qubits.reserve(6);
+  qubits.reserve(max_gate_qubits);
 
   std::vector<fp_type> vec(state_space.MinSize(max_num_qubits));
 
   for (unsigned num_qubits = 1; num_qubits <= max_num_qubits; ++num_qubits) {
     auto state = state_space.Create(num_qubits);
 
-    unsigned max_gate_qubits = std::min(6U, num_qubits);
+    unsigned max_gate_qubits2 = std::min(max_gate_qubits, num_qubits);
 
-    for (unsigned q = 1; q <= max_gate_qubits; ++q) {
+    for (unsigned q = 1; q <= max_gate_qubits2; ++q) {
       unsigned size1 = 1 << q;
       unsigned size2 = size1 * size1;
 
