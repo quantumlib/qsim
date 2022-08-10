@@ -18,4519 +18,660 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#include <algorithm>
-#include <complex>
-#include <cstdint>
-
 #include "util_cuda.h"
 
 namespace qsim {
 
-template <typename Integer>
-__device__ __forceinline__ Integer ExpandBits(
-    Integer bits, unsigned n, Integer mask) {
-  Integer ebits = 0;
-  unsigned k = 0;
+template <unsigned G, typename fp_type, typename idx_type>
+__global__ void ApplyGateH_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss0,
+    const idx_type* __restrict__ mss, fp_type* __restrict__ rstate) {
+  // blockDim.x must be equal to 64.
 
-  for (unsigned i = 0; i < n; ++i) {
-    if ((mask >> i) & 1) {
-      ebits |= ((bits >> k) & 1) << i;
-      ++k;
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
+
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned rows =
+      G < 4 ? gsize : (sizeof(fp_type) == 4 ?
+                       (G < 6 ? gsize : 32) : (G < 5 ? 8 : 16));
+
+  fp_type rs[gsize], is[gsize];
+
+  __shared__ idx_type xss[64];
+  __shared__ fp_type v[2 * gsize * rows];
+
+  if (threadIdx.x < gsize) {
+    xss[threadIdx.x] = xss0[threadIdx.x];
+  }
+
+  if (G <= 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
+    }
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 64) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
     }
   }
 
-  return ebits;
+  __syncthreads();
+
+  idx_type i = (64 * idx_type{blockIdx.x} + threadIdx.x) & 0xffffffffffe0;
+  idx_type ii = i & mss[0];
+  for (unsigned j = 1; j <= G; ++j) {
+    i *= 2;
+    ii |= i & mss[j];
+  }
+
+  auto p0 = rstate + 2 * ii + threadIdx.x % 32;
+
+  for (unsigned k = 0; k < gsize; ++k) {
+    rs[k] = *(p0 + xss[k]);
+    is[k] = *(p0 + xss[k] + 32);
+  }
+
+  for (unsigned s = 0; s < gsize / rows; ++s) {
+    if (s > 0) {
+      __syncthreads();
+
+      for (unsigned m = 0; m < 2 * gsize * rows; m += 64) {
+        v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+      }
+
+      __syncthreads();
+    }
+
+    unsigned j = 0;
+
+    for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+      fp_type rn = 0;
+      fp_type in = 0;
+
+      for (unsigned l = 0; l < gsize; ++l) {
+        fp_type rm = v[j++];
+        fp_type im = v[j++];
+        rn += rs[l] * rm;
+        rn -= is[l] * im;
+        in += rs[l] * im;
+        in += is[l] * rm;
+      }
+
+      *(p0 + xss[k]) = rn;
+      *(p0 + xss[k] + 32) = in;
+    }
+  }
 }
 
-template <typename fp_type>
-__global__ void ApplyGate1H_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
+template <unsigned G, typename fp_type, typename idx_type>
+__global__ void ApplyGateL_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss,
+    const idx_type* __restrict__ mss, const unsigned* __restrict__ qis,
+    const unsigned* __restrict__ tis, unsigned esize,
+    fp_type* __restrict__ rstate) {
+  // blockDim.x must be equal to 32.
 
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned
+      rows = G < 4 ? gsize : (sizeof(fp_type) == 4 ?
+                              (G < 5 ? gsize : 8) : (G < 6 ? 8 : 4));
 
-  auto p0 = rstate + 2 * k + lane;
+  fp_type rs[gsize], is[gsize];
 
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate1L_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[2 * l] = *(p0);
-    is[2 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate2HH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate2HL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate2LL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[4 * l] = *(p0);
-    is[4 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate3HHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate3HHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate3HLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate3LLL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[8 * l] = *(p0);
-    is[8 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate4HHHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate4HHHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate4HHLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate4HLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate4LLLL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[16 * l] = *(p0);
-    is[16 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate5HHHHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]) | (1024 * i & ms[5]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate5HHHHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate5HHHLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate5HHLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate5HLLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[16 * l] = *(p0 + xss[l]);
-    is[16 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate5LLLLL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[32 * l] = *(p0);
-    is[32 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 32; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[32 * l + j] = __shfl_sync(0xffffffff, rs[32 * l], idx[k]);
-      is[32 * l + j] = __shfl_sync(0xffffffff, is[32 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate6HHHHHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]) | (1024 * i & ms[5])
-      | (2048 * i & ms[6]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 64; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 64; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate6HHHHHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]) | (1024 * i & ms[5]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate6HHHHLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate6HHHLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate6HHLLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[16 * l] = *(p0 + xss[l]);
-    is[16 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyGate6HLLLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[32 * l] = *(p0 + xss[l]);
-    is[32 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 32; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[32 * l + j] = __shfl_sync(0xffffffff, rs[32 * l], idx[k]);
-      is[32 * l + j] = __shfl_sync(0xffffffff, is[32 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate1H_H_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate1H_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate1L_H_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[2 * l] = *(p0);
-    is[2 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate1L_L_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[2 * l] = *(p0);
-    is[2 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate2HH_H_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate2HH_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate2HL_H_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate2HL_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate2LL_H_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[4 * l] = *(p0);
-    is[4 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate2LL_L_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[4 * l] = *(p0);
-    is[4 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3HHH_H_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3HHH_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3HHL_H_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3HHL_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3HLL_H_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3HLL_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3LLL_H_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[8 * l] = *(p0);
-    is[8 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate3LLL_L_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[8 * l] = *(p0);
-    is[8 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HHHH_H_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
+  __shared__ fp_type v[2 * gsize * rows];
+  __shared__ fp_type rs0[32][gsize + 1], is0[32][gsize + 1];
 
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HHHH_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HHHL_H_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HHHL_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HHLL_H_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
+  if (G < 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
     }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
-  }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HHLL_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
     }
   }
-
-  unsigned j = lane;
 
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
+  idx_type i = 32 * idx_type{blockIdx.x};
+  idx_type ii = i & mss[0];
+  for (unsigned j = 1; j <= G; ++j) {
+    i *= 2;
+    ii |= i & mss[j];
   }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HLLL_H_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
 
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
+  auto p0 = rstate + 2 * ii + threadIdx.x;
 
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
+  for (unsigned k = 0; k < gsize; ++k) {
+    rs0[threadIdx.x][k] = *(p0 + xss[k]);
+    is0[threadIdx.x][k] = *(p0 + xss[k] + 32);
   }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
 
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
+  for (unsigned k = 0; k < gsize; ++k) {
+    unsigned i = tis[threadIdx.x] | qis[k];
+    unsigned m = i & 0x1f;
+    unsigned n = i / 32;
 
-      j += 64;
-    }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
+    rs[k] = rs0[m][n];
+    is[k] = is0[m][n];
   }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4HLLL_L_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
 
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
+  for (unsigned s = 0; s < gsize / rows; ++s) {
+    if (s > 0) {
+      for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+        v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+      }
     }
-  }
 
-  unsigned j = lane;
+    unsigned j = 0;
 
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
+    for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+      fp_type rn = 0;
+      fp_type in = 0;
 
-    j += 64;
+      for (unsigned l = 0; l < gsize; ++l) {
+        fp_type rm = v[j++];
+        fp_type im = v[j++];
+        rn += rs[l] * rm;
+        rn -= is[l] * im;
+        in += rs[l] * im;
+        in += is[l] * rm;
+      }
 
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
+      unsigned i = tis[threadIdx.x] | qis[k];
+      unsigned m = i & 0x1f;
+      unsigned n = i / 32;
 
-      j += 64;
+      rs0[m][n] = rn;
+      is0[m][n] = in;
     }
-
-    *(p0 + xss[l]) = rn;
-    *(p0 + xss[l] + 32) = in;
   }
-};
-
-template <typename fp_type>
-__global__ void ApplyControlledGate4LLLL_H_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[16 * l] = *(p0);
-    is[16 * l] = *(p0 + 32);
 
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
+  for (unsigned k = 0; k < esize; ++k) {
+    *(p0 + xss[k]) = rs0[threadIdx.x][k];
+    *(p0 + xss[k] + 32) = is0[threadIdx.x][k];
   }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
+}
 
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
+template <unsigned G, typename fp_type, typename idx_type>
+__global__ void ApplyControlledGateH_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss0,
+    const idx_type* __restrict__ mss, unsigned num_mss, idx_type cvalsh,
+    fp_type* __restrict__ rstate) {
+  // blockDim.x must be equal to 64.
 
-template <typename fp_type>
-__global__ void ApplyControlledGate4LLLL_L_Kernel(
-    const fp_type* __restrict__ w, unsigned num_qubits,
-    uint64_t cmaskh, uint64_t emaskh, const unsigned* __restrict__ idx,
-    fp_type* rstate) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned rows =
+      G < 4 ? gsize : (sizeof(fp_type) == 4 ?
+                           (G < 6 ? gsize : 32) : (G < 5 ? 8 : 16));
 
-  uint64_t k = ExpandBits(i, num_qubits, emaskh) | cmaskh;
-  auto p0 = rstate + 2 * k + lane;
+  fp_type rs[gsize], is[gsize];
 
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[16 * l] = *(p0);
-    is[16 * l] = *(p0 + 32);
+  __shared__ idx_type xss[64];
+  __shared__ fp_type v[2 * gsize * rows];
 
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
+  if (threadIdx.x < gsize) {
+    xss[threadIdx.x] = xss0[threadIdx.x];
   }
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
 
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
+  if (G <= 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
     }
-
-    *(p0) = rn;
-    *(p0 + 32) = in;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue1H_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 64) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
     }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
   }
 
   __syncthreads();
 
+  idx_type i = (64 * idx_type{blockIdx.x} + threadIdx.x) & 0xffffffffffe0;
+  idx_type ii = i & mss[0];
+  for (unsigned j = 1; j < num_mss; ++j) {
+    i *= 2;
+    ii |= i & mss[j];
+  }
+
+  ii |= cvalsh;
+
+  auto p0 = rstate + 2 * ii + threadIdx.x % 32;
+
+  for (unsigned k = 0; k < gsize; ++k) {
+    rs[k] = *(p0 + xss[k]);
+    is[k] = *(p0 + xss[k] + 32);
+  }
+
+  for (unsigned s = 0; s < gsize / rows; ++s) {
+    if (s > 0) {
+      __syncthreads();
+
+      for (unsigned m = 0; m < 2 * gsize * rows; m += 64) {
+        v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+      }
+
+      __syncthreads();
+    }
+
+    unsigned j = 0;
+
+    for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+      fp_type rn = 0;
+      fp_type in = 0;
+
+      for (unsigned l = 0; l < gsize; ++l) {
+        fp_type rm = v[j++];
+        fp_type im = v[j++];
+        rn += rs[l] * rm;
+        rn -= is[l] * im;
+        in += rs[l] * im;
+        in += is[l] * rm;
+      }
+
+      *(p0 + xss[k]) = rn;
+      *(p0 + xss[k] + 32) = in;
+    }
+  }
+}
+
+template <unsigned G, typename fp_type, typename idx_type>
+__global__ void ApplyControlledGateLH_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss,
+    const idx_type* __restrict__ mss, const unsigned* __restrict__ qis,
+    const unsigned* __restrict__ tis, unsigned num_mss, idx_type cvalsh,
+    unsigned esize, fp_type* __restrict__ rstate) {
+  // blockDim.x must be equal to 32.
+
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
+
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned
+      rows = G < 4 ? gsize : (sizeof(fp_type) == 4 ?
+                              (G < 5 ? gsize : 8) : (G < 6 ? 8 : 4));
+
+  fp_type rs[gsize], is[gsize];
+
+  __shared__ fp_type rs0[32][gsize + 1], is0[32][gsize + 1];
+  __shared__ fp_type v[2 * gsize * rows];
+
+  idx_type i = 32 * idx_type{blockIdx.x};
+  idx_type ii = i & mss[0];
+  for (unsigned j = 1; j < num_mss; ++j) {
+    i *= 2;
+    ii |= i & mss[j];
+  }
+
+  ii |= cvalsh;
+
+  auto p0 = rstate + 2 * ii + threadIdx.x;
+
+  for (unsigned k = 0; k < gsize; ++k) {
+    rs0[threadIdx.x][k] = *(p0 + xss[k]);
+    is0[threadIdx.x][k] = *(p0 + xss[k] + 32);
+  }
+
+  if (G < 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
+    }
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
+    }
+  }
+
+  for (unsigned k = 0; k < gsize; ++k) {
+    unsigned i = tis[threadIdx.x] | qis[k];
+    unsigned m = i & 0x1f;
+    unsigned n = i / 32;
+
+    rs[k] = rs0[m][n];
+    is[k] = is0[m][n];
+  }
+
+  for (unsigned s = 0; s < gsize / rows; ++s) {
+    if (s > 0) {
+      for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+        v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+      }
+    }
+
+    unsigned j = 0;
+
+    for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+      fp_type rn = 0;
+      fp_type in = 0;
+
+      for (unsigned l = 0; l < gsize; ++l) {
+        fp_type rm = v[j++];
+        fp_type im = v[j++];
+        rn += rs[l] * rm;
+        rn -= is[l] * im;
+        in += rs[l] * im;
+        in += is[l] * rm;
+      }
+
+      unsigned i = tis[threadIdx.x] | qis[k];
+      unsigned m = i & 0x1f;
+      unsigned n = i / 32;
+
+      rs0[m][n] = rn;
+      is0[m][n] = in;
+    }
+  }
+
+  for (unsigned k = 0; k < esize; ++k) {
+    *(p0 + xss[k]) = rs0[threadIdx.x][k];
+    *(p0 + xss[k] + 32) = is0[threadIdx.x][k];
+  }
+}
+
+template <unsigned G, typename fp_type, typename idx_type>
+__global__ void ApplyControlledGateL_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss,
+    const idx_type* __restrict__ mss, const unsigned* __restrict__ qis,
+    const unsigned* __restrict__ tis, const idx_type* __restrict__ cis,
+    unsigned num_mss, idx_type cvalsh, unsigned esize, unsigned rwthreads,
+    fp_type* __restrict__ rstate) {
+  // blockDim.x must be equal to 32.
+
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
+
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned
+      rows = G < 4 ? gsize : (sizeof(fp_type) == 4 ?
+                              (G < 5 ? gsize : 8) : (G < 6 ? 8 : 4));
+
+  fp_type rs[gsize], is[gsize];
+
+  __shared__ fp_type rs0[32][gsize + 1], is0[32][gsize + 1];
+  __shared__ fp_type v[2 * gsize * rows];
+
+  idx_type i = 32 * idx_type{blockIdx.x};
+  idx_type ii = i & mss[0];
+  for (unsigned j = 1; j < num_mss; ++j) {
+    i *= 2;
+    ii |= i & mss[j];
+  }
+
+  ii |= cvalsh;
+
+  auto p0 = rstate + 2 * ii + cis[threadIdx.x];
+
+  if (threadIdx.x < rwthreads) {
+    for (unsigned k = 0; k < gsize; ++k) {
+      rs0[threadIdx.x][k] = *(p0 + xss[k]);
+      is0[threadIdx.x][k] = *(p0 + xss[k] + 32);
+    }
+  }
+
+  if (G < 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
+    }
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
+    }
+  }
+
+  for (unsigned k = 0; k < gsize; ++k) {
+    unsigned i = tis[threadIdx.x] | qis[k];
+    unsigned m = i & 0x1f;
+    unsigned n = i / 32;
+
+    rs[k] = rs0[m][n];
+    is[k] = is0[m][n];
+  }
+
+  for (unsigned s = 0; s < gsize / rows; ++s) {
+    if (s > 0) {
+      for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+        v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+      }
+    }
+
+    unsigned j = 0;
+
+    for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+      fp_type rn = 0;
+      fp_type in = 0;
+
+      for (unsigned l = 0; l < gsize; ++l) {
+        fp_type rm = v[j++];
+        fp_type im = v[j++];
+        rn += rs[l] * rm;
+        rn -= is[l] * im;
+        in += rs[l] * im;
+        in += is[l] * rm;
+      }
+
+      unsigned i = tis[threadIdx.x] | qis[k];
+      unsigned m = i & 0x1f;
+      unsigned n = i / 32;
+
+      rs0[m][n] = rn;
+      is0[m][n] = in;
+    }
+  }
+
+  if (threadIdx.x < rwthreads) {
+    for (unsigned k = 0; k < esize; ++k) {
+      *(p0 + xss[k]) = rs0[threadIdx.x][k];
+      *(p0 + xss[k] + 32) = is0[threadIdx.x][k];
+    }
+  }
+}
+
+template <unsigned G, typename fp_type, typename idx_type, typename Op,
+          typename cfp_type>
+__global__ void ExpectationValueH_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss0,
+    const idx_type* __restrict__ mss, unsigned num_iterations_per_block,
+    const fp_type* __restrict__ rstate, Op op, cfp_type* __restrict__ result) {
+  // blockDim.x must be equal to 64.
+
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
+
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned rows =
+      G < 5 ? gsize : (sizeof(fp_type) == 4 ? (G < 6 ? 4 : 8) : 8);
+
+  fp_type rs[gsize], is[gsize];
+
+  __shared__ idx_type xss[64];
+  __shared__ fp_type v[2 * gsize * rows];
+
+  if (threadIdx.x < gsize) {
+    xss[threadIdx.x] = xss0[threadIdx.x];
+  }
+
+  if (G <= 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
+    }
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 64) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
+    }
+  }
+
+  __syncthreads();
+
+  double re = 0;
+  double im = 0;
+
+  for (unsigned iter = 0; iter < num_iterations_per_block; ++iter) {
+    idx_type b = num_iterations_per_block * idx_type{blockIdx.x} + iter;
+
+    idx_type i = (64 * b + threadIdx.x) & 0xffffffffffe0;
+    idx_type ii = i & mss[0];
+    for (unsigned j = 1; j <= G; ++j) {
+      i *= 2;
+      ii |= i & mss[j];
+    }
+
+    auto p0 = rstate + 2 * ii + threadIdx.x % 32;
+
+    for (unsigned k = 0; k < gsize; ++k) {
+      rs[k] = *(p0 + xss[k]);
+      is[k] = *(p0 + xss[k] + 32);
+    }
+
+    for (unsigned s = 0; s < gsize / rows; ++s) {
+      if (s > 0 || iter > 0) {
+        __syncthreads();
+
+        for (unsigned m = 0; m < 2 * gsize * rows; m += 64) {
+          v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+        }
+
+        __syncthreads();
+      }
+
+      unsigned j = 0;
+
+      for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+        fp_type rn = 0;
+        fp_type in = 0;
+
+        for (unsigned l = 0; l < gsize; ++l) {
+          fp_type rm = v[j++];
+          fp_type im = v[j++];
+          rn += rs[l] * rm;
+          rn -= is[l] * im;
+          in += rs[l] * im;
+          in += is[l] * rm;
+        }
+
+        re += rs[k] * rn;
+        re += is[k] * in;
+        im += rs[k] * in;
+        im -= is[k] * rn;
+      }
+    }
+  }
+
+  __shared__ cfp_type partial1[64];
+  __shared__ cfp_type partial2[2];
+
+  partial1[threadIdx.x].re = re;
+  partial1[threadIdx.x].im = im;
+
   auto val = WarpReduce(partial1[threadIdx.x], op);
 
-  if (lane == 0) {
+  if (threadIdx.x % 32 == 0) {
     partial2[threadIdx.x / 32] = val;
   }
 
   __syncthreads();
 
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
+  if (threadIdx.x == 0) {
+    result[blockIdx.x].re = partial2[0].re + partial2[1].re;
+    result[blockIdx.x].im = partial2[0].im + partial2[1].im;
   }
+}
+
+template <unsigned G, typename fp_type, typename idx_type,
+          typename Op, typename cfp_type>
+__global__ void ExpectationValueL_Kernel(
+    const fp_type* __restrict__ v0, const idx_type* __restrict__ xss,
+    const idx_type* __restrict__ mss, const unsigned* __restrict__ qis,
+    const unsigned* __restrict__ tis, unsigned num_iterations_per_block,
+    const fp_type* __restrict__ rstate, Op op, cfp_type* __restrict__ result) {
+  // blockDim.x must be equal to 32.
+
+  static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
+
+  constexpr unsigned gsize = 1 << G;
+  constexpr unsigned rows = G < 5 ? gsize : (sizeof(fp_type) == 4 ?
+                                             (G < 6 ? 4 : 2) : (G < 6 ? 2 : 1));
+
+  fp_type rs[gsize], is[gsize];
+
+  __shared__ fp_type rs0[32][gsize + 1], is0[32][gsize + 1];
+  __shared__ fp_type v[2 * gsize * rows];
+
+  if (G < 2) {
+    if (threadIdx.x < 2 * gsize * gsize) {
+      v[threadIdx.x] = v0[threadIdx.x];
+    }
+  } else {
+    for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+      v[m + threadIdx.x] = v0[m + threadIdx.x];
+    }
+  }
+
+  double re = 0;
+  double im = 0;
+
+  for (idx_type iter = 0; iter < num_iterations_per_block; ++iter) {
+    idx_type i = 32 * (num_iterations_per_block * idx_type{blockIdx.x} + iter);
+    idx_type ii = i & mss[0];
+    for (unsigned j = 1; j <= G; ++j) {
+      i *= 2;
+      ii |= i & mss[j];
+    }
+
+    auto p0 = rstate + 2 * ii + threadIdx.x;
+
+    for (unsigned k = 0; k < gsize; ++k) {
+      rs0[threadIdx.x][k] = *(p0 + xss[k]);
+      is0[threadIdx.x][k] = *(p0 + xss[k] + 32);
+    }
+
+    for (unsigned k = 0; k < gsize; ++k) {
+      unsigned i = tis[threadIdx.x] | qis[k];
+      unsigned m = i & 0x1f;
+      unsigned n = i / 32;
+
+      rs[k] = rs0[m][n];
+      is[k] = is0[m][n];
+    }
+
+    for (unsigned s = 0; s < gsize / rows; ++s) {
+      if (s > 0 || iter > 0) {
+        for (unsigned m = 0; m < 2 * gsize * rows; m += 32) {
+          v[m + threadIdx.x] = v0[m + 2 * gsize * rows * s + threadIdx.x];
+        }
+      }
+
+      unsigned j = 0;
+
+      for (unsigned k = rows * s; k < rows * (s + 1); ++k) {
+        fp_type rn = 0;
+        fp_type in = 0;
+
+        for (unsigned l = 0; l < gsize; ++l) {
+          fp_type rm = v[j++];
+          fp_type im = v[j++];
+          rn += rs[l] * rm;
+          rn -= is[l] * im;
+          in += rs[l] * im;
+          in += is[l] * rm;
+        }
+
+        re += rs[k] * rn;
+        re += is[k] * in;
+        im += rs[k] * in;
+        im -= is[k] * rn;
+      }
+    }
+  }
+
+  __shared__ cfp_type partial[32];
+
+  partial[threadIdx.x].re = re;
+  partial[threadIdx.x].im = im;
+
+  auto val = WarpReduce(partial[threadIdx.x], op);
 
   if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
+    result[blockIdx.x].re = val.re;
+    result[blockIdx.x].im = val.im;
   }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue1L_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[2], is[2];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[2 * l] = *(p0);
-    is[2 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 2; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue2HH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue2HL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 2 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue2LL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[4], is[4];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[4 * l] = *(p0);
-    is[4 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 4; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue3HHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue3HHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 2 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue3HLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 4 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue3LLL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[8], is[8];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[8 * l] = *(p0);
-    is[8 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 8; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue4HHHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue4HHHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 2 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue4HHLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 4 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue4HLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 8 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue4LLLL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[16], is[16];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[16 * l] = *(p0);
-    is[16 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 16; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue5HHHHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]) | (1024 * i & ms[5]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue5HHHHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 2 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue5HHHLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 4 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue5HHLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 8 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue5HLLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[16 * l] = *(p0 + xss[l]);
-    is[16 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 16 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue5LLLLL_Kernel(
-    const fp_type* __restrict__ w, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[32], is[32];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  auto p0 = rstate + 64 * i + lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rs[32 * l] = *(p0);
-    is[32 * l] = *(p0 + 32);
-
-    for (unsigned j = 1; j < 32; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[32 * l + j] = __shfl_sync(0xffffffff, rs[32 * l], idx[k]);
-      is[32 * l + j] = __shfl_sync(0xffffffff, is[32 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 1; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 32; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue6HHHHHH_Kernel(
-    const fp_type* __restrict__ v, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]) | (1024 * i & ms[5])
-      | (2048 * i & ms[6]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 64; ++l) {
-    rs[l] = *(p0 + xss[l]);
-    is[l] = *(p0 + xss[l] + 32);
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = 0;
-
-  for (unsigned l = 0; l < 64; ++l) {
-    rn = rs[0] * v[j] - is[0] * v[j + 1];
-    in = rs[0] * v[j + 1] + is[0] * v[j];
-
-    j += 2;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * v[j] - is[n] * v[j + 1];
-      in += rs[n] * v[j + 1] + is[n] * v[j];
-
-      j += 2;
-    }
-
-    re += rs[l] * rn + is[l] * in;
-    im += rs[l] * in - is[l] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue6HHHHHL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]) | (1024 * i & ms[5]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rs[2 * l] = *(p0 + xss[l]);
-    is[2 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 2; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[2 * l + j] = __shfl_sync(0xffffffff, rs[2 * l], idx[k]);
-      is[2 * l + j] = __shfl_sync(0xffffffff, is[2 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 32; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 2 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue6HHHHLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]) | (512 * i & ms[4]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rs[4 * l] = *(p0 + xss[l]);
-    is[4 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 4; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[4 * l + j] = __shfl_sync(0xffffffff, rs[4 * l], idx[k]);
-      is[4 * l + j] = __shfl_sync(0xffffffff, is[4 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 16; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 4 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue6HHHLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2])
-      | (256 * i & ms[3]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rs[8 * l] = *(p0 + xss[l]);
-    is[8 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 8; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[8 * l + j] = __shfl_sync(0xffffffff, rs[8 * l], idx[k]);
-      is[8 * l + j] = __shfl_sync(0xffffffff, is[8 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 8; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 8 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue6HHLLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]) | (128 * i & ms[2]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rs[16 * l] = *(p0 + xss[l]);
-    is[16 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 16; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[16 * l + j] = __shfl_sync(0xffffffff, rs[16 * l], idx[k]);
-      is[16 * l + j] = __shfl_sync(0xffffffff, is[16 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 4; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 16 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
-
-template <typename fp_type, typename Op, typename FP>
-__global__ void ExpectationValue6HLLLLL_Kernel(
-    const fp_type* __restrict__ w, const uint64_t* __restrict__ ms,
-    const uint64_t* __restrict__ xss, const unsigned* __restrict__ idx,
-    const fp_type* rstate,
-    Op op, FP* result) {
-  fp_type rn, in;
-  fp_type rs[64], is[64];
-
-  unsigned lane = threadIdx.x % 32;
-  uint64_t i = (uint64_t{blockDim.x} * blockIdx.x + threadIdx.x) / 32;
-
-  uint64_t k = (32 * i & ms[0]) | (64 * i & ms[1]);
-
-  auto p0 = rstate + 2 * k + lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rs[32 * l] = *(p0 + xss[l]);
-    is[32 * l] = *(p0 + xss[l] + 32);
-
-    for (unsigned j = 1; j < 32; ++j) {
-      unsigned k = 32 * (j - 1) + lane;
-      rs[32 * l + j] = __shfl_sync(0xffffffff, rs[32 * l], idx[k]);
-      is[32 * l + j] = __shfl_sync(0xffffffff, is[32 * l], idx[k]);
-    }
-  }
-
-  fp_type re = 0;
-  fp_type im = 0;
-
-  unsigned j = lane;
-
-  for (unsigned l = 0; l < 2; ++l) {
-    rn = rs[0] * w[j] - is[0] * w[j + 32];
-    in = rs[0] * w[j + 32] + is[0] * w[j];
-
-    j += 64;
-
-    for (unsigned n = 1; n < 64; ++n) {
-      rn += rs[n] * w[j] - is[n] * w[j + 32];
-      in += rs[n] * w[j + 32] + is[n] * w[j];
-
-      j += 64;
-    }
-
-    unsigned m = 32 * l;
-
-    re += rs[m] * rn + is[m] * in;
-    im += rs[m] * in - is[m] * rn;
-  }
-
-  extern __shared__ float shared[];
-  FP* partial1 = (FP*) shared;
-
-  partial1[threadIdx.x].re = re;
-  partial1[threadIdx.x].im = im;
-
-  __shared__ FP partial2[32];
-
-  if (threadIdx.x < 32) {
-    partial2[threadIdx.x] = 0;
-  }
-
-  __syncthreads();
-
-  auto val = WarpReduce(partial1[threadIdx.x], op);
-
-  if (lane == 0) {
-    partial2[threadIdx.x / 32] = val;
-  }
-
-  __syncthreads();
-
-  FP r = 0;
-
-  if (threadIdx.x < 32) {
-    r = WarpReduce(partial2[lane], op);
-  }
-
-  if (threadIdx.x == 0) {
-    result[blockIdx.x] = r;
-  }
-};
+}
 
 }  // namespace qsim
 

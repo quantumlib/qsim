@@ -1147,60 +1147,63 @@ void TestMultiQubitGates(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  unsigned max_minq = 4;
-  unsigned max_gate_qubits = 6;
-  unsigned num_qubits = max_gate_qubits + max_minq;
+  unsigned max_num_qubits = 10 + std::log2(Simulator::SIMDRegisterSize());
 
   StateSpace state_space = factory.CreateStateSpace();
   Simulator simulator = factory.CreateSimulator();
 
-  auto state = state_space.Create(num_qubits);
-
   std::vector<fp_type> matrix;
-  matrix.reserve(1 << (2 * max_gate_qubits + 1));
+  matrix.reserve(1 << (2 * 6 + 1));
 
   std::vector<unsigned> qubits;
-  qubits.reserve(max_gate_qubits);
+  qubits.reserve(6);
 
-  std::vector<fp_type> vec(state_space.MinSize(num_qubits));
+  std::vector<fp_type> vec(state_space.MinSize(max_num_qubits));
 
-  unsigned size = 1 << num_qubits;
-  fp_type inorm = std::sqrt(1.0 / (1 << num_qubits));
+  for (unsigned num_qubits = 1; num_qubits <= max_num_qubits; ++num_qubits) {
+    auto state = state_space.Create(num_qubits);
 
-  for (unsigned q = 1; q <= max_gate_qubits; ++q) {
-    unsigned size1 = 1 << q;
-    unsigned size2 = size1 * size1;
+    unsigned size = 1 << num_qubits;
+    fp_type inorm = std::sqrt(1.0 / (1 << num_qubits));
+    unsigned max_gate_qubits = std::min(6U, num_qubits);
 
-    matrix.resize(0);
+    for (unsigned q = 1; q <= max_gate_qubits; ++q) {
 
-    for (unsigned i = 0; i < 2 * size2; ++i) {
-      matrix.push_back(i + 1);
-    }
+      unsigned size1 = 1 << q;
+      unsigned size2 = size1 * size1;
 
-    unsigned mask = (1 << q) - 1;
+      matrix.resize(0);
 
-    for (unsigned k = 0; k <= max_minq; ++k) {
-      qubits.resize(0);
-
-      for (unsigned i = 0; i < q; ++i) {
-        qubits.push_back(i + k);
+      for (unsigned i = 0; i < 2 * size2; ++i) {
+        matrix.push_back(i + 1);
       }
 
-      state_space.SetStateUniform(state);
-      simulator.ApplyGate(qubits, matrix.data(), state);
+      unsigned mask = (1 << q) - 1;
+      unsigned max_minq = num_qubits - q;
 
-      state_space.InternalToNormalOrder(state);
-      state_space.Copy(state, vec.data());
+      for (unsigned k = 0; k <= max_minq; ++k) {
+        qubits.resize(0);
 
-      for (unsigned i = 0; i < size; ++i) {
-        unsigned j = (i >> k) & mask;
+        for (unsigned i = 0; i < q; ++i) {
+          qubits.push_back(i + k);
+        }
 
-        // Expected results are calculated analytically.
-        fp_type expected_real = size2 * (1 + 2 * j) * inorm;
-        fp_type expected_imag = expected_real + size1 * inorm;
+        state_space.SetStateUniform(state);
+        simulator.ApplyGate(qubits, matrix.data(), state);
 
-        EXPECT_NEAR(vec[2 * i], expected_real, 1e-6);
-        EXPECT_NEAR(vec[2 * i + 1], expected_imag, 1e-6);
+        state_space.InternalToNormalOrder(state);
+        state_space.Copy(state, vec.data());
+
+        for (unsigned i = 0; i < size; ++i) {
+          unsigned j = (i >> k) & mask;
+
+          // Expected results are calculated analytically.
+          fp_type expected_real = size2 * (1 + 2 * j) * inorm;
+          fp_type expected_imag = expected_real + size1 * inorm;
+
+          EXPECT_NEAR(vec[2 * i] / expected_real, 1.0, 1e-6);
+          EXPECT_NEAR(vec[2 * i + 1] / expected_imag, 1.0, 1e-6);
+        }
       }
     }
   }
@@ -1212,14 +1215,12 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  unsigned max_qubits = 5 + std::log2(Simulator::SIMDRegisterSize());
+  unsigned max_qubits = 6 + std::log2(Simulator::SIMDRegisterSize());
   unsigned max_target_qubits = 4;
   unsigned max_control_qubits = 3;
 
   StateSpace state_space = factory.CreateStateSpace();
   Simulator simulator = factory.CreateSimulator();
-
-  auto state = state_space.Create(max_qubits);
 
   std::vector<unsigned> qubits;
   qubits.reserve(max_qubits);
@@ -1236,6 +1237,8 @@ void TestControlledGates(const Factory& factory, bool high_precision) {
   for (unsigned num_qubits = 2; num_qubits <= max_qubits; ++num_qubits) {
     unsigned size = 1 << num_qubits;
     unsigned nmask = size - 1;
+
+    auto state = state_space.Create(num_qubits);
 
     // Iterate over control qubits (as a binary mask).
     for (unsigned cmask = 0; cmask <= nmask; ++cmask) {
@@ -1359,47 +1362,54 @@ void TestExpectationValue1(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
 
-  unsigned max_minq = 4;
-  unsigned max_gate_qubits = 6;
-  unsigned num_qubits = max_gate_qubits + max_minq;
+  unsigned rsize = std::log2(Simulator::SIMDRegisterSize());
+  unsigned max_num_qubits = 10 + rsize;
 
   StateSpace state_space = factory.CreateStateSpace();
   Simulator simulator = factory.CreateSimulator();
 
-  auto state = state_space.Create(num_qubits);
-
   std::vector<fp_type> matrix;
-  matrix.reserve(1 << (2 * max_gate_qubits + 1));
+  matrix.reserve(1 << (2 * 6 + 1));
 
   std::vector<unsigned> qubits;
-  qubits.reserve(max_gate_qubits);
+  qubits.reserve(6);
 
-  for (unsigned q = 1; q <= max_gate_qubits; ++q) {
-    unsigned size1 = 1 << q;
-    unsigned size2 = size1 * size1;
+  std::vector<fp_type> vec(state_space.MinSize(max_num_qubits));
 
-    // Expected results are calculated analytically.
-    fp_type expected_real = size2 * size1;
-    fp_type expected_imag = expected_real + size1;
+  for (unsigned num_qubits = 1; num_qubits <= max_num_qubits; ++num_qubits) {
+    auto state = state_space.Create(num_qubits);
 
-    matrix.resize(0);
+    unsigned max_gate_qubits = std::min(6U, num_qubits);
 
-    for (unsigned i = 0; i < 2 * size2; ++i) {
-      matrix.push_back(i + 1);
-    }
+    for (unsigned q = 1; q <= max_gate_qubits; ++q) {
+      unsigned size1 = 1 << q;
+      unsigned size2 = size1 * size1;
 
-    for (unsigned k = 0; k <= max_minq; ++k) {
-      qubits.resize(0);
+      // Expected results are calculated analytically.
+      fp_type expected_real = size2 * size1;
+      fp_type expected_imag = expected_real + size1;
 
-      for (unsigned i = 0; i < q; ++i) {
-        qubits.push_back(i + k);
+      matrix.resize(0);
+
+      for (unsigned i = 0; i < 2 * size2; ++i) {
+        matrix.push_back(i + 1);
       }
 
-      state_space.SetStateUniform(state);
-      auto eval = simulator.ExpectationValue(qubits, matrix.data(), state);
+      unsigned max_minq = std::min(num_qubits - q, rsize + 3);
 
-      EXPECT_NEAR(std::real(eval), expected_real, 1e-6);
-      EXPECT_NEAR(std::imag(eval), expected_imag, 1e-6);
+      for (unsigned k = 0; k <= max_minq; ++k) {
+        qubits.resize(0);
+
+        for (unsigned i = 0; i < q; ++i) {
+          qubits.push_back(i + k);
+        }
+
+        state_space.SetStateUniform(state);
+        auto eval = simulator.ExpectationValue(qubits, matrix.data(), state);
+
+        EXPECT_NEAR(std::real(eval) / expected_real, 1.0, 1e-6);
+        EXPECT_NEAR(std::imag(eval) / expected_imag, 1.0, 1e-6);
+      }
     }
   }
 }

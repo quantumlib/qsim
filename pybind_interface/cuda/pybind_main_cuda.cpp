@@ -27,19 +27,17 @@ namespace qsim {
       unsigned num_sim_threads,
       unsigned num_state_threads,
       unsigned num_dblocks
-    ) : ss_params{num_state_threads, num_dblocks},
-        sim_params{num_sim_threads} {}
+    ) : ss_params{num_state_threads, num_dblocks} {}
 
     StateSpace CreateStateSpace() const {
       return StateSpace(ss_params);
     }
 
     Simulator CreateSimulator() const {
-      return Simulator(sim_params);
+      return Simulator();
     }
 
     StateSpace::Parameter ss_params;
-    Simulator::Parameter sim_params;
   };
 
   inline void SetFlushToZeroAndDenormalsAreZeros() {}

@@ -33,32 +33,28 @@ struct Factory {
   using Simulator = qsim::SimulatorCUDA<fp_type>;
   using StateSpace = typename Simulator::StateSpace;
 
-  Factory(const typename StateSpace::Parameter& param1,
-          const typename Simulator::Parameter& param2)
-      : param1(param1), param2(param2) {}
+  Factory(const typename StateSpace::Parameter& param) : param(param) {}
 
   StateSpace CreateStateSpace() const {
-    return StateSpace(param1);
+    return StateSpace(param);
   }
 
   Simulator CreateSimulator() const {
-    return Simulator(param2);
+    return Simulator();
   }
 
-  typename StateSpace::Parameter param1;
-  typename Simulator::Parameter param2;
+  typename StateSpace::Parameter param;
 };
 
 TYPED_TEST(StateSpaceCUDATest, Add) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestAdd(factory);
     }
   }
@@ -66,14 +62,13 @@ TYPED_TEST(StateSpaceCUDATest, Add) {
 
 TYPED_TEST(StateSpaceCUDATest, NormSmall) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestNormSmall(factory);
     }
   }
@@ -81,14 +76,13 @@ TYPED_TEST(StateSpaceCUDATest, NormSmall) {
 
 TYPED_TEST(StateSpaceCUDATest, NormAndInnerProductSmall) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestNormAndInnerProductSmall(factory);
     }
   }
@@ -96,14 +90,13 @@ TYPED_TEST(StateSpaceCUDATest, NormAndInnerProductSmall) {
 
 TYPED_TEST(StateSpaceCUDATest, NormAndInnerProduct) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestNormAndInnerProduct(factory);
     }
   }
@@ -111,14 +104,13 @@ TYPED_TEST(StateSpaceCUDATest, NormAndInnerProduct) {
 
 TYPED_TEST(StateSpaceCUDATest, SamplingSmall) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestSamplingSmall(factory);
     }
   }
@@ -126,14 +118,13 @@ TYPED_TEST(StateSpaceCUDATest, SamplingSmall) {
 
 TYPED_TEST(StateSpaceCUDATest, SamplingCrossEntropyDifference) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestSamplingCrossEntropyDifference(factory);
     }
   }
@@ -141,14 +132,13 @@ TYPED_TEST(StateSpaceCUDATest, SamplingCrossEntropyDifference) {
 
 TYPED_TEST(StateSpaceCUDATest, Ordering) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestOrdering(factory);
     }
   }
@@ -156,22 +146,20 @@ TYPED_TEST(StateSpaceCUDATest, Ordering) {
 
 TEST(StateSpaceCUDATest, MeasurementSmall) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestMeasurementSmall(factory, true);
 }
 
 TYPED_TEST(StateSpaceCUDATest, MeasurementLarge) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestMeasurementLarge(factory);
     }
   }
@@ -179,14 +167,13 @@ TYPED_TEST(StateSpaceCUDATest, MeasurementLarge) {
 
 TYPED_TEST(StateSpaceCUDATest, Collapse) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestCollapse(factory);
     }
   }
@@ -194,22 +181,21 @@ TYPED_TEST(StateSpaceCUDATest, Collapse) {
 
 TEST(StateSpaceCUDATest, InvalidStateSize) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestInvalidStateSize(factory);
 }
 
 TYPED_TEST(StateSpaceCUDATest, BulkSetAmpl) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
       typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestBulkSetAmplitude(factory);
     }
   }
@@ -217,14 +203,13 @@ TYPED_TEST(StateSpaceCUDATest, BulkSetAmpl) {
 
 TYPED_TEST(StateSpaceCUDATest, BulkSetAmplExclusion) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestBulkSetAmplitudeExclusion(factory);
     }
   }
@@ -232,14 +217,13 @@ TYPED_TEST(StateSpaceCUDATest, BulkSetAmplExclusion) {
 
 TYPED_TEST(StateSpaceCUDATest, BulkSetAmplDefault) {
   using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
 
   for (unsigned num_dblocks : {2, 16}) {
+    param.num_dblocks = num_dblocks;
     for (unsigned num_threads : {64, 256, 1024}) {
-      typename Factory::StateSpace::Parameter param;
       param.num_threads = num_threads;
-
-      Factory factory(param, typename Factory::Simulator::Parameter());
-
+      Factory factory(param);
       TestBulkSetAmplitudeDefault(factory);
     }
   }

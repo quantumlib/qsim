@@ -26,75 +26,65 @@ struct Factory {
   using Simulator = qsim::SimulatorCUDA<fp_type>;
   using StateSpace = typename Simulator::StateSpace;
 
-  Factory(const typename StateSpace::Parameter& param1,
-          const typename Simulator::Parameter& param2)
-      : param1(param1), param2(param2) {}
+  Factory(const typename StateSpace::Parameter& param) : param(param) {}
 
   StateSpace CreateStateSpace() const {
-    return StateSpace(param1);
+    return StateSpace(param);
   }
 
   Simulator CreateSimulator() const {
-    return Simulator(param2);
+    return Simulator();
   }
 
-  typename StateSpace::Parameter param1;
-  typename Simulator::Parameter param2;
+  typename StateSpace::Parameter param;
 };
 
 TEST(QTrajectoryCUDATest, BitFlip) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestBitFlip(factory);
 }
 
 TEST(QTrajectoryCUDATest, GenDump) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestGenDump(factory);
 }
 
 TEST(QTrajectoryCUDATest, ReusingResults) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestReusingResults(factory);
 }
 
 TEST(QTrajectoryCUDATest, CollectKopStat) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestCollectKopStat(factory);
 }
 
 TEST(QTrajectoryCUDATest, CleanCircuit) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestCleanCircuit(factory);
 }
 
 TEST(QTrajectoryCUDATest, InitialState) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestInitialState(factory);
 }
 
 TEST(QTrajectoryCUDATest, UncomputeFinalState) {
   using Factory = qsim::Factory<float>;
-  Factory::StateSpace::Parameter param1;
-  Factory::Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory::StateSpace::Parameter param;
+  Factory factory(param);
   TestUncomputeFinalState(factory);
 }
 
