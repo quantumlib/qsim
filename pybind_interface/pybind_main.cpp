@@ -399,7 +399,6 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     if (use_gpu == 0) {
       num_sim_threads = parseOptions<unsigned>(options, "t\0");
     } else if (gpu_mode == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
       num_dblocks = parseOptions<unsigned>(options, "gdb\0");
     }
@@ -464,7 +463,6 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     if (use_gpu == 0) {
       num_sim_threads = parseOptions<unsigned>(options, "t\0");
     } else if (gpu_mode == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
       num_dblocks = parseOptions<unsigned>(options, "gdb\0");
     }
@@ -659,7 +657,6 @@ class SimulatorHelper {
       if (use_gpu == 0) {
         num_sim_threads = parseOptions<unsigned>(options, "t\0");
       } else if (gpu_mode == 0) {
-        num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
         num_state_threads = parseOptions<unsigned>(options, "gsst\0");
         num_dblocks = parseOptions<unsigned>(options, "gdb\0");
       }
@@ -985,7 +982,6 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
     if (use_gpu == 0) {
       num_sim_threads = parseOptions<unsigned>(options, "t\0");
     } else if (gpu_mode == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
       num_dblocks = parseOptions<unsigned>(options, "gdb\0");
     }
@@ -1054,7 +1050,6 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     if (use_gpu == 0) {
       num_sim_threads = parseOptions<unsigned>(options, "t\0");
     } else if (gpu_mode == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "gsmt\0");
       num_state_threads = parseOptions<unsigned>(options, "gsst\0");
       num_dblocks = parseOptions<unsigned>(options, "gdb\0");
     }

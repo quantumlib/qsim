@@ -160,6 +160,8 @@ class VectorSpace {
     return true;
   }
 
+  void DeviceSync() {}
+
  protected:
   For for_;
 };

@@ -141,6 +141,10 @@ class VectorSpaceCUDA {
     return true;
   }
 
+  void DeviceSync() {
+    cudaDeviceSynchronize();
+  }
+
  protected:
 };
 

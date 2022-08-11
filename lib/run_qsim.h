@@ -133,6 +133,7 @@ struct QSimRunner final {
       }
 
       if (param.verbosity > 3) {
+        state_space.DeviceSync();
         double t2 = GetTime();
         IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
       }
@@ -147,6 +148,7 @@ struct QSimRunner final {
     }
 
     if (param.verbosity > 0) {
+      state_space.DeviceSync();
       double t2 = GetTime();
       IO::messagef("time is %g seconds.\n", t2 - t0);
     }
@@ -221,12 +223,14 @@ struct QSimRunner final {
       }
 
       if (param.verbosity > 3) {
+        state_space.DeviceSync();
         double t2 = GetTime();
         IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
       }
     }
 
     if (param.verbosity > 0) {
+      state_space.DeviceSync();
       double t2 = GetTime();
       IO::messagef("simu time is %g seconds.\n", t2 - t0);
     }

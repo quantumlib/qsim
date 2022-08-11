@@ -34,152 +34,88 @@ struct Factory {
   using Simulator = qsim::SimulatorCUDA<fp_type>;
   using StateSpace = typename Simulator::StateSpace;
 
-  Factory(const typename StateSpace::Parameter& param1,
-          const typename Simulator::Parameter& param2)
-      : param1(param1), param2(param2) {}
+  Factory(const typename StateSpace::Parameter& param) : param(param) {}
 
   StateSpace CreateStateSpace() const {
-    return StateSpace(param1);
+    return StateSpace(param);
   }
 
   Simulator CreateSimulator() const {
-    return Simulator(param2);
+    return Simulator();
   }
 
-  typename StateSpace::Parameter param1;
-  typename Simulator::Parameter param2;
+  typename StateSpace::Parameter param;
 };
 
 TYPED_TEST(SimulatorCUDATest, ApplyGate1) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestApplyGate1(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestApplyGate1(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, ApplyGate2) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestApplyGate2(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestApplyGate2(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, ApplyGate3) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestApplyGate3(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestApplyGate3(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, ApplyGate5) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestApplyGate5(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestApplyGate5(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, CircuitWithControlledGates) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestCircuitWithControlledGates(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestCircuitWithControlledGates(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, CircuitWithControlledGatesDagger) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestCircuitWithControlledGatesDagger(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestCircuitWithControlledGatesDagger(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, MultiQubitGates) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestMultiQubitGates(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestMultiQubitGates(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, ControlledGates) {
   using Factory = qsim::Factory<TypeParam>;
-
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
   bool high_precision = std::is_same<TypeParam, double>::value;
-
-  for (unsigned num_threads : {64, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestControlledGates(factory, high_precision);
-  }
+  TestControlledGates(factory, high_precision);
 }
 
 TYPED_TEST(SimulatorCUDATest, ExpectationValue1) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {32, 64, 128, 256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestExpectationValue1(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestExpectationValue1(factory);
 }
 
 TYPED_TEST(SimulatorCUDATest, ExpectationValue2) {
   using Factory = qsim::Factory<TypeParam>;
-
-  for (unsigned num_threads : {256}) {
-    typename Factory::Simulator::Parameter param;
-    param.num_threads = num_threads;
-
-    Factory factory(typename Factory::StateSpace::Parameter(), param);
-
-    TestExpectationValue2(factory);
-  }
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestExpectationValue2(factory);
 }
 
 }  // namespace qsim

@@ -112,46 +112,42 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<GateQSim<float>> circuit;
+  using fp_type = float;
+
+  Circuit<GateQSim<fp_type>> circuit;
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
                                            circuit)) {
     return 1;
   }
 
   struct Factory {
-    using Simulator = qsim::SimulatorCUDA<float>;
+    using Simulator = qsim::SimulatorCUDA<fp_type>;
     using StateSpace = Simulator::StateSpace;
 
-    Factory(const StateSpace::Parameter& param1,
-            const Simulator::Parameter& param2)
-        : param1(param1), param2(param2) {}
+    Factory(const StateSpace::Parameter& param) : param(param) {}
 
     StateSpace CreateStateSpace() const {
-      return StateSpace(param1);
+      return StateSpace(param);
     }
 
     Simulator CreateSimulator() const {
-      return Simulator(param2);
+      return Simulator();
     }
 
-    const StateSpace::Parameter& param1;
-    const Simulator::Parameter& param2;
+    const StateSpace::Parameter& param;
   };
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Fuser = MultiQubitGateFuser<IO, GateQSim<float>>;
+  using Fuser = MultiQubitGateFuser<IO, GateQSim<fp_type>>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
 
   StateSpace::Parameter param1;
   param1.num_threads = opt.num_threads;
   param1.num_dblocks = opt.num_dblocks;
 
-  Simulator::Parameter param2;
-  param2.num_threads = opt.num_threads;
-
-  Factory factory(param1, param2);
+  Factory factory(param1);
 
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);

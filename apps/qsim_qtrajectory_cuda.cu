@@ -190,23 +190,20 @@ int main(int argc, char* argv[]) {
   using fp_type = float;
 
   struct Factory {
-    using Simulator = qsim::SimulatorCUDA<fp_type>;
+    using Simulator = qsim::SimulatorCUDA<float>;
     using StateSpace = Simulator::StateSpace;
 
-    Factory(const StateSpace::Parameter& param1,
-            const Simulator::Parameter& param2)
-        : param1(param1), param2(param2) {}
+    Factory(const StateSpace::Parameter& param) : param(param) {}
 
     StateSpace CreateStateSpace() const {
-      return StateSpace(param1);
+      return StateSpace(param);
     }
 
     Simulator CreateSimulator() const {
-      return Simulator(param2);
+      return Simulator();
     }
 
-    const StateSpace::Parameter& param1;
-    const Simulator::Parameter& param2;
+    const StateSpace::Parameter& param;
   };
 
   using Simulator = Factory::Simulator;
@@ -235,8 +232,7 @@ int main(int argc, char* argv[]) {
   }
 
   StateSpace::Parameter param1;
-  Simulator::Parameter param2;
-  Factory factory(param1, param2);
+  Factory factory(param1);
 
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();

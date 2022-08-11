@@ -63,12 +63,10 @@ class QSimOptions:
         gpu_mode: use CUDA if set to 0 (default value) or use the NVIDIA
             cuStateVec library if set to any other value. The "gpu_*"
             arguments below are only considered if this is set to 0.
-        gpu_sim_threads: number of threads per CUDA block to use for the GPU
-            Simulator. This must be a power of 2 in the range [32, 256].
         gpu_state_threads: number of threads per CUDA block to use for the GPU
             StateSpace. This must be a power of 2 in the range [32, 1024].
-        gpu_data_blocks: number of data blocks to use on GPU. Below 16 data
-            blocks, performance is noticeably reduced.
+        gpu_data_blocks: number of data blocks to use for the GPU StateSpace.
+            Below 16 data blocks, performance is noticeably reduced.
         verbosity: Logging verbosity.
         denormals_are_zeros: if true, set flush-to-zero and denormals-are-zeros
             MXCSR control flags. This prevents rare cases of performance
@@ -80,7 +78,6 @@ class QSimOptions:
     ev_noisy_repetitions: int = 1
     use_gpu: bool = False
     gpu_mode: int = 0
-    gpu_sim_threads: int = 256
     gpu_state_threads: int = 512
     gpu_data_blocks: int = 16
     verbosity: int = 0
@@ -97,7 +94,6 @@ class QSimOptions:
             "r": self.ev_noisy_repetitions,
             "g": self.use_gpu,
             "gmode": self.gpu_mode,
-            "gsmt": self.gpu_sim_threads,
             "gsst": self.gpu_state_threads,
             "gdb": self.gpu_data_blocks,
             "v": self.verbosity,
