@@ -15,7 +15,7 @@ Objectives of this tutorial:
 
 Once you have completed the [Before you begin](./gcp_before_you_begin.md)
 tutorial, follow steps 1-6 of the HPC Toolkit
-[HTCondor Tutorial](https://github.com/GoogleCloudPlatform/hpc-toolkit/blob/develop/docs/tutorials/README.md#htcondor-tutorial){:.external}
+[HTCondor Tutorial](https://github.com/GoogleCloudPlatform/hpc-toolkit/blob/main/docs/tutorials/README.md#htcondor-tutorial){:.external}
 to set up a HTCondor cluster in your GCP project. Keep this window open - both
 the Cloud Shell and the remaining steps will be used in this tutorial.
 
