@@ -189,9 +189,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":hybrid_testfixture",
         "//lib:seqfor",
@@ -242,9 +239,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":qtrajectory_testfixture",
         "//lib:seqfor",
@@ -307,9 +301,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_testfixture",
         "//lib:parfor",
@@ -326,9 +317,6 @@ cc_test(
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_testfixture",
         "//lib:parfor",
@@ -361,9 +349,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_testfixture",
         "//lib:parfor",
@@ -398,9 +383,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":statespace_testfixture",
         "//lib:parfor",
@@ -418,9 +400,6 @@ cc_test(
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":statespace_testfixture",
         "//lib:parfor",
@@ -455,9 +434,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":statespace_testfixture",
         "//lib:parfor",
@@ -488,9 +464,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitaryspace_testfixture",
         "//lib:formux",
@@ -506,9 +479,6 @@ cc_test(
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitaryspace_testfixture",
         "//lib:formux",
@@ -539,9 +509,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitaryspace_testfixture",
         "//lib:formux",
@@ -573,9 +540,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitary_calculator_testfixture",
         "//lib:formux",
@@ -592,9 +556,6 @@ cc_test(
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitary_calculator_testfixture",
         "//lib:formux",
@@ -627,9 +588,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitary_calculator_testfixture",
         "//lib:formux",

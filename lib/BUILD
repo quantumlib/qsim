@@ -448,9 +448,6 @@ cc_library(
 cc_library(
     name = "statespace_avx",
     hdrs = ["statespace_avx.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":statespace",
         ":util",
@@ -461,9 +458,6 @@ cc_library(
 cc_library(
     name = "statespace_avx512",
     hdrs = ["statespace_avx512.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":statespace",
         ":util",
@@ -484,9 +478,6 @@ cc_library(
 cc_library(
     name = "statespace_sse",
     hdrs = ["statespace_sse.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":statespace",
         ":util",
@@ -519,9 +510,6 @@ cc_library(
 cc_library(
     name = "simulator_avx",
     hdrs = ["simulator_avx.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_base",
         ":statespace_avx",
@@ -531,9 +519,6 @@ cc_library(
 cc_library(
     name = "simulator_avx512",
     hdrs = ["simulator_avx512.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_base",
         ":statespace_avx512",
@@ -552,9 +537,6 @@ cc_library(
 cc_library(
     name = "simulator_sse",
     hdrs = ["simulator_sse.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_base",
         ":statespace_sse",
@@ -652,9 +634,6 @@ cc_library(
 cc_library(
     name = "unitaryspace_avx",
     hdrs = ["unitaryspace_avx.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitaryspace",
         ":vectorspace",
@@ -664,9 +643,6 @@ cc_library(
 cc_library(
     name = "unitaryspace_avx512",
     hdrs = ["unitaryspace_avx512.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitaryspace",
         ":vectorspace",
@@ -685,9 +661,6 @@ cc_library(
 cc_library(
     name = "unitaryspace_sse",
     hdrs = ["unitaryspace_sse.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":unitaryspace",
         ":vectorspace",
@@ -699,9 +672,6 @@ cc_library(
 cc_library(
     name = "unitary_calculator_avx",
     hdrs = ["unitary_calculator_avx.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_base",
         ":unitaryspace_avx",
@@ -711,9 +681,6 @@ cc_library(
 cc_library(
     name = "unitary_calculator_avx512",
     hdrs = ["unitary_calculator_avx512.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_base",
         ":unitaryspace_avx512",
@@ -732,9 +699,6 @@ cc_library(
 cc_library(
     name = "unitary_calculator_sse",
     hdrs = ["unitary_calculator_sse.h"],
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-    ],
     deps = [
         ":simulator_base",
         ":unitaryspace_sse",
