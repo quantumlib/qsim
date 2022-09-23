@@ -1,7 +1,12 @@
 # Options for testing different simulator types.
-avx_copts = ['-mavx2', '-mfma']
-avx512_copts = ['-march=native']
-sse_copts = ['-msse4']
+avx_copts = [
+    "-mavx2",
+    "-mfma",
+]
+
+avx512_copts = ["-march=native"]
+
+sse_copts = ["-msse4"]
 
 windows_copts = [
     "/arch:AVX",
@@ -26,33 +31,36 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:bitstring",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
 cc_test(
     name = "channel_test",
     srcs = ["channel_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:channel",
         "//lib:formux",
         "//lib:gates_cirq",
         "//lib:matrix",
         "//lib:simulator",
+        "@com_google_googletest//:gtest_main",
     ],
-    copts = select({
-        ":windows": windows_copts,
-        "//conditions:default": [],
-    }),
 )
 
 cc_test(
     name = "channels_cirq_test",
     srcs = ["channels_cirq_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:channels_cirq",
         "//lib:circuit",
         "//lib:formux",
@@ -61,11 +69,8 @@ cc_test(
         "//lib:io",
         "//lib:qtrajectory",
         "//lib:simulator",
+        "@com_google_googletest//:gtest_main",
     ],
-    copts = select({
-        ":windows": windows_copts,
-        "//conditions:default": [],
-    }),
 )
 
 cc_test(
@@ -76,17 +81,20 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
         "//lib:gates_qsim",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
 cc_test(
     name = "expect_test",
     srcs = ["expect_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:expect",
         "//lib:formux",
         "//lib:fuser_mqubit",
@@ -94,11 +102,8 @@ cc_test(
         "//lib:gates_qsim",
         "//lib:io",
         "//lib:simulator",
+        "@com_google_googletest//:gtest_main",
     ],
-    copts = select({
-        ":windows": windows_copts,
-        "//conditions:default": [],
-    }),
 )
 
 cc_test(
@@ -109,10 +114,10 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
         "//lib:fuser_basic",
         "//lib:gates_qsim",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -124,25 +129,25 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
         "//lib:fuser_mqubit",
         "//lib:gate",
         "//lib:gate_appl",
         "//lib:matrix",
         "//lib:simulator",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
 cc_library(
     name = "gates_cirq_testfixture",
+    testonly = 1,
     hdrs = ["gates_cirq_testfixture.h"],
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:circuit",
         "//lib:gates_cirq",
+        "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
@@ -153,43 +158,46 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:gates_qsim",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
 cc_library(
     name = "hybrid_testfixture",
+    testonly = 1,
     hdrs = ["hybrid_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
         "//lib:formux",
         "//lib:fuser_basic",
         "//lib:gates_qsim",
         "//lib:hybrid",
         "//lib:io",
+        "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
     name = "hybrid_avx_test",
     srcs = ["hybrid_avx_test.cc"],
-    deps = [
-        ":hybrid_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:seqfor",
-        "//lib:simulator_avx",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":hybrid_testfixture",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
@@ -200,20 +208,20 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:matrix",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
 cc_library(
     name = "qtrajectory_testfixture",
+    testonly = 1,
     hdrs = ["qtrajectory_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:channel",
         "//lib:channels_cirq",
         "//lib:circuit_noisy",
@@ -223,224 +231,246 @@ cc_library(
         "//lib:gates_cirq",
         "//lib:io",
         "//lib:qtrajectory",
+        "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
     name = "qtrajectory_avx_test",
     srcs = ["qtrajectory_avx_test.cc"],
-    deps = [
-        ":qtrajectory_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:seqfor",
-        "//lib:simulator_avx",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":qtrajectory_testfixture",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "run_qsim_test",
     srcs = ["run_qsim_test.cc"],
-    deps = [
-        ":gates_cirq_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:run_qsim_lib",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
+    deps = [
+        ":gates_cirq_testfixture",
+        "//lib:run_qsim_lib",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "run_qsimh_test",
     srcs = ["run_qsimh_test.cc"],
-    deps = [
-        ":gates_cirq_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:run_qsimh_lib",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
+    deps = [
+        ":gates_cirq_testfixture",
+        "//lib:run_qsimh_lib",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
     name = "simulator_testfixture",
+    testonly = 1,
     hdrs = ["simulator_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:expect",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_qsim",
         "//lib:io",
         "//lib:util_cpu",
+        "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
     name = "simulator_avx_test",
     srcs = ["simulator_avx_test.cc"],
-    deps = [
-        ":simulator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_avx",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":simulator_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "simulator_avx512_test",
     srcs = ["simulator_avx512_test.cc"],
-    deps = [
-        ":simulator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_avx512",
-    ],
     copts = select({
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":simulator_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_avx512",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "simulator_basic_test",
     srcs = ["simulator_basic_test.cc"],
-    deps = [
-        ":simulator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_basic",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
+    deps = [
+        ":simulator_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_basic",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "simulator_sse_test",
     srcs = ["simulator_sse_test.cc"],
-    deps = [
-        ":simulator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_sse",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":simulator_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_sse",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
     name = "statespace_testfixture",
+    testonly = 1,
     hdrs = ["statespace_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:circuit_qsim_parser",
         "//lib:fuser_basic",
         "//lib:gates_qsim",
         "//lib:io",
         "//lib:run_qsim",
+        "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
     name = "statespace_avx_test",
     srcs = ["statespace_avx_test.cc"],
-    deps = [
-        ":statespace_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_avx",
-        "//lib:statespace_avx",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":statespace_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_avx",
+        "//lib:statespace_avx",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "statespace_avx512_test",
     srcs = ["statespace_avx512_test.cc"],
-    deps = [
-        ":statespace_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_avx512",
-        "//lib:statespace_avx512",
-    ],
     copts = select({
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":statespace_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_avx512",
+        "//lib:statespace_avx512",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "statespace_basic_test",
     srcs = ["statespace_basic_test.cc"],
-    deps = [
-        ":statespace_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_basic",
-        "//lib:statespace_basic",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
+    deps = [
+        ":statespace_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_basic",
+        "//lib:statespace_basic",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "statespace_sse_test",
     srcs = ["statespace_sse_test.cc"],
-    deps = [
-        ":statespace_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-        "//lib:simulator_sse",
-        "//lib:statespace_sse",
-    ],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":statespace_testfixture",
+        "//lib:parfor",
+        "//lib:seqfor",
+        "//lib:simulator_sse",
+        "//lib:statespace_sse",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
     name = "unitaryspace_testfixture",
+    testonly = 1,
     hdrs = ["unitaryspace_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
@@ -449,7 +479,6 @@ cc_library(
     deps = [
         "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
@@ -459,11 +488,14 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         ":unitaryspace_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_avx"
+        "//lib:unitaryspace_avx",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -474,11 +506,14 @@ cc_test(
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         ":unitaryspace_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_avx512"
+        "//lib:unitaryspace_avx512",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -491,9 +526,9 @@ cc_test(
     }),
     deps = [
         ":unitaryspace_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_basic"
+        "//lib:unitaryspace_basic",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -504,28 +539,31 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         ":unitaryspace_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_sse"
+        "//lib:unitaryspace_sse",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
 cc_library(
     name = "unitary_calculator_testfixture",
+    testonly = 1,
     hdrs = ["unitary_calculator_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:fuser",
         "//lib:gate_appl",
         "//lib:gates_cirq",
+        "@com_google_googletest//:gtest_main",
     ],
-    testonly = 1,
 )
 
 cc_test(
@@ -535,12 +573,15 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": avx_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         ":unitary_calculator_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_avx",
         "//lib:unitary_calculator_avx",
+        "//lib:unitaryspace_avx",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -551,12 +592,15 @@ cc_test(
         ":windows": windows_avx512_copts,
         "//conditions:default": avx512_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         ":unitary_calculator_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_avx512",
         "//lib:unitary_calculator_avx512",
+        "//lib:unitaryspace_avx512",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -569,10 +613,10 @@ cc_test(
     }),
     deps = [
         ":unitary_calculator_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_basic",
         "//lib:unitary_calculator_basic",
+        "//lib:unitaryspace_basic",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -583,12 +627,15 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         ":unitary_calculator_testfixture",
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
-        "//lib:unitaryspace_sse",
         "//lib:unitary_calculator_sse",
+        "//lib:unitaryspace_sse",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -600,9 +647,9 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
         "//lib:formux",
         "//lib:vectorspace",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -614,12 +661,11 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
-        "//lib:mps_statespace",
         "//lib:formux",
+        "//lib:mps_statespace",
+        "@com_google_googletest//:gtest_main",
     ],
 )
-
 
 cc_test(
     name = "mps_simulator_test",
@@ -629,11 +675,11 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
-        "@com_google_googletest//:gtest_main",
+        "//lib:formux",
         "//lib:gate_appl",
         "//lib:gates_cirq",
         "//lib:gates_qsim",
         "//lib:mps_simulator",
-        "//lib:formux",
+        "@com_google_googletest//:gtest_main",
     ],
 )
