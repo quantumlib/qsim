@@ -797,6 +797,9 @@ class SimulatorHelper {
       const auto& opsum_qubits = std::get<1>(opsum_qubit_count_pair);
       if (opsum_qubits <= 6) {
         results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
+      } else if (opsum_qubits == 0) {
+        // This represents an identity, whose EV is always 1.
+        results.push_back(1);
       } else {
         Fuser::Parameter params;
         params.max_fused_size = max_fused_size;
