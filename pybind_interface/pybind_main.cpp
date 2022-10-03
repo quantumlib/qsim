@@ -795,7 +795,10 @@ class SimulatorHelper {
     for (const auto& opsum_qubit_count_pair : opsums_and_qubit_counts) {
       const auto& opsum = std::get<0>(opsum_qubit_count_pair);
       const auto& opsum_qubits = std::get<1>(opsum_qubit_count_pair);
-      if (opsum_qubits <= 6) {
+      if (opsum_qubits == 0) {
+        // This represents an identity, which always has EV=1.
+        results.push_back(std::complex<double>(1.0, 0.0));
+      } else if (opsum_qubits <= 6) {
         results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
       } else {
         Fuser::Parameter params;

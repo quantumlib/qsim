@@ -523,18 +523,19 @@ def test_expectation_values(mode: str):
     ]
     psum1 = cirq.Z(a) + 3 * cirq.X(b)
     psum2 = cirq.X(a) - 3 * cirq.Z(b)
+    psum3 = cirq.I(a)
 
     if mode == "noisy":
         circuit.append(NoiseTrigger().on(a))
 
     qsim_simulator = qsimcirq.QSimSimulator()
     qsim_result = qsim_simulator.simulate_expectation_values_sweep(
-        circuit, [psum1, psum2], params
+        circuit, [psum1, psum2, psum3], params
     )
 
     cirq_simulator = cirq.Simulator()
     cirq_result = cirq_simulator.simulate_expectation_values_sweep(
-        circuit, [psum1, psum2], params
+        circuit, [psum1, psum2, psum3], params
     )
 
     assert cirq.approx_eq(qsim_result, cirq_result, atol=1e-6)
