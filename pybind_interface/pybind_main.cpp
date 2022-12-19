@@ -691,7 +691,15 @@ class SimulatorHelper {
 
   void init_state(const py::array_t<float> &input_vector) {
     StateSpace state_space = factory.CreateStateSpace();
-    state_space.Copy(input_vector.data(), state);
+    if (state.num_qubits() >= 5) {
+      state_space.Copy(input_vector.data(), state);
+    } else {
+      state_space.SetAllZeros(state);
+      uint64_t size = 2 * (uint64_t{1} << state.num_qubits());
+      for (uint64_t i = 0; i < size; ++i) {
+        state.get()[i] = input_vector.data()[i];
+      }
+    }
     state_space.NormalToInternalOrder(state);
   }
 
