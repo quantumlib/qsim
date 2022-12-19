@@ -2,9 +2,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "com_google_googletest",
-    sha256 = "ff7a82736e158c077e76188232eac77913a15dac0b22508c390ab3f88e6d6d86",
-    strip_prefix = "googletest-b6cd405286ed8635ece71c72f118e659f4ade3fb",
-    url = "https://github.com/google/googletest/archive/b6cd405286ed8635ece71c72f118e659f4ade3fb.zip",
+    sha256 = "ab78fa3f912d44d38b785ec011a25f26512aaedc5291f51f3807c592b506d33a",
+    strip_prefix = "googletest-58d77fa8070e8cec2dc1ed015d66b454c8d78850",
+    url = "https://github.com/google/googletest/archive/58d77fa8070e8cec2dc1ed015d66b454c8d78850.zip",
 )
 
 # Required for testing compatibility with TF Quantum:
