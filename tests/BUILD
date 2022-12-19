@@ -15,7 +15,7 @@ windows_avx512_copts = [
 
 config_setting(
     name = "windows",
-    constraint_values = ["@bazel_tools//platforms:windows"],
+    constraint_values = ["@platforms//os:windows"],
 )
 
 cc_test(
