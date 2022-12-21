@@ -804,8 +804,12 @@ class SimulatorHelper {
       const auto& opsum = std::get<0>(opsum_qubit_count_pair);
       const auto& opsum_qubits = std::get<1>(opsum_qubit_count_pair);
       if (opsum_qubits == 0) {
-        // This represents an identity, which always has EV=1.
-        results.push_back(std::complex<double>(1.0, 0.0));
+        // This represents an identity, which always has EV = weight.
+        auto result = std::complex<double>(0.0, 0.0);
+        for (const auto& str : opsum) {
+          result += str.weight;
+        }
+        results.push_back(result);
       } else if (opsum_qubits <= 6) {
         results.push_back(ExpectationValue<IO, Fuser>(opsum, simulator, state));
       } else {

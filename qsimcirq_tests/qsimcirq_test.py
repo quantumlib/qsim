@@ -523,7 +523,7 @@ def test_expectation_values(mode: str):
     ]
     psum1 = cirq.Z(a) + 3 * cirq.X(b)
     psum2 = cirq.X(a) - 3 * cirq.Z(b)
-    psum3 = cirq.I(a)
+    psum3 = cirq.I(a) * 3
 
     if mode == "noisy":
         circuit.append(NoiseTrigger().on(a))
