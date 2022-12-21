@@ -805,7 +805,7 @@ class SimulatorHelper {
       const auto& opsum_qubits = std::get<1>(opsum_qubit_count_pair);
       if (opsum_qubits == 0) {
         // This represents an identity, which always has EV = weight.
-        auto result = std::complex<double>(1.0, 0.0);
+        auto result = std::complex<double>(0.0, 0.0);
         for (const auto& str : opsum) {
           result += str.weight;
         }
