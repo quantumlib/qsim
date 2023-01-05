@@ -108,8 +108,7 @@ std::complex<double> ExpectationValue(
   for (const auto& str : strings) {
     if (str.ops.size() == 0) {
       eval += str.weight;
-    }
-    else if (str.ops.size() == 1) {
+    } else if (str.ops.size() == 1) {
       const auto& op = str.ops[0];
       auto r = simulator.ExpectationValue(op.qubits, op.matrix.data(), state);
       eval += str.weight * r;
