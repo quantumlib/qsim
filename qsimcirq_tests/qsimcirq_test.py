@@ -1927,6 +1927,7 @@ def test_cirq_qsim_circuit_memoization_simulate_expectation_values_sweep(mode: s
         qsim_result = qsim_sim.simulate_expectation_values_sweep(
             circuit, [psum1, psum2], params
         )
+        assert cirq.approx_eq(qsim_result, cirq_result, atol=1e-6)
         
         
 def test_qsimcirq_identity_expectation_value():
