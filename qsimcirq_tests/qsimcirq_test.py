@@ -1928,3 +1928,28 @@ def test_cirq_qsim_circuit_memoization_simulate_expectation_values_sweep(mode: s
             circuit, [psum1, psum2], params
         )
         assert cirq.approx_eq(qsim_result, cirq_result, atol=1e-6)
+
+
+def test_qsimcirq_identity_expectation_value():
+    objs = [(1.5, "II"), (-0.3, "IZ")]
+    num_qubits = 2
+    qubits = cirq.LineQubit.range(num_qubits)
+    cirq_circuit = cirq.Circuit(cirq.H(qubits[0]), cirq.CNOT(qubits[0], qubits[1]))
+
+    hamiltonian = 0
+    for w, pauli in objs:
+        pauli = pauli[::-1]
+        hamiltonian += float(w) * cirq.PauliString(
+            cirq.I(cirq.LineQubit(i))
+            if p == "I"
+            else cirq.Z(cirq.LineQubit(i))
+            if p == "Z"
+            else None
+            for i, p in enumerate(pauli)
+        )
+
+    qsimSim = qsimcirq.QSimSimulator()
+    qsimcirq_result = qsimSim.simulate_expectation_values(cirq_circuit, hamiltonian)
+    cirqSim = cirq.Simulator()
+    cirq_result = cirqSim.simulate_expectation_values(cirq_circuit, hamiltonian)
+    assert cirq.approx_eq(qsimcirq_result, cirq_result, atol=1e-6)

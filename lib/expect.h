@@ -105,11 +105,10 @@ std::complex<double> ExpectationValue(
 
   typename Fuser::Parameter param;
   param.max_fused_size = 6;
-
   for (const auto& str : strings) {
-    if (str.ops.size() == 0) continue;
-
-    if (str.ops.size() == 1) {
+    if (str.ops.size() == 0) {
+      eval += str.weight;
+    } else if (str.ops.size() == 1) {
       const auto& op = str.ops[0];
       auto r = simulator.ExpectationValue(op.qubits, op.matrix.data(), state);
       eval += str.weight * r;
