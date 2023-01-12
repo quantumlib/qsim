@@ -71,7 +71,9 @@ class SimulatorCUDA final {
                  const fp_type* matrix, State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
-    if (qs[0] > 4) {
+    if (qs.size() == 0) {
+      ApplyGateH<0>(qs, matrix, state);
+    } else if (qs[0] > 4) {
       switch (qs.size()) {
       case 1:
         ApplyGateH<1>(qs, matrix, state);
@@ -142,6 +144,9 @@ class SimulatorCUDA final {
 
     if (cqs[0] < 5) {
       switch (qs.size()) {
+      case 0:
+        ApplyControlledGateL<0>(qs, cqs, cvals, matrix, state);
+        break;
       case 1:
         ApplyControlledGateL<1>(qs, cqs, cvals, matrix, state);
         break;
@@ -159,7 +164,9 @@ class SimulatorCUDA final {
         break;
       }
     } else {
-      if (qs[0] > 4) {
+      if (qs.size() == 0) {
+        ApplyControlledGateHH<0>(qs, cqs, cvals, matrix, state);
+      } else if (qs[0] > 4) {
         switch (qs.size()) {
         case 1:
           ApplyControlledGateHH<1>(qs, cqs, cvals, matrix, state);

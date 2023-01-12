@@ -82,6 +82,10 @@ TYPED_TEST(SimulatorSSETest, ControlledGates) {
   TestControlledGates(Factory<TypeParam>(), false);
 }
 
+TYPED_TEST(SimulatorSSETest, GlobalPhaseGate) {
+  TestGlobalPhaseGate(Factory<TypeParam>());
+}
+
 TYPED_TEST(SimulatorSSETest, ExpectationValue1) {
   TestExpectationValue1(Factory<TypeParam>());
 }

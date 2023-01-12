@@ -44,7 +44,7 @@ struct Factory {
   }
 
   Simulator CreateSimulator() const {
-    return Simulator(custatevec_handle);
+    return Simulator(cublas_handle, custatevec_handle);
   }
 
   cublasHandle_t cublas_handle;

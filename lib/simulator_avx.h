@@ -51,6 +51,9 @@ class SimulatorAVX final : public SimulatorBase {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     switch (qs.size()) {
+    case 0:
+      ApplyGateH<0>(qs, matrix, state);
+      break;
     case 1:
       if (qs[0] > 2) {
         ApplyGateH<1>(qs, matrix, state);
@@ -137,6 +140,13 @@ class SimulatorAVX final : public SimulatorBase {
     }
 
     switch (qs.size()) {
+    case 0:
+      if (cqs[0] > 2) {
+        ApplyControlledGateHH<0>(qs, cqs, cvals, matrix, state);
+      } else {
+        ApplyControlledGateHL<0>(qs, cqs, cvals, matrix, state);
+      }
+      break;
     case 1:
       if (qs[0] > 2) {
         if (cqs[0] > 2) {
@@ -322,7 +332,6 @@ class SimulatorAVX final : public SimulatorBase {
   }
 
  private:
-
 #ifdef __BMI2__
 
   template <unsigned H>

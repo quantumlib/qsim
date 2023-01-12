@@ -19,9 +19,11 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <cublas_v2.h>
 #include <cuComplex.h>
 #include <custatevec.h>
 
+#include "io.h"
 #include "statespace_custatevec.h"
 #include "util_custatevec.h"
 
@@ -43,8 +45,10 @@ class SimulatorCuStateVec final {
   static constexpr auto kComputeType = StateSpace::kComputeType;
   static constexpr auto kMatrixLayout = StateSpace::kMatrixLayout;
 
-  explicit SimulatorCuStateVec(const custatevecHandle_t& handle)
-      : handle_(handle), workspace_(nullptr), workspace_size_(0) {}
+  explicit SimulatorCuStateVec(const cublasHandle_t& cublas_handle,
+                               const custatevecHandle_t& custatevec_handle)
+      : cublas_handle_(cublas_handle), custatevec_handle_(custatevec_handle),
+      workspace_(nullptr), workspace_size_(0) {}
 
   ~SimulatorCuStateVec() {
     ErrorCheck(cudaFree(workspace_));
@@ -58,15 +62,29 @@ class SimulatorCuStateVec final {
    */
   void ApplyGate(const std::vector<unsigned>& qs,
                  const fp_type* matrix, State& state) const {
-    auto workspace_size = ApplyGateWorkSpaceSize(
-        state.num_qubits(), qs.size(), 0, matrix);
-    AllocWorkSpace(workspace_size);
+    if (qs.size() == 0) {
+      uint64_t size = uint64_t{1} << state.num_qubits();
 
-    ErrorCheck(custatevecApplyMatrix(
-                   handle_, state.get(), kStateType, state.num_qubits(),
-                   matrix, kMatrixType, kMatrixLayout, 0,
-                   (int32_t*) qs.data(), qs.size(), nullptr, nullptr, 0,
-                   kComputeType, workspace_, workspace_size));
+      if (StateSpace::is_float) {
+        cuComplex a = {matrix[0], matrix[1]};
+        auto p = (cuComplex*) state.get();
+        ErrorCheck(cublasCscal(cublas_handle_, size, &a, p, 1));
+      } else {
+        cuDoubleComplex a = {matrix[0], matrix[1]};
+        auto p = (cuDoubleComplex*) state.get();
+        ErrorCheck(cublasZscal(cublas_handle_, size, &a, p, 1));
+      }
+    } else {
+      auto workspace_size = ApplyGateWorkSpaceSize(
+          state.num_qubits(), qs.size(), 0, matrix);
+      AllocWorkSpace(workspace_size);
+
+      ErrorCheck(custatevecApplyMatrix(
+                     custatevec_handle_, state.get(), kStateType,
+                     state.num_qubits(), matrix, kMatrixType, kMatrixLayout, 0,
+                     (int32_t*) qs.data(), qs.size(), nullptr, nullptr, 0,
+                     kComputeType, workspace_, workspace_size));
+    }
   }
 
   /**
@@ -80,23 +98,30 @@ class SimulatorCuStateVec final {
   void ApplyControlledGate(const std::vector<unsigned>& qs,
                            const std::vector<unsigned>& cqs, uint64_t cmask,
                            const fp_type* matrix, State& state) const {
-    std::vector<int32_t> control_bits;
-    control_bits.reserve(cqs.size());
+    if (qs.size() == 0) {
+      IO::errorf(
+          "error: controlled global phase gate is not implemented %s %d\n",
+          __FILE__, __LINE__);
+      exit(1);
+    } else {
+      std::vector<int32_t> control_bits;
+      control_bits.reserve(cqs.size());
 
-    for (std::size_t i = 0; i < cqs.size(); ++i) {
-      control_bits.push_back((cmask >> i) & 1);
+      for (std::size_t i = 0; i < cqs.size(); ++i) {
+        control_bits.push_back((cmask >> i) & 1);
+      }
+
+      auto workspace_size = ApplyGateWorkSpaceSize(
+          state.num_qubits(), qs.size(), cqs.size(), matrix);
+      AllocWorkSpace(workspace_size);
+
+      ErrorCheck(custatevecApplyMatrix(
+                     custatevec_handle_, state.get(), kStateType,
+                     state.num_qubits(), matrix, kMatrixType, kMatrixLayout, 0,
+                     (int32_t*) qs.data(), qs.size(),
+                     (int32_t*) cqs.data(), control_bits.data(), cqs.size(),
+                     kComputeType, workspace_, workspace_size));
     }
-
-    auto workspace_size = ApplyGateWorkSpaceSize(
-        state.num_qubits(), qs.size(), cqs.size(), matrix);
-    AllocWorkSpace(workspace_size);
-
-    ErrorCheck(custatevecApplyMatrix(
-                   handle_, state.get(), kStateType, state.num_qubits(),
-                   matrix, kMatrixType, kMatrixLayout, 0,
-                   (int32_t*) qs.data(), qs.size(),
-                   (int32_t*) cqs.data(), control_bits.data(), cqs.size(),
-                   kComputeType, workspace_, workspace_size));
   }
 
   /**
@@ -117,9 +142,9 @@ class SimulatorCuStateVec final {
     cuDoubleComplex eval;
 
     ErrorCheck(custatevecComputeExpectation(
-                   handle_, state.get(), kStateType, state.num_qubits(),
-                   &eval, kExpectType, nullptr, matrix, kMatrixType,
-                   kMatrixLayout, (int32_t*) qs.data(), qs.size(),
+                   custatevec_handle_, state.get(), kStateType,
+                   state.num_qubits(), &eval, kExpectType, nullptr, matrix,
+                   kMatrixType, kMatrixLayout, (int32_t*) qs.data(), qs.size(),
                    kComputeType, workspace_, workspace_size));
 
     return {cuCreal(eval), cuCimag(eval)};
@@ -139,9 +164,9 @@ class SimulatorCuStateVec final {
     size_t size;
 
     ErrorCheck(custatevecApplyMatrixGetWorkspaceSize(
-                   handle_, kStateType, num_qubits, matrix, kMatrixType,
-                   kMatrixLayout, 0, num_targets, num_controls, kComputeType,
-                   &size));
+                   custatevec_handle_, kStateType, num_qubits, matrix,
+                   kMatrixType, kMatrixLayout, 0, num_targets, num_controls,
+                   kComputeType, &size));
 
     return size;
   }
@@ -151,8 +176,9 @@ class SimulatorCuStateVec final {
     size_t size;
 
     ErrorCheck(custatevecComputeExpectationGetWorkspaceSize(
-                   handle_, kStateType, num_qubits, matrix, kMatrixType,
-                   kMatrixLayout, num_targets, kComputeType, &size));
+                   custatevec_handle_, kStateType, num_qubits, matrix,
+                   kMatrixType, kMatrixLayout, num_targets, kComputeType,
+                   &size));
 
     return size;
   }
@@ -171,7 +197,8 @@ class SimulatorCuStateVec final {
     return workspace_;
   }
 
-  const custatevecHandle_t handle_;
+  const cublasHandle_t cublas_handle_;
+  const custatevecHandle_t custatevec_handle_;
 
   void* workspace_;
   size_t workspace_size_;

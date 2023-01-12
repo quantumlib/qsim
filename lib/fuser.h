@@ -122,6 +122,38 @@ class Fuser {
     return epochs;
   }
 
+  template <typename GateSeq0, typename Parent, typename GateFused>
+  static void FuseZeroQubitGates(const GateSeq0& gate_seq0,
+                                 Parent parent, std::size_t first,
+                                 std::vector<GateFused>& fused_gates) {
+    GateFused* fuse_to = nullptr;
+
+    for (std::size_t i = first; i < fused_gates.size(); ++i) {
+      auto& fgate = fused_gates[i];
+
+      if (fgate.kind != gate::kMeasurement && fgate.kind != gate::kDecomp
+          && fgate.parent->controlled_by.size() == 0
+          && !fgate.parent->unfusible) {
+        fuse_to = &fgate;
+        break;
+      }
+    }
+
+    if (fuse_to != nullptr) {
+      // Fuse zero-qubit gates with the first available fused gate.
+      for (const auto& g : gate_seq0) {
+        fuse_to->gates.push_back(parent(g));
+      }
+    } else {
+      auto g0 = parent(gate_seq0[0]);
+      fused_gates.push_back({g0->kind, g0->time, {}, g0, {g0}, {}});
+
+      for (std::size_t i = 1; i < gate_seq0.size(); ++i) {
+        fused_gates.back().gates.push_back(parent(gate_seq0[i]));
+      }
+    }
+  }
+
  private:
   static bool AddBoundary(unsigned time, unsigned max_time,
                           std::vector<unsigned>& boundaries) {
@@ -144,7 +176,9 @@ inline void CalculateFusedMatrix(FusedGate& gate) {
   MatrixIdentity(unsigned{1} << gate.qubits.size(), gate.matrix);
 
   for (auto pgate : gate.gates) {
-    if (gate.qubits.size() == pgate->qubits.size()) {
+    if (pgate->qubits.size() == 0) {
+      MatrixScalarMultiply(pgate->matrix[0], pgate->matrix[1], gate.matrix);
+    } else if (gate.qubits.size() == pgate->qubits.size()) {
       MatrixMultiply(gate.qubits.size(), pgate->matrix, gate.matrix);
     } else {
       unsigned mask = 0;

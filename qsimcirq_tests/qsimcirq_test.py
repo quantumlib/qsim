@@ -1953,3 +1953,26 @@ def test_qsimcirq_identity_expectation_value():
     cirqSim = cirq.Simulator()
     cirq_result = cirqSim.simulate_expectation_values(cirq_circuit, hamiltonian)
     assert cirq.approx_eq(qsimcirq_result, cirq_result, atol=1e-6)
+
+
+def test_cirq_global_phase_gate():
+    qsim_sim = qsimcirq.QSimSimulator()
+    cirq_sim = cirq.Simulator()
+
+    a, b, c = [cirq.LineQubit(0), cirq.LineQubit(1), cirq.LineQubit(2)]
+
+    circuit = cirq.Circuit([
+        cirq.Moment([
+            cirq.H(a), cirq.H(b), cirq.H(c),
+            cirq.global_phase_operation(np.exp(0.4j * np.pi)),
+        ]),
+        cirq.Moment([
+            cirq.global_phase_operation(np.exp(0.7j * np.pi)).controlled_by(a),
+        ])
+    ])
+
+    cirq_result = cirq_sim.simulate(circuit)
+    qsim_result = qsim_sim.simulate(circuit)
+
+    assert cirq.approx_eq(
+        qsim_result.state_vector(), cirq_result.state_vector(), atol=1e-6)
