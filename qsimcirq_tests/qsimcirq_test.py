@@ -1961,18 +1961,27 @@ def test_cirq_global_phase_gate():
 
     a, b, c = [cirq.LineQubit(0), cirq.LineQubit(1), cirq.LineQubit(2)]
 
-    circuit = cirq.Circuit([
-        cirq.Moment([
-            cirq.H(a), cirq.H(b), cirq.H(c),
-            cirq.global_phase_operation(np.exp(0.4j * np.pi)),
-        ]),
-        cirq.Moment([
-            cirq.global_phase_operation(np.exp(0.7j * np.pi)).controlled_by(a),
-        ])
-    ])
+    circuit = cirq.Circuit(
+        [
+            cirq.Moment(
+                [
+                    cirq.H(a),
+                    cirq.H(b),
+                    cirq.H(c),
+                    cirq.global_phase_operation(np.exp(0.4j * np.pi)),
+                ]
+            ),
+            cirq.Moment(
+                [
+                    cirq.global_phase_operation(np.exp(0.7j * np.pi)).controlled_by(a),
+                ]
+            ),
+        ]
+    )
 
     cirq_result = cirq_sim.simulate(circuit)
     qsim_result = qsim_sim.simulate(circuit)
 
     assert cirq.approx_eq(
-        qsim_result.state_vector(), cirq_result.state_vector(), atol=1e-6)
+        qsim_result.state_vector(), cirq_result.state_vector(), atol=1e-6
+    )
