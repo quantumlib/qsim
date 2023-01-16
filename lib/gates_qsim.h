@@ -46,8 +46,9 @@ enum GateKind {
   kGateIS,      // iSwap
   kGateFS,      // fSim
   kGateCP,      // control phase
-  kGateMatrix1, // One-qubit matrix gate.
-  kGateMatrix2, // Two-qubit matrix gate.
+  kGateMatrix1, // one-qubit matrix gate
+  kGateMatrix2, // two-qubit matrix gate
+  kGateGPh,     // global phase gate
   kDecomp = gate::kDecomp,
   kMeasurement = gate::kMeasurement,
 };
@@ -58,6 +59,28 @@ using GateQSim = Gate<fp_type, GateKind>;
 
 constexpr double h_double = 0.5;
 constexpr double is2_double = 0.7071067811865475;
+
+// Zero-qubit gates:
+
+/**
+ * The global phase gate.
+ */
+template <typename fp_type>
+struct GateGPh {
+  static constexpr GateKind kind = kGateGPh;
+  static constexpr char name[] = "p";
+  static constexpr unsigned num_qubits = 1;
+  static constexpr bool symmetric = true;
+
+  static GateQSim<fp_type> Create(unsigned time, fp_type phi) {
+    return Create(time, std::cos(phi), std::sin(phi));
+  }
+
+  static GateQSim<fp_type> Create(unsigned time, fp_type cp, fp_type sp) {
+    return CreateGate<GateQSim<fp_type>, GateGPh>(
+        time, {}, {cp, sp}, {cp, sp});
+  }
+};
 
 // One-qubit gates:
 

@@ -104,6 +104,13 @@ TYPED_TEST(SimulatorCUDATest, ControlledGates) {
   TestControlledGates(factory, high_precision);
 }
 
+TYPED_TEST(SimulatorCUDATest, GlobalPhaseGate) {
+  using Factory = qsim::Factory<TypeParam>;
+  typename Factory::StateSpace::Parameter param;
+  Factory factory(param);
+  TestGlobalPhaseGate(factory);
+}
+
 TYPED_TEST(SimulatorCUDATest, ExpectationValue1) {
   using Factory = qsim::Factory<TypeParam>;
   typename Factory::StateSpace::Parameter param;

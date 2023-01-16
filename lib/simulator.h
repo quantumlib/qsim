@@ -41,22 +41,27 @@ class SimulatorBase {
                           uint64_t* ms, uint64_t* xss) {
     constexpr unsigned hsize = 1 << H;
 
-    uint64_t xs[H];
+    if (H == 0) {
+      ms[0] = uint64_t(-1);
+      xss[0] = 0;
+    } else {
+      uint64_t xs[H + 1];
 
-    xs[0] = uint64_t{1} << (qs[L] + 1);
-    ms[0] = (uint64_t{1} << qs[L]) - 1;
-    for (unsigned i = 1; i < H; ++i) {
-      xs[i] = uint64_t{1} << (qs[L + i] + 1);
-      ms[i] = ((uint64_t{1} << qs[L + i]) - 1) ^ (xs[i - 1] - 1);
-    }
-    ms[H] = ((uint64_t{1} << num_qubits) - 1) ^ (xs[H - 1] - 1);
-
-    for (unsigned i = 0; i < hsize; ++i) {
-      uint64_t a = 0;
-      for (uint64_t k = 0; k < H; ++k) {
-        a += xs[k] * ((i >> k) & 1);
+      xs[0] = uint64_t{1} << (qs[L] + 1);
+      ms[0] = (uint64_t{1} << qs[L]) - 1;
+      for (unsigned i = 1; i < H; ++i) {
+        xs[i] = uint64_t{1} << (qs[L + i] + 1);
+        ms[i] = ((uint64_t{1} << qs[L + i]) - 1) ^ (xs[i - 1] - 1);
       }
-      xss[i] = a;
+      ms[H] = ((uint64_t{1} << num_qubits) - 1) ^ (xs[H - 1] - 1);
+
+      for (unsigned i = 0; i < hsize; ++i) {
+        uint64_t a = 0;
+        for (uint64_t k = 0; k < H; ++k) {
+          a += xs[k] * ((i >> k) & 1);
+        }
+        xss[i] = a;
+      }
     }
   }
 

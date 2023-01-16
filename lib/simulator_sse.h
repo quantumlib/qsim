@@ -51,6 +51,9 @@ class SimulatorSSE final : public SimulatorBase {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     switch (qs.size()) {
+    case 0:
+      ApplyGateH<0>(qs, matrix, state);
+      break;
     case 1:
       if (qs[0] > 1) {
         ApplyGateH<1>(qs, matrix, state);
@@ -129,6 +132,13 @@ class SimulatorSSE final : public SimulatorBase {
     }
 
     switch (qs.size()) {
+    case 0:
+      if (cqs[0] > 1) {
+        ApplyControlledGateHH<0>(qs, cqs, cvals, matrix, state);
+      } else {
+        ApplyControlledGateHL<0>(qs, cqs, cvals, matrix, state);
+      }
+      break;
     case 1:
       if (qs[0] > 1) {
         if (cqs[0] > 1) {

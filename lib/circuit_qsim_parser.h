@@ -168,12 +168,18 @@ class CircuitQsimParser final {
   }
 
   /**
+   * Checks formatting for a zero-qubit gate parsed from 'ss'.
+   * @param ss Input stream containing the gate specification.
+   */
+  static bool ValidateGate(std::stringstream& ss) {
+    return ss && ss.peek() == std::stringstream::traits_type::eof();
+  }
+
+  /**
    * Checks formatting for a single-qubit gate parsed from 'ss'.
    * @param ss Input stream containing the gate specification.
    * @param num_qubits Number of qubits, as defined at the start of the file.
    * @param q0 Index of the affected qubit.
-   * @param provider Circuit source; only used for error reporting.
-   * @param line Line number of the parsed gate; only used for error reporting.
    */
   static bool ValidateGate(std::stringstream& ss,
                            unsigned num_qubits, unsigned q0) {
@@ -261,7 +267,11 @@ class CircuitQsimParser final {
     unsigned q0, q1;
     fp_type phi, theta;
 
-    if (gate_name == "id1") {
+    if (gate_name == "p") {
+      ss >> phi;
+      if (!ValidateGate(ss)) return false;
+      gates.push_back(GateGPh<fp_type>::Create(time, phi));
+    } else if (gate_name == "id1") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
       gates.push_back(GateId1<fp_type>::Create(time, q0));

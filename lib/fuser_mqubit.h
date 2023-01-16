@@ -282,6 +282,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
     unsigned max_fused_size = std::min(unsigned{6}, param.max_fused_size);
     max_fused_size = std::min(max_fused_size, max_qubit1);
 
+    std::size_t last_fused_gate_index = 0;
     auto gate_it = gfirst;
 
     // Iterate over epochs.
@@ -432,6 +433,14 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
           FuseOrphanedGates(max_fused_size, stat, orphaned_gates, fused_gates);
         }
       }
+
+      if (fgates[0].size() != 0) {
+        Base::FuseZeroQubitGates(fgates[0],
+                                 [](const GateF* g) { return g->parent; },
+                                 last_fused_gate_index, fused_gates);
+      }
+
+      last_fused_gate_index = fused_gates.size();
     }
 
     if (fuse_matrix) {

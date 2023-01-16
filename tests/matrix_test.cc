@@ -161,12 +161,21 @@ TEST(MatrixTest, MatrixMultiply2) {
 }
 
 TEST(MatrixTest, MatrixScalarMultiply) {
-  Matrix<float>  m1 = {1, 2, 3, 4, 5, 6, 7, 8};
+  Matrix<float> m1 = {1, 2, 3, 4, 5, 6, 7, 8};
 
   MatrixScalarMultiply(3, m1);
 
   for (unsigned i = 0; i < 8; ++i) {
     EXPECT_FLOAT_EQ(m1[i], (i + 1) * 3);
+  }
+
+  m1 = {1, 2, 3, 4, 5, 6, 7, 8};
+
+  MatrixScalarMultiply(2, 3, m1);
+
+  for (unsigned i = 0; i < 4; ++i) {
+    EXPECT_FLOAT_EQ(m1[2 * i], -2 * float(i) - 4);
+    EXPECT_FLOAT_EQ(m1[2 * i + 1], 10 * i + 7);
   }
 
   Matrix<float> m2 = { 1,  2,  3,  4,  5,  6,  7,  8,
@@ -178,6 +187,18 @@ TEST(MatrixTest, MatrixScalarMultiply) {
 
   for (unsigned i = 0; i < 32; ++i) {
     EXPECT_FLOAT_EQ(m2[i], (i + 1) * 3);
+  }
+
+  m2 = { 1,  2,  3,  4,  5,  6,  7,  8,
+         9, 10, 11, 12, 13, 14, 15, 16,
+         17, 18, 19, 20, 21, 22, 23, 24,
+         25, 26, 27, 28, 29, 30, 31, 32};
+
+  MatrixScalarMultiply(2, 3, m2);
+
+  for (unsigned i = 0; i < 16; ++i) {
+    EXPECT_FLOAT_EQ(m2[2 * i], -2 * float(i) - 4);
+    EXPECT_FLOAT_EQ(m2[2 * i + 1], 10 * i + 7);
   }
 }
 

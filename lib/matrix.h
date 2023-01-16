@@ -172,7 +172,7 @@ inline void MatrixMultiply(unsigned mask1,
 }
 
 /**
- * Multiply a matrix by a scalar value.
+ * Multiply a matrix by a real scalar value.
  * @c Scalar value.
  * @m Input matrix to be multiplied. Output matrix.
  */
@@ -180,6 +180,23 @@ template <typename fp_type1, typename fp_type2>
 inline void MatrixScalarMultiply(fp_type1 c, Matrix<fp_type2>& m) {
   for (unsigned i = 0; i < m.size(); ++i) {
     m[i] *= c;
+  }
+}
+
+/**
+ * Multiply a matrix by a complex scalar value.
+ * @re Real part of scalar value.
+ * @im Imaginary part of scalar value.
+ * @m Input matrix to be multiplied. Output matrix.
+ */
+template <typename fp_type1, typename fp_type2>
+inline void MatrixScalarMultiply(
+    fp_type1 re, fp_type1 im, Matrix<fp_type2>& m) {
+  for (unsigned i = 0; i < m.size() / 2; ++i) {
+    fp_type2 re0 = m[2 * i + 0];
+    fp_type2 im0 = m[2 * i + 1];
+    m[2 * i + 0] = re * re0 - im * im0;
+    m[2 * i + 1] = re * im0 + im * re0;
   }
 }
 

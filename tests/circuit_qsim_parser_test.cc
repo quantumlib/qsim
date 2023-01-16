@@ -54,6 +54,7 @@ R"(2
 12 cp 0 1 0.5
 13 m 0
 14 m 1
+15 p 0.3
 )";
 
   Circuit<GateQSim<float>> circuit;
@@ -61,7 +62,7 @@ R"(2
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss1, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 21);
+  EXPECT_EQ(circuit.gates.size(), 22);
 
   std::stringstream ss2(valid_circuit);
 
@@ -75,17 +76,20 @@ TEST(CircuitQsimParserTest, ValidCircuitWithControlledGates) {
 R"(5
 0 c 0 1 h 2
 1 c 4 3 2 is 0 1
+2 c 2 4 p 0.5
 )";
 
   Circuit<GateQSim<float>> circuit;
   std::stringstream ss(valid_circuit);
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 5);
-  EXPECT_EQ(circuit.gates.size(), 2);
+  EXPECT_EQ(circuit.gates.size(), 3);
   EXPECT_EQ(circuit.gates[0].qubits.size(), 1);
   EXPECT_EQ(circuit.gates[0].controlled_by.size(), 2);
   EXPECT_EQ(circuit.gates[1].qubits.size(), 2);
   EXPECT_EQ(circuit.gates[1].controlled_by.size(), 3);
+  EXPECT_EQ(circuit.gates[2].qubits.size(), 0);
+  EXPECT_EQ(circuit.gates[2].controlled_by.size(), 2);
 }
 
 TEST(CircuitQsimParserTest, ValidTimeOrder) {

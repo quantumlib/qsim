@@ -1166,6 +1166,71 @@ bool TestFusedGates(unsigned num_qubits,
 
 }  // namespace
 
+TEST(FuserBasicTest, SmallCircuits) {
+  using Gate = GateQSim<float>;
+  using Fuser = BasicGateFuser<IO, Gate>;
+
+  Fuser::Parameter param;
+  param.verbosity = 0;
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateGPh<float>::Create(0, -1, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateGPh<float>::Create(0, -1, 0),
+      GateGPh<float>::Create(0, -1, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(0, 0, 1),
+      GateGPh<float>::Create(0, -1, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateZ<float>::Create(0, 0).ControlledBy({1}, {1}),
+      GateCZ<float>::Create(1, 0, 1),
+      GateGPh<float>::Create(1, -1, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 2);
+    EXPECT_EQ(fused_gates[1].gates[1], &circuit[2]);
+  }
+}
+
 TEST(FuserBasicTest, ValidTimeOrder) {
   using Gate = GateQSim<float>;
   using Fuser = BasicGateFuser<IO, Gate>;
@@ -1304,6 +1369,35 @@ TEST(FuserBasicTest, ValidTimeOrder) {
     EXPECT_EQ(fused_gates.size(), 7);
     EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
   }
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(1, 0, 1),
+      GateGPh<float>::Create(2, -1, 0),
+    };
+
+    std::vector<unsigned> time_boundary = {1};
+    auto fused_gates = Fuser::FuseGates(param, num_qubits, circuit.begin(),
+                                        circuit.end(), time_boundary, false);
+
+    EXPECT_EQ(fused_gates.size(), 2);
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+  }
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(1, 0, 1),
+      GateGPh<float>::Create(0, -1, 0),
+    };
+
+    auto fused_gates = Fuser::FuseGates(
+        param, num_qubits, circuit.begin(), circuit.end(), false);
+
+    EXPECT_TRUE(TestFusedGates(num_qubits, circuit, fused_gates));
+    EXPECT_EQ(fused_gates.size(), 1);
+  }
 }
 
 TEST(FuserBasicTest, InvalidTimeOrder) {
@@ -1433,6 +1527,20 @@ TEST(FuserBasicTest, InvalidTimeOrder) {
 
     auto fused_gates = Fuser::FuseGates(
         param, num_qubits, circuit.begin(), circuit.end());
+
+    EXPECT_EQ(fused_gates.size(), 0);
+  }
+
+  {
+    unsigned num_qubits = 2;
+    std::vector<Gate> circuit = {
+      GateCZ<float>::Create(1, 0, 1),
+      GateGPh<float>::Create(0, -1, 0),
+    };
+
+    std::vector<unsigned> time_boundary = {1};
+    auto fused_gates = Fuser::FuseGates(param, num_qubits, circuit.begin(),
+                                        circuit.end(), time_boundary, false);
 
     EXPECT_EQ(fused_gates.size(), 0);
   }

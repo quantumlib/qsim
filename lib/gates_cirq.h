@@ -74,6 +74,7 @@ enum GateKind {
   kMatrixGate1,  // One-qubit matrix gate.
   kMatrixGate2,  // Two-qubit matrix gate.
   kMatrixGate,   // Multi-qubit matrix gate.
+  kGlobalPhaseGate,
   kDecomp = gate::kDecomp,
   kMeasurement = gate::kMeasurement,
 };
@@ -84,6 +85,31 @@ using GateCirq = Gate<fp_type, GateKind>;
 constexpr double h_double = 0.5;
 constexpr double pi_double = 3.14159265358979323846264338327950288;
 constexpr double is2_double = 0.7071067811865475;
+
+// Gates from cirq/ops/global_phase_op.py:
+
+/**
+ * The global phase gate.
+ */
+template <typename fp_type>
+struct GlobalPhaseGate {
+  static constexpr GateKind kind = kGlobalPhaseGate;
+  static constexpr char name[] = "GlobalPhaseGate";
+  static constexpr unsigned num_qubits = 1;
+  static constexpr bool symmetric = true;
+
+  static GateCirq<fp_type> Create(unsigned time, fp_type phi) {
+    return Create(time, std::cos(phi), std::sin(phi));
+  }
+
+  static GateCirq<fp_type> Create(unsigned time, fp_type cp, fp_type sp) {
+    return CreateGate<GateCirq<fp_type>, GlobalPhaseGate>(
+        time, {}, {cp, sp}, {cp, sp});
+  }
+};
+
+template <typename fp_type>
+using global_phase_operation = GlobalPhaseGate<fp_type>;
 
 // Gates from cirq/ops/identity.py:
 
