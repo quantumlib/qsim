@@ -1368,7 +1368,7 @@ def test_cirq_qsim_custatevec_amplitudes():
     cirq_circuit = cirq.Circuit(cirq.CNOT(a, b), cirq.CNOT(b, a), cirq.X(a))
 
     # Enable GPU acceleration.
-    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    custatevec_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
     result = qsimGpuSim.compute_amplitudes(
         cirq_circuit, bitstrings=[0b00, 0b01, 0b10, 0b11]
@@ -1386,7 +1386,7 @@ def test_cirq_qsim_custatevec_simulate():
     cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
 
     # Enable GPU acceleration.
-    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    custatevec_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
     result = qsimGpuSim.simulate(cirq_circuit)
     assert result.state_vector().shape == (4,)
@@ -1409,7 +1409,7 @@ def test_cirq_qsim_custatevec_expectation_values():
     obs = [cirq.Z(a) * cirq.Z(b)]
 
     # Enable GPU acceleration.
-    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    custatevec_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
     result = qsimGpuSim.simulate_expectation_values(cirq_circuit, obs)
 
@@ -1428,7 +1428,7 @@ def test_cirq_qsim_custatevec_input_state():
     cirq_circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b), cirq.X(b))
 
     # Enable GPU acceleration.
-    custatevec_options = qsimcirq.QSimOptions(gpu_mode=1)
+    custatevec_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
     qsimGpuSim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
     initial_state = np.asarray([0.5] * 4, dtype=np.complex64)
     result = qsimGpuSim.simulate(cirq_circuit, initial_state=initial_state)
