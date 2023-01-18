@@ -161,15 +161,23 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
     // Sequence of top level gates the other gates get fused to.
     std::vector<const RGate*> gates_seq;
 
+    // Sequence of zero-qubit gates.
+    std::vector<const RGate*> gates_seq0;
+
     // Lattice of gates: qubits "hyperplane" and time direction.
     std::vector<std::vector<const RGate*>> gates_lat(max_qubit1);
 
     // Current unfused gate.
     auto gate_it = gfirst;
 
+    std::size_t last_fused_gate_index = 0;
+
     for (std::size_t l = 0; l < times.size(); ++l) {
       gates_seq.resize(0);
       gates_seq.reserve(num_gates);
+
+      gates_seq0.resize(0);
+      gates_seq0.reserve(num_gates);
 
       for (unsigned k = 0; k < max_qubit1; ++k) {
         gates_lat[k].resize(0);
@@ -212,6 +220,8 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
           gates_lat[gate.qubits[0]].push_back(&gate);
           gates_lat[gate.qubits[1]].push_back(&gate);
           gates_seq.push_back(&gate);
+        } else {
+          gates_seq0.push_back(&gate);
         }
       }
 
@@ -306,7 +316,14 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
         gates_fused.push_back(std::move(gate_f));
       }
 
+      if (gates_seq0.size() != 0) {
+        Base::FuseZeroQubitGates(gates_seq0, [](const RGate* g) { return g; },
+                                 last_fused_gate_index, gates_fused);
+      }
+
       if (gate_it == glast) break;
+
+      last_fused_gate_index = gates_fused.size();
     }
 
     if (fuse_matrix) {

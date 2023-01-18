@@ -84,6 +84,10 @@ TYPED_TEST(SimulatorAVX512Test, ControlledGates) {
   TestControlledGates(Factory<TypeParam>(), false);
 }
 
+TYPED_TEST(SimulatorAVX512Test, GlobalPhaseGate) {
+  TestGlobalPhaseGate(Factory<TypeParam>());
+}
+
 TYPED_TEST(SimulatorAVX512Test, ExpectationValue1) {
   TestExpectationValue1(Factory<TypeParam>());
 }

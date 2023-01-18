@@ -82,6 +82,10 @@ TYPED_TEST(SimulatorBasicTest, ControlledGates) {
   TestControlledGates(Factory<TypeParam>(), true);
 }
 
+TYPED_TEST(SimulatorBasicTest, GlobalPhaseGate) {
+  TestGlobalPhaseGate(Factory<TypeParam>());
+}
+
 TYPED_TEST(SimulatorBasicTest, ExpectationValue1) {
   TestExpectationValue1(Factory<TypeParam>());
 }

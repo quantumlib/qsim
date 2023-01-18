@@ -52,7 +52,7 @@ struct Factory {
   }
 
   Simulator CreateSimulator() const {
-    return Simulator(custatevec_handle);
+    return Simulator(cublas_handle, custatevec_handle);
   }
 
   cublasHandle_t cublas_handle;
@@ -89,7 +89,11 @@ TYPED_TEST(SimulatorCuStateVecTest, MultiQubitGates) {
 
 TYPED_TEST(SimulatorCuStateVecTest, ControlledGates) {
   bool high_precision = std::is_same<TypeParam, double>::value;
-  TestControlledGates(qsim::Factory<TypeParam>(), high_precision);
+  TestControlledGates(qsim::Factory<TypeParam>(), high_precision, true);
+}
+
+TYPED_TEST(SimulatorCuStateVecTest, GlobalPhaseGate) {
+  TestGlobalPhaseGate(qsim::Factory<TypeParam>());
 }
 
 TYPED_TEST(SimulatorCuStateVecTest, ExpectationValue1) {

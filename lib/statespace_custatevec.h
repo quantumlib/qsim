@@ -59,10 +59,8 @@ class StateSpaceCuStateVec :
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
- private:
   static constexpr auto is_float = std::is_same<fp_type, float>::value;
 
- public:
   static constexpr auto kStateType = is_float ? CUDA_C_32F : CUDA_C_64F;
   static constexpr auto kMatrixType = kStateType;
   static constexpr auto kExpectType = CUDA_C_64F;

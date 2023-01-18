@@ -233,6 +233,9 @@ Cirq::GateCirq<float> create_matrix_gate(const unsigned time,
                                          const std::vector<unsigned>& qubits,
                                          const std::vector<float>& matrix) {
   switch (qubits.size()) {
+  case 0:
+    // Global phase gate.
+    return Cirq::GlobalPhaseGate<float>::Create(time, matrix[0], matrix[1]);
   case 1:
     return Cirq::MatrixGate1<float>::Create(time, qubits[0], matrix);
   case 2:
