@@ -1265,7 +1265,7 @@ def test_cirq_qsimh_simulate():
 def test_qsim_input_state():
     for num_qubits in range(1, 8):
         size = 2**num_qubits
-        qubits = cirq.LineQubit.range(num_qubits);
+        qubits = cirq.LineQubit.range(num_qubits)
         circuit = cirq.Circuit()
 
         for k in range(num_qubits):
@@ -1385,7 +1385,7 @@ def test_qsim_gpu_input_state():
 
     for num_qubits in range(1, 8):
         size = 2**num_qubits
-        qubits = cirq.LineQubit.range(num_qubits);
+        qubits = cirq.LineQubit.range(num_qubits)
         circuit = cirq.Circuit()
 
         for k in range(num_qubits):
@@ -1494,7 +1494,7 @@ def test_qsim_custatevec_input_state():
 
     for num_qubits in range(1, 8):
         size = 2**num_qubits
-        qubits = cirq.LineQubit.range(num_qubits);
+        qubits = cirq.LineQubit.range(num_qubits)
         circuit = cirq.Circuit()
 
         for k in range(num_qubits):
