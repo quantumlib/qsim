@@ -15,7 +15,7 @@ instance heading, ensure that your VM has the following properties:
     1. Select the tab for the **Compute Optimized** machine family.
     2. In the machine **Series** option, choose **C2**.
     3. In the **Machine type** option, choose **c2-standard-16**. This option
-       gives you 16 virtual CPUS and 64MB of RAM.
+       gives you 16 virtual CPUS and 64GB of RAM.
        Note: This choice is for demonstration purposes only. For a live
        experiment, see [Choosing hardware for your qsim
        simulation](/qsim/choose_hw).
