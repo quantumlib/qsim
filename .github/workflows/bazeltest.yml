@@ -12,7 +12,7 @@ jobs:
   # Run tests with Bazel v0.26.
   test:
     name: Test with Bazel
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # Hardware optimizers.
@@ -40,7 +40,7 @@ jobs:
 
   test-san:
     name: Sanitizer tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # Test sanitizers
@@ -61,7 +61,7 @@ jobs:
   
   test-mem:
     name: Test with tcmalloc
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
