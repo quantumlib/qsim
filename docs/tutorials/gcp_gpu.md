@@ -41,7 +41,7 @@ for your project.
 
 ## 2. Prepare your computer
 
-Use SSH in the `glcoud` tool to communicate with your VM.
+Use SSH in the `gcloud` tool to communicate with your VM.
 
 1.  Install the `gcloud` command line tool. Follow the instructions in the
     [Installing Cloud SDK](https://cloud.google.com/sdk/docs/install)
