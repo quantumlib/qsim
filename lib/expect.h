@@ -60,7 +60,10 @@ std::complex<double> ExpectationValue(
   }
 
   for (const auto& str : strings) {
-    if (str.ops.size() == 0) continue;
+    if (str.ops.size() == 0) {
+      eval += str.weight;
+      continue;
+    }
 
     state_space.Copy(state, ket);
 
