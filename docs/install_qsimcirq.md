@@ -25,19 +25,19 @@ file. You can install them with `pip3 install -r dev-requirements.txt` or
 
 ## Linux installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{6,7,8,9}`.
+We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{7,8,9,10}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## MacOS installation
 
-We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{6,7,8,9}`.
+We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{7,8,9,10}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## Windows installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{6,7,8,9}`.
+We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{7,8,9,10}`.
 
 Simply run `pip3 install qsimcirq`.
 
