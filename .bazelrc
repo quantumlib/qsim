@@ -1,6 +1,6 @@
 # Default build options
-build --copt -std=c++11
-build --copt -D_GLIBCXX_USE_CXX11_ABI=0
+build --copt -std=c++17
+build --copt -D_GLIBCXX_USE_CXX11_ABI=1
 
 ##### Sanitizers (choose one, or nosan for none) #####
 
