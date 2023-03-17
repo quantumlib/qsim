@@ -20,17 +20,32 @@ http_archive(
 # https://github.com/tensorflow/quantum
 http_archive(
     name = "org_tensorflow",
-    sha256 = "e82f3b94d863e223881678406faa5071b895e1ff928ba18578d2adbbc6b42a4c",
-    strip_prefix = "tensorflow-2.1.0",
+    sha256 = "e52cda3bae45f0ae0fccd4055e9fa29892b414f70e2df94df9a3a10319c75fff",
+    strip_prefix = "tensorflow-2.11.0",
     urls = [
-        "https://github.com/tensorflow/tensorflow/archive/v2.1.0.zip",
+        "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.11.0.zip",
     ],
 )
 
 
-EIGEN_COMMIT = "12e8d57108c50d8a63605c6eb0144c838c128337"
-EIGEN_SHA256 = "f689246e342c3955af48d26ce74ac34d21b579a00675c341721a735937919b02"
+EIGEN_COMMIT = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
+EIGEN_SHA256 = "eca9847b3fe6249e0234a342b78f73feec07d29f534e914ba5f920f3e09383a3"
 
+load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
+
+workspace()
+
+load("@org_tensorflow//tensorflow:workspace2.bzl", "workspace")
+
+workspace()
+
+load("@org_tensorflow//tensorflow:workspace1.bzl", "workspace")
+
+workspace()
+
+load("@org_tensorflow//tensorflow:workspace0.bzl", "workspace")
+
+workspace()
 
 http_archive(
     name = "eigen",

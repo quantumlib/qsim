@@ -1,3 +1,5 @@
+load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda_is_configured", "cuda_library")
+
 package(default_visibility = ["//visibility:public"])
 
 # Libraries of the following form:
@@ -67,8 +69,7 @@ cc_library(
 )
 
 # Full qsim library, including CUDA
-# cuda_library
-cc_library(
+cuda_library(
     name = "qsim_cuda_lib",
     hdrs = [
         "bits.h",
@@ -247,8 +248,7 @@ cc_library(
     hdrs = ["util_cpu.h"],
 )
 
-# cuda_library
-cc_library(
+cuda_library(
     name = "util_cuda",
     hdrs = ["util_cuda.h"],
 )
@@ -408,8 +408,7 @@ cc_library(
     hdrs = ["vectorspace.h"],
 )
 
-# cuda_library
-cc_library(
+cuda_library(
     name = "vectorspace_cuda",
     hdrs = ["vectorspace_cuda.h"],
 )
@@ -462,8 +461,7 @@ cc_library(
     ],
 )
 
-# cuda_library
-cc_library(
+cuda_library(
     name = "statespace_cuda",
     hdrs = [
         "statespace_cuda.h",
@@ -520,8 +518,7 @@ cc_library(
     ],
 )
 
-# cuda_library
-cc_library(
+cuda_library(
     name = "simulator_cuda",
     hdrs = [
         "simulator_cuda.h",
