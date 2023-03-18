@@ -27,10 +27,6 @@ http_archive(
     ],
 )
 
-
-EIGEN_COMMIT = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
-EIGEN_SHA256 = "eca9847b3fe6249e0234a342b78f73feec07d29f534e914ba5f920f3e09383a3"
-
 load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
 
 workspace()
@@ -46,6 +42,11 @@ workspace()
 load("@org_tensorflow//tensorflow:workspace0.bzl", "workspace")
 
 workspace()
+
+
+EIGEN_COMMIT = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
+EIGEN_SHA256 = "eca9847b3fe6249e0234a342b78f73feec07d29f534e914ba5f920f3e09383a3"
+
 
 http_archive(
     name = "eigen",
