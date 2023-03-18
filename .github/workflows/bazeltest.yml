@@ -28,6 +28,9 @@ jobs:
         run: |
           wget https://github.com/bazelbuild/bazel/releases/download/5.1.0/bazel_5.1.0-linux-x86_64.deb
           sudo dpkg -i bazel_5.1.0-linux-x86_64.deb
+      - name: Install requirements
+        run: |
+          python3 -m pip install -r requirements.txt
       - name: Run C++ tests
         run: |
           bazel test --config=${{ matrix.hardware_opt }} \
@@ -54,6 +57,9 @@ jobs:
         run: |
           wget https://github.com/bazelbuild/bazel/releases/download/5.1.0/bazel_5.1.0-linux-x86_64.deb
           sudo dpkg -i bazel_5.1.0-linux-x86_64.deb
+      - name: Install requirements
+        run: |
+          python3 -m pip install -r requirements.txt
       - name: Run C++ tests
         run: |
           bazel test --config=avx --config=openmp \
@@ -71,6 +77,9 @@ jobs:
         run: |
           wget https://github.com/bazelbuild/bazel/releases/download/5.1.0/bazel_5.1.0-linux-x86_64.deb
           sudo dpkg -i bazel_5.1.0-linux-x86_64.deb
+      - name: Install requirements
+        run: |
+          python3 -m pip install -r requirements.txt
       - name: Install google-perftools for tcmalloc
         run: sudo apt-get install libgoogle-perftools-dev
       - name: Run C++ tests
