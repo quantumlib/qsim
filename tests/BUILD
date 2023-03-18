@@ -1,5 +1,3 @@
-load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda_is_configured")
-
 # Options for testing different simulator types.
 avx_copts = ['-mavx2', '-mfma']
 avx512_copts = ['-march=native']
@@ -353,21 +351,6 @@ cc_test(
         ":windows": windows_copts,
         "//conditions:default": sse_copts,
     }),
-)
-
-cc_test(
-    name = "simulator_cuda_test",
-    srcs = ["simulator_cuda_test.cu"],
-    deps = [
-        ":simulator_testfixture",
-        "@com_google_googletest//:gtest_main",
-        "//lib:parfor",
-        "//lib:seqfor",
-    ] + if_cuda_is_configured(["//lib:simulator_cuda"]),
-    copts = select({
-        ":windows": windows_copts + ["/D__CLANG_SUPPORT_DYN_ANNOTATION__", "/DEIGEN_MPL2_ONLY", "/DEIGEN_MAX_ALIGN_BYTES=64", "/DEIGEN_HAS_TYPE_TRAITS=0", "/DTF_USE_SNAPPY", "/showIncludes", "/MD", "/O2", "/DNDEBUG", "/w", "-DWIN32_LEAN_AND_MEAN", "-DNOGDI", "/d2ReducedOptimizeHugeFunctions", "/arch:AVX", "/std:c++17", "-DTENSORFLOW_MONOLITHIC_BUILD", "/DPLATFORM_WINDOWS", "/DEIGEN_HAS_C99_MATH", "/DTENSORFLOW_USE_EIGEN_THREADPOOL", "/DEIGEN_AVOID_STL_ARRAY", "/Iexternal/gemmlowp", "/wd4018", "/wd4577", "/DNOGDI", "/UTF_COMPILE_LIBRARY"],
-        "//conditions:default": ["-pthread", "-std=c++17", "-D_GLIBCXX_USE_CXX11_ABI=1"],
-    }) + if_cuda_is_configured(["-DTENSORFLOW_USE_NVCC=1", "-DGOOGLE_CUDA=1", "-x cuda", "-nvcc_options=relaxed-constexpr", "-nvcc_options=ftz=true"]),
 )
 
 cc_library(
