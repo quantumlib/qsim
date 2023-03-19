@@ -51,10 +51,21 @@ class SimulatorCUDA final {
 
   SimulatorCUDA() : scratch_(nullptr), scratch_size_(0) {
     ErrorCheck(cudaMalloc(&d_ws, max_buf_size));
+    d_ws_from_tf = false;
+  }
+
+  SimulatorCUDA(char* d_ws_temp) : scratch_(nullptr), scratch_size_(0) {
+    if (d_ws_temp) {
+      d_ws = d_ws_temp;
+      d_ws_from_tf = true;
+    } else {
+      ErrorCheck(cudaMalloc(&d_ws, max_buf_size));
+      d_ws_from_tf = false;
+    }
   }
 
   ~SimulatorCUDA() {
-    ErrorCheck(cudaFree(d_ws));
+    if (!d_ws_from_tf) ErrorCheck(cudaFree(d_ws));
 
     if (scratch_ != nullptr) {
       ErrorCheck(cudaFree(scratch_));
@@ -913,6 +924,8 @@ class SimulatorCUDA final {
   char* d_ws;
   char h_ws0[max_buf_size];
   char* h_ws = (char*) h_ws0;
+
+  bool d_ws_from_tf;
 
   void* scratch_;
   uint64_t scratch_size_;
