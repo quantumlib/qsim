@@ -16,7 +16,7 @@
 #define UTIL_CUSTATEVEC_H_
 
 #include <cublas_v2.h>
-#include <custatevec.h>
+#include "../cuquantum_libs/include/custatevec.h"
 
 #include "io.h"
 #include "util_cuda.h"
