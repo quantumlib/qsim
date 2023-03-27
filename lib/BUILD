@@ -188,6 +188,7 @@ cuda_library(
         "unitary_calculator_sse.h",
         "util.h",
         "util_cpu.h",
+        "util_cuda.h",
         "util_custatevec.h",
         "vectorspace.h",
         "vectorspace_cuda.h",
