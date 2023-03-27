@@ -190,7 +190,7 @@ cuda_library(
         "util_cpu.h",
         "util_custatevec.h",
         "vectorspace.h",
-        "vectorspace_custatevec.h",
+        "vectorspace_cuda.h",
     ],
     deps = [
         "@cuquantum_libs//:custatevec",
@@ -484,11 +484,6 @@ cuda_library(
     hdrs = ["vectorspace_cuda.h"],
 )
 
-cuda_library(
-    name = "vectorspace_custatevec",
-    hdrs = ["vectorspace_custatevec.h"],
-)
-
 ### Statespace libraries ###
 
 cc_library(
@@ -558,7 +553,7 @@ cuda_library(
     deps = [
         ":statespace",
         ":util_custatevec",
-        ":vectorspace_custatevec",
+        ":vectorspace_cuda",
     ],
 )
 
