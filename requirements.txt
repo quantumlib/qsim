@@ -1,5 +1,5 @@
 absl-py
-cirq-core~=1.5
+cirq-core~=1.1.0
 numpy==1.24.2
 pybind11
 typing_extensions
