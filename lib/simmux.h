@@ -33,6 +33,18 @@
     template <typename For>
     using Simulator = SimulatorSSE<For>;
   }
+#elif __CUSTATEVEC__
+# include "simulator_custatevec.h"
+  namespace qsim {
+    template <typename For>
+    using Simulator = SimulatorCuStateVec<For>;
+  }
+#elif __CUDA__
+# include "simulator_cuda.h"
+  namespace qsim {
+    template <typename For>
+    using Simulator = SimulatorCUDA<For>;
+  }
 #else
 # include "simulator_basic.h"
   namespace qsim {

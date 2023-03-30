@@ -120,10 +120,14 @@ def _symlink_genrule_for_dir(
         genrule target that creates the symlinks.
     """
     if is_empty_genrule:
+        if dest_dir != "":
+          target_path = "%s/%s.h" % (dest_dir, genrule_name)
+        else:
+          target_path = genrule_name
         genrule = _genrule(
             genrule_name,
-            "echo 'this genrule is empty because CUQUANTUM_ROOT is not set.' && touch %s.h" % genrule_name,
-            "'%s.h'" % genrule_name,
+            "touch $(OUTS)",
+            "'%s'" % (target_path),
         )
         return genrule
 
@@ -181,25 +185,11 @@ def _cuquantum_pip_imple(repository_ctx):
         ["libcustatevec.so"],
         is_empty_genrule=is_empty_genrule,
     )
-
-    cutensornet_shared_library_path = "%s/lib/libcutensornet.so" % (cuquantum_root)
-
-    cutensornet_shared_library_rule = _symlink_genrule_for_dir(
-        repository_ctx,
-        None,
-        "",
-        "libcutensornet.so",
-        [cutensornet_shared_library_path],
-        ["libcutensornet.so"],
-        is_empty_genrule=is_empty_genrule,
-    )
     
     _tpl(repository_ctx, "BUILD", {
         "%{CUQUANTUM_HEADER_GENRULE}": cuquantum_header_rule,
         "%{CUSTATEVEC_SHARED_LIBRARY_GENRULE}": custatevec_shared_library_rule,
-        "%{CUTENSORNET_SHARED_LIBRARY_GENRULE}": cutensornet_shared_library_rule,
     })
-
         
 
 cuquantum_configure = repository_rule(

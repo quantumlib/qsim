@@ -21,7 +21,7 @@
 
 #include <cublas_v2.h>
 #include <cuComplex.h>
-#include "../cuquantum_libs/include/custatevec.h"
+#include <custatevec.h>
 
 #include "io.h"
 #include "statespace_custatevec.h"
