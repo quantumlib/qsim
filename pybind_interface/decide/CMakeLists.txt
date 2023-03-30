@@ -31,7 +31,7 @@ else()
 
   cuda_add_library(qsim_decide MODULE decide.cpp)
 
-  if(DEFINED ENV{CUQUANTUM_DIR})
+  if(DEFINED ENV{CUQUANTUM_ROOT})
       target_compile_options(qsim_decide PRIVATE
           $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
       )

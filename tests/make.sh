@@ -60,8 +60,8 @@ nvcc -O3 -I$path_to_include -L$path_to_lib -o qtrajectory_cuda_test.x qtrajector
 nvcc -O3 -I$path_to_include -L$path_to_lib -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
 nvcc -O3 -I$path_to_include -L$path_to_lib -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread
 
-# CUQUANTUM_DIR should be set.
-CUSTATEVECFLAGS="-I${CUQUANTUM_DIR}/include -L${CUQUANTUM_DIR}/lib -L${CUQUANTUM_DIR}/lib64 -lcustatevec -lcublas"
+# CUQUANTUM_ROOT should be set.
+CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
 nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o hybrid_custatevec_test.x hybrid_custatevec_test.cu -lgtest -lpthread
 nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o qtrajectory_custatevec_test.x qtrajectory_custatevec_test.cu -lgtest -lpthread
 nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o simulator_custatevec_test.x simulator_custatevec_test.cu -lgtest -lpthread

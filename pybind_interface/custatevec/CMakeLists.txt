@@ -33,8 +33,8 @@ find_package(CUDA REQUIRED)
 
 include_directories(${pybind11_INCLUDE_DIRS})
 
-include_directories($ENV{CUQUANTUM_DIR}/include)
-link_directories($ENV{CUQUANTUM_DIR}/lib $ENV{CUQUANTUM_DIR}/lib64)
+include_directories($ENV{CUQUANTUM_ROOT}/include)
+link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
 
 cuda_add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
 target_link_libraries(qsim_custatevec -lcustatevec -lcublas)

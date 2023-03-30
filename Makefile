@@ -11,8 +11,8 @@ CXXFLAGS = -O3 -fopenmp
 ARCHFLAGS = -march=native
 NVCCFLAGS = -O3
 
-# CUQUANTUM_DIR should be set.
-CUSTATEVECFLAGS = -I$(CUQUANTUM_DIR)/include -L${CUQUANTUM_DIR}/lib -L$(CUQUANTUM_DIR)/lib64 -lcustatevec -lcublas
+# CUQUANTUM_ROOT should be set.
+CUSTATEVECFLAGS = -I$(CUQUANTUM_ROOT)/include -L${CUQUANTUM_ROOT}/lib -L$(CUQUANTUM_ROOT)/lib64 -lcustatevec -lcublas
 
 PYBIND11 = true
 
