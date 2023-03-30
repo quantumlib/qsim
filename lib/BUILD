@@ -194,8 +194,8 @@ cuda_library(
         "vectorspace_cuda.h",
     ],
     deps = [
-        "@cuquantum_libs//:custatevec",
-        "@cuquantum_libs//:custatevec_headers",
+        "@local_config_cuquantum//:cuquantum_headers",
+        "@local_config_cuquantum//:libcuquantum",
     ],
 )
 

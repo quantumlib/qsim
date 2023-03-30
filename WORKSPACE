@@ -65,23 +65,6 @@ cc_library(
         ],
 )
 
-# TODO(jaeyoo) : add bzl rule to configure cuquantum if there exists `CUQUANTUM_DIR` environ.
-CUQUANTUM_DIR = "/usr/local/google/home/jaeyoo/workspace/cuquantum-linux-x86_64-22.11.0.13-archive"
+load("//third_party/cuquantum:cuquantum_configure.bzl", "cuquantum_configure")
 
-new_local_repository(
-    name = "cuquantum_libs",
-    path = CUQUANTUM_DIR,
-    build_file_content = """
-cc_library(
-    name = "custatevec_headers",
-    srcs = ["include/custatevec.h"],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "custatevec",
-    srcs = ["lib/libcustatevec.so"],
-    visibility = ["//visibility:public"],
-)
-""",
-)
+cuquantum_configure(name = "local_config_cuquantum")
