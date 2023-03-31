@@ -2,12 +2,6 @@ load("@local_config_cuda//cuda:build_defs.bzl", "cuda_library")
 
 package(default_visibility = ["//visibility:public"])
 
-# Libraries of the following form:
-#   # cuda_library
-#   cc_library(...)
-# are converted to cuda_library rules when imported to the Google codebase.
-# Do not modify this tag.
-
 ##### Aggregate libraries #####
 
 # Full qsim library, minus CUDA
