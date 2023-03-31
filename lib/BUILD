@@ -130,6 +130,7 @@ cuda_library(
         "vectorspace.h",
         "vectorspace_cuda.h",
     ],
+    copts = ["-D__CUDA__"],
 )
 
 # Library to run qsim with qsim circuit parser and parallel `for`
