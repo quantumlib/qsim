@@ -26,6 +26,7 @@ def _execute(
         error_details = None,
         empty_stdout_fine = False):
     """Executes an arbitrary shell command.
+
     Args:
       repository_ctx: the repository_ctx object
       cmdline: list of strings, the command to execute
@@ -48,6 +49,7 @@ def _execute(
 
 def _read_dir(repository_ctx, src_dir):
     """Returns a string with all files in a directory.
+
     Finds all files inside a directory, traversing subfolders and following
     symlinks. The returned string contains the full path of all files
     separated by line breaks.
@@ -59,6 +61,20 @@ def _read_dir(repository_ctx, src_dir):
     )
     result = find_result.stdout
     return result
+
+
+def _find_file(repository_ctx, filename):
+    """Returns a string with a directory path including the filename.
+
+    Finds all files inside a directory, traversing subfolders and following
+    symlinks. The returned string contains the full path of all files
+    separated by line breaks.
+    """
+    result = repository_ctx.execute(
+        ["timeout", "5", "find", "/", "-name", filename, "-print", "-quit", "-not", "-path", "'*/.*'", "-quit"]).stdout
+    result = result[:result.find(filename)+len(filename)]
+    return result
+
 
 def _genrule(genrule_name, command, outs):
     """Returns a string with a genrule.
@@ -162,10 +178,15 @@ def _symlink_genrule_for_dir(
 
 def _cuquantum_pip_imple(repository_ctx):
     cuquantum_root = repository_ctx.os.environ[_CUQUANTUM_ROOT]
+    if cuquantum_root == "":
+      cuquantum_header_path = _find_file(repository_ctx, "custatevec.h")
+      cuquantum_header_path = cuquantum_header_path[:cuquantum_header_path.find("/custatevec.h")]
+      custatevec_shared_library_path = _find_file(repository_ctx, "libcustatevec.so")
+    else:
+      cuquantum_header_path = "%s/include" % cuquantum_root
+      custatevec_shared_library_path = "%s/lib/libcustatevec.so" % (cuquantum_root)
 
-    is_empty_genrule = cuquantum_root == ""
-
-    cuquantum_header_path = "%s/include" % cuquantum_root
+    is_empty_genrule = cuquantum_header_path == "" or custatevec_shared_library_path == ""
 
     cuquantum_header_rule = _symlink_genrule_for_dir(
         repository_ctx,
@@ -174,7 +195,6 @@ def _cuquantum_pip_imple(repository_ctx):
         "cuquantum_header_include",
         is_empty_genrule=is_empty_genrule,
     )
-    custatevec_shared_library_path = "%s/lib/libcustatevec.so" % (cuquantum_root)
 
     custatevec_shared_library_rule = _symlink_genrule_for_dir(
         repository_ctx,
@@ -185,7 +205,7 @@ def _cuquantum_pip_imple(repository_ctx):
         ["libcustatevec.so"],
         is_empty_genrule=is_empty_genrule,
     )
-    
+
     _tpl(repository_ctx, "BUILD", {
         "%{CUQUANTUM_HEADER_GENRULE}": cuquantum_header_rule,
         "%{CUSTATEVEC_SHARED_LIBRARY_GENRULE}": custatevec_shared_library_rule,

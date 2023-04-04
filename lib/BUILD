@@ -2,12 +2,6 @@ load("@local_config_cuda//cuda:build_defs.bzl", "cuda_library")
 
 package(default_visibility = ["//visibility:public"])
 
-# Libraries of the following form:
-#   # cuda_library
-#   cc_library(...)
-# are converted to cuda_library rules when imported to the Google codebase.
-# Do not modify this tag.
-
 ##### Aggregate libraries #####
 
 # Full qsim library, minus CUDA
@@ -65,6 +59,20 @@ cc_library(
         "util.h",
         "util_cpu.h",
         "vectorspace.h",
+    ],
+)
+
+cc_library(
+    name = "cuda",
+    data = [
+        "@local_config_cuda//cuda:cudart",
+    ],
+    linkopts = [
+        "-Wl,-rpath,../local_config_cuda/cuda/lib64",
+        "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib64",
+    ],
+    deps = [
+        "@local_config_cuda//cuda:cudart",
     ],
 )
 
@@ -130,6 +138,13 @@ cuda_library(
         "vectorspace.h",
         "vectorspace_cuda.h",
     ],
+    copts = [
+        "-D__CUDA__",
+    ],
+    deps = [
+        ":cuda",
+        "@local_config_cuda//cuda:cuda_headers",
+    ]
 )
 
 # Full qsim library, including cuQuantum
@@ -193,7 +208,12 @@ cuda_library(
         "vectorspace.h",
         "vectorspace_cuda.h",
     ],
+    copts = [
+        "-D__CUSTATEVEC__",
+    ],
     deps = [
+        ":cuda",
+        "@local_config_cuda//cuda:cuda_headers",
         "@local_config_cuquantum//:cuquantum_headers",
         "@local_config_cuquantum//:libcuquantum",
     ],
