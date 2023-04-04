@@ -138,9 +138,7 @@ cuda_library(
         "vectorspace.h",
         "vectorspace_cuda.h",
     ],
-    copts = [
-        "-D__CUDA__",
-    ],
+    copts = ["-D__CUDA__"],
     deps = [
         ":cuda",
         "@local_config_cuda//cuda:cuda_headers",
@@ -208,9 +206,7 @@ cuda_library(
         "vectorspace.h",
         "vectorspace_cuda.h",
     ],
-    copts = [
-        "-D__CUSTATEVEC__",
-    ],
+    copts = ["-D__CUSTATEVEC__"],
     deps = [
         ":cuda",
         "@local_config_cuda//cuda:cuda_headers",
