@@ -33,6 +33,7 @@
     template <typename For>
     using Simulator = SimulatorSSE<For>;
   }
+#else
 # include "simulator_basic.h"
   namespace qsim {
     template <typename For>
