@@ -5,12 +5,12 @@ sse_copts = ['-msse4']
 
 windows_copts = [
     "/arch:AVX",
-    "/std:c++14",
+    "/std:c++17",
 ]
 
 windows_avx512_copts = [
     "/arch:AVX512",
-    "/std:c++14",
+    "/std:c++17",
 ]
 
 config_setting(

@@ -19,7 +19,7 @@ fi
 set e  # Ignore errors until artifacts are collected.
 EXIT_CODE=0
 for TARGET in bitstring_test channels_cirq_test circuit_qsim_parser_test expect_test \
-              fuser_basic_test gates_qsim_test hybrid_test matrix_test qtrajectory_test \
+              fuser_basic_test gates_qsim_test hybrid_avx_test matrix_test qtrajectory_avx_test \
               run_qsim_test run_qsimh_test simulator_basic_test simulator_sse_test statespace_basic_test \
               statespace_sse_test unitary_calculator_basic_test unitary_calculator_sse_test \
               unitaryspace_basic_test unitaryspace_sse_test vectorspace_test; do \

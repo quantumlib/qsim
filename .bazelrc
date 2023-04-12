@@ -1,6 +1,7 @@
 # Default build options
-build --copt -std=c++11
-build --copt -D_GLIBCXX_USE_CXX11_ABI=0
+build --copt -std=c++17
+build --copt -D_GLIBCXX_USE_CXX11_ABI=1
+build --experimental_repo_remote_exec
 
 ##### Sanitizers (choose one, or nosan for none) #####
 
@@ -55,3 +56,7 @@ build:malloc --
 
 # Test flags
 test --test_output=errors
+
+# CUDA options
+build:cuda --@local_config_cuda//:enable_cuda
+build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true

@@ -1,4 +1,4 @@
-EIGEN_PREFIX = "d10b27fe37736d2944630ecd7557cefa95cf87c9"
+EIGEN_PREFIX = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
 TARGETS = qsim
