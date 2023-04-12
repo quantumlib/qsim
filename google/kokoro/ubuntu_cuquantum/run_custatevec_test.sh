@@ -2,8 +2,7 @@
 set -e  # fail and exit on any command erroring
 set -x  # print evaluated commands
 
-apt-get -y install cmake
-
+apt-get -y install cmake python3-venv
 # Create virtual env
 python3 -m venv ./env
 source env/bin/activate
