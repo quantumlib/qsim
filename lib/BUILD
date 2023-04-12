@@ -94,6 +94,7 @@ cuda_library(
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
+        "simmux_gpu.h",
         "simulator.h",
         "simulator_avx.h",
         "simulator_avx512.h",
@@ -124,7 +125,6 @@ cuda_library(
         "vectorspace.h",
         "vectorspace_cuda.h",
     ],
-    copts = ["-D__CUDA__"],
 )
 
 # Library to run qsim with qsim circuit parser and parallel `for`
