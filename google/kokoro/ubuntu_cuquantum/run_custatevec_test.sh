@@ -14,5 +14,5 @@ export LD_LIBRARY_PATH=${CUQUANTUM_ROOT}/lib:${LD_LIBRARY_PATH}
 # Error: git submodule update --init --recursive googletest
 # fatal: detected dubious ownership in repository at '/workspace'
 cd workspace
-git config --global --add safe.directory /workspace
+git config --global --add safe.directory '*'
 make run-custatevec-tests
