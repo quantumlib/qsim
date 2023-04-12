@@ -2,7 +2,7 @@
 set -e  # fail and exit on any command erroring
 set -x  # print evaluated commands
 
-sudo apt-get -y install cmake
+apt-get -y install cmake
 
 # Create virtual env
 python3 -m venv ./env
