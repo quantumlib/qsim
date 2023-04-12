@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC. All Rights Reserved.
+// Copyright 2023 Google LLC. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,33 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SIMMUX_H_
-#define SIMMUX_H_
+#ifndef SIMMUX_GPU_H_
+#define SIMMUX_GPU_H_
 
-#ifdef __AVX512F__
-# include "simulator_avx512.h"
+#ifdef __CUSTATEVEC__
+# include "simulator_custatevec.h"
   namespace qsim {
-    template <typename For>
-    using Simulator = SimulatorAVX512<For>;
-  }
-#elif __AVX2__
-# include "simulator_avx.h"
-  namespace qsim {
-    template <typename For>
-    using Simulator = SimulatorAVX<For>;
-  }
-#elif __SSE4_1__
-# include "simulator_sse.h"
-  namespace qsim {
-    template <typename For>
-    using Simulator = SimulatorSSE<For>;
+    using SimulatorGpu = SimulatorCuStateVec;
   }
 #else
-# include "simulator_basic.h"
+# include "simulator_cuda.h"
   namespace qsim {
-    template <typename For>
-    using Simulator = SimulatorBasic<For>;
+    using SimulatorGpu = SimulatorCUDA;
   }
 #endif
 
-#endif  // SIMMUX_H_
+#endif  // SIMMUX_GPU_H_
