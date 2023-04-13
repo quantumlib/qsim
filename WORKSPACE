@@ -64,3 +64,7 @@ cc_library(
             "https://gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
         ],
 )
+
+load("//third_party/cuquantum:cuquantum_configure.bzl", "cuquantum_configure")
+
+cuquantum_configure(name = "local_config_cuquantum")

@@ -24,7 +24,7 @@ ifeq ($(shell which $(NVCC)),)
 pybind: pybind-cpu decide-cpu
 else
 # Check for the cuStateVec library.
-ifeq ($(CUQUANTUM_DIR),)
+ifeq ($(CUQUANTUM_ROOT),)
 pybind: pybind-cpu pybind-gpu decide-gpu
 else
 pybind: pybind-cpu pybind-gpu pybind-custatevec decide-custatevec

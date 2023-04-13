@@ -182,10 +182,10 @@ installed (instructions are provided
 [here](https://docs.nvidia.com/cuda/cuquantum/custatevec/getting_started.html#installation-and-compilation),
 cuStateVec v1.0.0 or higher is required),
 you can use it with this tutorial. Before building qsim in step 5,
-set the `CUQUANTUM_DIR` environment variable from the command line:
+set the `CUQUANTUM_ROOT` environment variable from the command line:
 
 ```bash
-export CUQUANTUM_DIR=[PATH_TO_CUQUANTUM_SDK]
+export CUQUANTUM_ROOT=[PATH_TO_CUQUANTUM_SDK]
 ```
 
 Once you have built qsim, modify the `gpu_options` line like so:
