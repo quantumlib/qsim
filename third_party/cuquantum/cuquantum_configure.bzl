@@ -66,9 +66,7 @@ def _read_dir(repository_ctx, src_dir):
 def _find_file(repository_ctx, filename):
     """Returns a string with a directory path including the filename.
 
-    Finds all files inside a directory, traversing subfolders and following
-    symlinks. The returned string contains the full path of all files
-    separated by line breaks.
+    The returned string contains the parent path of the filename.
     """
     result = repository_ctx.execute(
         ["timeout", "5", "find", "/", "-name", filename, "-print", "-quit", "-not", "-path", "'*/.*'", "-quit"]).stdout
@@ -121,7 +119,28 @@ def _symlink_genrule_for_dir(
     """Returns a genrule to symlink(or copy if on Windows) a set of files.
 
     If src_dir is passed, files will be read from the given directory; otherwise
-    we assume files are in src_files and dest_files.
+    we assume files are in src_files and dest_files. Here are the examples:
+
+    ```
+    genrule(
+        name = "cuquantum_header_include",
+        outs = [
+            "include/custatevec.h",
+            "include/cutensornet.h",
+            "include/cutensornet/types.h",
+            "include/cutensornet/typesDistributed.h",
+        ],
+        cmd = [some copy command lines based on users' local environment],
+    )
+
+    genrule(
+        name = "libcustatevec.so",
+        outs = [
+            "libcustatevec.so",
+        ],
+        cmd = [some copy command lines based on users' local environment],
+    )
+    ```
 
     Args:
         repository_ctx: the repository_ctx object.
@@ -176,7 +195,7 @@ def _symlink_genrule_for_dir(
     return genrule
 
 
-def _cuquantum_pip_imple(repository_ctx):
+def _cuquantum_pip_impl(repository_ctx):
     cuquantum_root = repository_ctx.os.environ[_CUQUANTUM_ROOT]
     if cuquantum_root == "":
       cuquantum_header_path = _find_file(repository_ctx, "custatevec.h")
@@ -213,7 +232,7 @@ def _cuquantum_pip_imple(repository_ctx):
         
 
 cuquantum_configure = repository_rule(
-    implementation = _cuquantum_pip_imple,
+    implementation = _cuquantum_pip_impl,
     environ = [
         _CUQUANTUM_ROOT,
     ],
