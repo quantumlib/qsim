@@ -180,7 +180,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
    * @param gates The gates (or pointers to the gates) to be fused.
    *   Gate times of the gates that act on the same qubits should be ordered.
    *   Gates that are out of time order should not cross the time boundaries
-   *   set by `times_to_split_at` or by measurment gates.
+   *   set by `times_to_split_at` or by measurement gates.
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
    *   to separate fused gates. Each element of the output will contain gates
    *   from a single 'window' in this list.
