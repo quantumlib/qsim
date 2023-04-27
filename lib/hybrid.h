@@ -132,7 +132,7 @@ struct HybridSimulator final {
    * on the cut.
    * @param parts Lattice sections to be simulated.
    * @param gates List of all gates in the circuit.
-   * @param hd Output data with splitted parts.
+   * @param hd Output data with split parts.
    * @return True if the splitting done successfully; false otherwise.
    */
   static bool SplitLattice(const std::vector<unsigned>& parts,

@@ -190,7 +190,7 @@ is required to enable GPU execution:
 library if set to any other value.
 
 If `use_gpu` is set and `gpu_mode` is set to 0, the remaining parameters can
-optionally be set to fine-tune StateSpace perfomance for a specific device.
+optionally be set to fine-tune StateSpace performance for a specific device.
 In most cases, the default values provide good performance.
 * `gpu_state_threads`: number of threads per CUDA block to use for the GPU
 StateSpace. This must be a power of 2 in the range [32, 1024].
