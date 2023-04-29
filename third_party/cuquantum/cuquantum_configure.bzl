@@ -196,7 +196,11 @@ def _symlink_genrule_for_dir(
 
 
 def _cuquantum_pip_impl(repository_ctx):
-    cuquantum_root = repository_ctx.os.environ[_CUQUANTUM_ROOT]
+    if _CUQUANTUM_ROOT in repository_ctx.os.environ:
+      cuquantum_root = repository_ctx.os.environ[_CUQUANTUM_ROOT]
+    else:
+      repository_ctx.os.environ[_CUQUANTUM_ROOT] = ""
+      cuquantum_root = ""
     if cuquantum_root == "":
       cuquantum_header_path = _find_file(repository_ctx, "custatevec.h")
       cuquantum_header_path = cuquantum_header_path[:cuquantum_header_path.find("/custatevec.h")]
