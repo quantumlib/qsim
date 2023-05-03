@@ -18,12 +18,12 @@
 #ifdef __CUSTATEVEC__
 # include "simulator_custatevec.h"
   namespace qsim {
-    using SimulatorGpu = SimulatorCuStateVec;
+    using SimulatorGpu = SimulatorCuStateVec<>;
   }
 #else
 # include "simulator_cuda.h"
   namespace qsim {
-    using SimulatorGpu = SimulatorCUDA;
+    using SimulatorGpu = SimulatorCUDA<>;
   }
 #endif
 

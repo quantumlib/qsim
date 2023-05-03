@@ -20,7 +20,7 @@ instance heading, ensure that your VM has the following properties:
        experiment, see [Choosing hardware for your qsim
        simulation](/qsim/choose_hw).
 *   In the **Boot disk section**, click the **Change** button, and choose
-    **Container-Optimized** operating system. This overrides the seletion in
+    **Container-Optimized** operating system. This overrides the selection in
     step 3 in [Create a Linux VM
     instance](https://cloud.google.com/compute/docs/quickstart-linux#create_a_linux_vm_instance).
 *   In the **Firewall** section, ensure that both the **Allow HTTP traffic**
