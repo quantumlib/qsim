@@ -1,14 +1,27 @@
 # GPU-based quantum simulation on Google Cloud
 
 In this tutorial, you configure and test a virtual machine (VM) to run GPU-based
-quantum simulations on Google Cloud.
+quantum simulations on Google Cloud. The instructions for compiling qsim with GPU
+support are also relevant if you are interested in running GPU simulations locally
+or on a different cloud platform.
+
+Before starting this tutorial, we recommend reading the [choosing hardware guide](../choose_hw)
+in order to decide which type of GPU you would like to use and how many GPUs you
+will need. As discussed there, you have a choice among 3 options:
+1. using the native qsim GPU backend,
+2.  using NVIDIA's cuQuantum as a backend for the latest version of
+qsim, or 
+3. using cuQuantum Appliance, which runs in a Docker container and has
+a modified version of qsim. If you plan to do multi-GPU simulations, then you
+will need to pick option 3. The following steps depend on which option you pick.
+The headers for each step note which of these three options they apply to.
 
 Note: The later steps in this tutorial require you to enter several commands at the
 command line. Some commands might require you to add `sudo` before the command.
 For example, if a step asks you to type `icecream -fancy`, you might need to
 type `sudo icecream -fancy`.
 
-## 1. Create a virtual machine
+## 1. Create a virtual machine (Options 1, 2, and 3)
 
 Follow the instructions in the
 [Quickstart using a Linux VM](https://cloud.google.com/compute/docs/quickstart-linux)
@@ -17,8 +30,7 @@ instance section, ensure that your VM has the following properties:
 
 *   In the **Machine Configuration** section:
     1.  Select the tab for the **GPU** machine family.
-    2.   In the **GPU type** option, choose **NVIDIA Tesla A100**.
-    3.   In the **Number of GPUs** option, choose **1**.
+    2.   Select the **GPU Type** and **Number of GPUs** that you would like to use.
 *   In the **Boot disk** section, click the **Change** button:
     1.   In the **Operating System** option, choose **Ubuntu**.
     2.   In the **Version** option, choose **20.04 LTS**.
@@ -33,13 +45,17 @@ When Google Cloud finishes creating the VM, you can see your VM listed in the
 [Compute Instances dashboard](https://pantheon.corp.google.com/compute/instances)
 for your project.
 
+There may be [quotas](https://cloud.google.com/docs/quota) on your
+account limiting the number and type of GPUs or the regions in which they can be located.
+If necessary, you can request a quota increase, which in some cases is automatically
+approved and in others requires communicating with customer support.
+
 ### Find out more
 
-*   [Choosing hardware for your qsim simulation](/qsim/choose_hw)
 *   [Choosing the right machine family and type](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
 *   [Creating a VM with attached GPUs](https://cloud.google.com/compute/docs/gpus/create-vm-with-gpus#create-new-gpu-vm)
 
-## 2. Prepare your computer
+## 2. Prepare your computer (Options 1, 2, and 3)
 
 Use SSH in the `gcloud` tool to communicate with your VM.
 
@@ -62,7 +78,12 @@ Use SSH in the `gcloud` tool to communicate with your VM.
 When the command completes successfully, your prompt changes from your local
 machine to your virtual machine.
 
-## 3. Enable your virtual machine to use the GPU
+
+## 3. Install Docker Engine (Option 3 only)
+If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/) instructions
+to install Docker Engine.
+
+## 4. Enable your virtual machine to use the GPU (Options 1, 2, and 3)
 
 1.  Install the GPU driver. Complete the steps provided in the following
     sections of the [Installing GPU
@@ -72,13 +93,16 @@ machine to your virtual machine.
         under the **Ubuntu** tab. For step 3, only perform the steps for
         **Ubuntu 20.04** (steps 3a through 3f).
     *   [Verifying the GPU driver install](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#verify-driver-install)
-2.  Install the CUDA toolkit.
+2.  If missing, install the CUDA toolkit.
+    (This may have already been installed along with the driver. You can
+    check whether it is installed by checking whether the CUDA toolkit
+    directory exists as described in step 3.)
 
     ```shell
     sudo apt install -y nvidia-cuda-toolkit
     ```
 
-3.  Add your CUDA toolkit to the environment search path.
+3.  Add your CUDA toolkit to the environment search path (Options 1 and 2 only)
     1.  Discover the directory of the CUDA toolkit that you installed.
 
         ```shell
@@ -104,7 +128,17 @@ machine to your virtual machine.
 
     3.  Run `source ~/.bashrc` to activate the new environment search path
 
-## 4. Install build tools
+## 5. Install NVIDIA Container Toolkit (Option 3 only)
+If you are setting up cuQuantum Appliance, follow the instructions
+[here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit)
+to set up NVIDIA Container Toolkit.
+
+## 6. Install NVIDIA cuQuantum Appliance (Option 3 only)
+Follow the instructions [here](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuquantum-appliance)
+to set up cuQuantum Appliance. You may need to use `sudo` for the Docker commands.
+You may now skip to step 10.
+
+## 7. Install build tools (Options 1 and 2)
 
 Install the tools required to build qsim. This step might take a few minutes to
 complete.
@@ -113,9 +147,20 @@ complete.
 sudo apt install cmake && sudo apt install pip && pip install pybind11
 ```
 
+## 8. Install cuQuantum SDK/cuStateVec (Option 2)
+Reboot the VM. Then follow the instructions [here](https://docs.nvidia.com/cuda/cuquantum/custatevec/getting_started.html#install-custatevec-from-nvidia-devzone)
+to install cuQuantum. Specifically, [this](https://developer.nvidia.com/cuquantum-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=20.04&target_type=deb_network) is the appropriate installer.
+Reboot the VM again. Set the `CUQUANTUM_DIR` and `CUQUANTUM_ROOT` environment variables,
+```shell
+export CUQUANTUM_DIR=/opt/nvidia/cuquantum/
+export CUQUANTUM_ROOT=/opt/nvidia/cuquantum/
+```
+modifying the above if cuQuantum was installed to a different directory.
 
-## 5. Create a GPU-enabled version of qsim
 
+
+## 9. Create a GPU-enabled version of qsim (Options 1 and 2)
+0.  Reboot the VM (option 1).
 1.  Clone the qsim repository.
 
     ```shell
@@ -140,10 +185,12 @@ sudo apt install cmake && sudo apt install pip && pip install pybind11
     ```
 
 
-## 6. Verify your installation
+## 10. Verify your installation (Options 1, 2, and 3)
 
 You can use the following code to verify that qsim uses your GPU. You can paste
-the code directly into the REPL, or paste the code in a file.
+the code directly into the REPL, or paste the code in a file. See the documentation
+[here](https://quantumai.google/reference/python/qsimcirq/QSimOptions) for Options 1
+and 2 or [here](https://docs.nvidia.com/cuda/cuquantum/appliance/cirq.html) for Option 3.
 
 ```
 # Import Cirq and qsim
@@ -155,7 +202,8 @@ q0, q1 = cirq.LineQubit.range(2)
 circuit = cirq.Circuit(cirq.H(q0), cirq.CX(q0, q1))
 
 # Instantiate a simulator that uses the GPU
-gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+# xx = 0 for Option 1, 1 for Option 2, or the number of GPUs for Option 3.
+gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode = xx, max_fused_gate_size=4)
 qsim_simulator = qsimcirq.QSimSimulator(qsim_options=gpu_options)
 
 # Run the simulation
@@ -174,30 +222,6 @@ After a moment, you should see a result that looks similar to the following.
 ```none
 [(0.7071067690849304+0j), 0j]
 ```
-
-### Optional: Use the NVIDIA cuQuantum SDK
-
-If you have the [NVIDIA cuQuantum SDK](https://developer.nvidia.com/cuquantum-sdk)
-installed (instructions are provided
-[here](https://docs.nvidia.com/cuda/cuquantum/custatevec/getting_started.html#installation-and-compilation),
-cuStateVec v1.0.0 or higher is required),
-you can use it with this tutorial. Before building qsim in step 5,
-set the `CUQUANTUM_ROOT` environment variable from the command line:
-
-```bash
-export CUQUANTUM_ROOT=[PATH_TO_CUQUANTUM_SDK]
-```
-
-Once you have built qsim, modify the `gpu_options` line like so:
-
-```python
-gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
-```
-
-This instructs qsim to make use of its cuQuantum integration, which provides
-improved performance on NVIDIA GPUs. If you experience issues with this
-option, please file an issue on the qsim repository.
-
 
 ## Next steps
 
