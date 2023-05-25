@@ -58,11 +58,12 @@ benefits from high-bandwidth memory (above 100GB/s).
     which acts as a backend for qsim. It is documented [here](https://docs.nvidia.com/cuda/cuquantum/appliance/cirq.html).
 
 The following charts show the runtime for a random circuit run on
-[Google Compute Engine](https://cloud.google.com/compute), using an NVidia A100
+[Google Compute Engine](https://cloud.google.com/compute), using an NVIDIA A100
 GPU, and a compute-optimized CPU (c2-standard-4). The first chart shows the
 runtimes for the noiseless simulation. The second chart shows the runtimes for a
 noisy simulation, using a phase damping channel (p=0.01). The charts use a log
-scale.
+scale. These benchmarks were all performed using qsim's native GPU and CPU
+backends and do not involve sampling bitstrings (i.e. no measure gates).
 
 ![qsim runtime comparison on multipe processors: noiseless](images/qsim_runtime_comparison_noiseless.png)
 ![qsim runtime comparison on multipe processors: noisy](images/qsim_runtime_comparison_noisy.png)
@@ -316,6 +317,9 @@ depth beyond 20 qubits.
         conceal the  $ 2^N $ growth in runtime.
 
 ## Sample benchmarks
+
+The following benchmarks are all run using qsim's native CPU and GPU backends
+and do not involve sampling bitstrings.
 
 **Noiseless simulation benchmarks data sheet**
 
