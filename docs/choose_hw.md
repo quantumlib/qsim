@@ -78,11 +78,11 @@ that purpose, cuQuantum performs significantly better. cuQuantum is also needed
 for multi-GPU support. More specifically, there are three options for GPU-based
 simulations:
 1.  Native qsim. This option involves compiling qsim locally with the CUDA toolkit
-    installed, as described [here](tutorials/gcp_gpu.md).
+    installed, as described [here](tutorials/gcp_gpu).
 2.  NVIDIA cuQuantum SDK/cuStateVec. This option involves installing [NVIDIA's cuQuantum SDK](https://developer.nvidia.com/cuquantum-sdk)
     (instructions [here](https://docs.nvidia.com/cuda/cuquantum/custatevec/getting_started.html#installation-and-compilation)),
     setting the `CUQUANTUM_ROOT` environment variable and then compiling qsim locally.
-    See further instructions [here](tutorials/gcp_gpu.md#optional-use-the-nvidia-cuquantum-sdk).
+    See further instructions [here](tutorials/gcp_gpu#optional-use-the-nvidia-cuquantum-sdk).
     This allows you to use the cuQuantum backend with the latest version of qsim.
     However, it does not enable multi-GPU support.
 3.  For multi-GPU support, you will need to use [cuQuantum Appliance](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuquantum-appliance),
@@ -107,7 +107,7 @@ choose a specific machine:
 
 #### For GPU-based simulations:
 
-For GPU simulations, you may follow the instructions in [this](tutorials/gcp_gpu.md)
+For GPU simulations, you may follow the instructions in [this](tutorials/gcp_gpu)
 guide to set up a virtual machine (VM) on Google Cloud Platform (GCP).
 Alternatively, you can use your own hardware or a different cloud service.
 Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/getting_started.html#custatevec)
