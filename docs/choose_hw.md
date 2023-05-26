@@ -38,7 +38,7 @@ below](#5_consider_multiple_compute_nodes).
 ### 2. Estimate your memory requirements
 
 You can estimate your memory requirements with the following rule of thumb:
-$ {\rm memory\, required} = 8 \cdot 2^N {\rm bytes} $ for an N-qubit circuit
+${\rm memory\ required} = 8 \cdot 2^N \  {\rm bytes}$ for an N-qubit circuit
 
 In addition to memory size, consider the bandwidth of your memory. qsim performs
 best when it can use the maximum number of threads. Multi-threaded simulation
@@ -95,8 +95,8 @@ and option 3 if you are.
 
 Note the settings in [`qsimcirq.QSimOptions`](https://quantumai.google/reference/python/qsimcirq/QSimOptions),
 which allow you to specify the GPU backend as well as related settings. We find
-that `max_fused_gate_size = 4` is optimal for larger circuits. In cuQuantum Appliance,
-these settings are extended, as documented [here](https://docs.nvidia.com/cuda/cuquantum/appliance/cirq.html),
+that `max_fused_gate_size = 4` is usually optimal for larger circuits, although you may want to experiment yourself.
+In cuQuantum Appliance, these settings are extended, as documented [here](https://docs.nvidia.com/cuda/cuquantum/appliance/cirq.html),
 allowing you to specify how many and which GPUs to use.
 
 
@@ -105,11 +105,30 @@ allowing you to specify how many and which GPUs to use.
 After you decide whether you want to use CPUs or GPUs for your simulation,
 choose a specific machine:
 
+#### For CPU-based simulations:
+
+1.  Restrict your options to machines that meet your memory requirements. For
+    more information about memory requirements, see step 2.
+2.  Decide if performance (speed) or cost is more important to you:
+    *   For a table of performance benchmarks, see
+        [Sample benchmarks](#sample_benchmarks) below.
+    *   For more information about GCP pricing, see the
+        [Google Cloud pricing calculator](https://cloud.google.com/products/calculator).
+    *   Prioritizing performance is particularly important in the following
+        scenarios:
+        *   Simulating with a **higher f value** (f is the maximum number of
+            qubits allowed per fused gate).
+            *   For small to medium size circuits (up to 22 qubits), keep f low
+                (2 or 3).
+            *   For medium to large size qubits (22+ qubits), use a higher f
+                typically, f=4 is the best option).
+        *   Simulating a **deep circuit** (depth 30+).
+
 #### For GPU-based simulations:
 
 For GPU simulations, you may follow the instructions in [this](tutorials/gcp_gpu)
 guide to set up a virtual machine (VM) on Google Cloud Platform (GCP).
-Alternatively, you can use your own hardware or a different cloud service.
+Alternatively, you can use your own hardware.
 Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/getting_started.html#custatevec)
 for NVIDIA's cuQuantum when picking a GPU; in particular, it must have
 CUDA Compute Capability 7.0 or higher.
@@ -229,30 +248,7 @@ sample 100,000 N-bit bitstrings, all benchmarked using cuQuantum with `max_fused
         </tr>
     </tbody>
 </table>
-
-Note that your GCP account may have [quotas](https://cloud.google.com/docs/quota)
-on the number and type of GPUs that you can use. Increasing quotas may require contacting
-customer support.
     
-    
-#### For CPU-based simulations:
-
-1.  Restrict your options to machines that meet your memory requirements. For
-    more information about memory requirements, see step 2.
-2.  Decide if performance (speed) or cost is more important to you:
-    *   For a table of performance benchmarks, see
-        [Sample benchmarks](#sample_benchmarks) below.
-    *   For more information about GCP pricing, see the
-        [Google Cloud pricing calculator](https://cloud.google.com/products/calculator).
-    *   Prioritizing performance is particularly important in the following
-        scenarios:
-        *   Simulating with a **higher f value** (f is the maximum number of
-            qubits allowed per fused gate).
-            *   For small to medium size circuits (up to 22 qubits), keep f low
-                (2 or 3).
-            *   For medium to large size qubits (22+ qubits), use a higher f
-                typically, f=4 is the best option).
-        *   Simulating a **deep circuit** (depth 30+).
 
 ### 6. Consider multiple compute nodes
 
@@ -270,11 +266,11 @@ simulation using HTCondor on Google Cloud](/qsim/tutorials/multinode).
 Runtime grows exponentially with the number of qubits, and linearly with circuit
 depth beyond 20 qubits.
 
-*   For noiseless simulations, runtime grows at a rate of $ 2^N $ for an N-qubit
+*   For noiseless simulations, runtime grows at a rate of $2^N$ for an N-qubit
     circuit. For more information about runtimes for small circuits, see
     [Additional notes for advanced users](#additional_notes_for_advanced_users)
     below).
-*   For noisy simulations, runtime grows at a rate of $ 2^N $ multiplied by the
+*   For noisy simulations, runtime grows at a rate of $2^N$ multiplied by the
     number of iterations for an N-qubit circuit.
 
 ## Additional notes for advanced users
@@ -314,7 +310,7 @@ depth beyond 20 qubits.
         addition to this, qsim is not optimized for small circuits.
     *   The total small circuits runtime overhead for an N qubit circuit
         depends on the circuit depth and on N. The overhead can be large enough to
-        conceal the  $ 2^N $ growth in runtime.
+        conceal the  $2^N$ growth in runtime.
 
 ## Sample benchmarks
 
