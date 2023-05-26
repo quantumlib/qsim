@@ -185,6 +185,8 @@ You can use the following code to verify that qsim uses your GPU. You can paste
 the code directly into the REPL, or paste the code in a file. See the documentation
 [here](https://quantumai.google/reference/python/qsimcirq/QSimOptions) for Options 1
 and 2 or [here](https://docs.nvidia.com/cuda/cuquantum/appliance/cirq.html) for Option 3.
+Make sure to change `xx` to 0 for Option 1, 1 for Option 2, or the number of GPUs for
+Option 3.
 
 ```
 # Import Cirq and qsim
