@@ -45,11 +45,6 @@ When Google Cloud finishes creating the VM, you can see your VM listed in the
 [Compute Instances dashboard](https://pantheon.corp.google.com/compute/instances)
 for your project.
 
-There may be [quotas](https://cloud.google.com/docs/quota) on your
-account limiting the number and type of GPUs or the regions in which they can be located.
-If necessary, you can request a quota increase, which in some cases is automatically
-approved and in others requires communicating with customer support.
-
 ### Find out more
 
 *   [Choosing the right machine family and type](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
@@ -78,12 +73,7 @@ Use SSH in the `gcloud` tool to communicate with your VM.
 When the command completes successfully, your prompt changes from your local
 machine to your virtual machine.
 
-
-## 3. Install Docker Engine (Option 3 only)
-If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/) instructions
-to install Docker Engine.
-
-## 4. Enable your virtual machine to use the GPU (Options 1, 2, and 3)
+## 3. Enable your virtual machine to use the GPU (Options 1, 2, and 3)
 
 1.  Install the GPU driver. Complete the steps provided in the following
     sections of the [Installing GPU
@@ -127,6 +117,10 @@ to install Docker Engine.
         ```
 
     3.  Run `source ~/.bashrc` to activate the new environment search path
+
+## 4. Install Docker Engine (Option 3 only)
+If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/) instructions
+to install Docker Engine.
 
 ## 5. Install NVIDIA Container Toolkit (Option 3 only)
 If you are setting up cuQuantum Appliance, follow the instructions
