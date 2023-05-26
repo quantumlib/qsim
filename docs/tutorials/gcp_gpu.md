@@ -118,21 +118,8 @@ machine to your virtual machine.
 
     3.  Run `source ~/.bashrc` to activate the new environment search path
 
-## 4. Install Docker Engine (Option 3 only)
-If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/) instructions
-to install Docker Engine.
 
-## 5. Install NVIDIA Container Toolkit (Option 3 only)
-If you are setting up cuQuantum Appliance, follow the instructions
-[here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit)
-to set up NVIDIA Container Toolkit.
-
-## 6. Install NVIDIA cuQuantum Appliance (Option 3 only)
-Follow the instructions [here](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuquantum-appliance)
-to set up cuQuantum Appliance. You may need to use `sudo` for the Docker commands.
-You may now skip to step 10.
-
-## 7. Install build tools (Options 1 and 2)
+## 4. Install build tools (Options 1 and 2)
 
 Install the tools required to build qsim. This step might take a few minutes to
 complete.
@@ -141,7 +128,7 @@ complete.
 sudo apt install cmake && sudo apt install pip && pip install pybind11
 ```
 
-## 8. Install cuQuantum SDK/cuStateVec (Option 2)
+## 5. Install cuQuantum SDK/cuStateVec (Option 2 only)
 Reboot the VM. Then follow the instructions [here](https://docs.nvidia.com/cuda/cuquantum/custatevec/getting_started.html#install-custatevec-from-nvidia-devzone)
 to install cuQuantum. Specifically, [this](https://developer.nvidia.com/cuquantum-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=20.04&target_type=deb_network) is the appropriate installer.
 Reboot the VM again. Set the `CUQUANTUM_DIR` and `CUQUANTUM_ROOT` environment variables,
@@ -153,7 +140,7 @@ modifying the above if cuQuantum was installed to a different directory.
 
 
 
-## 9. Create a GPU-enabled version of qsim (Options 1 and 2)
+## 6. Create a GPU-enabled version of qsim (Options 1 and 2 only)
 0.  Reboot the VM (option 1).
 1.  Clone the qsim repository.
 
@@ -177,6 +164,19 @@ modifying the above if cuQuantum was installed to a different directory.
     ```none
     <module 'qsimcirq.qsim_cuda' from '/home/user_org_com/qsim/qsimcirq/qsim_cuda.cpython-38-x86_64-linux-gnu.so'>
     ```
+
+## 7. Install Docker Engine (Option 3 only)
+If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/) instructions
+to install Docker Engine.
+
+## 8. Install NVIDIA Container Toolkit (Option 3 only)
+If you are setting up cuQuantum Appliance, follow the instructions
+[here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit)
+to set up NVIDIA Container Toolkit.
+
+## 9. Install NVIDIA cuQuantum Appliance (Option 3 only)
+Follow the instructions [here](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuquantum-appliance)
+to set up cuQuantum Appliance. You may need to use `sudo` for the Docker commands.
 
 
 ## 10. Verify your installation (Options 1, 2, and 3)
