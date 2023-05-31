@@ -6,7 +6,7 @@ to run quantum simulations with qsim.
 You can use Google Cloud to run high-performance CPU-based simulations or
 GPU-based simulations, depending on your requirements. For more information
 about making a choice between CPU- and GPU-based simulations, see
-[Choosing hardware for your qsim simulation]().
+[Choosing hardware for your qsim simulation](../choose_hw).
 
 This tutorial depends on resources provided by the Google Cloud Platform.
 
