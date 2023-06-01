@@ -166,7 +166,7 @@ modifying the above if cuQuantum was installed to a different directory.
     ```
 
 ## 7. Install Docker Engine (Option 3 only)
-If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/) instructions
+If you are setting up cuQuantum Appliance, follow [these](https://docs.docker.com/engine/install/ubuntu/) instructions
 to install Docker Engine.
 
 ## 8. Install NVIDIA Container Toolkit (Option 3 only)
