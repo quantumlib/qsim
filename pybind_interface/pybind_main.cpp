@@ -377,7 +377,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
   std::vector<std::complex<float>> amplitudes;
   amplitudes.reserve(bitstrings.size());
 
-  auto measure = [&bitstrings, &circuit, &amplitudes](
+  auto measure = [&bitstrings, &amplitudes](
                      unsigned k, const StateSpace &state_space,
                      const State &state) {
     for (const auto &b : bitstrings) {
@@ -481,7 +481,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();
 
-  auto measure = [&bitstrings, &ncircuit, &amplitudes, &state_space](
+  auto measure = [&bitstrings, &amplitudes, &state_space](
                   unsigned k, const State &state, Runner::Stat& stat) {
     for (const auto &b : bitstrings) {
       amplitudes.push_back(state_space.GetAmpl(state, b));
@@ -1082,7 +1082,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
 
   std::vector<std::vector<unsigned>> results;
 
-  auto measure = [&results, &ncircuit, &state_space](
+  auto measure = [&results, &ncircuit](
                   unsigned k, const State& state, Runner::Stat& stat) {
     // Converts stat (which matches the MeasurementResult 'bits' field) into
     // bitstrings matching the MeasurementResult 'bitstring' field.
