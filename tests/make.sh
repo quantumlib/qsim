@@ -55,14 +55,22 @@ g++ -O3 -I$path_to_include -L$path_to_lib -fopenmp -o unitaryspace_basic_test.x 
 g++ -O3 -I$path_to_include -L$path_to_lib -msse4 -fopenmp -o unitaryspace_sse_test.x unitaryspace_sse_test.cc -lgtest -lpthread
 g++ -O3 -I$path_to_include -L$path_to_lib -o vectorspace_test.x vectorspace_test.cc -lgtest -lpthread
 
-nvcc -O3 -I$path_to_include -L$path_to_lib -o hybrid_cuda_test.x hybrid_cuda_test.cu -lgtest -lpthread
-nvcc -O3 -I$path_to_include -L$path_to_lib -o qtrajectory_cuda_test.x qtrajectory_cuda_test.cu -lgtest -lpthread
-nvcc -O3 -I$path_to_include -L$path_to_lib -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
-nvcc -O3 -I$path_to_include -L$path_to_lib -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread
+if command -v nvcc &>/dev/null; then
+    nvcc -O3 -I$path_to_include -L$path_to_lib -o hybrid_cuda_test.x hybrid_cuda_test.cu -lgtest -lpthread
+    nvcc -O3 -I$path_to_include -L$path_to_lib -o qtrajectory_cuda_test.x qtrajectory_cuda_test.cu -lgtest -lpthread
+    nvcc -O3 -I$path_to_include -L$path_to_lib -o simulator_cuda_test.x simulator_cuda_test.cu -lgtest -lpthread
+    nvcc -O3 -I$path_to_include -L$path_to_lib -o statespace_cuda_test.x statespace_cuda_test.cu -lgtest -lpthread
 
-# CUQUANTUM_ROOT should be set.
-CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
-nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o hybrid_custatevec_test.x hybrid_custatevec_test.cu -lgtest -lpthread
-nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o qtrajectory_custatevec_test.x qtrajectory_custatevec_test.cu -lgtest -lpthread
-nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o simulator_custatevec_test.x simulator_custatevec_test.cu -lgtest -lpthread
-nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o statespace_custatevec_test.x statespace_custatevec_test.cu -lgtest -lpthread
+    if [ -n "$CUQUANTUM_ROOT" ]; then
+        CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
+        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o hybrid_custatevec_test.x hybrid_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o qtrajectory_custatevec_test.x qtrajectory_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o simulator_custatevec_test.x simulator_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o statespace_custatevec_test.x statespace_custatevec_test.cu -lgtest -lpthread
+    fi
+elif command -v hipcc &>/dev/null; then
+    hipcc -O3 -I$path_to_include -L$path_to_lib -o hybrid_hip_test.x hybrid_cuda_test.cu -lgtest -lpthread
+    hipcc -O3 -I$path_to_include -L$path_to_lib -o qtrajectory_hip_test.x qtrajectory_cuda_test.cu -lgtest -lpthread
+    hipcc -O3 -I$path_to_include -L$path_to_lib -o simulator_hip_test.x simulator_cuda_test.cu -lgtest -lpthread
+    hipcc -O3 -I$path_to_include -L$path_to_lib -o statespace_hip_test.x statespace_cuda_test.cu -lgtest -lpthread
+fi

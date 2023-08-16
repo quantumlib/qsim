@@ -6,10 +6,12 @@ TESTS = run-cxx-tests
 
 CXX=g++
 NVCC=nvcc
+HIPCC=hipcc
 
 CXXFLAGS = -O3 -fopenmp
 ARCHFLAGS = -march=native
 NVCCFLAGS = -O3
+HIPCCFLAGS = -O3
 
 # CUQUANTUM_ROOT should be set.
 CUSTATEVECFLAGS = -I$(CUQUANTUM_ROOT)/include -L${CUQUANTUM_ROOT}/lib -L$(CUQUANTUM_ROOT)/lib64 -lcustatevec -lcublas
@@ -22,6 +24,8 @@ export ARCHFLAGS
 export NVCC
 export NVCCFLAGS
 export CUSTATEVECFLAGS
+export HIPCC
+export HIPCCFLAGS
 
 ifeq ($(PYBIND11), true)
   TARGETS += pybind
@@ -43,6 +47,10 @@ qsim-cuda:
 qsim-custatevec:
 	$(MAKE) -C apps/ qsim-custatevec
 
+.PHONY: qsim-hip
+qsim-hip:
+	$(MAKE) -C apps/ qsim-hip
+
 .PHONY: pybind
 pybind:
 	$(MAKE) -C pybind_interface/ pybind
@@ -59,6 +67,10 @@ cuda-tests:
 custatevec-tests:
 	$(MAKE) -C tests/ custatevec-tests
 
+.PHONY: hip-tests
+hip-tests:
+	$(MAKE) -C tests/ hip-tests
+
 .PHONY: run-cxx-tests
 run-cxx-tests: cxx-tests
 	$(MAKE) -C tests/ run-cxx-tests
@@ -70,6 +82,10 @@ run-cuda-tests: cuda-tests
 .PHONY: run-custatevec-tests
 run-custatevec-tests: custatevec-tests
 	$(MAKE) -C tests/ run-custatevec-tests
+
+.PHONY: run-hip-tests
+run-hip-tests: hip-tests
+	$(MAKE) -C tests/ run-hip-tests
 
 PYTESTS = $(shell find qsimcirq_tests/ -name '*_test.py')
 
