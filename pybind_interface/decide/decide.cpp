@@ -60,7 +60,7 @@ int detect_instructions() {
 }
 
 enum GPUCapabilities {
-    CUDA = 0, CUSTATEVEC = 1, NO_GPU = 10, NO_CUSTATEVEC = 11 };
+    CUDA = 0, CUSTATEVEC = 1, HIP = 2, NO_GPU = 10, NO_CUSTATEVEC = 11 };
 
 // For now, GPU detection is performed at compile time, as our wheels are
 // generated on Github Actions runners which do not have GPU support.
@@ -70,6 +70,8 @@ enum GPUCapabilities {
 int detect_gpu() {
   #ifdef __NVCC__
   GPUCapabilities gpu = CUDA;
+  #elif __HIP__
+  GPUCapabilities gpu = HIP;
   #else
   GPUCapabilities gpu = NO_GPU;
   #endif

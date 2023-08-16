@@ -111,6 +111,7 @@ setup(
         CMakeExtension("qsimcirq/qsim_cuda"),
         CMakeExtension("qsimcirq/qsim_custatevec"),
         CMakeExtension("qsimcirq/qsim_decide"),
+        CMakeExtension("qsimcirq/qsim_hip"),
     ],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,

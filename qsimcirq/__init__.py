@@ -34,6 +34,8 @@ def _load_qsim_gpu():
     instr = qsim_decide.detect_gpu()
     if instr == 0:
         qsim_gpu = importlib.import_module("qsimcirq.qsim_cuda")
+    elif instr == 2:
+        qsim_gpu = importlib.import_module("qsimcirq.qsim_hip")
     else:
         qsim_gpu = None
     return qsim_gpu
