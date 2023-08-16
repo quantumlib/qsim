@@ -15,8 +15,13 @@
 #ifndef VECTORSPACE_CUDA_H_
 #define VECTORSPACE_CUDA_H_
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+#ifdef __NVCC__
+  #include <cuda.h>
+  #include <cuda_runtime.h>
+#elif __HIP__
+  #include <hip/hip_runtime.h>
+  #include "cuda2hip.h"
+#endif
 
 #include <memory>
 #include <utility>
