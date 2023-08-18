@@ -29,7 +29,7 @@ ifeq ($(shell which $(NVCC)),)
 ifeq ($(shell which $(HIPCC)),)
 pybind: pybind-cpu decide-cpu
 else
-pybind: pybind-cpu pybind-hip decide-hip
+pybind: pybind-hip decide-hip
 endif
 else
 # Check for the cuStateVec library.
@@ -70,6 +70,10 @@ decide-custatevec:
 
 .PHONY: pybind-hip
 pybind-hip:
+	$(HIPCC) basic/pybind_main_basic.cpp -o $(QSIMLIB_BASIC) $(CXXFLAGS) $(PYBINDFLAGS_BASIC)
+	$(HIPCC) sse/pybind_main_sse.cpp -o $(QSIMLIB_SSE) $(CXXFLAGS) $(PYBINDFLAGS_SSE)
+	$(HIPCC) avx2/pybind_main_avx2.cpp -o $(QSIMLIB_AVX2) $(CXXFLAGS) $(PYBINDFLAGS_AVX2)
+	$(HIPCC) avx512/pybind_main_avx512.cpp -o $(QSIMLIB_AVX512) $(CXXFLAGS) $(PYBINDFLAGS_AVX512)
 	$(HIPCC) hip/pybind_main_hip.cpp -o $(QSIMLIB_HIP) $(HIPCCFLAGS) $(PYBINDFLAGS_HIP)
 
 .PHONY: decide-hip
