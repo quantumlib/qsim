@@ -258,7 +258,7 @@ are “embarrassingly parallelizable”, there is an automated workflow for
 distributing these trajectories over multiple nodes. A simulation of many
 noiseless circuits can also be distributed over multiple compute nodes.
 
-For mor information about running a mulitnode simulation, see [Multinode quantum
+For more information about running a mulitnode simulation, see [Multinode quantum
 simulation using HTCondor on Google Cloud](/qsim/tutorials/multinode).
 
 ## Runtime estimates
