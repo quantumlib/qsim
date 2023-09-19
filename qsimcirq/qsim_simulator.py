@@ -100,6 +100,57 @@ class QSimOptions:
             "z": self.denormals_are_zeros,
         }
 
+@dataclass(frozen=True)
+class _ReadOnlyStateVector(cirq.qis.QuantumStateRepresentation):
+    """A readonly state vector that represents the final simulation state."""
+
+    _state_vector: np.ndarray
+
+    def copy(self, deep_copy_buffers: bool = True) -> '_ReadOnlyStateVector':
+        """Creates a copy of the object.
+        Args:
+            deep_copy_buffers: If True, buffers will also be deep-copied.
+            Otherwise the copy will share a reference to the original object's
+            buffers.
+        Returns:
+            A copied instance.
+        """
+        return _ReadOnlyStateVector(
+            self._state_vector.copy() if deep_copy_buffers else self._state_vector
+        )
+
+    def measure(
+        self, axes: Sequence[int], seed: 'cirq.RANDOM_STATE_OR_SEED_LIKE' = None
+    ) -> List[int]:
+        raise TypeError(
+            'Measurement is not supported by _ReadOnlyStateVector. '
+        )
+
+    
+class ReadOnlySimulationState(cirq.sim.SimulationState[_ReadOnlyStateVector]):
+    def __init__(self,         
+        initial_state: np.ndarray,
+        qubits: Sequence[cirq.Qid],
+        prng: Optional[np.random.RandomState] = None,
+        classical_data: Optional[cirq.ClassicalDataStore] = None,
+    ):
+        state = _ReadOnlyStateVector(initial_state)
+        super().__init__(state=state, prng=prng, qubits=qubits, classical_data=classical_data)
+
+    def _act_on_fallback_(
+        self, action: Any, qubits: Sequence[cirq.Qid], allow_decompose: bool = True
+    ):
+        return NotImplemented
+
+    @property
+    def target_tensor(self) -> np.ndarray:
+        return self._state._state_vector
+
+    def to_mutable_state(self) -> cirq.StateVectorSimulationState:
+        return cirq.StateVectorSimulationState(
+            initial_state=self._state._state_vector, qubits=self.qubits
+        )
+
 
 @dataclass
 class MeasInfo:
@@ -435,12 +486,58 @@ class QSimSimulator(
             options["s"] = self.get_seed()
             yield simulator_fn(options)
 
+    def simulate(
+        self,
+        program: cirq.AbstractCircuit,
+        param_resolver: cirq.ParamResolverOrSimilarType = None,
+        qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
+        initial_state: Any = None,
+        read_only: bool = False,
+    ) -> cirq.sim.simulator.TSimulationTrialResult:
+        """Simulates the supplied Circuit.
+
+        This method returns a result which allows access to the entire
+        simulator's final state.
+
+        Args:
+            program: The circuit to simulate.
+            param_resolver: Parameters to run with the program.
+            qubit_order: Determines the canonical ordering of the qubits. This
+                is often used in specifying the initial state, i.e. the
+                ordering of the computational basis states.
+            initial_state: The initial state for the simulation. The form of
+                this state depends on the simulation implementation. See
+                documentation of the implementing class for details.
+            read_only: Whether the returned state vector is readonly or mutable.
+
+        Returns:
+            SimulationTrialResults for the simulation. Includes the final state.
+        """
+        return self.simulate_sweep(
+            program, cirq.study.ParamResolver(param_resolver), qubit_order, initial_state, read_only
+        )[0]
+
+    def simulate_sweep(
+        self,
+        program: cirq.AbstractCircuit,
+        params: cirq.Sweepable,
+        qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
+        initial_state: Any = None,
+        read_only: bool = False,
+    ) -> List[cirq.sim.simulator.TSimulationTrialResult]:
+        """Wraps computed states in a list.
+
+        Prefer overriding `simulate_sweep_iter`.
+        """
+        return list(self.simulate_sweep_iter(program, params, qubit_order, initial_state, read_only))
+
     def simulate_sweep_iter(
         self,
         program: cirq.Circuit,
         params: cirq.Sweepable,
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
         initial_state: Optional[Union[int, np.ndarray]] = None,
+        read_only: bool = False,
     ) -> Iterator[cirq.StateVectorTrialResult]:
         """Simulates the supplied Circuit.
 
@@ -463,6 +560,7 @@ class QSimSimulator(
               be an integer representing a pure state (e.g. 11010) or a numpy
               array containing the full state vector. If none is provided, this
               is assumed to be the all-zeros state.
+            read_only: Whether the returned state vector is readonly or mutable.
 
         Returns:
             List of SimulationTrialResults for this run, one for each
@@ -526,9 +624,12 @@ class QSimSimulator(
             assert qsim_state.dtype == np.float32
             assert qsim_state.ndim == 1
 
-            final_state = cirq.StateVectorSimulationState(
-                initial_state=qsim_state.view(np.complex64), qubits=cirq_order
-            )
+            if read_only:
+                final_state = ReadOnlySimulationState(qsim_state.view(np.complex64), cirq_order)
+            else:
+                final_state = cirq.StateVectorSimulationState(
+                    initial_state=qsim_state.view(np.complex64), qubits=cirq_order
+                )
             # create result for this parameter
             # TODO: We need to support measurements.
             yield cirq.StateVectorTrialResult(
