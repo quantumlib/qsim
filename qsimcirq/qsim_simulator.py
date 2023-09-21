@@ -435,12 +435,67 @@ class QSimSimulator(
             options["s"] = self.get_seed()
             yield simulator_fn(options)
 
+    def simulate(
+        self,
+        program: cirq.AbstractCircuit,
+        param_resolver: cirq.ParamResolverOrSimilarType = None,
+        qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
+        initial_state: Any = None,
+        as_1d_state_vector: bool = False,
+    ) -> cirq.sim.simulator.TSimulationTrialResult:
+        """Simulates the supplied Circuit.
+
+        This method returns a result which allows access to the entire
+        simulator's final state.
+
+        Args:
+            program: The circuit to simulate.
+            param_resolver: Parameters to run with the program.
+            qubit_order: Determines the canonical ordering of the qubits. This
+                is often used in specifying the initial state, i.e. the
+                ordering of the computational basis states.
+            initial_state: The initial state for the simulation. The form of
+                this state depends on the simulation implementation. See
+                documentation of the implementing class for details.
+            as_1d_state_vector: Whether the returned state vector is 1D or
+                has number of dimensions equal number of qubits.
+                Operations on 1D representation are significantly slower than
+                the other representation and might not even work.
+                The 1D representation should only be used when the number of qubits
+                is larger than the dimension limit on numpy arrays (numpy/numpy#5744).
+
+        Returns:
+            SimulationTrialResults for the simulation. Includes the final state.
+        """
+        return self.simulate_sweep(
+            program,
+            cirq.study.ParamResolver(param_resolver),
+            qubit_order,
+            initial_state,
+            as_1d_state_vector,
+        )[0]
+
+    def simulate_sweep(
+        self,
+        program: cirq.AbstractCircuit,
+        params: cirq.Sweepable,
+        qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
+        initial_state: Any = None,
+        as_1d_state_vector: bool = False,
+    ) -> List[cirq.sim.simulator.TSimulationTrialResult]:
+        return list(
+            self.simulate_sweep_iter(
+                program, params, qubit_order, initial_state, as_1d_state_vector
+            )
+        )
+
     def simulate_sweep_iter(
         self,
         program: cirq.Circuit,
         params: cirq.Sweepable,
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
         initial_state: Optional[Union[int, np.ndarray]] = None,
+        as_1d_state_vector: bool = False,
     ) -> Iterator[cirq.StateVectorTrialResult]:
         """Simulates the supplied Circuit.
 
@@ -463,6 +518,8 @@ class QSimSimulator(
               be an integer representing a pure state (e.g. 11010) or a numpy
               array containing the full state vector. If none is provided, this
               is assumed to be the all-zeros state.
+            as_1d_state_vector: Whether the returned state vector is 1D or
+                has number of dimensions equal number of qubits.
 
         Returns:
             List of SimulationTrialResults for this run, one for each
@@ -527,7 +584,8 @@ class QSimSimulator(
             assert qsim_state.ndim == 1
 
             final_state = cirq.StateVectorSimulationState(
-                initial_state=qsim_state.view(np.complex64), qubits=cirq_order
+                initial_state=qsim_state.view(np.complex64),
+                qubits=cirq_order if not as_1d_state_vector else None,
             )
             # create result for this parameter
             # TODO: We need to support measurements.

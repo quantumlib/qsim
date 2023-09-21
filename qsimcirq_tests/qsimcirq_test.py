@@ -2058,3 +2058,15 @@ def test_cirq_global_phase_gate():
     assert cirq.approx_eq(
         qsim_result.state_vector(), cirq_result.state_vector(), atol=1e-6
     )
+
+
+def test_1d_representation():
+    qsim_sim = qsimcirq.QSimSimulator()
+    qs = cirq.LineQubit.range(2)
+    c = cirq.Circuit(cirq.H.on_each(qs), cirq.X(qs[0]), cirq.Y(qs[1]))
+
+    want = np.array([0.0 - 0.5j, 0.0 + 0.5j, 0.0 - 0.5j, 0.0 + 0.5j])
+    res = qsim_sim.simulate(c, as_1d_state_vector=True)
+    np.testing.assert_allclose(
+        res.final_state_vector, np.array(want, dtype=np.complex64)
+    )
