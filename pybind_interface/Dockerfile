@@ -1,15 +1,12 @@
 # Base OS
 FROM qsim
 
-RUN ln -sf /dev/stdout /var/log/nginx/access.log \
-    && ln -sf /dev/stderr /var/log/nginx/error.log
-
 # Install additional requirements
 RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
-# The --force flag is used mainly so that the old numpy installation from pybind
+# The --force-reinstall flag is used mainly so that the old numpy installation from pybind
 # gets replaced with the one cirq requires
-RUN pip3 install --prefer-binary cirq-core --force
+RUN pip3 install --prefer-binary cirq-core --force-reinstall
 
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/
