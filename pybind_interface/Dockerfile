@@ -6,7 +6,7 @@ RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
 # The --force flag is used mainly so that the old numpy installation from pybind
 # gets replaced with the one cirq requires
-RUN pip3 install --upgrade numpy
+RUN pip3 uninstall --force numpy
 RUN pip3 install -vvv --prefer-binary cirq-core --force-reinstall
 
 # Copy relevant files
