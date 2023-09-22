@@ -1,6 +1,9 @@
 # Base OS
 FROM qsim
 
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
+
 # Install additional requirements
 RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
