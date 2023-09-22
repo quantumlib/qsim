@@ -6,6 +6,7 @@ RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
 # Install cirq-core
 RUN pip3 install --prefer-binary cirq-core
+RUN pip3 uinstall numpy --purge
 
 # Install pybind11
 RUN apt-get install -y python3-pybind11
