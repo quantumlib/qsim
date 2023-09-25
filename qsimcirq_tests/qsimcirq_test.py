@@ -2066,5 +2066,5 @@ def test_1d_representation():
     c = cirq.Circuit(cirq.H.on_each(qs), cirq.X(qs[0]), cirq.Y(qs[1]))
 
     want = np.array([0.0 - 0.5j, 0.0 + 0.5j, 0.0 - 0.5j, 0.0 + 0.5j])
-    res = qsim_sim.simulate_into_1d_array(c)
+    _, res, _ = qsim_sim.simulate_into_1d_array(c)
     np.testing.assert_allclose(res, np.array(want, dtype=np.complex64))
