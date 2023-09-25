@@ -505,13 +505,19 @@ class QSimSimulator(
         param_resolver: cirq.ParamResolverOrSimilarType = None,
         qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
         initial_state: Any = None,
-    ) -> np.ndarray:
-        """Same as simulate() but returns the state vector as 1D np.ndarray."""
+    ) -> Tuple[cirq.ParamResolver, np.ndarray, Sequence[int]]:
+        """Same as simulate() but returns raw simulation result without wrapping it.
+
+            The returned result is not wrapped in a StateVectorTrialResult but can be used
+            to create a StateVectorTrialResult.
+
+        Retruns:
+            A parameter resolver.
+            Final simulation state vector as a 1D array.
+            Qubit order.
+        """
         params = cirq.study.ParamResolver(param_resolver)
-        _, state_vector, _ = next(
-            self._simulate_impl(program, params, qubit_order, initial_state)
-        )
-        return state_vector
+        return next(self._simulate_impl(program, params, qubit_order, initial_state))
 
     def simulate_sweep_iter(
         self,
