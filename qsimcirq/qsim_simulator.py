@@ -511,10 +511,8 @@ class QSimSimulator(
             The returned result is not wrapped in a StateVectorTrialResult but can be used
             to create a StateVectorTrialResult.
 
-        Retruns:
-            A parameter resolver.
-            Final simulation state vector as a 1D array.
-            Qubit order.
+        Returns:
+            Tuple of (param resolver, final state, qubit order)
         """
         params = cirq.study.ParamResolver(param_resolver)
         return next(self._simulate_impl(program, params, qubit_order, initial_state))
@@ -549,7 +547,7 @@ class QSimSimulator(
               is assumed to be the all-zeros state.
 
         Returns:
-            List of SimulationTrialResults for this run, one for each
+            Iterator over SimulationTrialResults for this run, one for each
             possible parameter resolver.
 
         Raises:
