@@ -2,15 +2,10 @@
 FROM qsim
 
 # Install additional requirements
-RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip python3-venv
+RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
-# Create a virtual environment to avoid collision between system packages and cirq deps.
-RUN python3 -m venv test_env
-
-# Activate venv.
-RUN . test_env/bin/activate
-
-RUN pip3 install --prefer-binary cirq-core 
+# break-system-packages flag to override system packages (e.g. numpy) with Cirq's deps.
+RUN pip3 install --break-system-packages --force-reinstall --prefer-binary cirq-core 
 
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/
