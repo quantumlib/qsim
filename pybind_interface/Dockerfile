@@ -6,7 +6,7 @@ RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip p
 
 # Create a virtual environment to avoid collision between system packages and cirq deps.
 RUN python3 -m venv test_env
-RUN source test_env/bin/activate
+RUN . ./test_env/bin/activate
 
 RUN pip3 install --prefer-binary cirq-core 
 
