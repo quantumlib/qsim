@@ -4,7 +4,7 @@ FROM qsim
 # Install additional requirements
 RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
-RUN apt-get remove python-numpy
+RUN apt-get remove python3-numpy --purge
 
 # The --force flag is used mainly so that the old numpy installation from pybind
 # gets replaced with the one cirq requires
