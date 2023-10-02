@@ -2,14 +2,13 @@
 FROM qsim
 
 # Install additional requirements
-RUN apt-get install -y python3-dev python3-pytest python3-pip
+RUN apt-get install -y python3-dev python3-pybind11 python3-pytest python3-pip
 
-# Install pybind11
-RUN pip3 install --prefer-binary pybind11
+# Create virtual environment to avoid collision between system packages and cirq deps.
+RUN python3 -m venv test_env
+RUN source test_env/bin/activate
 
-# The --force flag is used mainly so that the old numpy installation from pybind
-# gets replaced with the one cirq requires
-RUN pip3 install --prefer-binary cirq-core
+RUN pip3 install --prefer-binary cirq-core 
 
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/
