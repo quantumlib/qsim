@@ -107,7 +107,8 @@ class StateSpaceCUDA :
   }
 
   void SetAllZeros(State& state) const {
-    ErrorCheck(cudaMemset(state.get(), 0, MinSize(state.num_qubits()) * sizeof(fp_type)));
+    ErrorCheck(cudaMemset(state.get(), 0,
+               MinSize(state.num_qubits()) * sizeof(fp_type)));
   }
 
   // Uniform superposition.

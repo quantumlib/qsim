@@ -120,9 +120,9 @@ class VectorSpaceCUDA {
     }
 
     ErrorCheck(
-      cudaMemcpy(dest.get(), src.get(),
-                 sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
-                 cudaMemcpyDeviceToDevice));
+        cudaMemcpy(dest.get(), src.get(),
+                   sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
+                   cudaMemcpyDeviceToDevice));
 
     return true;
   }
@@ -131,9 +131,9 @@ class VectorSpaceCUDA {
   // Impl::MinSize(src.num_qubits()) elements.
   bool Copy(const Vector& src, fp_type* dest) const {
     ErrorCheck(
-      cudaMemcpy(dest, src.get(),
-                 sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
-                 cudaMemcpyDeviceToHost));
+        cudaMemcpy(dest, src.get(),
+                   sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
+                   cudaMemcpyDeviceToHost));
 
     return true;
   }
@@ -142,9 +142,9 @@ class VectorSpaceCUDA {
   // Impl::MinSize(dest.num_qubits()) elements.
   bool Copy(const fp_type* src, Vector& dest) const {
     ErrorCheck(
-      cudaMemcpy(dest.get(), src,
-                 sizeof(fp_type) * Impl::MinSize(dest.num_qubits()),
-                 cudaMemcpyHostToDevice));
+        cudaMemcpy(dest.get(), src,
+                   sizeof(fp_type) * Impl::MinSize(dest.num_qubits()),
+                   cudaMemcpyHostToDevice));
 
     return true;
   }
@@ -154,7 +154,9 @@ class VectorSpaceCUDA {
   bool Copy(const fp_type* src, uint64_t size, Vector& dest) const {
     size = std::min(size, Impl::MinSize(dest.num_qubits()));
     ErrorCheck(
-      cudaMemcpy(dest.get(), src, sizeof(fp_type) * size, cudaMemcpyHostToDevice));
+        cudaMemcpy(dest.get(), src,
+                   sizeof(fp_type) * size,
+                   cudaMemcpyHostToDevice));
     return true;
   }
 
