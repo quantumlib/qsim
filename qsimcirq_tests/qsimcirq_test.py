@@ -335,6 +335,14 @@ def test_numpy_params():
     qsim_simulator = qsimcirq.QSimSimulator()
     qsim_result = qsim_simulator.simulate_sweep(circuit, params=prs)
 
+def test_confusion_matrix_exception():
+    qubit = cirq.LineQubit(0)
+    cmap = {(0,): np.array([[0.8, 0.2], [0.2, 0.8]])}
+    circuit = cirq.Circuit()
+    circuit += cirq.X(qubit)
+    circuit += cirq.MeasurementGate(1, confusion_map=cmap)(qubit)
+    with pytest.raises(RuntimeError):
+        _ = qsimcirq.QSimSimulator(seed=0).run(circuit, repetitions=100)
 
 def test_invalid_params():
     # Parameters must have numeric values.

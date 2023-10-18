@@ -213,7 +213,7 @@ class QSimSimulator(
         """Run a simulation, mimicking quantum hardware.
 
         Args:
-            program: The circuit to simulate.
+            circuit: The circuit to simulate.
             param_resolver: Parameters to run with the program.
             repetitions: Number of times to repeat the run.
 
@@ -221,10 +221,31 @@ class QSimSimulator(
             A dictionary from measurement gate key to measurement
             results.
         """
+        self._check_for_confusion_matrix(circuit)
         param_resolver = param_resolver or cirq.ParamResolver({})
         solved_circuit = cirq.resolve_parameters(circuit, param_resolver)
 
         return self._sample_measure_results(solved_circuit, repetitions)
+
+    def _check_for_confusion_matrix(self, circuit: cirq.Circuit):
+        """Checks for cirq Circuit for Measurement Gates with confusion matrices.
+
+        Args:
+            circuit: The circuit to simulate.
+
+        Returns:
+            Throws a runtime exception if a MeasurementGate with a confusion matrix is included in the circuit
+        """
+        confusion_maps = []
+        for moment in circuit:
+            confusion_maps += [operation.gate.confusion_map for operation in moment.operations if
+                               isinstance(operation.gate, cirq.MeasurementGate) and operation.gate.confusion_map]
+        for confusion_map in confusion_maps:
+            for map_values in list(confusion_map.values()):
+                if map_values.size > 1:  # # Unsure if this check is needed. Do we simply need to see if any confusion
+                    # matrix exists at all or would a matrix of size 1 work?
+                    raise RuntimeError("Confusion Matrices are not currently supported in Qsim. Please see issue XX "
+                                       "for latest status")
 
     def _sample_measure_results(
         self,
