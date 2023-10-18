@@ -60,6 +60,10 @@ jobs:
       - name: Install requirements
         run: |
           python3 -m pip install -r requirements.txt
+      - name: Upgrade libc 
+      # An LLVM update broke this test, fix per is https://bugs.llvm.org/show_bug.cgi?id=27310.
+        run: |
+          sudo apt-get upgrade libc-bin
       - name: Run C++ tests
         run: |
           bazel test --config=avx --config=openmp \
