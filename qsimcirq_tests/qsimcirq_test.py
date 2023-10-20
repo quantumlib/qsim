@@ -336,6 +336,19 @@ def test_numpy_params():
     qsim_result = qsim_simulator.simulate_sweep(circuit, params=prs)
 
 
+def test_confusion_matrix_exception():
+    qubit = cirq.LineQubit(0)
+    cmap = {(0,): np.array([[0.8, 0.2], [0.2, 0.8]])}
+    circuit = cirq.Circuit()
+    circuit += cirq.X(qubit)
+    circuit += cirq.MeasurementGate(1, confusion_map=cmap)(qubit)
+    x, y = sympy.Symbol("x"), sympy.Symbol("y")
+    prs = [{x: np.int64(0), y: np.int64(1)}]
+    qsim_simulator = qsimcirq.QSimSimulator()
+    with pytest.raises(ValueError):
+        _ = qsim_simulator.simulate_sweep(circuit, params=prs)
+
+
 def test_invalid_params():
     # Parameters must have numeric values.
     q0 = cirq.LineQubit(0)
@@ -1219,7 +1232,6 @@ def test_multi_qubit_fusion():
 
 @pytest.mark.parametrize("mode", ["noiseless", "noisy"])
 def test_cirq_qsim_simulate_random_unitary(mode: str):
-
     q0, q1 = cirq.LineQubit.range(2)
     options = qsimcirq.QSimOptions(cpu_threads=16, verbosity=0)
     qsimSim = qsimcirq.QSimSimulator(qsim_options=options)
