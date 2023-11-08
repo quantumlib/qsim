@@ -1,14 +1,14 @@
 # Support for AMD Instinct™ MI Series Accelerators
 
-Qsim provides support for AMD Instinct accelerators.
-The implementation covers the native GPU support in Qsim
+qsim provides support for AMD Instinct accelerators.
+The implementation covers the native GPU support in qsim
 by utilizing [HIP](https://rocm.docs.amd.com/projects/HIP)
 (Heterogeneous-Compute Interface for Portability).
 The cuQuantum implementation is currently not covered.
 
 ## Building
 
-To enable support for AMD Instinct GPUs, Qsim needs to be built from sources.
+To enable support for AMD Instinct GPUs, qsim needs to be built from sources.
 This can be done as follows:
 
 ```
@@ -29,14 +29,14 @@ make -j hip-tests # to build HIP tests
 pip install .
 ```
 
-Note: To avoid problems when building Qsim with support for AMD GPUs,
+Note: To avoid problems when building qsim with support for AMD GPUs,
 make sure to use the latest version of CMake.
 
 ## Testing
 
 ### Simulator
 
-To test the Qsim simulator:
+To test the qsim simulator:
 
 ```
 make run-cxx-tests # to run CPU tests
@@ -68,7 +68,7 @@ python3 -m pytest -v qsimcirq_test.py
 
 ## Using
 
-Using Qsim on AMD Instinct GPUs is identical to using it on NVIDIA GPUs.
+Using qsim on AMD Instinct GPUs is identical to using it on NVIDIA GPUs.
 I.e., it is done by passing `use_gpu=True` and `gpu_mode=0` as `qsimcirq.QSimOptions`:
 
 ```
