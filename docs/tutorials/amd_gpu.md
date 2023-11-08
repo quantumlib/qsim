@@ -2,13 +2,17 @@
 
 qsim provides support for AMD Instinct accelerators.
 The implementation covers the native GPU support in qsim
-by utilizing [HIP](https://rocm.docs.amd.com/projects/HIP)
+by utilizing [AMD HIP SDK](https://rocm.docs.amd.com/projects/HIP)
 (Heterogeneous-Compute Interface for Portability).
 The cuQuantum implementation is currently not covered.
 
 ## Building
 
-To enable support for AMD Instinct GPUs, qsim needs to be built from sources.
+Building qsim with support for AMD Instinct accelerators requires installation of
+[AMD ROCm™ Open Software Platform](https://www.amd.com/en/developer/resources/rocm-hub.html).
+Instructions for installing ROCm are available at https://rocm.docs.amd.com/.
+
+To enable support for AMD GPUs, qsim needs to be built from sources.
 This can be done as follows:
 
 ```
