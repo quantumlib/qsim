@@ -343,7 +343,6 @@ class QSimCircuit(cirq.Circuit):
         cirq_circuit: cirq.Circuit,
         allow_decomposition: bool = False,
     ):
-
         if allow_decomposition:
             super().__init__()
             for moment in cirq_circuit:
@@ -352,6 +351,7 @@ class QSimCircuit(cirq.Circuit):
                     self.append(op)
         else:
             super().__init__(cirq_circuit)
+        self._check_for_confusion_matrix()
 
     def __eq__(self, other):
         if not isinstance(other, QSimCircuit):
@@ -363,6 +363,24 @@ class QSimCircuit(cirq.Circuit):
         self, param_resolver: cirq.study.ParamResolver, recursive: bool = True
     ):
         return QSimCircuit(cirq.resolve_parameters(super(), param_resolver, recursive))
+
+    def _check_for_confusion_matrix(self):
+        """Checks cirq Circuit for Measurement Gates with confusion matrices.
+        Returns:
+            Throws a runtime exception if a MeasurementGate with a confusion matrix is included in the circuit
+        """
+        confusion_maps_on_measurement_gates = [
+            op.gate.confusion_map
+            for _, op, _ in self.findall_operations_with_gate_type(cirq.MeasurementGate)
+            if op.gate.confusion_map
+        ]
+        for confusion_map in confusion_maps_on_measurement_gates:
+            for map_values in confusion_map.values():
+                if map_values:
+                    raise ValueError(
+                        "Confusion Matrices are not currently supported in Qsim. "
+                        "See https://github.com/quantumlib/Cirq/issues/6305 for latest status"
+                    )
 
     def translate_cirq_to_qsim(
         self, qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT
