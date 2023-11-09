@@ -15,7 +15,12 @@
 #ifndef STATESPACE_CUDA_H_
 #define STATESPACE_CUDA_H_
 
-#include <cuda.h>
+#ifdef __NVCC__
+  #include <cuda.h>
+#elif __HIP__
+  #include <hip/hip_runtime.h>
+  #include "cuda2hip.h"
+#endif
 
 #include <algorithm>
 #include <complex>
@@ -102,7 +107,8 @@ class StateSpaceCUDA :
   }
 
   void SetAllZeros(State& state) const {
-    cudaMemset(state.get(), 0, MinSize(state.num_qubits()) * sizeof(fp_type));
+    ErrorCheck(cudaMemset(state.get(), 0,
+               MinSize(state.num_qubits()) * sizeof(fp_type)));
   }
 
   // Uniform superposition.

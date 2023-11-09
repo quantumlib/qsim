@@ -15,7 +15,12 @@
 #ifndef STATESPACE_CUDA_KERNELS_H_
 #define STATESPACE_CUDA_KERNELS_H_
 
-#include <cuda.h>
+#ifdef __NVCC__
+  #include <cuda.h>
+#elif __HIP__
+  #include <hip/hip_runtime.h>
+  #include "cuda2hip.h"
+#endif
 
 #include "util_cuda.h"
 

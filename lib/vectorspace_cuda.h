@@ -15,8 +15,13 @@
 #ifndef VECTORSPACE_CUDA_H_
 #define VECTORSPACE_CUDA_H_
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+#ifdef __NVCC__
+  #include <cuda.h>
+  #include <cuda_runtime.h>
+#elif __HIP__
+  #include <hip/hip_runtime.h>
+  #include "cuda2hip.h"
+#endif
 
 #include <memory>
 #include <utility>
@@ -28,7 +33,7 @@ namespace detail {
 inline void do_not_free(void*) {}
 
 inline void free(void* ptr) {
-  cudaFree(ptr);
+  ErrorCheck(cudaFree(ptr));
 }
 
 }  // namespace detail
@@ -114,9 +119,10 @@ class VectorSpaceCUDA {
       return false;
     }
 
-    cudaMemcpy(dest.get(), src.get(),
-               sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
-               cudaMemcpyDeviceToDevice);
+    ErrorCheck(
+        cudaMemcpy(dest.get(), src.get(),
+                   sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
+                   cudaMemcpyDeviceToDevice));
 
     return true;
   }
@@ -124,9 +130,10 @@ class VectorSpaceCUDA {
   // It is the client's responsibility to make sure that dest has at least
   // Impl::MinSize(src.num_qubits()) elements.
   bool Copy(const Vector& src, fp_type* dest) const {
-    cudaMemcpy(dest, src.get(),
-               sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
-               cudaMemcpyDeviceToHost);
+    ErrorCheck(
+        cudaMemcpy(dest, src.get(),
+                   sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
+                   cudaMemcpyDeviceToHost));
 
     return true;
   }
@@ -134,9 +141,10 @@ class VectorSpaceCUDA {
   // It is the client's responsibility to make sure that src has at least
   // Impl::MinSize(dest.num_qubits()) elements.
   bool Copy(const fp_type* src, Vector& dest) const {
-    cudaMemcpy(dest.get(), src,
-               sizeof(fp_type) * Impl::MinSize(dest.num_qubits()),
-               cudaMemcpyHostToDevice);
+    ErrorCheck(
+        cudaMemcpy(dest.get(), src,
+                   sizeof(fp_type) * Impl::MinSize(dest.num_qubits()),
+                   cudaMemcpyHostToDevice));
 
     return true;
   }
@@ -145,12 +153,15 @@ class VectorSpaceCUDA {
   // min(size, Impl::MinSize(dest.num_qubits())) elements.
   bool Copy(const fp_type* src, uint64_t size, Vector& dest) const {
     size = std::min(size, Impl::MinSize(dest.num_qubits()));
-    cudaMemcpy(dest.get(), src, sizeof(fp_type) * size, cudaMemcpyHostToDevice);
+    ErrorCheck(
+        cudaMemcpy(dest.get(), src,
+                   sizeof(fp_type) * size,
+                   cudaMemcpyHostToDevice));
     return true;
   }
 
   void DeviceSync() {
-    cudaDeviceSynchronize();
+    ErrorCheck(cudaDeviceSynchronize());
   }
 
  protected:

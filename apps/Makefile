@@ -7,6 +7,9 @@ CUDA_TARGETS := $(CUDA_TARGETS:%cuda.cu=%cuda.x)
 CUSTATEVEC_TARGETS = $(shell find . -maxdepth 1 -name "*custatevec.cu")
 CUSTATEVEC_TARGETS := $(CUSTATEVEC_TARGETS:%custatevec.cu=%custatevec.x)
 
+HIP_TARGETS = $(shell find . -maxdepth 1 -name '*cuda.cu')
+HIP_TARGETS := $(HIP_TARGETS:%cuda.cu=%hip.x)
+
 .PHONY: qsim
 qsim: $(CXX_TARGETS)
 
@@ -16,6 +19,9 @@ qsim-cuda: $(CUDA_TARGETS)
 .PHONY: qsim-custatevec
 qsim-custatevec: $(CUSTATEVEC_TARGETS)
 
+.PHONY: qsim-hip
+qsim-hip: $(HIP_TARGETS)
+
 %.x: %.cc
 	$(CXX) -o ./$@ $< $(CXXFLAGS) $(ARCHFLAGS)
 
@@ -24,6 +30,9 @@ qsim-custatevec: $(CUSTATEVEC_TARGETS)
 
 %custatevec.x: %custatevec.cu
 	$(NVCC) -o ./$@ $< $(NVCCFLAGS) $(CUSTATEVECFLAGS)
+
+%hip.x: %cuda.cu
+	$(HIPCC) -o ./$@ $< $(HIPCCFLAGS)
 
 .PHONY: clean
 clean:

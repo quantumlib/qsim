@@ -15,10 +15,15 @@
 #ifndef SIMULATOR_CUDA_KERNELS_H_
 #define SIMULATOR_CUDA_KERNELS_H_
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+#ifdef __NVCC__
+  #include <cuda.h>
+  #include <cuda_runtime.h>
 
-#include "util_cuda.h"
+  #include "util_cuda.h"
+#elif __HIP__
+  #include <hip/hip_runtime.h>
+  #include "cuda2hip.h"
+#endif
 
 namespace qsim {
 

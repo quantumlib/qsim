@@ -561,8 +561,6 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
   static void FuseOrphanedGates(unsigned max_fused_size, Stat& stat,
                                 std::vector<GateF*>& orphaned_gates,
                                 std::vector<GateFused>& fused_gates) {
-    unsigned count = 0;
-
     for (std::size_t i = 0; i < orphaned_gates.size(); ++i) {
       auto ogate1 = orphaned_gates[i];
 
@@ -574,8 +572,6 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
         auto ogate2 = orphaned_gates[j];
 
         if (ogate2->visited == kFinal) continue;
-
-        ++count;
 
         unsigned cur_size = ogate1->qubits.size() + ogate2->qubits.size();
 

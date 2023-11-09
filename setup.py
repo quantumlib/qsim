@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import shutil
 import platform
 import subprocess
 
@@ -63,6 +64,12 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++",
             ]
 
+        if shutil.which("hipcc") is not None:
+            cmake_args += [
+                "-DCMAKE_C_COMPILER=hipcc",
+                "-DCMAKE_CXX_COMPILER=hipcc",
+            ]
+
         env = os.environ.copy()
         env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(
             env.get("CXXFLAGS", ""), self.distribution.get_version()
@@ -111,6 +118,7 @@ setup(
         CMakeExtension("qsimcirq/qsim_cuda"),
         CMakeExtension("qsimcirq/qsim_custatevec"),
         CMakeExtension("qsimcirq/qsim_decide"),
+        CMakeExtension("qsimcirq/qsim_hip"),
     ],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
