@@ -213,7 +213,7 @@ class QSimSimulator(
         """Run a simulation, mimicking quantum hardware.
 
         Args:
-            program: The circuit to simulate.
+            circuit: The circuit to simulate.
             param_resolver: Parameters to run with the program.
             repetitions: Number of times to repeat the run.
 
