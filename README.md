@@ -62,7 +62,7 @@ arXiv:1807.10749 (2018).
 ## C++ Usage
 
 The code is basically designed as a library. The user can modify sample
-aplications in [apps](https://github.com/quantumlib/qsim/tree/master/apps)
+applications in [apps](https://github.com/quantumlib/qsim/tree/master/apps)
 to meet their own needs. The usage of sample applications is described in the
 [docs](https://github.com/quantumlib/qsim/blob/master/docs/usage.md).
 
