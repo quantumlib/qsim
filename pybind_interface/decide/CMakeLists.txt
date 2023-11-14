@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 3.11)
 
 execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
 if(has_nvcc STREQUAL "")
-  project(qsim)
+  execute_process(COMMAND which hipcc OUTPUT_VARIABLE has_hipcc)
+  if(has_hipcc STREQUAL "")
+    project(qsim)
+  else()
+    project(qsim LANGUAGES CXX HIP)
+  endif()
 else()
   project(qsim LANGUAGES CXX CUDA)
 endif()
@@ -22,7 +27,23 @@ endif()
 INCLUDE(../GetPybind11.cmake)
 
 if(has_nvcc STREQUAL "")
-  pybind11_add_module(qsim_decide decide.cpp)
+  if(has_hipcc STREQUAL "")
+    pybind11_add_module(qsim_decide decide.cpp)
+  else()
+    list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")
+    find_package(HIP REQUIRED)
+    find_package(PythonLibs 3.7 REQUIRED)
+
+    include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
+
+    hip_add_library(qsim_decide MODULE decide.cpp)
+
+    set_target_properties(qsim_decide PROPERTIES
+        PREFIX "${PYTHON_MODULE_PREFIX}"
+        SUFFIX "${PYTHON_MODULE_EXTENSION}"
+    )
+    set_source_files_properties(decide.cpp PROPERTIES LANGUAGE HIP)
+  endif()
 else()
   find_package(PythonLibs 3.7 REQUIRED)
   find_package(CUDA REQUIRED)

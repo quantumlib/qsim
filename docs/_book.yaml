@@ -26,6 +26,8 @@ upper_tabs:
          path: /qsim/tutorials/q32d14
        - title: "Simulate noise"
          path: /qsim/tutorials/noisy_qsimcirq
+       - title: "AMD GPU support"
+         path: /qsim/tutorials/amd_gpu
 
    - name: "Guides"
      contents:

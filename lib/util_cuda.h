@@ -15,7 +15,11 @@
 #ifndef UTIL_CUDA_H_
 #define UTIL_CUDA_H_
 
-#include <cuda.h>
+#ifdef __NVCC__
+  #include <cuda.h>
+#elif __HIP__
+  #include <hip/hip_runtime.h>
+#endif
 
 #include <cstdlib>
 
