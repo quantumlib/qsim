@@ -63,6 +63,7 @@ jobs:
       - name: Upgrade libc 
       # An LLVM update broke this test, fix per is https://bugs.llvm.org/show_bug.cgi?id=27310.
         run: |
+          sudo apt update
           sudo apt-get upgrade libc-bin
       - name: Run C++ tests
         run: |
