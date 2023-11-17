@@ -34,7 +34,7 @@ instance section, ensure that your VM has the following properties:
 *   In the **Boot disk** section, click the **Change** button:
     1.   In the **Operating System** option, choose **Ubuntu**.
     2.   In the **Version** option, choose **20.04 LTS**.
-    3.   In the **Size** field, enter **100** (minimum known to be sufficient).
+    3.   In the **Size** field, enter **40** (minimum).
 *   The instructions above override steps 3 through 5 in the [Create a Linux VM
     instance](https://cloud.google.com/compute/docs/quickstart-linux)
     Quickstart.
