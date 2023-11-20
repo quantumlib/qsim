@@ -1,6 +1,4 @@
 set(CMAKE_CXX_STANDARD 11)
-set(OpenMP_INCLUDE_DIR "/Users/bas.nijholt/micromamba/lib/clang/17.0.4/include")
-include_directories(${OpenMP_INCLUDE_DIR})
 cmake_minimum_required(VERSION 3.11)
 
 # Set APPLE_ARM to TRUE if running on Apple Silicon
@@ -15,10 +13,10 @@ else()
     set(APPLE_ARM FALSE)
 endif(APPLE)
 
-if(APPLE_ARM)
+# Set the project name and language
+if(APPLE)
     project(qsim LANGUAGES CXX)
-    ADD_SUBDIRECTORY(pybind_interface/basic)
-    ADD_SUBDIRECTORY(pybind_interface/decide)
+    find_package(OpenMP REQUIRED)  # Automatically happens for Linux
 else()
     execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
     if(has_nvcc STREQUAL "")
@@ -27,23 +25,26 @@ else()
             project(qsim LANGUAGES CXX)
         else()
             project(qsim LANGUAGES CXX HIP)
-            ADD_SUBDIRECTORY(pybind_interface/hip)
         endif()
     else()
         project(qsim LANGUAGES CXX CUDA)
+    endif()
+endif()
+
+# Add subdirectories based on the architecture or available compilers
+ADD_SUBDIRECTORY(pybind_interface/basic)
+ADD_SUBDIRECTORY(pybind_interface/decide)
+if(NOT APPLE_ARM)
+    if(NOT has_nvcc STREQUAL "")
         ADD_SUBDIRECTORY(pybind_interface/cuda)
         if(DEFINED ENV{CUQUANTUM_ROOT})
             ADD_SUBDIRECTORY(pybind_interface/custatevec)
         endif()
+    elseif(NOT has_hipcc STREQUAL "")
+        ADD_SUBDIRECTORY(pybind_interface/hip)
     endif()
 
     ADD_SUBDIRECTORY(pybind_interface/sse)
     ADD_SUBDIRECTORY(pybind_interface/avx512)
     ADD_SUBDIRECTORY(pybind_interface/avx2)
-    ADD_SUBDIRECTORY(pybind_interface/basic)
-    ADD_SUBDIRECTORY(pybind_interface/decide)
-endif()
-
-if(APPLE)
-    find_package(OpenMP REQUIRED)  # Automatically happens for Linux
 endif()
