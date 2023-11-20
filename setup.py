@@ -60,8 +60,8 @@ class CMakeBuild(build_ext):
 
         if platform.system() == "Darwin":
             cmake_args += [
-                "-DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang",
-                "-DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++",
+                "-DCMAKE_C_COMPILER=/Users/bas.nijholt/micromamba/envs/py311/bin/clang",
+                "-DCMAKE_CXX_COMPILER=/Users/bas.nijholt/micromamba/envs/py311/bin/clang++",
             ]
 
         if shutil.which("hipcc") is not None:

@@ -21,8 +21,8 @@ namespace py = pybind11;
 #include <intrin.h>
 #define cpuid(info, x)    __cpuidex(info, x, 0)
 
-#else
-//  GCC Intrinsics
+#elif defined(__x86_64__) || defined(__i386__)
+// GCC Intrinsics for x86/x86_64
 #include <cpuid.h>
 void cpuid(int info[4], int infoType){
     __cpuid_count(infoType, 0, info[0], info[1], info[2], info[3]);

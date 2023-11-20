@@ -1,3 +1,4 @@
+add_compile_options(-I/Users/bas.nijholt/micromamba/envs/py311/include/python3.11 -I/Users/bas.nijholt/micromamba/envs/py311/lib/python3.11/site-packages/pybind11/include)
 include(FetchContent)
 
 set(MIN_PYBIND_VERSION "2.10.1")

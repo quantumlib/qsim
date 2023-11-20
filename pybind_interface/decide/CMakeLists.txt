@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 3.11)
+set(CMAKE_SYSTEM_PROCESSOR arm64)
 
 # Check if we are on an Apple system and if the architecture is ARM
-if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
-    # Set a variable to indicate we are on Apple ARM
-    set(APPLE_ARM TRUE)
+if(APPLE)
+    # Returns x86_64 or arm64
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE CMAKE_OSX_ARCHITECTURES OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if (OSX_ARCH STREQUAL "arm64")
+        set(APPLE_ARM TRUE)
+    else()
+        set(APPLE_ARM FALSE)
+    endif()
 else()
     set(APPLE_ARM FALSE)
-endif()
+endif(APPLE)
+message(STATUS "APPLE_ARM: ${APPLE_ARM}")
 
 # Set the project based on the detected platform
 if(APPLE_ARM)
@@ -45,14 +52,15 @@ if(APPLE_ARM)
     # Set additional flags if necessary
     # Compile the module using standard C++
     pybind11_add_module(qsim_decide decide.cpp)
-
-elif(has_nvcc STREQUAL "")
+    # Print a message to indicate the module is being compiled using standard C++
+    message(STATUS "Compiling qsim_decide using standard C++ on Apple ARM")
+elseif(has_nvcc STREQUAL "")
     if(has_hipcc STREQUAL "")
         pybind11_add_module(qsim_decide decide.cpp)
     else()
         list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")
         find_package(HIP REQUIRED)
-        find_package(PythonLibs 3.7 REQUIRED)
+        find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
 
         include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
 
@@ -65,7 +73,7 @@ elif(has_nvcc STREQUAL "")
         set_source_files_properties(decide.cpp PROPERTIES LANGUAGE HIP)
     endif()
 else()
-    find_package(PythonLibs 3.7 REQUIRED)
+    find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
     find_package(CUDA REQUIRED)
 
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
