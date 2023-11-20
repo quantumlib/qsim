@@ -1,15 +1,28 @@
 cmake_minimum_required(VERSION 3.11)
 
-execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
-if(has_nvcc STREQUAL "")
-  execute_process(COMMAND which hipcc OUTPUT_VARIABLE has_hipcc)
-  if(has_hipcc STREQUAL "")
-    project(qsim)
-  else()
-    project(qsim LANGUAGES CXX HIP)
-  endif()
+# Check if we are on an Apple system and if the architecture is ARM
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    # Set a variable to indicate we are on Apple ARM
+    set(APPLE_ARM TRUE)
 else()
-  project(qsim LANGUAGES CXX CUDA)
+    set(APPLE_ARM FALSE)
+endif()
+
+# Set the project based on the detected platform
+if(APPLE_ARM)
+    project(qsim LANGUAGES CXX)
+else()
+    execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc)
+    if(has_nvcc STREQUAL "")
+        execute_process(COMMAND which hipcc OUTPUT_VARIABLE has_hipcc)
+        if(has_hipcc STREQUAL "")
+            project(qsim)
+        else()
+            project(qsim LANGUAGES CXX HIP)
+        endif()
+    else()
+        project(qsim LANGUAGES CXX CUDA)
+    endif()
 endif()
 
 IF (WIN32)
@@ -26,41 +39,48 @@ endif()
 
 INCLUDE(../GetPybind11.cmake)
 
-if(has_nvcc STREQUAL "")
-  if(has_hipcc STREQUAL "")
+# Configure based on the detected platform
+if(APPLE_ARM)
+    # Configuration for Apple ARM
+    # Set additional flags if necessary
+    # Compile the module using standard C++
     pybind11_add_module(qsim_decide decide.cpp)
-  else()
-    list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")
-    find_package(HIP REQUIRED)
+
+elif(has_nvcc STREQUAL "")
+    if(has_hipcc STREQUAL "")
+        pybind11_add_module(qsim_decide decide.cpp)
+    else()
+        list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")
+        find_package(HIP REQUIRED)
+        find_package(PythonLibs 3.7 REQUIRED)
+
+        include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
+
+        hip_add_library(qsim_decide MODULE decide.cpp)
+
+        set_target_properties(qsim_decide PROPERTIES
+            PREFIX "${PYTHON_MODULE_PREFIX}"
+            SUFFIX "${PYTHON_MODULE_EXTENSION}"
+        )
+        set_source_files_properties(decide.cpp PROPERTIES LANGUAGE HIP)
+    endif()
+else()
     find_package(PythonLibs 3.7 REQUIRED)
+    find_package(CUDA REQUIRED)
 
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
 
-    hip_add_library(qsim_decide MODULE decide.cpp)
+    cuda_add_library(qsim_decide MODULE decide.cpp)
+
+    if(DEFINED ENV{CUQUANTUM_ROOT})
+        target_compile_options(qsim_decide PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
+        )
+    endif()
 
     set_target_properties(qsim_decide PROPERTIES
-        PREFIX "${PYTHON_MODULE_PREFIX}"
-        SUFFIX "${PYTHON_MODULE_EXTENSION}"
+          PREFIX "${PYTHON_MODULE_PREFIX}"
+          SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
-    set_source_files_properties(decide.cpp PROPERTIES LANGUAGE HIP)
-  endif()
-else()
-  find_package(PythonLibs 3.7 REQUIRED)
-  find_package(CUDA REQUIRED)
-
-  include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
-
-  cuda_add_library(qsim_decide MODULE decide.cpp)
-
-  if(DEFINED ENV{CUQUANTUM_ROOT})
-      target_compile_options(qsim_decide PRIVATE
-          $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
-      )
-  endif()
-
-  set_target_properties(qsim_decide PROPERTIES
-        PREFIX "${PYTHON_MODULE_PREFIX}"
-        SUFFIX "${PYTHON_MODULE_EXTENSION}"
-  )
-  set_source_files_properties(decide.cpp PROPERTIES LANGUAGE CUDA)
+    set_source_files_properties(decide.cpp PROPERTIES LANGUAGE CUDA)
 endif()
