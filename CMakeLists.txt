@@ -3,12 +3,12 @@ set(OpenMP_INCLUDE_DIR "/Users/bas.nijholt/micromamba/lib/clang/17.0.4/include")
 include_directories(${OpenMP_INCLUDE_DIR})
 cmake_minimum_required(VERSION 3.11)
 
+# Set APPLE_ARM to TRUE if running on Apple Silicon
 if(APPLE)
-    # Returns x86_64 or arm64
     execute_process(COMMAND uname -m OUTPUT_VARIABLE OSX_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
     if (OSX_ARCH STREQUAL "arm64")
         set(APPLE_ARM TRUE)
-    else()
+    else()  # x86_64
         set(APPLE_ARM FALSE)
     endif()
 else()
@@ -16,10 +16,14 @@ else()
 endif(APPLE)
 message(STATUS "APPLE_ARM: ${APPLE_ARM}")
 
+message(STATUS "CXX Flags: " ${CMAKE_CXX_FLAGS})
+message(STATUS "C Flags: " ${CMAKE_C_FLAGS})
+
+
+# basic and decide can be compiled with any compiler
 ADD_SUBDIRECTORY(pybind_interface/basic)
 ADD_SUBDIRECTORY(pybind_interface/decide)
 
-# You can then use this variable to control conditional compilation
 if(APPLE_ARM)
     project(qsim LANGUAGES CXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a")
@@ -45,4 +49,7 @@ else()
     ADD_SUBDIRECTORY(pybind_interface/avx512)
     ADD_SUBDIRECTORY(pybind_interface/avx2)
 endif()
-find_package(OpenMP REQUIRED)
+
+if(APPLE)
+    find_package(OpenMP REQUIRED)  # Automatically happens for Linux
+endif()

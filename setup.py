@@ -62,7 +62,7 @@ class CMakeBuild(build_ext):
             homebrew_x86 = "/usr/local/opt/llvm/bin"
             homebrew_arm = "/opt/homebrew/opt/llvm/bin"
             # Add clang
-            if shutil.which("clang") is not None:
+            if shutil.which("clang") is not None:  # Always prefer from PATH
                 cmake_args.append("-DCMAKE_C_COMPILER=clang")
             elif os.path.exists(f"{homebrew_x86}/clang"):
                 cmake_args.append(f"-DCMAKE_C_COMPILER={homebrew_x86}/clang")
@@ -70,7 +70,7 @@ class CMakeBuild(build_ext):
                 cmake_args.append(f"-DCMAKE_C_COMPILER={homebrew_arm}/clang")
 
             # Add clang++
-            if shutil.which("clang++") is not None:
+            if shutil.which("clang++") is not None:  # Always prefer from PATH
                 cmake_args.append("-DCMAKE_CXX_COMPILER=clang++")
             elif os.path.exists(f"{homebrew_x86}/clang++"):
                 cmake_args.append(f"-DCMAKE_CXX_COMPILER={homebrew_x86}/clang++")
