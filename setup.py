@@ -59,10 +59,23 @@ class CMakeBuild(build_ext):
             build_args += ["--", "-j2"]
 
         if platform.system() == "Darwin":
-            cmake_args += [
-                "-DCMAKE_C_COMPILER=/Users/bas.nijholt/micromamba/envs/py311/bin/clang",
-                "-DCMAKE_CXX_COMPILER=/Users/bas.nijholt/micromamba/envs/py311/bin/clang++",
-            ]
+            homebrew_x86 = "/usr/local/opt/llvm/bin"
+            homebrew_arm = "/opt/homebrew/opt/llvm/bin"
+            # Add clang
+            if shutil.which("clang") is not None:
+                cmake_args.append("-DCMAKE_C_COMPILER=clang")
+            elif os.path.exists(f"{homebrew_x86}/clang"):
+                cmake_args.append(f"-DCMAKE_C_COMPILER={homebrew_x86}/clang")
+            elif os.path.exists(f"{homebrew_arm}/clang"):
+                cmake_args.append(f"-DCMAKE_C_COMPILER={homebrew_arm}/clang")
+
+            # Add clang++
+            if shutil.which("clang++") is not None:
+                cmake_args.append("-DCMAKE_CXX_COMPILER=clang++")
+            elif os.path.exists(f"{homebrew_x86}/clang++"):
+                cmake_args.append(f"-DCMAKE_CXX_COMPILER={homebrew_x86}/clang++")
+            elif os.path.exists(f"{homebrew_arm}/clang++"):
+                cmake_args.append(f"-DCMAKE_CXX_COMPILER={homebrew_arm}/clang++")
 
         if shutil.which("hipcc") is not None:
             cmake_args += [
