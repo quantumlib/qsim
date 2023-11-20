@@ -12,17 +12,14 @@ find_package(pybind11 "${MIN_PYBIND_VERSION}" CONFIG)
 if (pybind11_FOUND)
   message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
   # The pybind11_add_module doesn't correctly set the CXX_INCLUDES properly if a system pybind11 is found.
-  # Using `include_directories(...)` doesn't result in anything in
+  # Using `include_directories(${pybind11_INCLUDE_DIRS})` doesn't result in anything in
   # CXX_INCLUDES. e.g., `pybind_interface/basic/CMakeFiles/qsim_basic.dir/flags.make` would only
   # have `CXX_INCLUDES = -isystem $PREFIX/include/python3.11` and would miss `$PREFIX/include`.
   # This problem would result in `fatal error: pybind11/complex.h: No such file or directory`
   # This is a hack to get around that by passing `-I/path/to/include` to CXX_FLAGS
-  execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE PYBIND11_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message(STATUS "pybind11 includes: ${PYBIND11_INCLUDES}")
-  # Separate the includes into a list and add them as individual compile options
-  separate_arguments(PYBIND11_INCLUDES_LIST UNIX_COMMAND "${PYBIND11_INCLUDES}")
-  foreach(INCLUDE_DIR ${PYBIND11_INCLUDES_LIST})
-    add_compile_options("${INCLUDE_DIR}")
+  # Iterate over each include directory and add it as a compile option
+  foreach(INCLUDE_DIR ${pybind11_INCLUDE_DIRS})
+    add_compile_options("-I${INCLUDE_DIR}")
   endforeach()
 endif()
 
