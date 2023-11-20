@@ -4,11 +4,11 @@ EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 TARGETS = qsim
 TESTS = run-cxx-tests
 
-CXX=x86_64-apple-darwin13.4.0-clang++
+CXX=g++
 NVCC=nvcc
 HIPCC=hipcc
 
-CXXFLAGS = -O3 -fopenmp -I
+CXXFLAGS = -O3 -fopenmp
 ARCHFLAGS = -march=native
 NVCCFLAGS = -O3
 HIPCCFLAGS = -O3

@@ -1,21 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-set(CMAKE_SYSTEM_PROCESSOR arm64)
 
-# Check if we are on an Apple system and if the architecture is ARM
-if(APPLE)
-    # Returns x86_64 or arm64
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE CMAKE_OSX_ARCHITECTURES OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if (OSX_ARCH STREQUAL "arm64")
-        set(APPLE_ARM TRUE)
-    else()
-        set(APPLE_ARM FALSE)
-    endif()
-else()
-    set(APPLE_ARM FALSE)
-endif(APPLE)
-message(STATUS "APPLE_ARM: ${APPLE_ARM}")
-
-# Set the project based on the detected platform
 if(APPLE_ARM)
     project(qsim LANGUAGES CXX)
 else()
@@ -38,7 +22,7 @@ ELSE()
     set(CMAKE_CXX_FLAGS "-O3 -fopenmp")
 ENDIF()
 
-if(APPLE)
+if(APPLE AND NOT APPLE_ARM)
     set(CMAKE_CXX_STANDARD 14)
     include_directories("/usr/local/include" "/usr/local/opt/llvm/include")
     link_directories("/usr/local/lib" "/usr/local/opt/llvm/lib")
@@ -48,12 +32,7 @@ INCLUDE(../GetPybind11.cmake)
 
 # Configure based on the detected platform
 if(APPLE_ARM)
-    # Configuration for Apple ARM
-    # Set additional flags if necessary
-    # Compile the module using standard C++
     pybind11_add_module(qsim_decide decide.cpp)
-    # Print a message to indicate the module is being compiled using standard C++
-    message(STATUS "Compiling qsim_decide using standard C++ on Apple ARM")
 elseif(has_nvcc STREQUAL "")
     if(has_hipcc STREQUAL "")
         pybind11_add_module(qsim_decide decide.cpp)

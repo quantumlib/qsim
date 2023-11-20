@@ -64,7 +64,6 @@ int detect_instructions() {
   return static_cast<int>(instr);
 }
 
-
 enum GPUCapabilities {
     CUDA = 0, CUSTATEVEC = 1, HIP = 2, NO_GPU = 10, NO_CUSTATEVEC = 11 };
 
