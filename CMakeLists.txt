@@ -14,11 +14,6 @@ if(APPLE)
 else()
     set(APPLE_ARM FALSE)
 endif(APPLE)
-message(STATUS "APPLE_ARM: ${APPLE_ARM}")
-
-message(STATUS "CXX Flags: " ${CMAKE_CXX_FLAGS})
-message(STATUS "C Flags: " ${CMAKE_C_FLAGS})
-
 
 # basic and decide can be compiled with any compiler
 ADD_SUBDIRECTORY(pybind_interface/basic)
