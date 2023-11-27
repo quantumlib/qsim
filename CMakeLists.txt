@@ -16,7 +16,6 @@ endif(APPLE)
 # Set the project name and language
 if(APPLE)
     project(qsim LANGUAGES CXX)
-    find_package(OpenMP REQUIRED)  # Automatically happens for Linux
 else()
     execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc OUTPUT_STRIP_TRAILING_WHITESPACE)
     if(has_nvcc)
@@ -30,6 +29,8 @@ else()
         endif()
     endif()
 endif()
+
+find_package(OpenMP REQUIRED)
 
 # Add subdirectories based on the architecture or available compilers
 ADD_SUBDIRECTORY(pybind_interface/basic)

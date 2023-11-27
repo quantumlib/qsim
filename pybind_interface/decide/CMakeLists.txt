@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.11)
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
 else()
-    set(CMAKE_CXX_FLAGS "-O3 -fopenmp")
+    set(CMAKE_CXX_FLAGS "-O3")
 endif()
 
 if(APPLE AND NOT APPLE_ARM)

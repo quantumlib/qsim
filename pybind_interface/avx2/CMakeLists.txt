@@ -4,7 +4,7 @@ project(qsim)
 IF (WIN32)
     set(CMAKE_CXX_FLAGS "/arch:AVX2 /O2 /openmp")
 ELSE()
-    set(CMAKE_CXX_FLAGS "-mavx2 -mfma -O3 -fopenmp")
+    set(CMAKE_CXX_FLAGS "-mavx2 -mfma -O3")
 ENDIF()
 
 if(APPLE)

@@ -4,7 +4,7 @@ project(qsim)
 IF (WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
 ELSE()
-    set(CMAKE_CXX_FLAGS "-msse4.1 -O3 -fopenmp")
+    set(CMAKE_CXX_FLAGS "-msse4.1 -O3")
 ENDIF()
 
 

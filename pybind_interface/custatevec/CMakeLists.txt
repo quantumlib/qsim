@@ -15,11 +15,11 @@
 cmake_minimum_required(VERSION 3.11)
 project(qsim LANGUAGES CXX CUDA)
 
-IF (WIN32)
+if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
-ELSE()
-    set(CMAKE_CXX_FLAGS "-O3 -fopenmp")
-ENDIF()
+else()
+    set(CMAKE_CXX_FLAGS "-O3")
+endif()
 
 if(APPLE)
     set(CMAKE_CXX_STANDARD 14)
