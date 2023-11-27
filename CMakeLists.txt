@@ -17,6 +17,8 @@ endif(APPLE)
 if(APPLE)
     project(qsim LANGUAGES CXX)
     find_package(OpenMP REQUIRED)  # Automatically happens for Linux
+    set(OpenMP_CXX_FLAGS "-fopenmp=libomp")
+    set(OpenMP_CXX_LIB_NAMES "libomp")
 else()
     execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc OUTPUT_STRIP_TRAILING_WHITESPACE)
     if(has_nvcc)
