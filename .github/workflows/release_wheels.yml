@@ -12,8 +12,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-12
+          - os: macos-12 # x86_64
             name: mac
+            cibw:
+              build: "cp37* cp38* cp39* cp310* cp311*"
+          - os: macos-13-large # Apple Silicon
+            name: mac_arm64
             cibw:
               build: "cp37* cp38* cp39* cp310* cp311*"
           - os: ubuntu-20.04
