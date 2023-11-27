@@ -35,11 +35,7 @@ enum Instructions { AVX512F = 0, AVX2 = 1, SSE4_1 = 2, BASIC = 3};
 int detect_instructions() {
   Instructions instr = BASIC;
 
-  // Check for ARM architecture, specifically for Apple M1 or similar
-  #if defined(__aarch64__) && defined(__APPLE__)
-  // On Apple ARM systems, always use BASIC
-  instr = BASIC;
-  #else
+  #if !defined(__aarch64__) || !defined(__APPLE__)
   // Existing x86/x86_64 specific instruction set detection logic
   int info[4];
   cpuid(info, 0);
