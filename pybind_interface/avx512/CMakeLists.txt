@@ -16,3 +16,5 @@ endif()
 
 INCLUDE(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
+
+target_link_libraries(qsim_avx512 PUBLIC OpenMP::OpenMP_CXX)

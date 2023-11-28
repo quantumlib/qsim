@@ -44,3 +44,5 @@ elseif(has_hipcc)
 else()
     pybind11_add_module(qsim_decide decide.cpp)
 endif()
+
+target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
