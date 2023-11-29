@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.18)
 project(qsim LANGUAGES CXX CUDA)
 
 if(WIN32)
@@ -27,8 +27,9 @@ endif()
 
 cuda_add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
 set_target_properties(qsim_cuda PROPERTIES
-       PREFIX "${PYTHON_MODULE_PREFIX}"
-       SUFFIX "${PYTHON_MODULE_EXTENSION}"
+    CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
 
