@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.11)
 project(qsim)
 
-IF (WIN32)
+if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
-ELSE()
-    set(CMAKE_CXX_FLAGS "-O3 -fopenmp")
-ENDIF()
+else()
+    set(CMAKE_CXX_FLAGS "-O3")
+endif()
 
 
 if(APPLE)
@@ -16,3 +16,5 @@ endif()
 
 INCLUDE(../GetPybind11.cmake)
 pybind11_add_module(qsim_basic pybind_main_basic.cpp)
+
+target_link_libraries(qsim_basic PUBLIC OpenMP::OpenMP_CXX)

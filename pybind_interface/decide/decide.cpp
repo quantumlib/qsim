@@ -21,8 +21,8 @@ namespace py = pybind11;
 #include <intrin.h>
 #define cpuid(info, x)    __cpuidex(info, x, 0)
 
-#else
-//  GCC Intrinsics
+#elif defined(__x86_64__) || defined(__i386__)
+// GCC Intrinsics for x86/x86_64
 #include <cpuid.h>
 void cpuid(int info[4], int infoType){
     __cpuid_count(infoType, 0, info[0], info[1], info[2], info[3]);
@@ -34,10 +34,11 @@ enum Instructions { AVX512F = 0, AVX2 = 1, SSE4_1 = 2, BASIC = 3};
 
 int detect_instructions() {
   Instructions instr = BASIC;
+
+  #if !defined(__aarch64__) || !defined(__APPLE__)
+  // Existing x86/x86_64 specific instruction set detection logic
   int info[4];
-
   cpuid(info, 0);
-
   int nIds = info[0];
   if (nIds >= 1) {
     cpuid(info, 1);
@@ -47,14 +48,14 @@ int detect_instructions() {
   }
   if (nIds >= 7) {
     cpuid(info, 7);
-    if ((info[1] & (1 <<  5))!= 0) {
+    if ((info[1] & (1 << 5)) != 0) {
       instr = AVX2;
     }
     if ((info[1] & (1 << 16)) != 0) {
       instr = AVX512F;
     }
-
   }
+  #endif
 
   return static_cast<int>(instr);
 }

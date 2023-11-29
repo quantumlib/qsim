@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.18)
 project(qsim LANGUAGES CXX HIP)
 
-IF (WIN32)
+if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
-ELSE()
-    set(CMAKE_CXX_FLAGS "-O3 -fopenmp")
-ENDIF()
+else()
+    set(CMAKE_CXX_FLAGS "-O3")
+endif()
 
 INCLUDE(../GetPybind11.cmake)
 find_package(PythonLibs 3.7 REQUIRED)
@@ -22,3 +22,5 @@ set_target_properties(qsim_hip PROPERTIES
        SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_hip.cpp PROPERTIES LANGUAGE HIP)
+
+target_link_libraries(qsim_hip PUBLIC OpenMP::OpenMP_CXX)

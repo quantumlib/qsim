@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.11)
 project(qsim LANGUAGES CXX CUDA)
 
-IF (WIN32)
+if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
-ELSE()
-    set(CMAKE_CXX_FLAGS "-O3 -fopenmp")
-ENDIF()
+else()
+    set(CMAKE_CXX_FLAGS "-O3")
+endif()
 
 
 if(APPLE)
@@ -26,3 +26,5 @@ set_target_properties(qsim_cuda PROPERTIES
        SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
+
+target_link_libraries(qsim_cuda PUBLIC OpenMP::OpenMP_CXX)
