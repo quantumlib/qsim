@@ -18,7 +18,12 @@ INCLUDE(../GetPybind11.cmake)
 find_package(PythonLibs 3.7 REQUIRED)
 find_package(CUDA REQUIRED)
 
-include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
+include_directories(${PYTHON_INCLUDE_DIRS})
+if(pybind11_FOUND)
+    include_directories(${pybind11_INCLUDE_DIRS})
+else()  # means pybind11 has been fetched in GetPybind11.cmake
+    include_directories(${pybind11_SOURCE_DIR}/include)
+endif()
 
 cuda_add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
 set_target_properties(qsim_cuda PROPERTIES
