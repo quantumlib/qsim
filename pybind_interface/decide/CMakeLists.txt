@@ -30,6 +30,7 @@ if(has_nvcc)
             SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
     set_source_files_properties(decide.cpp PROPERTIES LANGUAGE CUDA)
+    target_link_libraries(qsim_decide OpenMP::OpenMP_CXX)
 elseif(has_hipcc)
     list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")
     find_package(HIP REQUIRED)
@@ -41,8 +42,9 @@ elseif(has_hipcc)
             PREFIX "${PYTHON_MODULE_PREFIX}"
             SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
+    target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
 else()
     pybind11_add_module(qsim_decide decide.cpp)
+    target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
