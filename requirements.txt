@@ -3,3 +3,4 @@ cirq-core~=1.0
 numpy~=1.16
 pybind11
 typing_extensions
+packaging
