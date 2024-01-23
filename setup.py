@@ -27,6 +27,7 @@ class CMakeBuild(build_ext):
 
         if platform.system() == "Windows":
             from packaging.version import parse
+
             cmake_version = parse(
                 re.search(r"version\s*([\d.]+)", out.decode()).group(1)
             )
