@@ -7,7 +7,6 @@ import subprocess
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from packaging.version import parse
 
 
 class CMakeExtension(Extension):
@@ -27,10 +26,11 @@ class CMakeBuild(build_ext):
             )
 
         if platform.system() == "Windows":
+            from packaging.version import parse
             cmake_version = parse(
                 re.search(r"version\s*([\d.]+)", out.decode()).group(1)
             )
-            if cmake_version < "3.1.0":
+            if cmake_version < parse("3.1.0"):
                 raise RuntimeError("CMake >= 3.1.0 is required on Windows")
 
         for ext in self.extensions:
