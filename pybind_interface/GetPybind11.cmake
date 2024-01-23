@@ -14,7 +14,7 @@ if (pybind11_FOUND)
   # The pybind11_add_module doesn't correctly set the CXX_INCLUDES properly if a system pybind11 is found.
   # Using `include_directories(${pybind11_INCLUDE_DIRS})` doesn't result in anything in
   # CXX_INCLUDES. e.g., `pybind_interface/basic/CMakeFiles/qsim_basic.dir/flags.make` would only
-  # have `CXX_INCLUDES = -isystem $PREFIX/include/python3.11` and would miss `$PREFIX/include`.
+  # have `CXX_INCLUDES = -isystem $PREFIX/include/python3.12` and would miss `$PREFIX/include`.
   # This problem would result in `fatal error: pybind11/complex.h: No such file or directory`
   # This is a hack to get around that by passing `-I/path/to/include` to CXX_FLAGS
   # Iterate over each include directory and add it as a compile option

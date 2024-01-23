@@ -2,7 +2,7 @@
 FROM qsim
 
 # Install additional requirements
-RUN apt-get install -y python3-dev python3-pybind11 python3-pip python3-venv python3-packaging
+RUN apt-get install -y python3-dev python3-pybind11 python3-pip python3-venv
 
 # Create venv to avoid collision between system packages (e.g. numpy) and Cirq's deps.
 RUN python3 -m venv test_env
