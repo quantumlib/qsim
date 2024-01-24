@@ -128,7 +128,7 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
    * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
    *   (or pointers to gates) in. Gate times of the gates that act on the same
    *   qubits should be ordered. Gates that are out of time order should not
-   *   cross the time boundaries set by `times_to_split_at` or by measurment
+   *   cross the time boundaries set by `times_to_split_at` or by measurement
    *   gates.
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
    *   to separate fused gates. Each element of the output will contain gates
