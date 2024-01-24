@@ -1,5 +1,5 @@
 set(CMAKE_CXX_STANDARD 11)
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.11)
 
 # Set APPLE_ARM to TRUE if running on Apple Silicon
 if(APPLE)
