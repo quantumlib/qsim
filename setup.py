@@ -117,7 +117,7 @@ setup(
     author_email="devabathini92@gmail.com",
     python_requires=">=3.7.0,<3.12.0",
     install_requires=requirements,
-    build_requires=requirements + ["packaging"],
+    setup_requires=requirements + ["packaging"],
     extras_require={
         "dev": dev_requirements,
     },
