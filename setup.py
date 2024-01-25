@@ -118,7 +118,7 @@ setup(
     url="https://github.com/quantumlib/qsim",
     author="Vamsi Krishna Devabathini",
     author_email="devabathini92@gmail.com",
-    python_requires=">=3.7.0,<3.12.0",
+    python_requires=">=3.7.0",
     install_requires=requirements,
     setup_requires=["packaging"],
     extras_require={
