@@ -388,10 +388,10 @@ class QSimSimulator(
             bitstrings: The bitstrings whose amplitudes are desired, input as an
               string array where each string is formed from measured qubit values
               according to `qubit_order` from most to least significant qubit,
-              i.e. in big-endian ordering.
+              i.e., in big-endian ordering.
             param_resolver: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This is
-              often used in specifying the initial state, i.e. the ordering of the
+              often used in specifying the initial state, i.e., the ordering of the
               computational basis states.
 
         Yields:
@@ -539,7 +539,7 @@ class QSimSimulator(
             program: The circuit to simulate.
             params: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This is
-              often used in specifying the initial state, i.e. the ordering of the
+              often used in specifying the initial state, i.e., the ordering of the
               computational basis states.
             initial_state: The initial state for the simulation. This can either
               be an integer representing a pure state (e.g. 11010) or a numpy
@@ -587,7 +587,7 @@ class QSimSimulator(
             observables: An observable or list of observables.
             params: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This
-                is often used in specifying the initial state, i.e. the
+                is often used in specifying the initial state, i.e., the
                 ordering of the computational basis states.
             initial_state: The initial state for the simulation. The form of
                 this state depends on the simulation implementation. See
@@ -706,7 +706,7 @@ class QSimSimulator(
                 or observable list to calculate after ALL moments.
             param_resolver: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This
-                is often used in specifying the initial state, i.e. the
+                is often used in specifying the initial state, i.e., the
                 ordering of the computational basis states.
             initial_state: The initial state for the simulation. The form of
                 this state depends on the simulation implementation. See
