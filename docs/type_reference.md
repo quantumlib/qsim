@@ -12,11 +12,11 @@ they fulfill the same expectations.
 | Bitstring               | Alias for `uint64_t`.                             |
 | Circuit                 | [`Circuit`](https://github.com/quantumlib/qsim/tree/master/lib/circuit.h)                        |
 | Container (util.h)      | A vector of strings, or `Op`'s output type.       |
-| Ctype                   | A complex type, e.g. `std::complex<float>`.       |
+| Ctype                   | A complex type, e.g., `std::complex<float>`.      |
 | For                     | `for` loop abstractions, see below.               |
 | ForArgs                 | Arguments for constructing `For` objects, see below. |
 | FP (simulator_basic.h)  | Same as `fp_type`.                                |
-| fp_type                 | A floating-point type, i.e. `float` or `double`.  |
+| fp_type                 | A floating-point type, i.e., `float` or `double`. |
 | Function (parfor.h)     | Any function; args are specified with `Args`.     |
 | FuserT                  | [`BasicGateFuser`](https://github.com/quantumlib/qsim/tree/master/lib/fuser_basic.h)             |
 | Gate                    | [`Gate`](https://github.com/quantumlib/qsim/tree/master/lib/gate.h)                              |

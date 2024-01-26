@@ -73,7 +73,7 @@ backends and do not involve sampling bitstrings (i.e. no measure gates).
 For GPU-based simulations, you can either use qsim's native GPU backend
 or the NVIDIA cuQuantum backend. While the native qsim GPU backend is performant
 for extracting amplitudes of specific quantum states, it is not optimized for
-sampling bitstrings, i.e. for simulating circuits that have measurement gates. For
+sampling bitstrings, i.e., for simulating circuits that have measurement gates. For
 that purpose, cuQuantum performs significantly better. cuQuantum is also needed
 for multi-GPU support. More specifically, there are three options for GPU-based
 simulations:
@@ -132,9 +132,9 @@ Alternatively, you can use your own hardware.
 Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/getting_started.html#custatevec)
 for NVIDIA's cuQuantum when picking a GPU; in particular, it must have
 CUDA Compute Capability 7.0 or higher.
-At the time of writing, the following compatable GPUs are available on GCP:
+At the time of writing, the following compatible GPUs are available on GCP:
 *    [NVIDIA T4](https://www.techpowerup.com/gpu-specs/tesla-t4.c3316).
-     This is the least expensive compatable GPU on GCP.
+     This is the least expensive compatible GPU on GCP.
      It has 16GB of memory and can therefore simulate up to 30 qubits.
      It is not compatible with multi-GPU simulations.
 *    [NVIDIA V100](https://www.techpowerup.com/gpu-specs/tesla-v100-pcie-16-gb.c2957).

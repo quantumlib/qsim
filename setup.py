@@ -4,10 +4,10 @@ import sys
 import shutil
 import platform
 import subprocess
+import sysconfig
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from distutils.version import LooseVersion
 
 
 class CMakeExtension(Extension):
@@ -27,10 +27,12 @@ class CMakeBuild(build_ext):
             )
 
         if platform.system() == "Windows":
-            cmake_version = LooseVersion(
+            from packaging.version import parse
+
+            cmake_version = parse(
                 re.search(r"version\s*([\d.]+)", out.decode()).group(1)
             )
-            if cmake_version < "3.1.0":
+            if cmake_version < parse("3.1.0"):
                 raise RuntimeError("CMake >= 3.1.0 is required on Windows")
 
         for ext in self.extensions:
@@ -38,10 +40,12 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        python_include_dir = sysconfig.get_path("include")
         cmake_args = [
             "-DCMAKE_CUDA_COMPILER=nvcc",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
+            "-DPYTHON_INCLUDE_DIR=" + python_include_dir,
         ]
 
         cfg = "Debug" if self.debug else "Release"
@@ -114,8 +118,9 @@ setup(
     url="https://github.com/quantumlib/qsim",
     author="Vamsi Krishna Devabathini",
     author_email="devabathini92@gmail.com",
-    python_requires=">=3.7.0,<3.12.0",
+    python_requires=">=3.7.0",
     install_requires=requirements,
+    setup_requires=["packaging"],
     extras_require={
         "dev": dev_requirements,
     },
