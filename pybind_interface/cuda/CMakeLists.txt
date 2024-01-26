@@ -27,4 +27,4 @@ set_target_properties(qsim_cuda PROPERTIES
 )
 set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_cuda PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_cuda OpenMP::OpenMP_CXX)
