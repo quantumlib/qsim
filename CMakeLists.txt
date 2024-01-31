@@ -1,17 +1,12 @@
 set(CMAKE_CXX_STANDARD 11)
 cmake_minimum_required(VERSION 3.11)
 
-# Set APPLE_ARM to TRUE if running on Apple Silicon
-if(APPLE)
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE OSX_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if (OSX_ARCH STREQUAL "arm64")
-        set(APPLE_ARM TRUE)
-    else()  # x86_64
-        set(APPLE_ARM FALSE)
-    endif()
+# Check if CMAKE_SYSTEM_NAME is Darwin (macOS) and CMAKE_SYSTEM_PROCESSOR is arm64
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(APPLE_ARM TRUE)
 else()
     set(APPLE_ARM FALSE)
-endif(APPLE)
+endif()
 
 # Set the project name and language
 if(APPLE)
