@@ -40,8 +40,8 @@ cuda_add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
 target_link_libraries(qsim_custatevec -lcustatevec -lcublas)
 
 set_target_properties(qsim_custatevec PROPERTIES
-       PREFIX "${PYTHON_MODULE_PREFIX}"
-       SUFFIX "${PYTHON_MODULE_EXTENSION}"
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_custatevec.cpp PROPERTIES LANGUAGE CUDA)
 
