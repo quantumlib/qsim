@@ -48,6 +48,10 @@ class CMakeBuild(build_ext):
             "-DPYTHON_INCLUDE_DIR=" + python_include_dir,
         ]
 
+        additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
+        if additional_cmake_args:
+            cmake_args += additional_cmake_args.split()
+
         cfg = "Debug" if self.debug else "Release"
         build_args = ["--config", cfg]
 

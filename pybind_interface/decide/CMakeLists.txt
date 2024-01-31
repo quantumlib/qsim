@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.18)
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
@@ -26,8 +26,9 @@ if(has_nvcc)
     find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
-            PREFIX "${PYTHON_MODULE_PREFIX}"
-            SUFFIX "${PYTHON_MODULE_EXTENSION}"
+        CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
+        PREFIX "${PYTHON_MODULE_PREFIX}"
+        SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
     set_source_files_properties(decide.cpp PROPERTIES LANGUAGE CUDA)
     target_link_libraries(qsim_decide OpenMP::OpenMP_CXX)
@@ -39,8 +40,8 @@ elseif(has_hipcc)
     find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
-            PREFIX "${PYTHON_MODULE_PREFIX}"
-            SUFFIX "${PYTHON_MODULE_EXTENSION}"
+        PREFIX "${PYTHON_MODULE_PREFIX}"
+        SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
     target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
 else()
