@@ -25,25 +25,36 @@ file. You can install them with `pip3 install -r dev-requirements.txt` or
 
 ## Linux installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{7,8,9,10,11}`.
+We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with `Python 3.{7,8,9,10,11,12}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## MacOS installation
 
-We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{7,8,9,10,11}`.
+We provide `qsimcirq` Python wheels on `x86` architectures with `Python 3.{7,8,9,10,11,12}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## Windows installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{7,8,9,10,11}`.
+We provide `qsimcirq` Python wheels on 64-bit `x86` and `amd64` architectures with `Python 3.{7,8,9,10,11,12}`.
 
 Simply run `pip3 install qsimcirq`.
 
 ## There's no compatible wheel for my machine!
 
 If existing wheels do no meet your needs please open an issue with your machine configuration (i.e. CPU architecture, Python version) and consider using the [Docker config](./docker.md) provided with this repository.
+
+## Conda Installation
+
+`qsimcirq` is now also available on conda-forge for Linux x86 including CUDA builds and MacOS x86 and Apple Silicon ARM64.
+To install `qsimcirq` using conda, you can use the following command:
+
+```
+conda install -c conda-forge qsimcirq
+```
+
+This will install the `qsimcirq` package from the conda-forge channel.
 
 ## Testing
 
