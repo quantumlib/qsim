@@ -35,6 +35,11 @@ instance section, ensure that your VM has the following properties:
     1.   In the **Operating System** option, choose **Ubuntu**.
     2.   In the **Version** option, choose **20.04 LTS**.
     3.   In the **Size** field, enter **40** (minimum).
+
+    **Alternatively, you can click the "Switch Image" button and use the image with
+    CUDA pre-installed, which lets you skip step 3. I have verified that this works
+    with cuQuantum Appliance (option 3).**
+
 *   The instructions above override steps 3 through 5 in the [Create a Linux VM
     instance](https://cloud.google.com/compute/docs/quickstart-linux)
     Quickstart.
@@ -176,8 +181,8 @@ to set up NVIDIA Container Toolkit.
 
 ## 9. Install NVIDIA cuQuantum Appliance (Option 3 only)
 Follow the instructions [here](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuquantum-appliance)
-to set up cuQuantum Appliance. You may need to use `sudo` for the Docker commands.
-
+to set up cuQuantum Appliance. If this link is broken, you can try the [cached page](https://webcache.googleusercontent.com/search?q=cache%3Ahttps%3A%2F%2Fcatalog.ngc.nvidia.com%2Forgs%2Fnvidia%2Fcontainers%2Fcuquantum-appliance&rlz=1CAFOSO_enUS1067&oq=cache%3Ahttps%3A%2F%2Fcatalog.ngc.nvidia.com%2Forgs%2Fnvidia%2Fcontainers%2Fcuquantum-appliance&gs_lcrp=EgZjaHJvbWUqBggAEEUYOzIGCAAQRRg7MgYIARBFGDoyBggCEEUYPDIGCAMQRRg80gEIMzMyMGowajSoAgCwAgA).
+You may need to use `sudo` for the Docker commands.
 
 ## 10. Verify your installation (Options 1, 2, and 3)
 
