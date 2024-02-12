@@ -190,7 +190,8 @@ the code directly into the REPL, or paste the code in a file. See the documentat
 [here](https://quantumai.google/reference/python/qsimcirq/QSimOptions) for Options 1
 and 2 or [here](https://docs.nvidia.com/cuda/cuquantum/appliance/cirq.html) for Option 3.
 Make sure to change `xx` to 0 for Option 1, 1 for Option 2, or the number of GPUs for
-Option 3.
+Option 3. For option 3, note that `QSimOptions` has a `disable_gpu` flag instead of a
+`use_gpu` flag.
 
 ```
 # Import Cirq and qsim
@@ -202,8 +203,10 @@ q0, q1 = cirq.LineQubit.range(2)
 circuit = cirq.Circuit(cirq.H(q0), cirq.CX(q0, q1))
 
 # Instantiate a simulator that uses the GPU
-# xx = 0 for Option 1, 1 for Option 2, or the number of GPUs for Option 3.
-gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode = xx, max_fused_gate_size=4)
+# Option 1 (mode=0) or Option 2 (mode=1)
+gpu_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode = mode, max_fused_gate_size=4)
+# Option 3 (number of GPUs = `num_gpus`)
+gpu_options = qsimcirq.QSimOptions(disable_gpu=False, gpu_mode = num_gpus, max_fused_gate_size=4)
 qsim_simulator = qsimcirq.QSimSimulator(qsim_options=gpu_options)
 
 # Run the simulation
