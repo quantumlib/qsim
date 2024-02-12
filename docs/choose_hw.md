@@ -129,7 +129,7 @@ choose a specific machine:
 For GPU simulations, you may follow the instructions in [this](tutorials/gcp_gpu)
 guide to set up a virtual machine (VM) on Google Cloud Platform (GCP).
 Alternatively, you can use your own hardware.
-Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/getting_started.html#custatevec)
+Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html#custatevec)
 for NVIDIA's cuQuantum when picking a GPU; in particular, it must have
 CUDA Compute Capability 7.0 or higher.
 At the time of writing, the following compatible GPUs are available on GCP:
@@ -140,8 +140,8 @@ At the time of writing, the following compatible GPUs are available on GCP:
 *    [NVIDIA V100](https://www.techpowerup.com/gpu-specs/tesla-v100-pcie-16-gb.c2957).
      Like the NVIDIA T4, this GPU has 16GB of RAM and
      therefore supports up to 30 qubits. It is faster than the T4.
-     Further, it is compatible with multi-GPU simulations. With 8 NVIDIA V100s (128GB),
-     you can simulate up to 33 qubits.
+     Further, it is compatible with multi-GPU simulations. With 4 NVIDIA V100s (64GB),
+     you can simulate up to 32 qubits.
 *    [NVIDIA L4](https://www.techpowerup.com/gpu-specs/l4.c4091). This GPU has 24GB
      of RAM and can therefore simulate up to 31 qubits. With eight of them (192GB), you can simulate
      up to 34 qubits.
