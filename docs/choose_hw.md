@@ -129,7 +129,7 @@ choose a specific machine:
 For GPU simulations, you may follow the instructions in [this](tutorials/gcp_gpu)
 guide to set up a virtual machine (VM) on Google Cloud Platform (GCP).
 Alternatively, you can use your own hardware.
-Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/getting_started.html#custatevec)
+Note the [hardware requirements](https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html#custatevec)
 for NVIDIA's cuQuantum when picking a GPU; in particular, it must have
 CUDA Compute Capability 7.0 or higher.
 At the time of writing, the following compatible GPUs are available on GCP:
