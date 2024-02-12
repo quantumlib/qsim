@@ -140,8 +140,8 @@ At the time of writing, the following compatible GPUs are available on GCP:
 *    [NVIDIA V100](https://www.techpowerup.com/gpu-specs/tesla-v100-pcie-16-gb.c2957).
      Like the NVIDIA T4, this GPU has 16GB of RAM and
      therefore supports up to 30 qubits. It is faster than the T4.
-     Further, it is compatible with multi-GPU simulations. With 8 NVIDIA V100s (128GB),
-     you can simulate up to 33 qubits.
+     Further, it is compatible with multi-GPU simulations. With 4 NVIDIA V100s (64GB),
+     you can simulate up to 32 qubits.
 *    [NVIDIA L4](https://www.techpowerup.com/gpu-specs/l4.c4091). This GPU has 24GB
      of RAM and can therefore simulate up to 31 qubits. With eight of them (192GB), you can simulate
      up to 34 qubits.
