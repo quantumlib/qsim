@@ -22,6 +22,7 @@
 #include <pybind11/stl_bind.h>
 namespace py = pybind11;
 
+#include <map>
 #include <vector>
 
 #include "../lib/circuit.h"
@@ -75,10 +76,15 @@ void add_channel(const unsigned time,
                      prob_matrix_unitary_triples,
                  qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
 
-// Method for populating opstrings.
+// Methods for populating opstrings.
 void add_gate_to_opstring(
     const qsim::Cirq::GateKind gate_kind,
     const std::vector<unsigned>& qubits,
+    qsim::OpString<qsim::Cirq::GateCirq<float>>* opstring);
+
+void add_matrix_gate_to_opstring(
+    const std::vector<unsigned>& qubits,
+    const std::vector<float>& matrix,
     qsim::OpString<qsim::Cirq::GateCirq<float>>* opstring);
 
 // Methods for simulating noiseless circuits.
@@ -376,7 +382,9 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
             "Adds a channel to the given noisy circuit.");                            \
                                                                                       \
       m.def("add_gate_to_opstring", &add_gate_to_opstring,                            \
-            "Adds a gate to the given opstring.");
+            "Adds a gate to the given opstring.");                                    \
+      m.def("add_matrix_gate_to_opstring", &add_matrix_gate_to_opstring,              \
+            "Adds a matrix gate to the given opstring.");
 
 #define GPU_MODULE_BINDINGS                                                                  \
       m.doc() = "pybind11 plugin";  /* optional module docstring */                   \

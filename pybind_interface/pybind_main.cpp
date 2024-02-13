@@ -356,6 +356,12 @@ void add_gate_to_opstring(const Cirq::GateKind gate_kind,
   opstring->ops.push_back(create_gate(gate_kind, 0, qubits, params));
 }
 
+void add_matrix_gate_to_opstring(const std::vector<unsigned>& qubits,
+                                 const std::vector<float>& matrix,
+                                 OpString<Cirq::GateCirq<float>>* opstring) {
+  opstring->ops.push_back(create_matrix_gate(0, qubits, matrix));
+}
+
 // Methods for simulating amplitudes.
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
