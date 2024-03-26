@@ -203,8 +203,8 @@ class StateSpaceBasic :
       const fp_type* p = state.get();
 
       for (uint64_t k = 0; k < size; ++k) {
-        auto re = p[2 * k];
-        auto im = p[2 * k + 1];
+        double re = p[2 * k];
+        double im = p[2 * k + 1];
         norm += re * re + im * im;
       }
 
@@ -215,13 +215,17 @@ class StateSpaceBasic :
       bitstrings.reserve(num_samples);
 
       for (uint64_t k = 0; k < size; ++k) {
-        auto re = p[2 * k];
-        auto im = p[2 * k + 1];
+        double re = p[2 * k];
+        double im = p[2 * k + 1];
         csum += re * re + im * im;
         while (rs[m] < csum && m < num_samples) {
           bitstrings.emplace_back(k);
           ++m;
         }
+      }
+
+      for (; m < num_samples; ++m) {
+        bitstrings.emplace_back((uint64_t{1} << state.num_qubits()) - 1);
       }
     }
 
