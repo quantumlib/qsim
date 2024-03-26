@@ -333,8 +333,8 @@ class StateSpaceAVX512 :
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 16; ++j) {
-          auto re = p[32 * k + j];
-          auto im = p[32 * k + 16 + j];
+          double re = p[32 * k + j];
+          double im = p[32 * k + 16 + j];
           norm += re * re + im * im;
         }
       }
@@ -347,14 +347,18 @@ class StateSpaceAVX512 :
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 16; ++j) {
-          auto re = p[32 * k + j];
-          auto im = p[32 * k + 16 + j];
+          double re = p[32 * k + j];
+          double im = p[32 * k + 16 + j];
           csum += re * re + im * im;
           while (rs[m] < csum && m < num_samples) {
             bitstrings.emplace_back(16 * k + j);
             ++m;
           }
         }
+      }
+
+      for (; m < num_samples; ++m) {
+        bitstrings.emplace_back((uint64_t{1} << state.num_qubits()) - 1);
       }
     }
 

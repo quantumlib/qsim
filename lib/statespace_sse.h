@@ -342,8 +342,8 @@ class StateSpaceSSE :
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 4; ++j) {
-          auto re = p[8 * k + j];
-          auto im = p[8 * k + 4 + j];
+          double re = p[8 * k + j];
+          double im = p[8 * k + 4 + j];
           norm += re * re + im * im;
         }
       }
@@ -356,14 +356,18 @@ class StateSpaceSSE :
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 4; ++j) {
-          auto re = p[8 * k + j];
-          auto im = p[8 * k + 4 + j];
+          double re = p[8 * k + j];
+          double im = p[8 * k + 4 + j];
           csum += re * re + im * im;
           while (rs[m] < csum && m < num_samples) {
             bitstrings.emplace_back(4 * k + j);
             ++m;
           }
         }
+      }
+
+      for (; m < num_samples; ++m) {
+        bitstrings.emplace_back((uint64_t{1} << state.num_qubits()) - 1);
       }
     }
 

@@ -382,8 +382,8 @@ class StateSpaceAVX :
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 8; ++j) {
-          auto re = p[16 * k + j];
-          auto im = p[16 * k + 8 + j];
+          double re = p[16 * k + j];
+          double im = p[16 * k + 8 + j];
           norm += re * re + im * im;
         }
       }
@@ -396,14 +396,18 @@ class StateSpaceAVX :
 
       for (uint64_t k = 0; k < size; ++k) {
         for (unsigned j = 0; j < 8; ++j) {
-          auto re = p[16 * k + j];
-          auto im = p[16 * k + 8 + j];
+          double re = p[16 * k + j];
+          double im = p[16 * k + 8 + j];
           csum += re * re + im * im;
           while (rs[m] < csum && m < num_samples) {
             bitstrings.emplace_back(8 * k + j);
             ++m;
           }
         }
+      }
+
+      for (; m < num_samples; ++m) {
+        bitstrings.emplace_back((uint64_t{1} << state.num_qubits()) - 1);
       }
     }
 
