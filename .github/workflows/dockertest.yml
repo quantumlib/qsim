@@ -24,7 +24,7 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Build Docker images
-        run: docker-compose build
+        run: docker compose build
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
       - name: Run Python tests
@@ -34,4 +34,4 @@ jobs:
       - name: Test install process
         run: |
           cd install/tests
-          docker-compose up --build
+          docker compose up --build
