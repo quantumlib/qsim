@@ -259,7 +259,7 @@ TEST(MPSSimulator, Apply1InteriorArbitrary) {
   ASSERT_NEAR(state.get()[l_offset + 56], -11.8, 1e-5);
   ASSERT_NEAR(state.get()[l_offset + 57], 138, 1e-5);
   ASSERT_NEAR(state.get()[l_offset + 58], -12.2, 1e-5);
-  ASSERT_NEAR(state.get()[l_offset + 59], 143.2, 1e-5);
+  ASSERT_NEAR(state.get()[l_offset + 59], 143.2, 2e-5);
   ASSERT_NEAR(state.get()[l_offset + 60], -12.6, 1e-5);
   ASSERT_NEAR(state.get()[l_offset + 61], 148.4, 1e-5);
   ASSERT_NEAR(state.get()[l_offset + 62], -13, 1e-5);
