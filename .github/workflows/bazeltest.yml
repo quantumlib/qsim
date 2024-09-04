@@ -21,7 +21,7 @@ jobs:
         parallel_opt: [openmp,nopenmp]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
@@ -50,7 +50,7 @@ jobs:
         sanitizer_opt: [msan,asan]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install Bazel on CI

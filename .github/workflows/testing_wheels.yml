@@ -50,7 +50,7 @@ jobs:
       CIBW_TEST_EXTRAS: "dev"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v2
