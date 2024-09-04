@@ -20,22 +20,22 @@ jobs:
           - os: macos-12 # x86_64
             name: mac
             cibw:
-              build: "cp37* cp38* cp39* cp310* cp311* cp312*"
+              build: "cp38* cp39* cp310* cp311* cp312*"
           - os: macos-13-large # Apple Silicon
             name: mac_arm64
             cibw:
-              build: "cp37* cp38* cp39* cp310* cp311* cp312*"
+              build: "cp38* cp39* cp310* cp311* cp312*"
           - os: ubuntu-20.04
             name: manylinux2014
             cibw:
               arch: x86_64
-              build: "cp37* cp38* cp39* cp310* cp311* cp312*"
+              build: "cp38* cp39* cp310* cp311* cp312*"
               manylinux_image: manylinux2014
           - os: windows-2019
             name: win_amd64
             architecture: x64
             cibw:
-              build: "cp37-win_amd64 cp38-win_amd64 cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
+              build: "cp38-win_amd64 cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
     env:
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_SKIP: "*musllinux*"
@@ -73,4 +73,3 @@ jobs:
         with:
           name: python-wheels
           path: ./wheelhouse/*.whl
-
