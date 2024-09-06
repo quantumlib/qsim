@@ -33,7 +33,7 @@ jobs:
             cibw:
               build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
     env:
-      MACOSX_DEPLOYMENT_TARGET: "12.0"
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_SKIP: "*musllinux*"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
