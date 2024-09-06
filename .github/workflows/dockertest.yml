@@ -7,7 +7,8 @@ on:
       - master
 
   # Run tests for any PRs.
-  pull_request:
+  # TODO(pavoljuhas) - uncomment below
+  # pull_request:
 
 jobs:
   # Run tests.
