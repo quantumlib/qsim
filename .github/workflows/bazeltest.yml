@@ -6,8 +6,7 @@ on:
     branches:
       - master
 
-  # TODO(pavoljuhas) - uncomment below
-  # pull_request:
+  pull_request:
 
 jobs:
   # Run tests with Bazel v5.3.0.
