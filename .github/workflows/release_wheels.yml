@@ -14,10 +14,14 @@ jobs:
         include:
           - os: macos-12 # x86_64
             name: mac
+            env:
+              macosx_deployment_target: "12.0"
             cibw:
               build: "cp39* cp310* cp311* cp312*"
           - os: macos-13-large # Apple Silicon
             name: mac_arm64
+            env:
+              macosx_deployment_target: "13.0"
             cibw:
               build: "cp39* cp310* cp311* cp312*"
           - os: ubuntu-20.04
@@ -32,7 +36,7 @@ jobs:
             cibw:
               build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
     env:
-      MACOSX_DEPLOYMENT_TARGET: "13.0"
+      MACOSX_DEPLOYMENT_TARGET: "${{ matrix.env.macosx_deployment_target }}"
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       CIBW_SKIP: "*musllinux*"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
@@ -42,7 +46,7 @@ jobs:
       # to install latest delocate package
       CIBW_DEPENDENCY_VERSIONS: "latest"
       # due to package and module name conflict have to temporarily move it away to run tests
-      CIBW_BEFORE_TEST: mv {package}/qsimcirq /tmp
+      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
       CIBW_TEST_EXTRAS: "dev"
       CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
@@ -70,7 +74,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: python-wheels
+          name: python-wheels-${{ matrix.name }}
           path: ./wheelhouse/*.whl
   release-wheels:
     name: Publish all wheels
