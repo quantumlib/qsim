@@ -4,11 +4,6 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
-  # TODO - temporary for job testing only
-  push:
-    branches:
-      - master
-
 jobs:
   consistency:
     name: Nightly Compatibility
