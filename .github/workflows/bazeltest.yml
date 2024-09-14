@@ -12,7 +12,7 @@ jobs:
   # Run tests with Bazel v5.3.0.
   test:
     name: Test with Bazel
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         # Hardware optimizers.
@@ -21,7 +21,7 @@ jobs:
         parallel_opt: [openmp,nopenmp]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
@@ -43,14 +43,14 @@ jobs:
 
   test-san:
     name: Sanitizer tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         # Test sanitizers
         sanitizer_opt: [msan,asan]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install Bazel on CI
