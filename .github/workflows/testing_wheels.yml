@@ -71,9 +71,6 @@ jobs:
       - name: Run C++ tests
         run: bash build_tools/test_libs.sh
 
-      - name: Show environment variables
-        run: env
-
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
 
