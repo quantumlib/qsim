@@ -19,10 +19,10 @@ git submodule update --init --recursive
 To build qsim and run all the tests:
 
 ```
-# docker-compose up --build
+# docker compose up --build
 ```
 
-`docker-compose` will create the `qsim`, `qsim-cxx-tests`, and `qsim-py-tests`
+`docker compose` will create the `qsim`, `qsim-cxx-tests`, and `qsim-py-tests`
 images and automatically run all tests. A successful run should have the
 following messages somewhere in the logs:
 
@@ -34,7 +34,7 @@ qsim-py-tests exited with code 0
 To build without running tests, simply run:
 
 ```
-# docker-compose build
+# docker compose build
 ```
 
 ## Run Simulations
