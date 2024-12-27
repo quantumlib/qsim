@@ -22,24 +22,24 @@ jobs:
             env:
               macosx_deployment_target: "12.0"
             cibw:
-              build: "cp39* cp310* cp311* cp312*"
+              build: "cp310* cp311* cp312*"
           - os: macos-13-large # Apple Silicon
             name: mac_arm64
             env:
               macosx_deployment_target: "13.0"
             cibw:
-              build: "cp39* cp310* cp311* cp312*"
+              build: "cp310* cp311* cp312*"
           - os: ubuntu-22.04
             name: manylinux2014
             cibw:
               arch: x86_64
-              build: "cp39* cp310* cp311* cp312*"
+              build: "cp310* cp311* cp312*"
               manylinux_image: manylinux2014
           - os: windows-2019
             name: win_amd64
             architecture: x64
             cibw:
-              build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
+              build: "cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
     env:
       MACOSX_DEPLOYMENT_TARGET: "${{ matrix.env.macosx_deployment_target }}"
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
