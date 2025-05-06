@@ -9,6 +9,9 @@ on:
   # Build wheels for any PRs.
   pull_request:
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
