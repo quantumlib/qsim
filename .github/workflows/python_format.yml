@@ -12,6 +12,9 @@ on:
       # Only check formatting when python files are changed.
       - '**/*.py'
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   format:
     name: Format check

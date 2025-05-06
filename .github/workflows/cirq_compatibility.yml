@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   consistency:
     name: Nightly Compatibility
