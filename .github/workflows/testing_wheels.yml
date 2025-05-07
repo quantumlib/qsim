@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-13-large # Apple Silicon
+          - os: macos-13
             name: mac_arm64
             env:
               macosx_deployment_target: "13.0"
