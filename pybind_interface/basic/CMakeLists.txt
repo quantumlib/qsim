@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 4.0)
 project(qsim)
 
 if(WIN32)

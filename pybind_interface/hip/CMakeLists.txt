@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 4.0)
 project(qsim LANGUAGES CXX HIP)
 
 if(WIN32)
