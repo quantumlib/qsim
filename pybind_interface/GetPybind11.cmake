@@ -23,4 +23,6 @@ if (pybind11_FOUND)
   endforeach()
 endif()
 
-FetchContent_MakeAvailable(pybind11)
+if((NOT pybind11_FOUND) AND (NOT pybind11_POPULATED)) # check first on system path, then attempt git fetch
+  FetchContent_MakeAvailable(pybind11)
+endif()
