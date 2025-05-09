@@ -23,7 +23,4 @@ if (pybind11_FOUND)
   endforeach()
 endif()
 
-if((NOT pybind11_FOUND) AND (NOT pybind11_POPULATED)) # check first on system path, then attempt git fetch
-  FetchContent_MakeAvailable(pybind11)
-  add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
-endif()
+FetchContent_MakeAvailable(pybind11)
