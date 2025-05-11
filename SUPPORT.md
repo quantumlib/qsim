@@ -11,7 +11,7 @@ or have questions, the following are some suggestions for how to get help.
 ## Report an issue or request a feature
 
 To report an issue or request a feature, please first search the [issue tracker
-on GitHub](https://github.com/quantumlib/OpenFermion/issues) to check if there
+on GitHub](https://github.com/quantumlib/Qsim/issues) to check if there
 is already an open issue identical or similar to your bug report/feature
 request. If there is none, go ahead and file a new issue in the issue tracker.
 
