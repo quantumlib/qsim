@@ -8,11 +8,14 @@ on:
 
   pull_request:
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   # Run tests with Bazel v5.3.0.
   test:
     name: Test with Bazel
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         # Hardware optimizers.
@@ -45,7 +48,7 @@ jobs:
 
   test-san:
     name: Sanitizer tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         # Test sanitizers
@@ -76,7 +79,7 @@ jobs:
 
   test-mem:
     name: Test with tcmalloc
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4

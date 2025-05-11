@@ -9,6 +9,9 @@ on:
   # Build wheels for any PRs.
   pull_request:
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -17,19 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-12 # x86_64
-            name: mac
-            env:
-              macosx_deployment_target: "12.0"
-            cibw:
-              build: "cp39* cp310* cp311* cp312*"
           - os: macos-13-large # Apple Silicon
             name: mac_arm64
             env:
               macosx_deployment_target: "13.0"
             cibw:
               build: "cp39* cp310* cp311* cp312*"
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             name: manylinux2014
             cibw:
               arch: x86_64

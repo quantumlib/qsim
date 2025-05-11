@@ -9,6 +9,9 @@ on:
   # Run tests for any PRs.
   pull_request:
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
