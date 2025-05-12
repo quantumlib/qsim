@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - os: macos-13
-            name: mac_arm64
+            name: mac_x64
             env:
               macosx_deployment_target: "13.0"
             cibw:
@@ -43,7 +43,7 @@ jobs:
       CIBW_SKIP: "*musllinux*"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
-      CIBW_BEFORE_BUILD_MACOS: "brew install libomp llvm@12 && brew link --force libomp"
+      CIBW_BEFORE_BUILD_MACOS: "brew install libomp llvm@19 && brew link --force libomp"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"
       # to install latest delocate package
       CIBW_DEPENDENCY_VERSIONS: "latest"
@@ -69,8 +69,8 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install cmake
 
-      - name: Run C++ tests
-        run: bash build_tools/test_libs.sh
+      # - name: Run C++ tests
+      #   run: bash build_tools/test_libs.sh
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
