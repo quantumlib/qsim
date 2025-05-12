@@ -67,8 +67,9 @@ class CMakeBuild(build_ext):
             build_args += ["--", "-j2"]
 
         if platform.system() == "Darwin":
-            homebrew_x86 = "/usr/local/opt/llvm/bin"
-            homebrew_arm = "/opt/homebrew/opt/llvm/bin"
+            # homebrew_x86 = "/usr/local/opt/llvm/bin"
+            homebrew_x86 = "/usr/local/opt/llvm@19/bin"
+            homebrew_arm = "/opt/homebrew/opt/llvm@19/bin"
             # Add clang
             if shutil.which("clang") is not None:  # Always prefer from PATH
                 cmake_args.append("-DCMAKE_C_COMPILER=clang")
