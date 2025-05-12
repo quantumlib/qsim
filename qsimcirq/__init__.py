@@ -14,7 +14,7 @@
 
 
 import importlib
-from qsimcirq import qsim_decide
+from . import qsim_decide
 
 
 def _load_simd_qsim():
