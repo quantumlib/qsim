@@ -17,6 +17,8 @@ class CMakeExtension(Extension):
 
 
 class CMakeBuild(build_ext):
+    debug = True
+
     def run(self):
         try:
             out = subprocess.check_output(["cmake", "--version"])
