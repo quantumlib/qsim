@@ -69,13 +69,13 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install cmake
 
-      # - name: Run C++ tests
-      #   run: bash build_tools/test_libs.sh
+      - name: Run C++ tests
+        run: bash build_tools/test_libs.sh
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
 
-      # - uses: actions/upload-artifact@v4
-      #   with:
-      #     name: python-wheels-${{ matrix.name }}
-      #     path: ./wheelhouse/*.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels-${{ matrix.name }}
+          path: ./wheelhouse/*.whl
