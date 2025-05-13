@@ -4,7 +4,7 @@ dependency-versions = "latest"
 before-test = "mv {package}/qsimcirq /tmp && pwd && ls -l {package}"
 test-extras = "dev"
 test-command = "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
-environment = "MACOSX_DEPLOYMENT_TARGET=15.0"
+#environment = "MACOSX_DEPLOYMENT_TARGET=15.0"
 
 [tool.cibuildwheel.macos]
 # Note: you really do have to install the Python binaries from python.org.

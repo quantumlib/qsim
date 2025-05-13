@@ -22,8 +22,8 @@ jobs:
         include:
           - os: macos-13
             name: mac_x64
-            # env:
-            #   macosx_deployment_target: "13.0"
+            env:
+              macosx_deployment_target: "13.0"
             cibw:
               build: "cp310* cp311* cp312*"
           # - os: ubuntu-24.04
