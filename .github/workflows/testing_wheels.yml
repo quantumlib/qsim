@@ -75,7 +75,7 @@ jobs:
           python-version: ${{matrix.variant.python}}
 
       - name: Install cibuildwheel and twine
-        run: python -m pip install cibuildwheel==2.23.3 'virtualenv==20.32'
+        run: python -m pip install cibuildwheel==2.23.3 'virtualenv==20.31.2'
 
       - name: Install requirements
         run: |
