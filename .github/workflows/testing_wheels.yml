@@ -1,10 +1,25 @@
-name: Build all wheels for testing
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Build & test Python wheels
+run-name: Build all Python wheels and test them
 
 on:
   push:
-    # Build wheels when pushing to master.
     branches:
       - master
+      - main
 
   # Build wheels for any PRs.
   pull_request:
@@ -12,11 +27,19 @@ on:
   # Allow manual invocation, for testing.
   workflow_dispatch:
 
+# Cancel any previously-started but still active runs on the same branch.
+concurrency:
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+# Declare default workflow permissions to be read-only.
+permissions: read-all
+
 jobs:
   build_wheels:
-    name: >
-      Build wheel ${{matrix.variant.os}} ${{matrix.variant.arch}}
-      + Py ${{matrix.variant.python}}
+    name: >-
+      Build ${{matrix.variant.os}}/${{matrix.variant.arch}}/
+      py${{matrix.variant.python}}
     runs-on: ${{matrix.variant.os}}
     strategy:
       fail-fast: false
@@ -28,11 +51,17 @@ jobs:
           {os: macos-13, python: '3.12', build: cp312-macosx, arch: x86_64},
           {os: macos-13, python: '3.13', build: cp313-macosx, arch: x86_64},
 
-          {os: macos-14-large, python: '3.9',  build: cp39-macosx, arch: x86_64},
-          {os: macos-14-large, python: '3.10', build: cp310-macosx, arch: x86_64},
-          {os: macos-14-large, python: '3.11', build: cp311-macosx, arch: x86_64},
-          {os: macos-14-large, python: '3.12', build: cp312-macosx, arch: x86_64},
-          {os: macos-14-large, python: '3.13', build: cp313-macosx, arch: x86_64},
+          {os: macos-14, python: '3.9',  build: cp39-macosx, arch: arm64},
+          {os: macos-14, python: '3.10', build: cp310-macosx, arch: arm64},
+          {os: macos-14, python: '3.11', build: cp311-macosx, arch: arm64},
+          {os: macos-14, python: '3.12', build: cp312-macosx, arch: arm64},
+          {os: macos-14, python: '3.13', build: cp313-macosx, arch: arm64},
+
+          {os: macos-14, python: '3.9',  build: cp39-macosx, arch: x86_64},
+          {os: macos-14, python: '3.10', build: cp310-macosx, arch: x86_64},
+          {os: macos-14, python: '3.11', build: cp311-macosx, arch: x86_64},
+          {os: macos-14, python: '3.12', build: cp312-macosx, arch: x86_64},
+          {os: macos-14, python: '3.13', build: cp313-macosx, arch: x86_64},
 
           {os: macos-15, python: '3.9',  build: cp39-macosx, arch: arm64},
           {os: macos-15, python: '3.10', build: cp310-macosx, arch: arm64},
@@ -46,11 +75,11 @@ jobs:
           {os: ubuntu-24.04, python: '3.12', build: cp312-manylinux, arch: x86_64},
           {os: ubuntu-24.04, python: '3.13', build: cp313-manylinux, arch: x86_64},
 
-          {os: windows-2019, python: '3.9',  build: cp39-win, arch: x64},
-          {os: windows-2019, python: '3.10', build: cp310-win, arch: x64},
-          {os: windows-2019, python: '3.11', build: cp311-win, arch: x64},
-          {os: windows-2019, python: '3.12', build: cp312-win, arch: x64},
-          {os: windows-2019, python: '3.13', build: cp313-win, arch: x64},
+          {os: windows-2019, python: '3.9',  build: cp39-win, arch: amd64},
+          {os: windows-2019, python: '3.10', build: cp310-win, arch: amd64},
+          {os: windows-2019, python: '3.11', build: cp311-win, arch: amd64},
+          {os: windows-2019, python: '3.12', build: cp312-win, arch: amd64},
+          {os: windows-2019, python: '3.13', build: cp313-win, arch: amd64},
         ]
 
           # - os: windows-2019
