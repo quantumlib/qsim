@@ -70,7 +70,7 @@ jobs:
             echo "Attempting to import qsim_decide directly:"
             python -c "from qsimcirq import qsim_decide; print('Successfully imported qsim_decide')"
         run: |
-          cat $contents >> /tmp/show.sh
+          cat "$contents" >> /tmp/show.sh
 
       - name: Install cibuildwheel and twine
         # virtualenv 20.31.0 breaks cibuildwheel.
