@@ -68,8 +68,6 @@ class CMakeBuild(build_ext):
             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
             build_args += ["--", "-j2"]
 
-        build_args += ["--verbose"]
-
         if platform.system() == "Darwin":
             # homebrew_x86 = "/usr/local/opt/llvm/bin"
             homebrew_x86 = "/usr/local/opt/llvm@19/bin"
@@ -106,7 +104,7 @@ class CMakeBuild(build_ext):
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env
         )
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=self.build_temp
+            ["cmake", "--build", ".", "--verbose"] + build_args, cwd=self.build_temp
         )
 
 
