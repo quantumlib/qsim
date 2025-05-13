@@ -1,7 +1,7 @@
 [tool.cibuildwheel]
 skip = "*musllinux*"
 dependency-versions = "latest"
-before-test = "mv {package}/qsimcirq /tmp && pwd && ls -l {package}"
+before-test = "mv {package}/qsimcirq /tmp && mv {package}/qsimcirq.egg-info /tmp"
 test-extras = "dev"
 test-command = "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
 #environment = "MACOSX_DEPLOYMENT_TARGET=15.0"
