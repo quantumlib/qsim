@@ -1,9 +1,31 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 [tool.cibuildwheel]
 skip = "*musllinux*"
 dependency-versions = "latest"
-before-test = "mv {package}/qsimcirq /tmp && mv {package}/qsimcirq.egg-info /tmp/qsimcirq.egg-info.tmp"
 test-extras = "dev"
-test-command = "pytest -vv {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package} && mv /tmp/qsimcirq.egg-info.tmp {package}/qsimcirq.egg-info"
+# Due to package & module name conflict, temporarily move it away to run tests:
+before-test = "mv {package}/qsimcirq /tmp"
+test-command = "pytest -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+
+# N.B.: for MacOS, cibuildwheel only works with the Python installed using the
+# python.org installers. Pythons installed using Pyenv & HomeBrew do not work.
+
+[tool.cibuildwheel.macos]
+before-build = "brew install libomp llvm && brew link --force libomp"
+repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx_x86_64"
@@ -12,9 +34,3 @@ environment = "MACOSX_DEPLOYMENT_TARGET=13.0"
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx_arm64"
 environment = "MACOSX_DEPLOYMENT_TARGET=15.0"
-
-[tool.cibuildwheel.macos]
-# Note: you really do have to install the Python binaries from python.org.
-# Pyenv and brew and the system Python will not work.
-before-build = "brew install libomp llvm && brew link --force libomp"
-repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"

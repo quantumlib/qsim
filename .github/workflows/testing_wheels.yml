@@ -14,7 +14,9 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheel ${{matrix.variant.build}}_${{matrix.variant.arch}}
+    name: >
+      Build wheel ${{matrix.variant.os}} ${{matrix.variant.arch}}
+      + Py ${{matrix.variant.python}}
     runs-on: ${{matrix.variant.os}}
     strategy:
       fail-fast: false
@@ -25,12 +27,6 @@ jobs:
           {os: macos-13, python: '3.11', build: cp311-macosx, arch: x86_64},
           {os: macos-13, python: '3.12', build: cp312-macosx, arch: x86_64},
           {os: macos-13, python: '3.13', build: cp313-macosx, arch: x86_64},
-
-          {os: macos-14, python: '3.9',  build: cp39-macosx, arch: x86_64},
-          {os: macos-14, python: '3.10', build: cp310-macosx, arch: x86_64},
-          {os: macos-14, python: '3.11', build: cp311-macosx, arch: x86_64},
-          {os: macos-14, python: '3.12', build: cp312-macosx, arch: x86_64},
-          {os: macos-14, python: '3.13', build: cp313-macosx, arch: x86_64},
 
           {os: macos-14, python: '3.9',  build: cp39-macosx, arch: arm64},
           {os: macos-14, python: '3.10', build: cp310-macosx, arch: arm64},
@@ -50,14 +46,12 @@ jobs:
           {os: ubuntu-24.04, python: '3.12', build: cp312-manylinux, arch: x86_64},
           {os: ubuntu-24.04, python: '3.13', build: cp313-manylinux, arch: x86_64},
 
+          {os: windows-2022, python: '3.9',  build: cp39-win, arch: x64},
+          {os: windows-2022, python: '3.10', build: cp310-win, arch: x64},
+          {os: windows-2022, python: '3.11', build: cp311-win, arch: x64},
+          {os: windows-2022, python: '3.12', build: cp312-win, arch: x64},
+          {os: windows-2022, python: '3.13', build: cp313-win, arch: x64},
         ]
-
-          # - os: ubuntu-24.04
-          #   name: manylinux_2_28
-          #   cibw:
-          #     arch: x86_64
-          #     build: "cp39* cp310* cp311* cp312* cp313*"
-          #     manylinux_image: manylinux_2_28
 
           # - os: windows-2019
           #   name: win_amd64
@@ -65,20 +59,27 @@ jobs:
           #   cibw:
           #     build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
     env:
+      # Note: many more cibuildwheel settings are in pyproject.toml
       CIBW_BUILD: ${{matrix.variant.build}}_${{matrix.variant.arch}}
       CIBW_ARCHS: ${{matrix.variant.arch}}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{matrix.variant.python}}
+          architecture: ${{matrix.variant.arch}}
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install cibuildwheel and twine
-        run: python -m pip install cibuildwheel==2.23.3 'virtualenv==20.31.2'
+        run: python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2
 
       - name: Install requirements
         run: |
+          python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install cmake
 
