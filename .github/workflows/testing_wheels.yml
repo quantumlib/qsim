@@ -50,7 +50,7 @@ jobs:
       # due to package and module name conflict have to temporarily move it away to run tests
       CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp && pwd && ls -l {package}"
       CIBW_TEST_EXTRAS: "dev"
-      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+      CIBW_TEST_COMMAND: "/tmp/show.sh; pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +58,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Write test file
+        env:
+          contents: |
+            set -xe
+            python -m pip install qsimcirq --find-links ./wheelhouse
+            INSTALL_DIR=$(python -c "import qsimcirq; import os; print(os.path.dirname(qsimcirq.__file__))")
+            echo "Listing contents of $INSTALL_DIR:"
+            ls -lR "$INSTALL_DIR"
+            echo "Attempting to import qsim_decide directly:"
+            python -c "from qsimcirq import qsim_decide; print('Successfully imported qsim_decide')"
+        run: |
+          cat $contents >> /tmp/show.sh
 
       - name: Install cibuildwheel and twine
         # virtualenv 20.31.0 breaks cibuildwheel.
@@ -75,7 +88,7 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: python-wheels-${{ matrix.name }}
-          path: ./wheelhouse/*.whl
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: python-wheels-${{ matrix.name }}
+      #     path: ./wheelhouse/*.whl
