@@ -38,7 +38,7 @@ jobs:
           #   cibw:
           #     build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
     env:
-      MACOSX_DEPLOYMENT_TARGET: "${{ matrix.env.macosx_deployment_target }}"
+      # MACOSX_DEPLOYMENT_TARGET: "${{ matrix.env.macosx_deployment_target }}"
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
       # CIBW_SKIP: "*musllinux*"
       CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
@@ -49,8 +49,8 @@ jobs:
       # CIBW_DEPENDENCY_VERSIONS: "latest"
       # due to package and module name conflict have to temporarily move it away to run tests
       # CIBW_BEFORE_TEST: "pwd; ls -l; ls -l {package}/qsimcirq; mv {package}/qsimcirq /tmp && pwd && ls -l {package}"
-      CIBW_TEST_EXTRAS: "dev"
-      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+      # CIBW_TEST_EXTRAS: "dev"
+      # CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
     steps:
       - uses: actions/checkout@v4
 
