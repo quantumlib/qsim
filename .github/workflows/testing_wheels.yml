@@ -81,7 +81,8 @@ jobs:
           {os: windows-2019, python: '3.10', build: cp310-win, arch: AMD64},
           {os: windows-2019, python: '3.11', build: cp311-win, arch: AMD64},
           {os: windows-2019, python: '3.12', build: cp312-win, arch: AMD64},
-          {os: windows-2019, python: '3.13', build: cp313-win, arch: AMD64},
+
+          {os: windows-2022, python: '3.13', build: cp313-win, arch: AMD64},
         ]
 
           # - os: windows-2019
@@ -90,7 +91,7 @@ jobs:
           #   cibw:
           #     build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
     env:
-      # Note: many more cibuildwheel settings are in pyproject.toml
+      # Note: more cibuildwheel settings are in pyproject.toml
       CIBW_BUILD: ${{matrix.variant.build}}_${{matrix.variant.arch}}
       CIBW_ARCHS: ${{matrix.variant.arch}}
       CIBW_ENVIRONMENT: 'MACOSX_DEPLOYMENT_TARGET=${{matrix.variant.target}}'
@@ -120,7 +121,7 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: python-wheels-${{matrix.variant.build}}_${{matrix.variant.arch}}
-          path: ./wheelhouse/*.whl
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: python-wheels-${{matrix.variant.build}}_${{matrix.variant.arch}}
+      #     path: ./wheelhouse/*.whl
