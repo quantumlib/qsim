@@ -71,6 +71,7 @@ jobs:
             python -c "from qsimcirq import qsim_decide; print('Successfully imported qsim_decide')"
         run: |
           echo "$contents" > /tmp/show.sh
+          chmod +x /tmp/show.sh
 
       - name: Install cibuildwheel and twine
         # virtualenv 20.31.0 breaks cibuildwheel.
