@@ -48,10 +48,11 @@ jobs:
       # to install latest delocate package
       CIBW_DEPENDENCY_VERSIONS: "latest"
       # due to package and module name conflict have to temporarily move it away to run tests
-      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp && pwd && ls -l {package}"
+      CIBW_BEFORE_TEST: "pwd; ls -l; ls -l qsimcirq; mv {package}/qsimcirq /tmp && pwd && ls -l {package}"
       CIBW_TEST_EXTRAS: "dev"
       CIBW_TEST_COMMAND: >
         set -xe;
+        pwd;
         python -m pip install qsimcirq --find-links ./wheelhouse;
         INSTALL_DIR=$(python -c "import qsimcirq; import os; print(os.path.dirname(qsimcirq.__file__))");
         echo "Listing contents of $INSTALL_DIR:";
