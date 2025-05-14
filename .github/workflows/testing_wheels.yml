@@ -61,7 +61,7 @@ jobs:
           # {os: macos-14, python: '3.9',  build: cp39-macosx, arch: x86_64, target: '14.0'},
           # {os: macos-14, python: '3.10', build: cp310-macosx, arch: x86_64, target: '14.0'},
           {os: macos-14, target: '14.0',
-            python: {version: '3.9', arch: x64},
+            python: {version: '3.11', arch: x64},
             cibw: {wheel: cp312-macosx, arch: x86_64},
           },
 
