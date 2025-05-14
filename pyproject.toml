@@ -39,4 +39,4 @@ repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --
 [[tool.cibuildwheel.overrides]]
 select = "*"
 inherit.repair-wheel-command = "prepend"
-repair-wheel-command = "find {package} -name '*.so' | xargs lipo -info"
+repair-wheel-command = "find . -name '*.so' | xargs lipo -info"
