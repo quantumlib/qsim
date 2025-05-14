@@ -38,7 +38,7 @@ permissions: read-all
 jobs:
   build_wheels:
     name: >-
-      Build ${{matrix.conf.os}}/${{matrix.conf.py.arch}}/py${{matrix.conf.py.version}}
+      Build wheel ${{matrix.conf.os}}/${{matrix.conf.py.arch}}/py${{matrix.conf.py.version}}
     runs-on: ${{matrix.conf.os}}
     strategy:
       fail-fast: false
