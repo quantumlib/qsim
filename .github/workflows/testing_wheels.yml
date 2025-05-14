@@ -82,7 +82,9 @@ jobs:
           {os: windows-2019, python: '3.11', build: cp311-win, arch: AMD64},
           {os: windows-2019, python: '3.12', build: cp312-win, arch: AMD64},
 
-          {os: windows-2022, python: '3.13', build: cp313-win, arch: AMD64},
+          # 2025-05-13 currently these fail on GitHub.
+          # {os: windows-2019, python: '3.13', build: cp313-win, arch: AMD64},
+          # {os: windows-2022, python: '3.13', build: cp313-win, arch: AMD64},
         ]
 
           # - os: windows-2019

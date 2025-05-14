@@ -34,3 +34,9 @@ repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --
 # [[tool.cibuildwheel.overrides]]
 # select = "*-macosx_arm64"
 # environment = "MACOSX_DEPLOYMENT_TARGET=15.0"
+
+# debugging
+[[tool.cibuildwheel.overrides]]
+select = "*"
+inherit.repair-wheel-command = "prepend"
+repair-wheel-command = "find {package} -name '*.so' | xargs lipo -info"
