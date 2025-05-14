@@ -38,68 +38,52 @@ permissions: read-all
 jobs:
   build_wheels:
     name: >-
-      Build ${{matrix.variant.os}}/${{matrix.variant.python.arch}}/py${{matrix.variant.python.version}}
-    runs-on: ${{matrix.variant.os}}
+      Build ${{matrix.conf.os}}/${{matrix.conf.py.arch}}/py${{matrix.conf.py.version}}
+    runs-on: ${{matrix.conf.os}}
     strategy:
       fail-fast: false
       matrix:
         # See the following page for a list of valid cibuildwheel arch values:
         # https://cibuildwheel.pypa.io/en/stable/options/#archs
-        variant: [
-          # {os: macos-13, python: '3.9',  build: cp39-macosx, arch: x86_64, target: '13.0'},
-          # {os: macos-13, python: '3.10', build: cp310-macosx, arch: x86_64, target: '13.0'},
-          # {os: macos-13, python: '3.11', build: cp311-macosx, arch: x86_64, target: '13.0'},
-          # {os: macos-13, python: '3.12', build: cp312-macosx, arch: x86_64, target: '13.0'},
-          # {os: macos-13, python: '3.13', build: cp313-macosx, arch: x86_64, target: '13.0'},
+        conf: [
+          {os: macos-13, dep: '13.0', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-macosx, arch: x86_64}},
+          {os: macos-13, dep: '13.0', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-macosx, arch: x86_64}},
+          {os: macos-13, dep: '13.0', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
+          {os: macos-13, dep: '13.0', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-macosx, arch: x86_64}},
 
-          # {os: macos-14, python: '3.9',  build: cp39-macosx, arch: arm64, target: '14.0'},
-          # {os: macos-14, python: '3.10', build: cp310-macosx, arch: arm64, target: '14.0'},
-          # {os: macos-14, python: '3.11', build: cp311-macosx, arch: arm64, target: '14.0'},
-          # {os: macos-14, python: '3.12', build: cp312-macosx, arch: arm64, target: '14.0'},
-          # {os: macos-14, python: '3.13', build: cp313-macosx, arch: arm64, target: '14.0'},
+          {os: macos-14, dep: '14.0', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-macosx, arch: x86_64}},
+          {os: macos-14, dep: '14.0', py: {version: '3.11', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
+          {os: macos-14, dep: '14.0', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
+          {os: macos-14, dep: '14.0', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-macosx, arch: x86_64}},
 
-          # {os: macos-14, python: '3.9',  build: cp39-macosx, arch: x86_64, target: '14.0'},
-          # {os: macos-14, python: '3.10', build: cp310-macosx, arch: x86_64, target: '14.0'},
-          {os: macos-14, target: '14.0',
-            python: {version: '3.11', arch: x64},
-            cibw: {wheel: cp312-macosx, arch: x86_64},
-          },
+          {os: macos-14, dep: '14.0', py: {version: '3.10', arch: arm64}, cibw: {wheel: cp310-macosx, arch: arm64}},
+          {os: macos-14, dep: '14.0', py: {version: '3.11', arch: arm64}, cibw: {wheel: cp311-macosx, arch: arm64}},
+          {os: macos-14, dep: '14.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
+          {os: macos-14, dep: '14.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
 
-          # {os: macos-14, python: '3.12', build: cp312-macosx, arch: x86_64, target: '14.0'},
-          # {os: macos-14, python: '3.13', build: cp313-macosx, arch: x86_64, target: '14.0'},
+          {os: macos-15, dep: '15.0', py: {version: '3.10', arch: arm64}, cibw: {wheel: cp310-macosx, arch: arm64}},
+          {os: macos-15, dep: '15.0', py: {version: '3.11', arch: arm64}, cibw: {wheel: cp311-macosx, arch: arm64}},
+          {os: macos-15, dep: '15.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
+          {os: macos-15, dep: '15.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
 
-          # {os: macos-15, python: {version: '3.9', arch: 'x64'}, build: {cp39-macosx, arch: arm64, target: '15.0'},
-          # {os: macos-15, python: '3.10', build: cp310-macosx, arch: arm64, target: '15.0'},
-          # {os: macos-15, python: '3.11', build: cp311-macosx, arch: arm64, target: '15.0'},
-          # {os: macos-15, python: '3.12', build: cp312-macosx, arch: arm64, target: '15.0'},
-          # {os: macos-15, python: '3.13', build: cp313-macosx, arch: arm64, target: '15.0'},
+          {os: ubuntu-24.04, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-manylinux, arch: x86_64}},
+          {os: ubuntu-24.04, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-manylinux, arch: x86_64}},
+          {os: ubuntu-24.04, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-manylinux, arch: x86_64}},
+          {os: ubuntu-24.04, dep: '', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-manylinux, arch: x86_64}},
 
-          # {os: ubuntu-24.04, python: '3.9',  build: cp39-manylinux, arch: x86_64},
-          # {os: ubuntu-24.04, python: '3.10', build: cp310-manylinux, arch: x86_64},
-          # {os: ubuntu-24.04, python: '3.11', build: cp311-manylinux, arch: x86_64},
-          # {os: ubuntu-24.04, python: '3.12', build: cp312-manylinux, arch: x86_64},
-          # {os: ubuntu-24.04, python: '3.13', build: cp313-manylinux, arch: x86_64},
-
-          # {os: windows-2019, python: '3.9',  build: cp39-win, arch: AMD64},
-          # {os: windows-2019, python: '3.10', build: cp310-win, arch: AMD64},
-          # {os: windows-2019, python: '3.11', build: cp311-win, arch: AMD64},
-          # {os: windows-2019, python: '3.12', build: cp312-win, arch: AMD64},
+          {os: windows-2019, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-win, arch: AMD64}},
+          {os: windows-2019, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-win, arch: AMD64}},
+          {os: windows-2019, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-win, arch: AMD64}},
 
           # 2025-05-13 currently these fail on GitHub.
-          # {os: windows-2019, python: '3.13', build: cp313-win, arch: AMD64},
-          # {os: windows-2022, python: '3.13', build: cp313-win, arch: AMD64},
+          # {os: windows-2019, py: '3.13', build: cp313-win, arch: AMD64},
+          # {os: windows-2022, py: '3.13', build: cp313-win, arch: AMD64},
         ]
-
-          # - os: windows-2019
-          #   name: win_amd64
-          #   architecture: x64
-          #   cibw:
-          #     build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
     env:
-      # Note: more cibuildwheel settings are in pyproject.toml
-      CIBW_BUILD: ${{matrix.variant.cibw.wheel}}_${{matrix.variant.cibw.arch}}
-      CIBW_ARCHS: ${{matrix.variant.cibw.arch}}
-      CIBW_ENVIRONMENT: 'MACOSX_DEPLOYMENT_TARGET=${{matrix.variant.target}}'
+      # Note: additional cibuildwheel settings are in pyproject.toml
+      CIBW_BUILD: ${{matrix.conf.cibw.wheel}}_${{matrix.conf.cibw.arch}}
+      CIBW_ARCHS: ${{matrix.conf.cibw.arch}}
+      CIBW_ENVIRONMENT: 'MACOSX_DEPLOYMENT_TARGET=${{matrix.conf.dep}}'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,8 +91,8 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{matrix.variant.python.version}}
-          architecture: ${{matrix.variant.python.arch}}
+          python-version: ${{matrix.conf.py.version}}
+          architecture: ${{matrix.conf.py.arch}}
           cache: pip
           cache-dependency-path: requirements.txt
 
@@ -129,5 +113,5 @@ jobs:
 
       # - uses: actions/upload-artifact@v4
       #   with:
-      #     name: python-wheels-${{matrix.variant.build}}_${{matrix.variant.arch}}
+      #     name: python-wheels-${{matrix.conf.build}}_${{matrix.conf.arch}}
       #     path: ./wheelhouse/*.whl
