@@ -103,7 +103,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - run: |
-          bazel build apps:all
+          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse apps:all
 
       # - name: Run C++ tests
       #   run: bash build_tools/test_libs.sh
