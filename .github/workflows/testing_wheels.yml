@@ -93,6 +93,10 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Set up Python ${{matrix.conf.py.version}}
+        uses: actions/setup-python@v5
+        id: setup
+
       - name: Set environment variables used in later steps
         env:
           python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
@@ -101,7 +105,8 @@ jobs:
           set -x
           echo python='${{env.python}}'
 
-      - run: echo ${{env.python}}
+      - shell: bash
+        run: echo ${{env.python}}
 
 
       # - name: Set up Python ${{matrix.conf.py.version}}
