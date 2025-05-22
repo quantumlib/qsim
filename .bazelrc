@@ -3,60 +3,60 @@ build --copt -std=c++17
 build --copt -D_GLIBCXX_USE_CXX11_ABI=1
 build --experimental_repo_remote_exec
 
-##### Sanitizers (choose one, or nosan for none) #####
+# ##### Sanitizers (choose one, or nosan for none) #####
 
-# Shared config for sanitizers
-build:sanitizer --strip=never
-build:sanitizer --copt -O1
-build:sanitizer --copt -fno-omit-frame-pointer
+# # Shared config for sanitizers
+# build:sanitizer --strip=never
+# build:sanitizer --copt -O1
+# build:sanitizer --copt -fno-omit-frame-pointer
 
-# Address sanitizer
-build:asan --config=sanitizer
-build:asan --copt -fsanitize=address
-build:asan --linkopt -fsanitize=address
+# # Address sanitizer
+# build:asan --config=sanitizer
+# build:asan --copt -fsanitize=address
+# build:asan --linkopt -fsanitize=address
 
-# Memory sanitizer
-build:msan --config=sanitizer
-build:msan --copt -fsanitize=leak
-build:msan --linkopt -fsanitize=leak
+# # Memory sanitizer
+# build:msan --config=sanitizer
+# build:msan --copt -fsanitize=leak
+# build:msan --linkopt -fsanitize=leak
 
-# No sanitizers
-build:nosan --
+# # No sanitizers
+# build:nosan --
 
-##### Instruction set options (choose one) #####
+# ##### Instruction set options (choose one) #####
 
-# Build with AVX2 + FMA
-build:avx --copt -O3
-build:avx --copt -mavx2
-build:avx --copt -mfma
+# # Build with AVX2 + FMA
+# build:avx --copt -O3
+# build:avx --copt -mavx2
+# build:avx --copt -mfma
 
 # Build with SSE
 build:sse --copt -O3
 build:sse --copt -msse4
 
-# Build without AVX or SSE
-build:basic --copt -O3
+# # Build without AVX or SSE
+# build:basic --copt -O3
 
-##### Parallelization (choose one, or nopenmp for none) #####
+# ##### Parallelization (choose one, or nopenmp for none) #####
 
-# Build with OpenMP
-build:openmp --copt -fopenmp
-build:openmp --linkopt -lgomp
+# # Build with OpenMP
+# build:openmp --copt -fopenmp
+# build:openmp --linkopt -lgomp
 
-# No OpenMP
-build:nopenmp --
+# # No OpenMP
+# build:nopenmp --
 
-##### Memory handler (choose one) #####
+# ##### Memory handler (choose one) #####
 
-# Build with tcmalloc
-build:tcmalloc --linkopt="-ltcmalloc"
+# # Build with tcmalloc
+# build:tcmalloc --linkopt="-ltcmalloc"
 
-# Build using malloc (default)
-build:malloc --
+# # Build using malloc (default)
+# build:malloc --
 
-# Test flags
-test --test_output=errors
+# # Test flags
+# test --test_output=errors
 
-# CUDA options
+# # CUDA options
 # build:cuda --@local_config_cuda//:enable_cuda
 # build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
