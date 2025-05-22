@@ -93,24 +93,25 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: actions/setup-python@v5
-        id: setup
-        with:
-          python-version: ${{matrix.conf.py.version}}
-          architecture: ${{matrix.conf.py.arch}}
-          cache: pip
-          cache-dependency-path: requirements.txt
+      # - uses: actions/setup-python@v5
+      #   id: setup
+      #   with:
+      #     python-version: ${{matrix.conf.py.version}}
+      #     architecture: ${{matrix.conf.py.arch}}
+      #     cache: pip
+      #     cache-dependency-path: requirements.txt
 
-      - name: Install Python tools and requirements
-        run: |
-          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
-          python -m pip install -r requirements.txt
+      # - name: Install Python tools and requirements
+      #   run: |
+      #     python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+      #     python -m pip install -r requirements.txt
 
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.14.0
         env:
           USE_BAZEL_VERSION: 6.5.0
-          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
+#          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
+          python: '${{env.Python_ROOT_DIR}}\\python3.exe'
         with:
           disk-cache: ${{github.workflow}}
           bazelisk-cache: true
