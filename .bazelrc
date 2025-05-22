@@ -58,5 +58,5 @@ build:malloc --
 test --test_output=errors
 
 # CUDA options
-build:cuda --@local_config_cuda//:enable_cuda
-build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
+# build:cuda --@local_config_cuda//:enable_cuda
+# build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
