@@ -118,7 +118,6 @@ jobs:
           repository-cache: true
           bazelrc: |
             common --announce_rc
-            common --show_loading_progress
             common --subcommands
             common --verbose_failures
             common --auto_output_filter=none
