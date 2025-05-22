@@ -110,7 +110,7 @@ jobs:
           USE_BAZEL_VERSION: 6.5.0
           py_dir: 'C:\\hostedtoolcache\\windows\\Python'
           py_ver: '${{steps.setup-python.outputs.python-version}}'
-          py_path: '${{env.py_dir}}\\${{env.py_ver}}\\${{matrix.conf.py.arch}}\\python3.exe'
+          python: '${{env.py_dir}}\\${{env.py_ver}}\\${{matrix.conf.py.arch}}\\python3.exe'
         with:
           disk-cache: ${{github.workflow}}
           bazelisk-cache: true
