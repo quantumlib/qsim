@@ -119,10 +119,11 @@ jobs:
           bazelrc: |
             common --announce_rc
             common --show_loading_progress
+            common --subcommands
             common --verbose_failures
             common --auto_output_filter=none
+            common --remote_upload_local_results=false
             common --action_env PYTHON_BIN_PATH='${{env.python}}'
-            common --subcommands
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
