@@ -101,10 +101,10 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
 
-      - name: Install Python tools and requirements
-        run: |
-          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
-          python -m pip install -r requirements.txt
+      # - name: Install Python tools and requirements
+      #   run: |
+      #     python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+      #     python -m pip install -r requirements.txt
 
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.14.0
@@ -123,15 +123,17 @@ jobs:
             common --auto_output_filter=none
             common --remote_upload_local_results=false
             common --action_env PYTHON_BIN_PATH='${{env.python}}'
+            common --jobs 2
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
         run: |
-          bazel build --config=sse "apps:all"
+          ${{env.python}} --version
+          bazel build --config=sse apps:all
 
       - if: matrix.conf.os != 'windows-2019'
         run: |
-          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse apps:all
+          bazel build --config=sse apps:all
 
 
       # - name: Run C++ tests
