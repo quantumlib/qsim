@@ -110,6 +110,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.14.0
         env:
           USE_BAZEL_VERSION: 6.5.0
+          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         with:
           disk-cache: ${{github.workflow}}
           bazelisk-cache: true
@@ -120,7 +121,7 @@ jobs:
             common --show_loading_progress
             common --verbose_failures
             common --auto_output_filter=none
-            common --action_env PYTHON_BIN_PATH='${{env.Python_ROOT_DIR}}\python3.exe'
+            common --action_env PYTHON_BIN_PATH='${{env.python}}'
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
