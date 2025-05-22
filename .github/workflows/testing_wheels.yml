@@ -105,10 +105,9 @@ jobs:
           python -m pip install -r requirements.txt
 
       - if: matrix.conf.os == 'windows-2019'
-        shell: C:\Program Files\Git\bin\bash.exe {0}
+        shell: C:\Program Files\Git\bin\bash.exe '{0}'
         run: |
-          bazel build "apps:all"
-          #bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse "apps:all"
+          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse "apps:all"
 
       - if: matrix.conf.os != 'windows-2019'
         run: |
