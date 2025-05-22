@@ -106,16 +106,7 @@ jobs:
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
         run: |
-          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse "apps:all"
-
-      # - if: matrix.conf.os == 'windows-2019'
-      #   # shell: '"C:\Program Files\Git\bin\bash.exe" -c {0}'
-      #   shell: C:\Program Files\Git\bin\bash.exe
-      #   run: |
-      #     set -x
-      #     pwd
-      #     ls
-      #     # bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse "apps:all"
+          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --action_env PYTHON_BIN_PATH="C:\\hostedtoolcache\\windows\\Python\\3.10.11\\x64\\python3.exe" --config=sse "apps:all"
 
       - if: matrix.conf.os != 'windows-2019'
         run: |
