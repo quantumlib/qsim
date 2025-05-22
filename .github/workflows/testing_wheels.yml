@@ -93,13 +93,13 @@ jobs:
         with:
           fetch-depth: 1
 
-      # - uses: actions/setup-python@v5
-      #   id: setup
-      #   with:
-      #     python-version: ${{matrix.conf.py.version}}
-      #     architecture: ${{matrix.conf.py.arch}}
-      #     cache: pip
-      #     cache-dependency-path: requirements.txt
+      - uses: actions/setup-python@v5
+        id: setup
+        with:
+          python-version: ${{matrix.conf.py.version}}
+          architecture: ${{matrix.conf.py.arch}}
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       # - name: Install Python tools and requirements
       #   run: |
