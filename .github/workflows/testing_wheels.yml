@@ -86,31 +86,31 @@ jobs:
       CIBW_BUILD: ${{matrix.conf.cibw.wheel}}_${{matrix.conf.cibw.arch}}
       CIBW_ARCHS: ${{matrix.conf.cibw.arch}}
       CIBW_ENVIRONMENT: 'MACOSX_DEPLOYMENT_TARGET=${{matrix.conf.dep}}'
+      py_dir: 'C:\\hostedtoolcache\\windows\\Python'
+      py_bin: '${{matrix.conf.py.arch}}\\python3.exe'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      # - uses: actions/setup-python@v5
-      #   id: setup-python
-      #   with:
-      #     python-version: ${{matrix.conf.py.version}}
-      #     architecture: ${{matrix.conf.py.arch}}
-      #     cache: pip
-      #     cache-dependency-path: requirements.txt
+      - uses: actions/setup-python@v5
+        id: setup
+        with:
+          python-version: ${{matrix.conf.py.version}}
+          architecture: ${{matrix.conf.py.arch}}
+          cache: pip
+          cache-dependency-path: requirements.txt
 
-      # - name: Install Python tools and requirements
-      #   run: |
-      #     python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
-      #     python -m pip install -r requirements.txt
+      - name: Install Python tools and requirements
+        run: |
+          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+          python -m pip install -r requirements.txt
 
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.14.0
         env:
           USE_BAZEL_VERSION: 6.5.0
-          py_dir: 'C:\\hostedtoolcache\\windows\\Python'
-          py_ver: '${{steps.setup-python.outputs.python-version}}'
-          python: '${{env.py_dir}}\\${{env.py_ver}}\\${{matrix.conf.py.arch}}\\python3.exe'
+          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         with:
           disk-cache: ${{github.workflow}}
           bazelisk-cache: true
