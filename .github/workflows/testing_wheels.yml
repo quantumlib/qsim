@@ -103,7 +103,7 @@ jobs:
         shell: bash
         run: |
           set -x
-          echo python='${{env.python}}'
+          echo python='${{env.python}}' >> "$GITHUB_ENV"
 
       - shell: bash
         run: echo ${{env.python}}
