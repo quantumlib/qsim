@@ -87,22 +87,22 @@ jobs:
       CIBW_ARCHS: ${{matrix.conf.cibw.arch}}
       CIBW_ENVIRONMENT: 'MACOSX_DEPLOYMENT_TARGET=${{matrix.conf.dep}}'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      # - uses: actions/checkout@v4
+      #   with:
+      #     fetch-depth: 1
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{matrix.conf.py.version}}
-          architecture: ${{matrix.conf.py.arch}}
-          cache: pip
-          cache-dependency-path: requirements.txt
+      # - uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{matrix.conf.py.version}}
+      #     architecture: ${{matrix.conf.py.arch}}
+      #     cache: pip
+      #     cache-dependency-path: requirements.txt
 
-      - name: Install Python tools and requirements
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
-          python -m pip install -r requirements.txt
+      # - name: Install Python tools and requirements
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+      #     python -m pip install -r requirements.txt
 
       - if: matrix.conf.os == 'windows-2019'
         # shell: '"C:\Program Files\Git\bin\bash.exe" -c {0}'
