@@ -46,36 +46,36 @@ jobs:
         # See the following page for a list of valid cibuildwheel arch values:
         # https://cibuildwheel.pypa.io/en/stable/options/#archs
         conf: [
-          {os: macos-13, dep: '13.0', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-macosx, arch: x86_64}},
-          {os: macos-13, dep: '13.0', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-macosx, arch: x86_64}},
-          {os: macos-13, dep: '13.0', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
-          {os: macos-13, dep: '13.0', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-macosx, arch: x86_64}},
+          # {os: macos-13, dep: '13.0', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-macosx, arch: x86_64}},
+          # {os: macos-13, dep: '13.0', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-macosx, arch: x86_64}},
+          # {os: macos-13, dep: '13.0', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
+          # {os: macos-13, dep: '13.0', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-macosx, arch: x86_64}},
 
-          # This version fails due to https://github.com/actions/setup-python/issues/948
-          # {os: macos-14, dep: '14.0', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-macosx, arch: x86_64}},
-          {os: macos-14, dep: '14.0', py: {version: '3.11', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
-          {os: macos-14, dep: '14.0', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
-          {os: macos-14, dep: '14.0', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-macosx, arch: x86_64}},
+          # # This version fails due to https://github.com/actions/setup-python/issues/948
+          # # {os: macos-14, dep: '14.0', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-macosx, arch: x86_64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.11', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-macosx, arch: x86_64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-macosx, arch: x86_64}},
 
-          {os: macos-14, dep: '14.0', py: {version: '3.10', arch: arm64}, cibw: {wheel: cp310-macosx, arch: arm64}},
-          {os: macos-14, dep: '14.0', py: {version: '3.11', arch: arm64}, cibw: {wheel: cp311-macosx, arch: arm64}},
-          {os: macos-14, dep: '14.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
-          {os: macos-14, dep: '14.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.10', arch: arm64}, cibw: {wheel: cp310-macosx, arch: arm64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.11', arch: arm64}, cibw: {wheel: cp311-macosx, arch: arm64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
+          # {os: macos-14, dep: '14.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
 
-          {os: macos-15, dep: '15.0', py: {version: '3.10', arch: arm64}, cibw: {wheel: cp310-macosx, arch: arm64}},
-          {os: macos-15, dep: '15.0', py: {version: '3.11', arch: arm64}, cibw: {wheel: cp311-macosx, arch: arm64}},
-          {os: macos-15, dep: '15.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
-          {os: macos-15, dep: '15.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
+          # {os: macos-15, dep: '15.0', py: {version: '3.10', arch: arm64}, cibw: {wheel: cp310-macosx, arch: arm64}},
+          # {os: macos-15, dep: '15.0', py: {version: '3.11', arch: arm64}, cibw: {wheel: cp311-macosx, arch: arm64}},
+          # {os: macos-15, dep: '15.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
+          # {os: macos-15, dep: '15.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
 
-          {os: ubuntu-24.04, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-manylinux, arch: x86_64}},
-          {os: ubuntu-24.04, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-manylinux, arch: x86_64}},
-          {os: ubuntu-24.04, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-manylinux, arch: x86_64}},
-          {os: ubuntu-24.04, dep: '', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-manylinux, arch: x86_64}},
+          # {os: ubuntu-24.04, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-manylinux, arch: x86_64}},
+          # {os: ubuntu-24.04, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-manylinux, arch: x86_64}},
+          # {os: ubuntu-24.04, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-manylinux, arch: x86_64}},
+          # {os: ubuntu-24.04, dep: '', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-manylinux, arch: x86_64}},
 
           {os: windows-2019, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-win, arch: AMD64}},
-          {os: windows-2019, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-win, arch: AMD64}},
-          {os: windows-2019, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-win, arch: AMD64}},
-          {os: windows-2019, dep: '', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-win, arch: AMD64}},
+          # {os: windows-2019, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-win, arch: AMD64}},
+          # {os: windows-2019, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-win, arch: AMD64}},
+          # {os: windows-2019, dep: '', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-win, arch: AMD64}},
 
           # 2025-05-13 currently these fail on GitHub.
           # {os: windows-2019, py: '3.13', build: cp313-win, arch: AMD64},
@@ -107,7 +107,7 @@ jobs:
       - if: matrix.conf.os == 'windows-2019'
         shell: C:\Program Files\Git\bin\bash.exe {0}
         run: |
-          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse apps:all
+          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --config=sse 'apps:all'
 
       - if: matrix.conf.os != 'windows-2019'
         run: |
