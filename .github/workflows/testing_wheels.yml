@@ -122,6 +122,7 @@ jobs:
             common --verbose_failures
             common --auto_output_filter=none
             common --action_env PYTHON_BIN_PATH='${{env.python}}'
+            common --subcommands
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
