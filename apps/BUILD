@@ -17,29 +17,29 @@ cc_binary(
     ],
 )
 
-cc_binary(
-    name = "qsim_amplitudes",
-    srcs = ["qsim_amplitudes.cc"],
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsim_lib",
-    ],
-)
+# cc_binary(
+#     name = "qsim_amplitudes",
+#     srcs = ["qsim_amplitudes.cc"],
+#     deps = [
+#         "//lib:bitstring",
+#         "//lib:run_qsim_lib",
+#     ],
+# )
 
-cc_binary(
-    name = "qsimh_base",
-    srcs = ["qsimh_base.cc"],
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsimh_lib",
-    ],
-)
+# cc_binary(
+#     name = "qsimh_base",
+#     srcs = ["qsimh_base.cc"],
+#     deps = [
+#         "//lib:bitstring",
+#         "//lib:run_qsimh_lib",
+#     ],
+# )
 
-cc_binary(
-    name = "qsimh_amplitudes",
-    srcs = ["qsimh_amplitudes.cc"],
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsimh_lib",
-    ],
-)
+# cc_binary(
+#     name = "qsimh_amplitudes",
+#     srcs = ["qsimh_amplitudes.cc"],
+#     deps = [
+#         "//lib:bitstring",
+#         "//lib:run_qsimh_lib",
+#     ],
+# )
