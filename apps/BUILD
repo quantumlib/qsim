@@ -9,13 +9,13 @@ cc_binary(
     data = ["//circuits:circuit_q24"],
 )
 
-cc_binary(
-    name = "qsim_von_neumann",
-    srcs = ["qsim_von_neumann.cc"],
-    deps = [
-        "//lib:run_qsim_lib",
-    ],
-)
+# cc_binary(
+#     name = "qsim_von_neumann",
+#     srcs = ["qsim_von_neumann.cc"],
+#     deps = [
+#         "//lib:run_qsim_lib",
+#     ],
+# )
 
 # cc_binary(
 #     name = "qsim_amplitudes",
