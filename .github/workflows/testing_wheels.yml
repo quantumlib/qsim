@@ -91,22 +91,42 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{matrix.conf.py.version}}
-          architecture: ${{matrix.conf.py.arch}}
-          cache: pip
-          cache-dependency-path: requirements.txt
+      # - uses: actions/setup-python@v5
+      #   id: setup-python
+      #   with:
+      #     python-version: ${{matrix.conf.py.version}}
+      #     architecture: ${{matrix.conf.py.arch}}
+      #     cache: pip
+      #     cache-dependency-path: requirements.txt
 
-      - name: Install Python tools and requirements
-        run: |
-          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
-          python -m pip install -r requirements.txt
+      # - name: Install Python tools and requirements
+      #   run: |
+      #     python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+      #     python -m pip install -r requirements.txt
+
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@0.14.0
+        env:
+          USE_BAZEL_VERSION: 6.5.0
+          py_dir: 'C:\\hostedtoolcache\\windows\\Python'
+          py_ver: '${{steps.setup-python.outputs.python-version}}'
+          py_path: '${{env.py_dir}}\\${{env.py_ver}}\\${{matrix.conf.py.arch}}\\python3.exe'
+        with:
+          disk-cache: ${{github.workflow}}
+          bazelisk-cache: true
+          external-cache: true
+          repository-cache: true
+          bazelrc: |
+            --announce_rc
+            --show_loading_progress
+            --verbose_failures
+            --auto_output_filter=none
+            --action_env PYTHON_BIN_PATH='${{env.python}}'
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
         run: |
-          bazel build --announce_rc --show_loading_progress --verbose_failures --auto_output_filter=none --action_env PYTHON_BIN_PATH="C:\\hostedtoolcache\\windows\\Python\\3.10.11\\x64\\python3.exe" --config=sse "apps:all"
+          bazel build --config=sse "apps:all"
 
       - if: matrix.conf.os != 'windows-2019'
         run: |
