@@ -106,7 +106,7 @@ jobs:
 
       - if: matrix.conf.os == 'windows-2019'
         # shell: '"C:\Program Files\Git\bin\bash.exe" -c {0}'
-        shell: C:\Program Files\Git\bin\bash.exe '{0}'
+        shell: C:\\Program Files\\Git\\bin\\bash.exe '{0}'
         run: |
           set -x
           pwd
