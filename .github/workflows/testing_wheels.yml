@@ -127,6 +127,8 @@ jobs:
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
+        env:
+          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         run: |
           ${{env.python}} --version
           bazel build --config=sse apps:all
