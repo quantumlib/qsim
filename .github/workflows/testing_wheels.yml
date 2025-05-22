@@ -112,7 +112,6 @@ jobs:
           python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         shell: bash
         run: |
-          set -x
           echo python='${{env.python}}' >> "$GITHUB_ENV"
 
       - name: Set up Bazel
@@ -136,8 +135,7 @@ jobs:
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
         run: |
-          ${{env.python}} --version
-          bazel build --config=sse apps:all
+          bazel build --action_env PYTHON_BIN_PATH='${{env.python}}' --config=sse apps:all
 
       # - if: matrix.conf.os != 'windows-2019'
       #   run: |
