@@ -67,7 +67,7 @@ jobs:
           # {os: macos-15, dep: '15.0', py: {version: '3.12', arch: arm64}, cibw: {wheel: cp312-macosx, arch: arm64}},
           # {os: macos-15, dep: '15.0', py: {version: '3.13', arch: arm64}, cibw: {wheel: cp313-macosx, arch: arm64}},
 
-          # {os: ubuntu-24.04, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-manylinux, arch: x86_64}},
+          {os: ubuntu-24.04, dep: '', py: {version: '3.10', arch: x64}, cibw: {wheel: cp310-manylinux, arch: x86_64}},
           # {os: ubuntu-24.04, dep: '', py: {version: '3.11', arch: x64}, cibw: {wheel: cp311-manylinux, arch: x86_64}},
           # {os: ubuntu-24.04, dep: '', py: {version: '3.12', arch: x64}, cibw: {wheel: cp312-manylinux, arch: x86_64}},
           # {os: ubuntu-24.04, dep: '', py: {version: '3.13', arch: x64}, cibw: {wheel: cp313-manylinux, arch: x86_64}},
@@ -130,16 +130,16 @@ jobs:
             common --remote_upload_local_results=false
             common --jobs 2
 
+      - if: matrix.conf.os != 'windows-2019'
+        run: |
+          bazel build --config=sse apps:all
+          bazel build apps:all
+          bazel test tests:bitstring_test
+
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
         run: |
           bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
-
-      # - if: matrix.conf.os != 'windows-2019'
-      #   run: |
-      #     bazel build --config=sse apps:all
-
-
 
       # - name: Run C++ tests
       #   run: bash build_tools/test_libs.sh
