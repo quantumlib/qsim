@@ -127,8 +127,11 @@ jobs:
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
+        env:
+          USE_BAZEL_VERSION: 6.5.0
+          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         run: |
-          bazel test tests:bitstring_test
+          bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
 
       # - if: matrix.conf.os != 'windows-2019'
       #   run: |
