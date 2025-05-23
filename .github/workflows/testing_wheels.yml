@@ -106,11 +106,17 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
 
+      - name: Set environment variables used in later steps
+        env:
+          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
+        shell: bash
+        run: |
+          echo python='${{env.python}}' >> "$GITHUB_ENV"
+
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.14.0
         env:
           USE_BAZEL_VERSION: 6.5.0
-          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         with:
           disk-cache: ${{github.workflow}}
           bazelisk-cache: true
@@ -122,14 +128,10 @@ jobs:
             common --verbose_failures
             common --auto_output_filter=none
             common --remote_upload_local_results=false
-            common --action_env PYTHON_BIN_PATH='${{env.python}}'
             common --jobs 2
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
-        env:
-          USE_BAZEL_VERSION: 6.5.0
-          python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         run: |
           bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
 
