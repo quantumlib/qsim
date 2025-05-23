@@ -112,9 +112,9 @@ jobs:
           USE_BAZEL_VERSION: 6.5.0
           python: '${{env.py_dir}}\\${{steps.setup.outputs.python-version}}\\${{env.py_bin}}'
         with:
-          # disk-cache: ${{github.workflow}}
-          # bazelisk-cache: true
-          # external-cache: true
+          disk-cache: ${{github.workflow}}
+          bazelisk-cache: true
+          external-cache: true
           repository-cache: true
           bazelrc: |
             common --announce_rc
@@ -125,7 +125,9 @@ jobs:
             common --action_env PYTHON_BIN_PATH=${{env.python}}
             common --jobs 2
 
-      - run: |
+      - if: matrix.conf.os == 'windows-2019'
+        shell: cmd
+        run: |
           bazel test tests:bitstring_test
 
       # - name: Run C++ tests
