@@ -104,7 +104,6 @@ jobs:
 
       - name: Install Python tools and requirements
         run: |
-          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
           python -m pip install -r requirements.txt
 
       - name: Set environment variables used in later steps
@@ -132,19 +131,13 @@ jobs:
             common --action_env PYTHON_BIN_PATH=${{env.python}}
             common --jobs 2
 
-      - if: matrix.conf.os == 'windows-2019'
-        run: |
-          bazel build apps:all
-
-      # - if: matrix.conf.os != 'windows-2019'
-      #   run: |
-      #     bazel build --config=sse apps:all
-
-      # - name: Run C++ tests
-      #   run: bash build_tools/test_libs.sh
+      - name: Run C++ tests
+        run: bash build_tools/test_libs.sh
 
       # - name: Build and test wheels
-      #   run: python -m cibuildwheel --output-dir wheelhouse
+      #   run: |
+      #     python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+      #     python -m cibuildwheel --output-dir wheelhouse
 
       # - uses: actions/upload-artifact@v4
       #   with:
