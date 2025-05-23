@@ -122,13 +122,19 @@ jobs:
             common --verbose_failures
             common --auto_output_filter=none
             common --remote_upload_local_results=false
-            common --action_env PYTHON_BIN_PATH=${{env.python}}
+            common --action_env PYTHON_BIN_PATH='${{env.python}}'
             common --jobs 2
 
       - if: matrix.conf.os == 'windows-2019'
         shell: cmd
         run: |
           bazel test tests:bitstring_test
+
+      # - if: matrix.conf.os != 'windows-2019'
+      #   run: |
+      #     bazel build --config=sse apps:all
+
+
 
       # - name: Run C++ tests
       #   run: bash build_tools/test_libs.sh
