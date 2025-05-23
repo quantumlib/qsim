@@ -137,7 +137,8 @@ jobs:
         name: Run C++ tests on Windows
         shell: cmd
         # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
-        run: bash build_tools/test_libs.sh
+        run: bash build_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.python}}
+        # run: bazel test tests:all
 
       # - name: Build and test wheels
       #   run: |
