@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a problem with qsim or the project.
+type: Bug
+body:
+  - type: textarea
+    attributes:
+      label: Describe the issue
+      description: Please explain in a clear and concise way what the issue is.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How can the issue be reproduced?
+      description: >-
+        Explain in a step-by-step fashion what someone else would need to
+        do in order to reproduce the issue. If possible, include literal
+        examples of commands or code using [Markdown fenced code
+        blocks](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks).
+        For long output, paste the text into [collapsed
+        sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+        or attach text files.
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: What version of qsim are you using?
+      description: >-
+        You can find out the version of qsim you are running by using Python
+        to print the value of `cirq.__version__`. You can do this by running
+        the command `python -c 'import cirq; print(cirq.__version__)'` in your
+        Python environment. Please copy-paste the output in the field below.
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: In what environment and operating system are you using qsim?
+      description: >-
+        What is the operating system and environment you are using?
+    validations:
+      required: false

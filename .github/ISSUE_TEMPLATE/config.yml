@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Learn more about Google Quantum AI
+    url: https://quantumai.google/
+    about: >-
+      Information about Google's quantum computing work
