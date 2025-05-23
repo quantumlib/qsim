@@ -124,7 +124,6 @@ jobs:
           repository-cache: true
           bazelrc: |
             common --announce_rc
-            common --subcommands
             common --verbose_failures
             common --auto_output_filter=none
             common --remote_upload_local_results=false
@@ -136,8 +135,9 @@ jobs:
 
       - if: matrix.conf.os == 'windows-2019'
         name: Run C++ tests on Windows
-        shell: cmd
-        run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
+        shell: bash
+        # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
+        run: build_tools/test_libs.sh
 
       # - name: Build and test wheels
       #   run: |
