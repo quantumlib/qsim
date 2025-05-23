@@ -135,9 +135,9 @@ jobs:
 
       - if: matrix.conf.os == 'windows-2019'
         name: Run C++ tests on Windows
-        shell: bash
+        shell: cmd
         # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
-        run: build_tools/test_libs.sh
+        run: bash build_tools/test_libs.sh
 
       # - name: Build and test wheels
       #   run: |
