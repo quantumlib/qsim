@@ -1,29 +1,47 @@
-#!/bin/bash
-set -e  # fail and exit on any command erroring
-set -x  # print evaluated commands
+#!/usr/bin/env bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-which bazel
-bazel version
+set -eo pipefail -o errtrace
+shopt -s inherit_errexit
 
-# Attempt to build all components in SSE and basic mode.
-# The Github Action MacOS VMs may run on different-capability CPUs, so all AVX tests
-# are excluded from the build and test process.
-# apps are sample applications for experts and are meant to be run on only on Linux.
+declare -r usage="Usage: ${0##*/} [-h | --help | help] [bazel options ...]
+Run the programs in tests/, and on Linux, also build the programs in apps/.
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  bazel build --config=sse apps:all
-  bazel build apps:all
+If the first option on the command line is -h, --help, or help, this help text
+will be printed and the program will exit. Any other options on the command
+line are passed directly to Bazel.
+
+Note: the MacOS VMs in GitHub runners may run on different-capability CPUS, so
+all AVX versions of programs in tests/ are excluded."
+
+# Exit early if the user requested help.
+if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
+    echo "$usage"
+    exit 0
 fi
 
-# Run all basic tests.
-set e  # Ignore errors until artifacts are collected.
-EXIT_CODE=0
-for TARGET in bitstring_test channels_cirq_test circuit_qsim_parser_test expect_test \
-              fuser_basic_test gates_qsim_test hybrid_avx_test matrix_test qtrajectory_avx_test \
-              run_qsim_test run_qsimh_test simulator_basic_test simulator_sse_test statespace_basic_test \
-              statespace_sse_test unitary_calculator_basic_test unitary_calculator_sse_test \
-              unitaryspace_basic_test unitaryspace_sse_test vectorspace_test; do \
-  if ! bazel test --test_output=errors tests:${TARGET}; then
-    EXIT_CODE=1
-  fi
-done
+declare -a filter_avx=""
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    filter_avx="--test_tag_filters=-avx"
+fi
+
+# Apps are sample programs and are only meant to run on Linux.
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    bazel build --config=sse "$filter_avx" "$@" apps:all
+    bazel build "$filter_avx" "$@" apps:all
+fi
+
+# Run all basic tests. This should work on all platforms.
+bazel test "$filter_avx" "$@" tests:all
