@@ -4,10 +4,13 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+  # Allow manual invocation, for testing.
+  workflow_dispatch:
+
 jobs:
   consistency:
     name: Nightly Compatibility
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
