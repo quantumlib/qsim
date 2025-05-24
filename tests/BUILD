@@ -20,6 +20,7 @@ config_setting(
 
 cc_test(
     name = "bitstring_test",
+    size = "small",
     srcs = ["bitstring_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -33,6 +34,7 @@ cc_test(
 
 cc_test(
     name = "channel_test",
+    size = "small",
     srcs = ["channel_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -50,6 +52,7 @@ cc_test(
 
 cc_test(
     name = "channels_cirq_test",
+    size = "small",
     srcs = ["channels_cirq_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -70,6 +73,7 @@ cc_test(
 
 cc_test(
     name = "circuit_qsim_parser_test",
+    size = "small",
     srcs = ["circuit_qsim_parser_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -84,6 +88,7 @@ cc_test(
 
 cc_test(
     name = "expect_test",
+    size = "small",
     srcs = ["expect_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -103,6 +108,7 @@ cc_test(
 
 cc_test(
     name = "fuser_basic_test",
+    size = "small",
     srcs = ["fuser_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -118,6 +124,7 @@ cc_test(
 
 cc_test(
     name = "fuser_mqubit_test",
+    size = "small",
     srcs = ["fuser_mqubit_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -147,6 +154,7 @@ cc_library(
 
 cc_test(
     name = "gates_qsim_test",
+    size = "small",
     srcs = ["gates_qsim_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -179,6 +187,8 @@ cc_library(
 
 cc_test(
     name = "hybrid_avx_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["hybrid_avx_test.cc"],
     deps = [
         ":hybrid_testfixture",
@@ -194,6 +204,7 @@ cc_test(
 
 cc_test(
     name = "matrix_test",
+    size = "small",
     srcs = ["matrix_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -229,6 +240,8 @@ cc_library(
 
 cc_test(
     name = "qtrajectory_avx_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["qtrajectory_avx_test.cc"],
     deps = [
         ":qtrajectory_testfixture",
@@ -244,6 +257,7 @@ cc_test(
 
 cc_test(
     name = "run_qsim_test",
+    size = "small",
     srcs = ["run_qsim_test.cc"],
     deps = [
         ":gates_cirq_testfixture",
@@ -258,6 +272,7 @@ cc_test(
 
 cc_test(
     name = "run_qsimh_test",
+    size = "small",
     srcs = ["run_qsimh_test.cc"],
     deps = [
         ":gates_cirq_testfixture",
@@ -291,6 +306,8 @@ cc_library(
 
 cc_test(
     name = "simulator_avx_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["simulator_avx_test.cc"],
     deps = [
         ":simulator_testfixture",
@@ -307,6 +324,8 @@ cc_test(
 
 cc_test(
     name = "simulator_avx512_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["simulator_avx512_test.cc"],
     deps = [
         ":simulator_testfixture",
@@ -323,6 +342,7 @@ cc_test(
 
 cc_test(
     name = "simulator_basic_test",
+    size = "small",
     srcs = ["simulator_basic_test.cc"],
     deps = [
         ":simulator_testfixture",
@@ -339,6 +359,7 @@ cc_test(
 
 cc_test(
     name = "simulator_sse_test",
+    size = "small",
     srcs = ["simulator_sse_test.cc"],
     deps = [
         ":simulator_testfixture",
@@ -373,6 +394,8 @@ cc_library(
 
 cc_test(
     name = "statespace_avx_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["statespace_avx_test.cc"],
     deps = [
         ":statespace_testfixture",
@@ -390,6 +413,8 @@ cc_test(
 
 cc_test(
     name = "statespace_avx512_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["statespace_avx512_test.cc"],
     deps = [
         ":statespace_testfixture",
@@ -407,6 +432,7 @@ cc_test(
 
 cc_test(
     name = "statespace_basic_test",
+    size = "small",
     srcs = ["statespace_basic_test.cc"],
     deps = [
         ":statespace_testfixture",
@@ -424,6 +450,7 @@ cc_test(
 
 cc_test(
     name = "statespace_sse_test",
+    size = "small",
     srcs = ["statespace_sse_test.cc"],
     deps = [
         ":statespace_testfixture",
@@ -454,6 +481,8 @@ cc_library(
 
 cc_test(
     name = "unitaryspace_avx_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["unitaryspace_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -469,6 +498,8 @@ cc_test(
 
 cc_test(
     name = "unitaryspace_avx512_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["unitaryspace_avx512_test.cc"],
     copts = select({
         ":windows": windows_avx512_copts,
@@ -484,6 +515,7 @@ cc_test(
 
 cc_test(
     name = "unitaryspace_basic_test",
+    size = "small",
     srcs = ["unitaryspace_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -499,6 +531,7 @@ cc_test(
 
 cc_test(
     name = "unitaryspace_sse_test",
+    size = "small",
     srcs = ["unitaryspace_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -530,6 +563,8 @@ cc_library(
 
 cc_test(
     name = "unitary_calculator_avx_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["unitary_calculator_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -546,6 +581,8 @@ cc_test(
 
 cc_test(
     name = "unitary_calculator_avx512_test",
+    size = "small",
+    tags = ["avx"],
     srcs = ["unitary_calculator_avx512_test.cc"],
     copts = select({
         ":windows": windows_avx512_copts,
@@ -562,6 +599,7 @@ cc_test(
 
 cc_test(
     name = "unitary_calculator_basic_test",
+    size = "small",
     srcs = ["unitary_calculator_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -578,6 +616,7 @@ cc_test(
 
 cc_test(
     name = "unitary_calculator_sse_test",
+    size = "small",
     srcs = ["unitary_calculator_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -594,6 +633,7 @@ cc_test(
 
 cc_test(
     name = "vectorspace_test",
+    size = "small",
     srcs = ["vectorspace_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -608,6 +648,7 @@ cc_test(
 
 cc_test(
     name = "mps_statespace_test",
+    size = "small",
     srcs = ["mps_statespace_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -623,6 +664,7 @@ cc_test(
 
 cc_test(
     name = "mps_simulator_test",
+    size = "small",
     srcs = ["mps_simulator_test.cc"],
     copts = select({
         ":windows": windows_copts,
