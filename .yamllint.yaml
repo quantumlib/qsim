@@ -19,7 +19,7 @@
 
 rules:
   line-length:
-    max: 100
+    max: 80
     # When the last item on a line can't be broken (e.g., a URL as a value),
     # it's rarely useful to flag it. The next 2 settings save developer time by
     # not requiring comment directives to disable warnings at every occurrence.
