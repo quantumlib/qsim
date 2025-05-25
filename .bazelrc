@@ -1,7 +1,33 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Common flags
+common --announce_rc
+common --experimental_repo_remote_exec
+common --verbose_failures
+
 # Default build options
 build --copt -std=c++17
 build --copt -D_GLIBCXX_USE_CXX11_ABI=1
-build --experimental_repo_remote_exec
+
+# Test flags
+test --test_output=errors
+
+# CUDA options
+build:cuda --@local_config_cuda//:enable_cuda
+build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
+
 
 ##### Sanitizers (choose one, or nosan for none) #####
 
@@ -23,6 +49,7 @@ build:msan --linkopt -fsanitize=leak
 # No sanitizers
 build:nosan --
 
+
 ##### Instruction set options (choose one) #####
 
 # Build with AVX2 + FMA
@@ -36,6 +63,7 @@ build:sse --copt -msse4
 
 # Build without AVX or SSE
 build:basic --copt -O3
+
 
 ##### Parallelization (choose one, or nopenmp for none) #####
 
@@ -53,10 +81,3 @@ build:tcmalloc --linkopt="-ltcmalloc"
 
 # Build using malloc (default)
 build:malloc --
-
-# Test flags
-test --test_output=errors
-
-# CUDA options
-build:cuda --@local_config_cuda//:enable_cuda
-build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
