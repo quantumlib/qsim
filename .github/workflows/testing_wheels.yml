@@ -132,13 +132,18 @@ jobs:
       #     echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
 
 
-      - run: pip install numpy==1.26.3
       - run: pip install numpy==1.26.2
+        continue-on-error: true
       - run: pip install numpy==1.26.1
+        continue-on-error: true
       - run: pip install numpy==1.26.0
+        continue-on-error: true
       - run: pip install numpy==1.26.3
+        continue-on-error: true
       - run: pip install numpy==1.25.2
+        continue-on-error: true
       - run: pip install numpy==1.25.0
+        continue-on-error: true
 
 
       # - name: Build and test wheels
