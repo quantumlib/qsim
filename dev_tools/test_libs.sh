@@ -24,7 +24,7 @@ will be printed and the program will exit. Any other options on the command
 line are passed directly to Bazel.
 
 Note: the MacOS VMs in GitHub runners may run on different-capability CPUS, so
-all AVX versions of programs in tests/ are excluded."
+all AVX versions of programs in tests/ are automatically excluded."
 
 # Exit early if the user requested help.
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
@@ -32,16 +32,16 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-declare -a filter_avx=""
+declare filter_avx=""
 if [[ "$OSTYPE" == "darwin"* ]]; then
     filter_avx="--test_tag_filters=-avx"
 fi
 
 # Apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build --config=sse "$filter_avx" "$@" apps:all
-    bazel build "$filter_avx" "$@" apps:all
+    bazel build --config=sse $filter_avx "$@" apps:all
+    bazel build $filter_avx "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
-bazel test "$filter_avx" "$@" tests:all
+bazel test $filter_avx "$@" tests:all
