@@ -24,7 +24,7 @@ will be printed and the program will exit. Any other options on the command
 line are passed directly to Bazel.
 
 Note: the MacOS VMs in GitHub runners may run on different-capability CPUS, so
-all AVX versions of programs in tests/ are excluded."
+all AVX versions of programs in tests/ are automatically excluded."
 
 # Exit early if the user requested help.
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
