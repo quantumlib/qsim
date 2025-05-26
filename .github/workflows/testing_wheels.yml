@@ -114,13 +114,13 @@ jobs:
 
       - if: matrix.conf.os != 'windows-2019'
         name: Run C++ tests on Linux and MacOS
-        run: build_tools/test_libs.sh
+        run: dev_tools/test_libs.sh
 
       - if: matrix.conf.os == 'windows-2019'
         name: Run C++ tests on Windows
         shell: cmd
         # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
-        run: bash build_tools/test_libs.sh --action_env PYTHON_BIN_PATH=C:\\hostedtoolcache\\windows\\Python\\${{steps.setup.outputs.python-version}}\\3.${{matrix.conf.py}}\\python3.exe
+        run: bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=C:\\hostedtoolcache\\windows\\Python\\${{steps.setup.outputs.python-version}}\\3.${{matrix.conf.py}}\\python3.exe
         # run: bazel test tests:all
 
       - if: startsWith(matrix.conf.os, 'macos')
