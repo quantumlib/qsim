@@ -29,9 +29,9 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
 fi
 
 # Unless we can tell this system supports AVX, we filter out those cases.
-declare filter_avx="--test_tag_filters=-avx"
+declare filter_avx="--build_tag_filters=-avx --test_tag_filters=-avx"
 shopt -s nocasematch
-# Note: can't use Bash's $OSTYPE here b/c it's "linux-gnu" on Windows 10.
+# Note: can't use Bash's $OSTYPE here b/c the value is "linux-gnu" on Win 10.
 case "$(uname -s)" in
     linux*)
         if lscpu | grep -qi "avx"; then
@@ -56,10 +56,12 @@ case "$(uname -s)" in
 esac
 
 # Apps are sample programs and are only meant to run on Linux.
+# shellcheck disable=SC2086
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     bazel build --config=sse $filter_avx "$@" apps:all
     bazel build $filter_avx "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
+# shellcheck disable=SC2086
 bazel test $filter_avx "$@" tests:all
