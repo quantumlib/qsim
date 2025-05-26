@@ -119,10 +119,10 @@ jobs:
         run: |
           bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
 
-      # - if: startsWith(matrix.conf.os, 'macos')
-      #   run: |
-      #     os=${{matrix.conf.os}}
-      #     echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
+      - if: startsWith(matrix.conf.os, 'macos')
+        run: |
+          os=${{matrix.conf.os}}
+          echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
 
       # - name: Build and test wheels
       #   run: |
