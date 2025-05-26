@@ -120,7 +120,7 @@ jobs:
         name: Run C++ tests on Windows
         env:
           pyroot: 'C:\\hostedtoolcache\\windows\\Python'
-          pyexe: '${{steps.setup.outputs.python-version}}\\3.${{matrix.conf.pyarch}}\\python3.exe'
+          pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
         shell: cmd
         # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
         run: |
