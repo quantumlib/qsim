@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.31)
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
