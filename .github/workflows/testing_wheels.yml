@@ -78,6 +78,7 @@ jobs:
       # Note: additional cibuildwheel settings are in pyproject.toml
       CIBW_ARCHS: ${{matrix.conf.arch}}
       CIBW_BUILD: cp3${{matrix.conf.py}}-${{matrix.conf.wh}}_${{matrix.conf.arch}}
+      SHELLOPTS: 'xtrace'
     steps:
       - uses: actions/checkout@v4
         with:
