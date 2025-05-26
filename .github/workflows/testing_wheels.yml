@@ -78,7 +78,6 @@ jobs:
       # Note: additional cibuildwheel settings are in pyproject.toml
       CIBW_ARCHS: ${{matrix.conf.arch}}
       CIBW_BUILD: cp3${{matrix.conf.py}}-${{matrix.conf.wh}}_${{matrix.conf.arch}}
-      SHELLOPTS: 'xtrace'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -122,11 +121,12 @@ jobs:
         env:
           pyroot: 'C:\\hostedtoolcache\\windows\\Python'
           pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
+          SHELLOPTS: 'xtrace'
         shell: cmd
         # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
         run: |
           bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}'
-        # run: bazel test tests:all
+          # bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}' tests:bitstring_test
 
       - if: startsWith(matrix.conf.os, 'macos')
         run: |
