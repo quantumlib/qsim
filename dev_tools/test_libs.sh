@@ -42,7 +42,7 @@ case "$(uname -s)" in
         ;;
     darwin*)
         features=$(sysctl machdep.cpu.features)
-        if [[ "$features" == *"AVX"* ]]; then
+        if [[ "$features" == *"AVX2"* ]]; then
             filter_avx=""
         fi
         ;;
