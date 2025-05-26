@@ -46,6 +46,7 @@ jobs:
       Build wheel
       ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
     runs-on: ${{matrix.conf.os}}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
