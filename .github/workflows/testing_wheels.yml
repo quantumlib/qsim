@@ -118,9 +118,13 @@ jobs:
 
       - if: matrix.conf.os == 'windows-2019'
         name: Run C++ tests on Windows
+        env:
+          pyroot: 'C:\\hostedtoolcache\\windows\\Python'
+          pyexe: '${{steps.setup.outputs.python-version}}\\3.${{matrix.conf.pyarch}}\\python3.exe'
         shell: cmd
         # run: bazel test --action_env PYTHON_BIN_PATH=${{env.python}} tests:bitstring_test
-        run: bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=C:\\hostedtoolcache\\windows\\Python\\${{steps.setup.outputs.python-version}}\\3.${{matrix.conf.py}}\\python3.exe
+        run: |
+          bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}'
         # run: bazel test tests:all
 
       - if: startsWith(matrix.conf.os, 'macos')
