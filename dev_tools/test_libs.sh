@@ -38,9 +38,9 @@ fi
 
 # Apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build --config=sse "$filter_avx" "$@" apps:all
-    bazel build "$filter_avx" "$@" apps:all
+    bazel build --config=sse $filter_avx "$@" apps:all
+    bazel build $filter_avx "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
-bazel test $filter_avx $* tests:all
+bazel test $filter_avx "$@" tests:all

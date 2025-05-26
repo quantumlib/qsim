@@ -104,10 +104,10 @@ jobs:
         env:
           USE_BAZEL_VERSION: 6.5.0
         with:
-          disk-cache: ${{github.workflow}}
-          bazelisk-cache: true
-          external-cache: true
-          repository-cache: true
+          # disk-cache: ${{github.workflow}}
+          # bazelisk-cache: true
+          # external-cache: true
+          # repository-cache: true
           bazelrc: |
             common --announce_rc
             common --verbose_failures
