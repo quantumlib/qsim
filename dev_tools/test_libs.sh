@@ -43,4 +43,4 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 fi
 
 # Run all basic tests. This should work on all platforms.
-bazel test $filter_avx "$@" tests:all
+bazel test $filter_avx $* tests:all

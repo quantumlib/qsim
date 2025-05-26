@@ -26,6 +26,11 @@ on:
 
   # Allow manual invocation, for testing.
   workflow_dispatch:
+    inputs:
+      trace:
+        description: 'Turn on shell script debugging'
+        type: boolean
+        default: true
 
 # Cancel any previously-started but still active runs on the same branch.
 concurrency:
@@ -77,6 +82,9 @@ jobs:
       # Note: additional cibuildwheel settings are in pyproject.toml
       CIBW_ARCHS: ${{matrix.conf.arch}}
       CIBW_BUILD: cp3${{matrix.conf.py}}-${{matrix.conf.wh}}_${{matrix.conf.arch}}
+      # The next var is used by Bash. We add 'xtrace' to the options if this run
+      # is a workflow_dispatch invocation and the user set the 'trace' option.
+      SHELLOPTS: ${{inputs.trace && 'xtrace' || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -108,15 +116,12 @@ jobs:
             common --jobs 2
 
       - if: matrix.conf.os != 'windows-2019'
-        env:
-          SHELLOPTS: 'xtrace'
         run: dev_tools/test_libs.sh
 
       - if: matrix.conf.os == 'windows-2019'
         env:
           pyroot: 'C:\\hostedtoolcache\\windows\\Python'
           pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
-          SHELLOPTS: 'xtrace'
         shell: cmd
         run: |
           bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
