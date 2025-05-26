@@ -1,5 +1,5 @@
 set(CMAKE_CXX_STANDARD 11)
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.31)
 
 # Check if CMAKE_SYSTEM_NAME is Darwin (macOS) and CMAKE_SYSTEM_PROCESSOR is arm64
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
