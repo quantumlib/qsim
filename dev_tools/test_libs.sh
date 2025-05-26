@@ -20,10 +20,7 @@ Run the programs in tests/, and on Linux, also build the programs in apps/.
 
 If the first option on the command line is -h, --help, or help, this help text
 will be printed and the program will exit. Any other options on the command
-line are passed directly to Bazel.
-
-Note: the MacOS VMs in GitHub runners may run on different-capability CPUS, so
-all AVX versions of programs in tests/ are automatically excluded."
+line are passed directly to Bazel."
 
 # Exit early if the user requested help.
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
@@ -31,10 +28,32 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-declare -a filter_avx=""
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    filter_avx="--test_tag_filters=-avx"
-fi
+# Unless we can tell this system supports AVX, we filter out those cases.
+declare filter_avx="--test_tag_filters=-avx"
+shopt -s nocasematch
+# Note: can't use Bash's $OSTYPE here b/c it's "linux-gnu" on Windows 10.
+case "$(uname -s)" in
+    linux*)
+        if lscpu | grep -qi "avx"; then
+            filter_avx=""
+        elif grep -qi flags /proc/cpuinfo | grep -qi "avx"; then
+            filter_avx=""
+        fi
+        ;;
+    darwin*)
+        features=$(sysctl machdep.cpu.features)
+        if [[ "$features" == *"AVX"* ]]; then
+            filter_avx=""
+        fi
+        ;;
+    windows*|cygwin*|mingw32*|msys*|mingw*)
+        if wmic cpu get Caption /value | grep -qi "avx"; then
+            filter_avx=""
+        elif wmic cpu get InstructionSet /value | grep -qi "avx"; then
+            filter_avx=""
+        fi
+        ;;
+esac
 
 # Apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
