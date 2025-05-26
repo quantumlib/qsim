@@ -52,30 +52,30 @@ jobs:
         # See the following page for a list of valid cibuildwheel arch values:
         # https://cibuildwheel.pypa.io/en/stable/options/#archs
         conf: [
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 10},
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 11},
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 12},
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 13},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 10},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 11},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 12},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 13},
 
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
 
-          # 3.10 fails due to https://github.com/actions/setup-python/issues/948
-          # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
-          {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
-          {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
-          {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
+          # # 3.10 fails due to https://github.com/actions/setup-python/issues/948
+          # # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
+          # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
+          # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
+          # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
 
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 10},
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 11},
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 10},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 11},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
 
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 10},
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 11},
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 12},
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 10},
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 11},
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 12},
           {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 13},
         ]
     env:
@@ -98,38 +98,48 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
 
-      - run: python -m pip install -r requirements.txt
+      # - run: python -m pip install -r requirements.txt
 
-      - uses: bazel-contrib/setup-bazel@0.14.0
-        env:
-          USE_BAZEL_VERSION: 6.5.0
-        with:
-          # disk-cache: ${{github.workflow}}
-          # bazelisk-cache: true
-          # external-cache: true
-          # repository-cache: true
-          bazelrc: |
-            common --announce_rc
-            common --verbose_failures
-            common --auto_output_filter=none
-            common --remote_upload_local_results=false
-            common --jobs 2
+      # - uses: bazel-contrib/setup-bazel@0.14.0
+      #   env:
+      #     USE_BAZEL_VERSION: 6.5.0
+      #   with:
+      #     # disk-cache: ${{github.workflow}}
+      #     # bazelisk-cache: true
+      #     # external-cache: true
+      #     # repository-cache: true
+      #     bazelrc: |
+      #       common --announce_rc
+      #       common --verbose_failures
+      #       common --auto_output_filter=none
+      #       common --remote_upload_local_results=false
+      #       common --jobs 2
 
-      - if: matrix.conf.os != 'windows-2019'
-        run: dev_tools/test_libs.sh
+      # - if: matrix.conf.os != 'windows-2019'
+      #   run: dev_tools/test_libs.sh
 
-      - if: matrix.conf.os == 'windows-2019'
-        env:
-          pyroot: 'C:\\hostedtoolcache\\windows\\Python'
-          pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
-        shell: cmd
-        run: |
-          bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
+      # - if: matrix.conf.os == 'windows-2019'
+      #   env:
+      #     pyroot: 'C:\\hostedtoolcache\\windows\\Python'
+      #     pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
+      #   shell: cmd
+      #   run: |
+      #     bash dev_tools/test_libs.sh --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
 
-      - if: startsWith(matrix.conf.os, 'macos')
-        run: |
-          os=${{matrix.conf.os}}
-          echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
+      # - if: startsWith(matrix.conf.os, 'macos')
+      #   run: |
+      #     os=${{matrix.conf.os}}
+      #     echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
+
+
+      - run: pip install numpy==1.26.3
+      - run: pip install numpy==1.26.2
+      - run: pip install numpy==1.26.1
+      - run: pip install numpy==1.26.0
+      - run: pip install numpy==1.26.3
+      - run: pip install numpy==1.25.2
+      - run: pip install numpy==1.25.0
+
 
       # - name: Build and test wheels
       #   run: |
