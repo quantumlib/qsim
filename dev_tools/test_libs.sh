@@ -14,7 +14,6 @@
 # limitations under the License.
 
 set -eo pipefail -o errtrace
-shopt -s inherit_errexit
 
 declare -r usage="Usage: ${0##*/} [-h | --help | help] [bazel options ...]
 Run the programs in tests/, and on Linux, also build the programs in apps/.
