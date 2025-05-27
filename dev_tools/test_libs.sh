@@ -79,4 +79,4 @@ fi
 
 # Run all basic tests. This should work on all platforms.
 # shellcheck disable=SC2086
-bazel test $test_filters "$@" tests:all
+bazel test $build_filters $test_filters "$@" tests:all
