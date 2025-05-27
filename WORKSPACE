@@ -2,11 +2,11 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "platforms",
+    sha256 = "29742e87275809b5e598dc2f04d86960cc7a55b3067d97221c9abbc9926bff0f",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.6/platforms-0.0.6.tar.gz",
-        "https://github.com/bazelbuild/platforms/releases/download/0.0.6/platforms-0.0.6.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.11/platforms-0.0.11.tar.gz",
+        "https://github.com/bazelbuild/platforms/releases/download/0.0.11/platforms-0.0.11.tar.gz",
     ],
-    sha256 = "5308fc1d8865406a49427ba24a9ab53087f17f5266a7aabbfc28823f3916e1ca",
 )
 
 http_archive(
@@ -20,11 +20,9 @@ http_archive(
 # https://github.com/tensorflow/quantum
 http_archive(
     name = "org_tensorflow",
-    sha256 = "e52cda3bae45f0ae0fccd4055e9fa29892b414f70e2df94df9a3a10319c75fff",
-    strip_prefix = "tensorflow-2.11.0",
-    urls = [
-        "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.11.0.zip",
-    ],
+    sha256 = "447cdb65c80c86d6c6cf1388684f157612392723eaea832e6392d219098b49de",
+    strip_prefix = "tensorflow-2.13.0",
+    url = "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.13.0.zip",
 )
 
 load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
