@@ -93,8 +93,6 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
 
-      - run: python -m pip install -r requirements.txt
-
       - uses: bazel-contrib/setup-bazel@0.14.0
         env:
           USE_BAZEL_VERSION: 6.5.0
@@ -109,6 +107,15 @@ jobs:
             common --auto_output_filter=none
             common --remote_upload_local_results=false
             common --jobs 2
+
+      # SHELLOPTS is used by Bash. We add 'xtrace' to the options if this run
+      # is a workflow_dispatch invocation and the user set the 'trace' option.
+      # Need do this after setup-python, because it confuses setup-python.
+      - run: |
+          opts=${{inputs.trace && 'xtrace' || '' }}
+          echo SHELLOPTS=$opts >> "$GITHUB_ENV"
+
+      - run: python -m pip install -r requirements.txt
 
       - if: matrix.conf.os != 'windows-2019'
         run: dev_tools/test_libs.sh
