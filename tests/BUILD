@@ -360,6 +360,7 @@ cc_test(
 cc_test(
     name = "simulator_sse_test",
     size = "small",
+    tags = ["sse"],
     srcs = ["simulator_sse_test.cc"],
     deps = [
         ":simulator_testfixture",
@@ -451,6 +452,7 @@ cc_test(
 cc_test(
     name = "statespace_sse_test",
     size = "small",
+    tags = ["sse"],
     srcs = ["statespace_sse_test.cc"],
     deps = [
         ":statespace_testfixture",
@@ -532,6 +534,7 @@ cc_test(
 cc_test(
     name = "unitaryspace_sse_test",
     size = "small",
+    tags = ["sse"],
     srcs = ["unitaryspace_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
@@ -617,6 +620,7 @@ cc_test(
 cc_test(
     name = "unitary_calculator_sse_test",
     size = "small",
+    tags = ["sse"],
     srcs = ["unitary_calculator_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,

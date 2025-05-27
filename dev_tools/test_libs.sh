@@ -28,13 +28,18 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-# Unless we can tell this system supports AVX
+# Unless we can tell this system supports AVX, we skip those tests.
 declare filter_avx="--build_tag_filters=-avx --test_tag_filters=-avx"
 declare filter_sse="--build_tag_filters=-sse --test_tag_filters=-sse"
 declare config_sse=""
 shopt -s nocasematch
 # Note: can't use Bash's $OSTYPE here b/c the value is "linux-gnu" on Win 10.
 case "$(uname -s)" in
+    darwin*)
+        features=$(sysctl machdep.cpu.features)
+        [[ "$features" == *"AVX2"* ]] && filter_avx=""
+        [[ "$features" == *"sse"* ]] && filter_sse=""
+        ;;
     linux*)
         if grep -qi flags /proc/cpuinfo | grep -qi "avx2"; then
             filter_avx=""
@@ -43,15 +48,6 @@ case "$(uname -s)" in
         if grep -qi flags /proc/cpuinfo | grep -qi "sse"; then
             filter_sse=""
             config_sse="--config=sse"
-        fi
-        ;;
-    darwin*)
-        features=$(sysctl machdep.cpu.features)
-        if [[ "$features" == *"AVX2"* ]]; then
-            filter_avx=""
-        fi
-        if [[ "$features" == *"sse"* ]]; then
-            filter_sse=""
         fi
         ;;
     windows*|cygwin*|mingw32*|msys*|mingw*)
