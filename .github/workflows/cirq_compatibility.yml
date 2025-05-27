@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: CI nightly Cirq compatibility test
-run-name: Test against latest Cirq dev release
+run-name: Nightly test against latest Cirq dev release
 
 on:
   schedule:
@@ -50,4 +50,4 @@ jobs:
       - run: pip3 install --upgrade cirq~=1.0.dev
       - run: pip3 install -r requirements.txt
       - run: pip3 install -r dev-requirements.txt
-      - run: make run-py-tests
+      - run: make -j run-py-tests
