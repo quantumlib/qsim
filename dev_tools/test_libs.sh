@@ -36,13 +36,14 @@ shopt -s nocasematch
 case "$(uname -s)" in
     darwin*)
         features=$(sysctl machdep.cpu.features)
-        [[ "$features" == *"AVX2"* ]] && avx=true
+        [[ "$features" == *"avx2"* ]] && avx=true
         [[ "$features" == *"sse"* ]] && sse=true
         ;;
 
     linux*)
-        grep -qi flags /proc/cpuinfo | grep -qi "avx2" && avx=true
-        grep -qi flags /proc/cpuinfo | grep -qi "sse" && sse=true
+        flags=$(grep -qi flags /proc/cpuinfo)
+        [[ "$flags" == *"avx2"* ]] && avx=true
+        [[ "$flags" == *"sse"* ]] && sse=true
         ;;
 
     windows*|cygwin*|mingw32*|msys*|mingw*)
