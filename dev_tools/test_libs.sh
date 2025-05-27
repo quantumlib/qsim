@@ -28,16 +28,21 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-# Unless we can tell this system supports AVX, we filter out those cases.
+# Unless we can tell this system supports AVX
 declare filter_avx="--build_tag_filters=-avx --test_tag_filters=-avx"
+declare filter_sse="--build_tag_filters=-sse --test_tag_filters=-sse"
+declare config_sse=""
 shopt -s nocasematch
 # Note: can't use Bash's $OSTYPE here b/c the value is "linux-gnu" on Win 10.
 case "$(uname -s)" in
     linux*)
-        if lscpu | grep -qi "avx"; then
+        if grep -qi flags /proc/cpuinfo | grep -qi "avx2"; then
             filter_avx=""
-        elif grep -qi flags /proc/cpuinfo | grep -qi "avx"; then
-            filter_avx=""
+            config_sse="--config=sse"
+        fi
+        if grep -qi flags /proc/cpuinfo | grep -qi "sse"; then
+            filter_sse=""
+            config_sse="--config=sse"
         fi
         ;;
     darwin*)
@@ -45,12 +50,20 @@ case "$(uname -s)" in
         if [[ "$features" == *"AVX2"* ]]; then
             filter_avx=""
         fi
+        if [[ "$features" == *"sse"* ]]; then
+            filter_sse=""
+        fi
         ;;
     windows*|cygwin*|mingw32*|msys*|mingw*)
-        if wmic cpu get Caption /value | grep -qi "avx"; then
+        if wmic cpu get Caption /value | grep -qi "avx2"; then
             filter_avx=""
-        elif wmic cpu get InstructionSet /value | grep -qi "avx"; then
+        elif wmic cpu get InstructionSet /value | grep -qi "avx2"; then
             filter_avx=""
+        fi
+        if wmic cpu get Caption /value | grep -qi "sse"; then
+            filter_sse=""
+        elif wmic cpu get InstructionSet /value | grep -qi "sse"; then
+            filter_sse=""
         fi
         ;;
 esac
@@ -58,8 +71,8 @@ esac
 # Apps are sample programs and are only meant to run on Linux.
 # shellcheck disable=SC2086
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build --config=sse $filter_avx "$@" apps:all
-    bazel build $filter_avx "$@" apps:all
+    bazel build $filter_avx $filter_sse $config_sse "$@" apps:all
+    bazel build $filter_avx $filter_sse "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
