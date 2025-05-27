@@ -17,15 +17,24 @@ run-name: Build Docker images and test them
 
 on:
   push:
-    # Run post-submit tests when pushing to master.
+    # Run post-submit tests when pushing to main.
     branches:
       - master
+      - main
 
-  # Run tests for any PRs.
+  # Build and test for all PRs.
   pull_request:
 
   # Allow manual invocation, for testing.
   workflow_dispatch:
+
+# Cancel any previously-started but still active runs on the same branch.
+concurrency:
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+# Declare default workflow permissions to be read-only.
+permissions: read-all
 
 jobs:
   # Run tests.
