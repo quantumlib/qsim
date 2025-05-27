@@ -53,30 +53,30 @@ jobs:
         # See the following page for a list of valid cibuildwheel arch values:
         # https://cibuildwheel.pypa.io/en/stable/options/#archs
         conf: [
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 10},
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 11},
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 12},
-          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 13},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 10},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 11},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 12},
+          # {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 13},
 
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
           {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
-          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
+          # {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
 
           # 3.10 fails; see https://github.com/actions/setup-python/issues/948
           # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
           {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
-          {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
-          {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
+          # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
+          # {os: macos-14, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
 
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 10},
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 11},
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
-          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 10},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 11},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
+          # {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
 
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 10},
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 11},
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 12},
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 10},
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 11},
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 12},
 
           # This fails with NumPy 1.x. TODO: uncomment when qsim supports np 2.
           # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 13},
