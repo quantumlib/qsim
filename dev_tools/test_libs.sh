@@ -29,48 +29,54 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
 fi
 
 # Unless we can tell this system supports AVX, we skip those tests.
-declare filter_avx="--build_tag_filters=-avx --test_tag_filters=-avx"
-declare filter_sse="--build_tag_filters=-sse --test_tag_filters=-sse"
-declare config_sse=""
+declare avx=false
+declare sse=false
 shopt -s nocasematch
 # Note: can't use Bash's $OSTYPE here b/c the value is "linux-gnu" on Win 10.
 case "$(uname -s)" in
     darwin*)
         features=$(sysctl machdep.cpu.features)
-        [[ "$features" == *"AVX2"* ]] && filter_avx=""
-        [[ "$features" == *"sse"* ]] && filter_sse=""
+        [[ "$features" == *"AVX2"* ]] && avx=true
+        [[ "$features" == *"sse"* ]] && sse=true
         ;;
+
     linux*)
-        if grep -qi flags /proc/cpuinfo | grep -qi "avx2"; then
-            filter_avx=""
-            config_sse="--config=sse"
-        fi
-        if grep -qi flags /proc/cpuinfo | grep -qi "sse"; then
-            filter_sse=""
-            config_sse="--config=sse"
-        fi
+        grep -qi flags /proc/cpuinfo | grep -qi "avx2" && avx=true
+        grep -qi flags /proc/cpuinfo | grep -qi "sse" && sse=true
         ;;
+
     windows*|cygwin*|mingw32*|msys*|mingw*)
         if wmic cpu get Caption /value | grep -qi "avx2"; then
-            filter_avx=""
+            avx=true
         elif wmic cpu get InstructionSet /value | grep -qi "avx2"; then
-            filter_avx=""
+            avx=true
         fi
         if wmic cpu get Caption /value | grep -qi "sse"; then
-            filter_sse=""
+            sse=true
         elif wmic cpu get InstructionSet /value | grep -qi "sse"; then
-            filter_sse=""
+            sse=true
         fi
         ;;
 esac
 
+declare build_filters=""
+declare test_filters=""
+if ! $avx; then
+    build_filters="--build_tag_filters=-avx"
+    test_filters="--test_tag_filters=-avx"
+fi
+if ! $sse; then
+    build_filters+=",-sse"
+    test_filters+=",-sse"
+fi
+
 # Apps are sample programs and are only meant to run on Linux.
 # shellcheck disable=SC2086
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build $filter_avx $filter_sse $config_sse "$@" apps:all
-    bazel build $filter_avx $filter_sse "$@" apps:all
+    bazel build $build_filters --config=sse "$@" apps:all
+    bazel build $build_filters "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
 # shellcheck disable=SC2086
-bazel test $filter_avx $filter_sse "$@" tests:all
+bazel test $test_filters "$@" tests:all
