@@ -127,8 +127,6 @@ jobs:
           set -x
           os=${{matrix.conf.os}}
           echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
-          brew install libomp llvm@19
-          brew link --force libomp
 
       - name: Build and test wheels
         env:
