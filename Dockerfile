@@ -10,6 +10,7 @@ COPY ./Makefile /qsim/Makefile
 COPY ./apps/ /qsim/apps/
 COPY ./circuits/ /qsim/circuits/
 COPY ./lib/ /qsim/lib/
+COPY ./requirements.txt /qsim/requirements.txt
 
 WORKDIR /qsim/
 
