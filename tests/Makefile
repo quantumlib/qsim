@@ -55,7 +55,8 @@ run-hip-tests: hip-tests
 $(GTEST_DIR)/make:
 	-git submodule update --init --recursive googletest
 	mkdir -p $(GTEST_DIR)/make
-	cd $(GTEST_DIR)/make &&	$(CMAKE) .. && $(MAKE)
+	cd $(GTEST_DIR) && $(CMAKE) -B make -S ..
+	cd $(GTEST_DIR)/make && make
 
 %.x: %.cc $(GTEST_DIR)/make
 	$(CXX) -o ./$@ $< $(TESTFLAGS) $(CXXFLAGS) $(ARCHFLAGS)
