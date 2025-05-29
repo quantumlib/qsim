@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~ General flags ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ General flags ~~~~
 
 # Common flags
 common --announce_rc
@@ -37,7 +37,7 @@ build:verbose --show_progress_rate_limit=1
 test:verbose --test_summary=detailed
 
 
-# ~~~~ Sanitizers (choose one, or nosan for none) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ Sanitizers (choose one, or nosan for none) ~~~~
 
 # Shared config for sanitizers
 build:sanitizer --strip=never
@@ -58,7 +58,7 @@ build:msan --linkopt -fsanitize=leak
 build:nosan --
 
 
-# ~~~~ Instruction set options (choose one) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ Instruction set options (choose one) ~~~~
 
 # Build with AVX2 + FMA
 build:avx --copt -O3
@@ -73,7 +73,7 @@ build:sse --copt -msse4
 build:basic --copt -O3
 
 
-# ~~~~ Parallelization (choose one, or nopenmp for none) ~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ Parallelization (choose one, or nopenmp for none) ~~~~
 
 # Build with OpenMP
 build:openmp --copt -fopenmp
@@ -83,7 +83,7 @@ build:openmp --linkopt -lgomp
 build:nopenmp --
 
 
-# ~~~~ Memory handler (choose one) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ Memory handler (choose one) ~~~~
 
 # Build with tcmalloc
 build:tcmalloc --linkopt="-ltcmalloc"
