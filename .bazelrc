@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ~~~~ General flags ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 # Common flags
 common --announce_rc
 common --experimental_repo_remote_exec
@@ -28,8 +30,14 @@ test --test_output=errors
 build:cuda --@local_config_cuda//:enable_cuda
 build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 
+# Configs for verbose builds & tests
+common:verbose --announce_rc
+common:verbose --auto_output_filter=none
+build:verbose --show_progress_rate_limit=1
+test:verbose --test_summary=detailed
 
-##### Sanitizers (choose one, or nosan for none) #####
+
+# ~~~~ Sanitizers (choose one, or nosan for none) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Shared config for sanitizers
 build:sanitizer --strip=never
@@ -50,7 +58,7 @@ build:msan --linkopt -fsanitize=leak
 build:nosan --
 
 
-##### Instruction set options (choose one) #####
+# ~~~~ Instruction set options (choose one) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Build with AVX2 + FMA
 build:avx --copt -O3
@@ -65,7 +73,7 @@ build:sse --copt -msse4
 build:basic --copt -O3
 
 
-##### Parallelization (choose one, or nopenmp for none) #####
+# ~~~~ Parallelization (choose one, or nopenmp for none) ~~~~~~~~~~~~~~~~~~~~~~~
 
 # Build with OpenMP
 build:openmp --copt -fopenmp
@@ -74,7 +82,8 @@ build:openmp --linkopt -lgomp
 # No OpenMP
 build:nopenmp --
 
-##### Memory handler (choose one) #####
+
+# ~~~~ Memory handler (choose one) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Build with tcmalloc
 build:tcmalloc --linkopt="-ltcmalloc"
