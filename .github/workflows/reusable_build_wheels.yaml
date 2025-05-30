@@ -1,0 +1,110 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Reusable workflow called by other workflows. (It never triggers on its own.)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+name: '~ Build & test Python wheels'
+run-name: Build Python wheels and test that they work
+
+on:
+  workflow_call:
+    inputs:
+      upload:
+        description: 'Upload wheels to GitHub'
+        type: boolean
+        default: false
+
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: 'Upload wheels to GitHub'
+        type: boolean
+        default: false
+
+permissions: read-all
+
+jobs:
+  build-wheels:
+    name: Build on ${{matrix.os}}/${{matrix.arch}}
+    runs-on: ${{matrix.os}}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # See the following page for a list of valid cibuildwheel arch values:
+        # https://cibuildwheel.pypa.io/en/stable/options/#archs
+        include:
+          - os: macos-13
+            arch: x86_64
+            name: macos-13
+            build: 'cp310* cp311* cp312* cp313*'
+
+          - os: macos-14
+            arch: arm64
+            name: macos-14
+            build: 'cp310* cp311* cp312* cp313*'
+
+          - os: macos-15
+            arch: arm64
+            name: macos-15
+            build: 'cp310* cp311* cp312* cp313*'
+
+          - os: ubuntu-24.04
+            arch: x86_64
+            name: manylinux2014
+            build: 'cp310* cp311* cp312* cp313*'
+
+          - os: windows-2019
+            arch: AMD64
+            name: win
+            # cp13 fails w/ NumPy 1.x. TODO: add cp313* when qsim supports np 2.
+            build: 'cp310* cp311* cp312*'
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python with caching of pip dependencies
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - if: startsWith(matrix.os, 'macos')
+        name: Set cibuildwheel MACOSX_DEPLOYMENT_TARGET value on MacOS
+        run: |
+          set -x
+          os=${{matrix.os}}
+          echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
+
+      - name: Build and test wheels
+        env:
+          # Note: additional cibuildwheel settings are in pyproject.toml.
+          CIBW_ARCHS: ${{matrix.arch}}
+          CIBW_BUILD: ${{matrix.build}}
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
+          python -m cibuildwheel --output-dir wheelhouse
+
+      - if: inputs.upload != false
+        name: Upload wheels to GitHub
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python-wheels-${{matrix.name}}-${{matrix.arch}}
+          path: ./wheelhouse/*.whl
