@@ -37,7 +37,7 @@ on:
         value: jobs.test.outputs.only-noncode-changes == 'false'
       python:
         description: 'True if Python files were changed'
-        value: jobs.test.outputs.have-python-changes
+        value: jobs.test.outputs.have-python-changes == 'true'
 
 permissions: read-all
 
