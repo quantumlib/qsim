@@ -1,4 +1,3 @@
-version: "3"
 services:
     # Verifies that installing from the `qsimcirq` PyPI package works correctly.
     # To ensure that users do not need to clone the qsim repository in order to
