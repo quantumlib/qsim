@@ -28,47 +28,49 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-# Unless we can tell this system supports AVX, we skip those tests.
-declare avx=false
-declare sse=false
+declare features=""
 shopt -s nocasematch
-# Note: can't use Bash's $OSTYPE here b/c the value is "linux-gnu" on Win 10.
+# Note: can't use Bash $OSTYPE var here b/c the value is "linux-gnu" on Win 10.
 case "$(uname -s)" in
     darwin*)
         features=$(sysctl machdep.cpu.features)
-        [[ "$features" == *"avx2"* ]] && avx=true
-        [[ "$features" == *"sse"* ]] && sse=true
         ;;
-
     linux*)
-        flags=$(grep -qi flags /proc/cpuinfo)
-        [[ "$flags" == *"avx2"* ]] && avx=true
-        [[ "$flags" == *"sse"* ]] && sse=true
+        features=$(grep -si flags /proc/cpuinfo)
         ;;
-
     windows*|cygwin*|mingw32*|msys*|mingw*)
-        if wmic cpu get Caption /value | grep -qi "avx2"; then
-            avx=true
-        elif wmic cpu get InstructionSet /value | grep -qi "avx2"; then
-            avx=true
-        fi
-        if wmic cpu get Caption /value | grep -qi "sse"; then
-            sse=true
-        elif wmic cpu get InstructionSet /value | grep -qi "sse"; then
-            sse=true
-        fi
+        features=$(wmic cpu get Caption,InstructionSet /value 2>/dev/null)
+        ;;
+    *)
+        echo "Unsupported OS: $(uname -s)"
+        exit 1
         ;;
 esac
+shopt -u nocasematch
+
+# Unless we can tell this system supports AVX, we skip those tests.
+declare avx=false
+declare sse=false
+[[ "$features" == *"avx2"* ]] && avx=true
+[[ "$features" == *"sse"* ]] && sse=true
+
+declare filters=""
+if ! $avx || ! $sse; then
+    if ! $avx; then
+        filters+="-avx"
+        if ! $sse; then
+            filters+=",-sse"
+        fi
+    elif ! $sse; then
+        filters+="-sse"
+    fi
+fi
 
 declare build_filters=""
 declare test_filters=""
-if ! $avx; then
-    build_filters="--build_tag_filters=-avx"
-    test_filters="--test_tag_filters=-avx"
-fi
-if ! $sse; then
-    build_filters+=",-sse"
-    test_filters+=",-sse"
+if [[ -n "$filters" ]]; then
+    build_filters="--build_tag_filters=$filters"
+    test_filters="--test_tag_filters=$filters"
 fi
 
 # Apps are sample programs and are only meant to run on Linux.
