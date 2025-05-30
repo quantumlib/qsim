@@ -1,0 +1,132 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'CI: build & test library and apps'
+run-name: Build the library on different platforms and run tests
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+  pull_request:
+    types: [opened, synchronize]
+
+  merge_group:
+    types:
+      - checks_requested
+
+  workflow_dispatch:
+    inputs:
+      trace:
+        description: 'Turn on shell script debugging'
+        type: boolean
+        default: true
+
+permissions: read-all
+
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+jobs:
+  find-changes:
+    name: Find changed files
+    uses: ./.github/workflows/reusable_find_changes.yaml
+    secrets: inherit
+
+  build-wheels:
+    # For efficiency, skip this workflow if there were no code file changes.
+    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    name: ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
+    needs: find-changes
+    runs-on: ${{matrix.conf.os}}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # See the following page for a list of valid cibuildwheel arch values:
+        # https://cibuildwheel.pypa.io/en/stable/options/#archs
+        conf: [
+          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 10},
+          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 11},
+          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 12},
+          {os: ubuntu-24.04, wh: manylinux, arch: x86_64, pyarch: x64, py: 13},
+
+          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 10},
+          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 11},
+          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 12},
+          {os: macos-13, wh: macosx, arch: x86_64, pyarch: x64, py: 13},
+
+          {os: macos-14, wh: macosx, arch: arm64, pyarch: arm64, py: 10},
+          {os: macos-14, wh: macosx, arch: arm64, pyarch: arm64, py: 11},
+          {os: macos-14, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
+          {os: macos-14, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
+
+          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 10},
+          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 11},
+          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
+          {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
+
+          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 10},
+          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 11},
+          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 12},
+          # This fails with NumPy 1.x. TODO: uncomment when qsim supports np 2.
+          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 13},
+        ]
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python with caching of pip dependencies
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        id: setup
+        with:
+          python-version: '3.${{matrix.conf.py}}'
+          architecture: ${{matrix.conf.pyarch}}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Set up Bazel with caching
+        uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
+        with:
+          disk-cache: ${{github.workflow}}
+          bazelisk-cache: true
+          external-cache: true
+          repository-cache: true
+
+      - name: Install qsim dependencies
+        run: pip install -r requirements.txt
+
+      - if: matrix.conf.os != 'windows-2019'
+        name: Run the build and test script (Windows case)
+        env:
+          # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
+          SHELLOPTS: ${{inputs.trace && 'xtrace' || '' }}
+        run: dev_tools/test_libs.sh --config=verbose
+
+      - if: matrix.conf.os == 'windows-2019'
+        name: Run the build and test script (non-Windows)
+        env:
+          pyroot: 'C:\\hostedtoolcache\\windows\\Python'
+          pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
+          SHELLOPTS: ${{inputs.trace && 'xtrace' || '' }}
+        shell: cmd
+        run: >-
+          bash dev_tools/test_libs.sh --config=verbose
+          --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
