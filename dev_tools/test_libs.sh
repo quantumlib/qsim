@@ -20,10 +20,7 @@ Run the programs in tests/, and on Linux, also build the programs in apps/.
 
 If the first option on the command line is -h, --help, or help, this help text
 will be printed and the program will exit. Any other options on the command
-line are passed directly to Bazel.
-
-Note: the MacOS VMs in GitHub runners may run on different-capability CPUS, so
-all AVX versions of programs in tests/ are automatically excluded."
+line are passed directly to Bazel."
 
 # Exit early if the user requested help.
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
@@ -31,16 +28,56 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-declare filter_avx=""
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    filter_avx="--test_tag_filters=-avx"
+# Unless we can tell this system supports AVX, we skip those tests.
+declare avx=false
+declare sse=false
+shopt -s nocasematch
+# Note: can't use Bash's $OSTYPE here b/c the value is "linux-gnu" on Win 10.
+case "$(uname -s)" in
+    darwin*)
+        features=$(sysctl machdep.cpu.features)
+        [[ "$features" == *"avx2"* ]] && avx=true
+        [[ "$features" == *"sse"* ]] && sse=true
+        ;;
+
+    linux*)
+        flags=$(grep -qi flags /proc/cpuinfo)
+        [[ "$flags" == *"avx2"* ]] && avx=true
+        [[ "$flags" == *"sse"* ]] && sse=true
+        ;;
+
+    windows*|cygwin*|mingw32*|msys*|mingw*)
+        if wmic cpu get Caption /value | grep -qi "avx2"; then
+            avx=true
+        elif wmic cpu get InstructionSet /value | grep -qi "avx2"; then
+            avx=true
+        fi
+        if wmic cpu get Caption /value | grep -qi "sse"; then
+            sse=true
+        elif wmic cpu get InstructionSet /value | grep -qi "sse"; then
+            sse=true
+        fi
+        ;;
+esac
+
+declare build_filters=""
+declare test_filters=""
+if ! $avx; then
+    build_filters="--build_tag_filters=-avx"
+    test_filters="--test_tag_filters=-avx"
+fi
+if ! $sse; then
+    build_filters+=",-sse"
+    test_filters+=",-sse"
 fi
 
 # Apps are sample programs and are only meant to run on Linux.
+# shellcheck disable=SC2086
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build --config=sse $filter_avx "$@" apps:all
-    bazel build $filter_avx "$@" apps:all
+    bazel build $build_filters --config=sse "$@" apps:all
+    bazel build $build_filters "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
-bazel test $filter_avx "$@" tests:all
+# shellcheck disable=SC2086
+bazel test $build_filters $test_filters "$@" tests:all
