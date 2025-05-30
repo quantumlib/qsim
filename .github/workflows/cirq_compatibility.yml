@@ -1,27 +1,61 @@
-name: Cirq Compatibility
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'CI: Cirq compatibility test'
+run-name: Nightly compatibility test against latest Cirq dev release
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "10 7 * * *"
 
-  # Allow manual invocation, for testing.
   workflow_dispatch:
 
+permissions: read-all
+
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
 jobs:
-  consistency:
-    name: Nightly Compatibility
+  test-compatibility:
+    name: Test Cirq compatibility
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          python-version: '3.10'
+          fetch-depth: 1
+
+      - name: Set up Python with caching of pip dependencies
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
           architecture: 'x64'
-      - name: Install Cirq nightly
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install latest dev version of Cirq
         run: pip3 install --upgrade cirq~=1.0.dev
-      - name: Install qsim requirements
-        run: pip3 install -r requirements.txt
-      - name: Install test requirements
-        run: pip3 install -r dev-requirements.txt
-      - name: Run python tests
-        run: make run-py-tests
+
+      - name: Install qsim dev requirements
+        run: |
+          pip3 install -r requirements.txt
+          pip3 install -r dev-requirements.txt
+
+      - name: Run Python tests
+        run: make -j run-py-tests
