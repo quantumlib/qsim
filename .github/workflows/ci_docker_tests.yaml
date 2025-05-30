@@ -1,0 +1,85 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'CI: build & test Docker images'
+run-name: Build Docker images and test them
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+  pull_request:
+    types: [opened, synchronize]
+
+  merge_group:
+    types:
+      - checks_requested
+
+  workflow_dispatch:
+    inputs:
+      trace:
+        description: 'Trace Docker build output'
+        type: boolean
+        default: true
+
+permissions: read-all
+
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+jobs:
+  find-changes:
+    name: Find changed files
+    uses: ./.github/workflows/reusable_find_changes.yaml
+    secrets: inherit
+
+  build-and-test:
+    # For efficiency, skip this workflow if there were no code file changes.
+    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    name: Build and test Docker images
+    needs: find-changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # The next environment variable is used by Docker.
+      BUILDKIT_PROGRESS: ${{inputs.trace && 'plain' || ''}}
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Check out git submodules
+        run: git submodule update --init --recursive
+
+      - name: Build Docker images
+        run: docker compose build
+
+      - name: Run C++ tests
+        run: docker run --rm qsim-cxx-tests:latest
+
+      - name: Run Python tests
+        run: docker run --rm qsim-py-tests:latest
+
+      - name: Run a sample simulation
+        run: docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
+
+      - name: Test installation process
+        run: |
+          cd install/tests
+          docker compose build
