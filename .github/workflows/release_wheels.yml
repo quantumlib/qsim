@@ -1,91 +1,52 @@
-name: Build all wheels and release them
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'Build & release Python wheels'
+run-name: 'Build Python wheels and release them on PyPI'
 
 on:
   release:
     types: [published]
 
-  # Allow manual invocation, for testing.
   workflow_dispatch:
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-13-large # Apple Silicon
-            name: mac_arm64
-            env:
-              macosx_deployment_target: "13.0"
-            cibw:
-              build: "cp39* cp310* cp311* cp312*"
-          - os: ubuntu-24.04
-            name: manylinux2014
-            cibw:
-              arch: x86_64
-              build: "cp39* cp310* cp311* cp312*"
-              manylinux_image: manylinux2014
-          - os: windows-2019
-            name: win_amd64
-            architecture: x64
-            cibw:
-              build: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64"
-    env:
-      MACOSX_DEPLOYMENT_TARGET: "${{ matrix.env.macosx_deployment_target }}"
-      CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
-      CIBW_SKIP: "*musllinux*"
-      CIBW_ARCHS: "${{ matrix.cibw.arch || 'auto' }}"
-      CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
-      CIBW_BEFORE_BUILD_MACOS: "brew install libomp llvm@12 && brew link --overwrite python@3.11 && brew link --force libomp"
-      CIBW_REPAIR_WHEEL_COMMAND_MACOS: "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"
-      # to install latest delocate package
-      CIBW_DEPENDENCY_VERSIONS: "latest"
-      # due to package and module name conflict have to temporarily move it away to run tests
-      CIBW_BEFORE_TEST: "mv {package}/qsimcirq /tmp"
-      CIBW_TEST_EXTRAS: "dev"
-      CIBW_TEST_COMMAND: "pytest {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
-    steps:
-      - uses: actions/checkout@v4
+  build-wheels:
+    name: Build and save wheels
+    uses: ./.github/workflows/reusable_build_wheels.yaml
+    secrets: inherit
+    with:
+      upload: true
 
-      # Used to host cibuildwheel
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install cibuildwheel and twine
-        run: python -m pip install cibuildwheel==2.20.0
-
-      - name: Install requirements
-        run: python -m pip install -r requirements.txt
-
-      - name: Run C++ tests
-        run: bash dev_tools/test_libs.sh
-
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: python-wheels-${{ matrix.name }}
-          path: ./wheelhouse/*.whl
   release-wheels:
-    name: Publish all wheels
-    needs: [build_wheels]
+    name: Publish wheels
+    needs: build-wheels
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
+    - name: Retrieve saved wheels
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         path: dist/
         pattern: python-wheels-*
         merge-multiple: true
-    - name: Publish wheels
-      uses: pypa/gh-action-pypi-publish@release/v1
+
+    - name: Publish wheels on PyPI
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
       with:
         user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        password: ${{secrets.PYPI_API_TOKEN}}
         packages_dir: dist/
         skip_existing: true
         verbose: true
