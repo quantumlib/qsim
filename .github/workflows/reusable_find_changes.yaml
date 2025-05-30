@@ -1,0 +1,79 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Explanation for why file changes are tested using this workflow.
+#
+# GitHub Actions workflows can have path filters (i.e., the use of "paths:"
+# keywords on event triggers in the "on:" block of a workflow). That *would* be
+# the natural way to run workflows only when the relevant files are changed in
+# a PR – except that the way GitHub branch protection rules work is: "If a
+# workflow is skipped due to path filtering [...] the checks associated with
+# that workflow will remain in a Pending state. A PR that requires those checks
+# to be successful will be blocked from merging." Blocking merges is not
+# acceptable. Surprisingly, GitHub doesn't provide an alternative. So, we forgo
+# path filters, and instead check file changes using this small workflow.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+name: '~ Find changed files'
+run-name: Determine which files have been changed
+
+on:
+  workflow_call:
+    outputs:
+      code:
+        description: 'True if any code files were changed'
+        value: jobs.test.outputs.only-noncode-changes == 'false'
+      python:
+        description: 'True if Python files were changed'
+        value: jobs.test.outputs.have-python-changes
+
+permissions: read-all
+
+jobs:
+  test:
+    name: Inspect changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      only-noncode-changes: steps.only-noncode-files.outputs.matched
+      python-changes: steps.python-files.outputs.matched
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Test whether ONLY doc and similar files
+        uses: tomi/paths-filter-action@32c62f5ca100c1110406e3477d5b3ecef4666fec # v3.0.2
+        id: only-noncode-files
+        with:
+          base: ${{github.ref_name}}
+          predicate-quantifier: 'every'
+          filters: |
+            matched:
+              - '!**/*.md'
+              - '!docs/**'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!CITATION.cff'
+
+      - name: Test whether Python files were changed
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+        id: python-files
+        with:
+          base: ${{github.ref_name}}
+          filters: |
+            # Check for changes in Python files as well as requirements files.
+            matched:
+              - '**/*.py'
+              - requirements.txt
+              - dev-requirements.txt
