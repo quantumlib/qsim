@@ -81,11 +81,11 @@ jobs:
           {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 12},
           {os: macos-15, wh: macosx, arch: arm64, pyarch: arm64, py: 13},
 
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 10},
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 11},
-          {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 12},
+          {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 10},
+          {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 11},
+          {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 12},
           # This fails with NumPy 1.x. TODO: uncomment when qsim supports np 2.
-          # {os: windows-2019, wh: win, arch: AMD64, pyarch: x64, py: 13},
+          # {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 13},
         ]
     steps:
       - name: Check out a copy of the git repository
@@ -113,14 +113,14 @@ jobs:
       - name: Install qsim dependencies
         run: pip install -r requirements.txt
 
-      - if: matrix.conf.os != 'windows-2019'
+      - if: matrix.conf.os != 'windows-2022'
         name: Run the build and test script (Windows case)
         env:
           # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
           SHELLOPTS: ${{inputs.trace && 'xtrace' || '' }}
         run: dev_tools/test_libs.sh --config=verbose
 
-      - if: matrix.conf.os == 'windows-2019'
+      - if: matrix.conf.os == 'windows-2022'
         name: Run the build and test script (non-Windows)
         env:
           pyroot: 'C:\\hostedtoolcache\\windows\\Python'
