@@ -49,18 +49,23 @@ esac
 shopt -u nocasematch
 
 # Unless we can tell this system supports AVX, we skip those tests.
+declare filters=""
+[[ "$features" == *avx2* ]] || filters+=",-avx"
+[[ "$features" == *sse* ]] || filters+=",-sse"
+filters="${filters#,}"
+
 declare -a build_filters=()
 declare -a test_filters=()
- if [[ -n "$filters" ]]; then
+if [[ -n "$filters" ]]; then
     build_filters=( "--build_tag_filters=$filters" )
     test_filters=( "--test_tag_filters=$filters" )
- fi
- 
- # Apps are sample programs and are only meant to run on Linux.
- if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+fi
+
+# Apps are sample programs and are only meant to run on Linux.
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     bazel build "${build_filters[@]}" --config=sse "$@" apps:all
     bazel build "${build_filters[@]}" "$@" apps:all
- fi
- 
- # Run all basic tests. This should work on all platforms.
+fi
+
+# Run all basic tests. This should work on all platforms.
 bazel test "${build_filters[@]}" "${test_filters[@]}" "$@" tests:all
