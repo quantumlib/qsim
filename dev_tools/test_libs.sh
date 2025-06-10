@@ -49,22 +49,10 @@ esac
 shopt -u nocasematch
 
 # Unless we can tell this system supports AVX, we skip those tests.
-declare avx=false
-declare sse=false
-[[ "$features" == *"avx2"* ]] && avx=true
-[[ "$features" == *"sse"* ]] && sse=true
-
 declare filters=""
-if ! $avx || ! $sse; then
-    if ! $avx; then
-        filters+="-avx"
-        if ! $sse; then
-            filters+=",-sse"
-        fi
-    elif ! $sse; then
-        filters+="-sse"
-    fi
-fi
+[[ "$features" == *avx2* ]] || filters+=",-avx"
+[[ "$features" == *sse* ]] || filters+=",-sse"
+filters="${filters#,}"
 
 declare build_filters=""
 declare test_filters=""
