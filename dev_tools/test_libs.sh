@@ -36,7 +36,7 @@ case "$(uname -s)" in
         features=$(sysctl machdep.cpu.features)
         ;;
     linux*)
-        features=$(grep -si flags /proc/cpuinfo)
+        features=$(grep -m1 -i "^flags" /proc/cpuinfo)
         ;;
     windows*|cygwin*|mingw32*|msys*|mingw*)
         features=$(wmic cpu get Caption,InstructionSet /value 2>/dev/null)
