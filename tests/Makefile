@@ -22,7 +22,7 @@ GMOCK_DIR = $(CURDIR)/googletest/googlemock
 
 CMAKE=cmake
 
-TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/make/lib -lgtest
+TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/build/lib -lgtest
 
 .PHONY: cxx-tests
 cxx-tests: $(CXX_TARGETS)
@@ -52,24 +52,25 @@ run-custatevec-tests: custatevec-tests
 run-hip-tests: hip-tests
 	for exe in $(HIP_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
-$(GTEST_DIR)/make:
+$(GTEST_DIR)/build:
 	-git submodule update --init --recursive googletest
-	mkdir -p $(GTEST_DIR)/make
-	cd $(GTEST_DIR)/make &&	$(CMAKE) .. && $(MAKE)
+	mkdir -p $(GTEST_DIR)/build
+	cd $(GTEST_DIR) && $(CMAKE) -B build -S ..
+	cd $(GTEST_DIR)/build && make
 
-%.x: %.cc $(GTEST_DIR)/make
+%.x: %.cc $(GTEST_DIR)/build
 	$(CXX) -o ./$@ $< $(TESTFLAGS) $(CXXFLAGS) $(ARCHFLAGS)
 
-%cuda_test.x: %cuda_test.cu $(GTEST_DIR)/make
+%cuda_test.x: %cuda_test.cu $(GTEST_DIR)/build
 	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS)
 
-%custatevec_test.x: %custatevec_test.cu $(GTEST_DIR)/make
+%custatevec_test.x: %custatevec_test.cu $(GTEST_DIR)/build
 	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS) $(CUSTATEVECFLAGS)
 
-%hip_test.x: %cuda_test.cu $(GTEST_DIR)/make
+%hip_test.x: %cuda_test.cu $(GTEST_DIR)/build
 	$(HIPCC) -o ./$@ $< $(TESTFLAGS) $(HIPCCFLAGS)
 
 .PHONY: clean
 clean:
 	-rm -f ./*.x ./*.a ./*.so ./*.mod
-	rm -rf $(GTEST_DIR)/make
+	rm -rf $(GTEST_DIR)/build

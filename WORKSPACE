@@ -11,9 +11,9 @@ http_archive(
 
 http_archive(
     name = "com_google_googletest",
-    sha256 = "ab78fa3f912d44d38b785ec011a25f26512aaedc5291f51f3807c592b506d33a",
-    strip_prefix = "googletest-58d77fa8070e8cec2dc1ed015d66b454c8d78850",
-    url = "https://github.com/google/googletest/archive/58d77fa8070e8cec2dc1ed015d66b454c8d78850.zip",
+    sha256 = "40d4ec942217dcc84a9ebe2a68584ada7d4a33a8ee958755763278ea1c5e18ff",
+    strip_prefix = "googletest-1.17.0",
+    url = "https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip",
 )
 
 # Required for testing compatibility with TF Quantum:
