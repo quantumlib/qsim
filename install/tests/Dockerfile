@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 
 # Update package list & install some basic tools we'll need.
 RUN apt-get update
-RUN apt-get install --no-install-recommends -y python3-dev python3-pip python3-venv wget git
+RUN apt-get install -y python3-dev python3-pip python3-venv make g++ wget git
 
 # Ubuntu 24's version of CMake is 3.28. We need a newer version.
 RUN apt-get remove --purge --auto-remove cmake
