@@ -19,9 +19,24 @@ common --announce_rc
 common --experimental_repo_remote_exec
 common --verbose_failures
 
-# Default build options
-build --copt -std=c++17
-build --copt -D_GLIBCXX_USE_CXX11_ABI=1
+# C++ language selection. The variants are needed because MS Visual Studio on
+# Windows uses slightly different syntax.
+common --enable_platform_specific_config
+
+build:linux --copt=-std=c++17
+build:linux --copt=-D_GLIBCXX_USE_CXX11_ABI=1
+build:linux --cxxopt=-std=c++17
+build:linux --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
+
+build:macos --copt=-std=c++17
+build:macos --copt=-D_GLIBCXX_USE_CXX11_ABI=1
+build:macos --cxxopt=-std=c++17
+build:macos --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
+
+build:windows --copt=/std:c++17
+build:windows --copt=-D_GLIBCXX_USE_CXX11_ABI=1
+build:windows --cxxopt=/std:c++17
+build:windows --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
 
 # Test flags
 test --test_output=errors
