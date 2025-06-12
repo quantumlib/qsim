@@ -3,32 +3,33 @@ FROM ubuntu:24.04
 
 # Update package list & install some basic tools we'll need.
 RUN apt-get update
-RUN apt-get install -y python3-dev python3-pip python3-venv wget git
+RUN apt-get install --no-install-recommends -y python3-dev python3-pip python3-venv wget git
 
-# The default version of CMake is 3.28. Get a newer version from Kitware.
-RUN apt remove --purge --auto-remove cmake
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.7/cmake-3.31.7-linux-x86_64.sh
+# Ubuntu 24's version of CMake is 3.28. We need a newer version.
+RUN apt-get remove --purge --auto-remove cmake
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.31.7/cmake-3.31.7-linux-x86_64.sh
 RUN sh cmake-3.31.7-linux-x86_64.sh --prefix=/usr/local --skip-license
 
 # Copy qsim files from the outside-Docker location to an inside-Docker location.
 COPY ./ /qsim/
+
+# Switch to that location.
 WORKDIR /qsim/
 
-# Use venv to avoid collision between system packages (e.g., NumPy) and our deps
-RUN python3 -m venv test_env
+# Create venv to avoid collision between system packages and what we install.
+RUN python3 -m venv --upgrade-deps /qsim/test_env 
 
-# Activate venv.
-ENV PATH="test_env/bin:$PATH"
+# Activate the venv.
+ENV PATH="/qsim/test_env/bin:$PATH"
 
-# Install dev requirements
-RUN pip3 install -r dev-requirements.txt
+# Install qsim from sources.
+# Note: use pip3 here, not python3 -m pip. We need to make sure to get the pip
+# installed inside the venv, because that one has the correct sys.path.
+RUN pip3 install -v /qsim/
 
-# Install qsim from the local sources
-RUN pip3 install .
-
-# Run tests in a non-qsim directory
+# Copy the tests to a non-qsim directory.
 COPY ./qsimcirq_tests/ /test-install/
 
+# Run the tests from that location.
 WORKDIR /test-install/
-
 ENTRYPOINT python3 -m pytest ./
