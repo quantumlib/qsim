@@ -37,6 +37,7 @@ build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
 
 # Test flags
 test --test_output=errors
+test --test_timeout=600
 
 # CUDA options
 build:cuda --@local_config_cuda//:enable_cuda
