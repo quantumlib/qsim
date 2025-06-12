@@ -30,8 +30,8 @@ on:
 
   workflow_dispatch:
     inputs:
-      trace:
-        description: 'Turn on shell script debugging'
+      debug:
+        description: 'Run with debugging options'
         type: boolean
         default: true
 
@@ -55,3 +55,5 @@ jobs:
     needs: find-changes
     uses: ./.github/workflows/reusable_build_wheels.yaml
     secrets: inherit
+    with:
+      debug: ${{inputs.debug == true}}

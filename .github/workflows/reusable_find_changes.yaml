@@ -15,17 +15,17 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Explanation for why file changes are tested using this workflow.
 #
-# GitHub Actions workflows can have path filters (i.e., the use of "paths:"
-# keywords on event triggers in the "on:" block of a workflow). That *would* be
-# the natural way to run workflows only when the relevant files are changed in
-# a PR – except that the way GitHub branch protection rules work is: "If a
-# workflow is skipped due to path filtering [...] the checks associated with
-# that workflow will remain in a Pending state. A PR that requires those checks
-# to be successful will be blocked from merging." Blocking merges is not
-# acceptable. Surprisingly, GitHub doesn't provide an alternative. So, we forgo
-# path filters, and instead check file changes using this small workflow.
+# GitHub Actions workflows path filters (i.e., adding "paths:" keywords to
+# event triggers) would be the natural way to trigger workflows only when
+# relevant files are changed in a PR – except that the way GitHub branch
+# protection rules work is: "If a workflow is skipped due to path filtering
+# [...] the checks associated with that workflow will remain in a Pending
+# state. A PR that requires those checks to be successful will be blocked from
+# merging." This makes path filters unusable with merge queues. We forgo the
+# use of path filters, and instead check file changes using our own workflow.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+# The tilde is only to make our reusable workflows be listed last in the UI.
 name: '~ Find changed files'
 run-name: Determine which files have been changed
 
@@ -53,7 +53,7 @@ jobs:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Test whether ONLY doc and similar files
+      - name: Test whether only docs or similar files were changed
         uses: tomi/paths-filter-action@32c62f5ca100c1110406e3477d5b3ecef4666fec # v3.0.2
         id: only-noncode-files
         with:
@@ -66,14 +66,11 @@ jobs:
               - '!.github/ISSUE_TEMPLATE/**'
               - '!CITATION.cff'
 
-      - name: Test whether Python files were changed
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+      - name: Test whether Python files are among the changed files
+        uses: tomi/paths-filter-action@32c62f5ca100c1110406e3477d5b3ecef4666fec # v3.0.2
         id: python-files
         with:
           base: ${{github.ref_name}}
           filters: |
-            # Check for changes in Python files as well as requirements files.
             matched:
               - '**/*.py'
-              - requirements.txt
-              - dev-requirements.txt

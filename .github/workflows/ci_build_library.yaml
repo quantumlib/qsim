@@ -30,8 +30,8 @@ on:
 
   workflow_dispatch:
     inputs:
-      trace:
-        description: 'Turn on shell script debugging'
+      debug:
+        description: 'Run with debugging options'
         type: boolean
         default: true
 
@@ -54,7 +54,7 @@ jobs:
     name: ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
     needs: find-changes
     runs-on: ${{matrix.conf.os}}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -84,14 +84,14 @@ jobs:
           {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 10},
           {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 11},
           {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 12},
-          # This fails with NumPy 1.x. TODO: uncomment when qsim supports np 2.
-          # {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 13},
+          {os: windows-2022, wh: win, arch: AMD64, pyarch: x64, py: 13},
         ]
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 1
+          submodules: recursive
 
       - name: Set up Python with caching of pip dependencies
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -100,7 +100,9 @@ jobs:
           python-version: '3.${{matrix.conf.py}}'
           architecture: ${{matrix.conf.pyarch}}
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
 
       - name: Set up Bazel with caching
         uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
@@ -110,23 +112,28 @@ jobs:
           external-cache: true
           repository-cache: true
 
-      - name: Install qsim dependencies
-        run: pip install -r requirements.txt
+      - name: Install qsim development dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r dev-requirements.txt
 
       - if: matrix.conf.os != 'windows-2022'
-        name: Run the build and test script (Windows case)
+        name: Run the build and test script (non-Windows case)
         env:
           # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
-          SHELLOPTS: ${{inputs.trace && 'xtrace' || '' }}
+          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         run: dev_tools/test_libs.sh --config=verbose
 
       - if: matrix.conf.os == 'windows-2022'
-        name: Run the build and test script (non-Windows)
+        name: Run the build and test script (Windows case)
+        # On GitHub Windows runners, Bazel ends up finding a different
+        # "python3" binary than what's installed by setup-python unless we tell
+        # Bazel what to use. Here we do that by setting PYTHON_BIN_PATH.
         env:
           pyroot: 'C:\\hostedtoolcache\\windows\\Python'
           pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
-          SHELLOPTS: ${{inputs.trace && 'xtrace' || '' }}
+          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         shell: cmd
         run: >-
-          bash dev_tools/test_libs.sh --config=verbose
+          bash -x dev_tools/test_libs.sh --config=verbose
           --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}

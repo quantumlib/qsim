@@ -20,6 +20,13 @@ on:
     types: [published]
 
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
+
+permissions: read-all
 
 jobs:
   build-wheels:
@@ -28,12 +35,13 @@ jobs:
     secrets: inherit
     with:
       upload: true
+      debug: ${{inputs.debug}}
 
   release-wheels:
     name: Publish wheels
     needs: build-wheels
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
     - name: Retrieve saved wheels
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4

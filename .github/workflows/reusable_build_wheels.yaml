@@ -16,6 +16,7 @@
 # Reusable workflow called by other workflows. (It never triggers on its own.)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+# The tilde is only to make our reusable workflows be listed last in the UI.
 name: '~ Build & test Python wheels'
 run-name: Build Python wheels and test that they work
 
@@ -26,6 +27,10 @@ on:
         description: 'Upload wheels to GitHub'
         type: boolean
         default: false
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -33,45 +38,28 @@ on:
         description: 'Upload wheels to GitHub'
         type: boolean
         default: false
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
 
 permissions: read-all
 
 jobs:
   build-wheels:
-    name: Build on ${{matrix.os}}/${{matrix.arch}}
-    runs-on: ${{matrix.os}}
-    timeout-minutes: 20
+    name: Build on ${{matrix.conf.os}}/${{matrix.conf.arch}}
+    runs-on: ${{matrix.conf.os}}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # See the following page for a list of valid cibuildwheel arch values:
-        # https://cibuildwheel.pypa.io/en/stable/options/#archs
-        include:
-          - os: macos-13
-            arch: x86_64
-            name: macos-13
-            build: 'cp310* cp311* cp312* cp313*'
-
-          - os: macos-14
-            arch: arm64
-            name: macos-14
-            build: 'cp310* cp311* cp312* cp313*'
-
-          - os: macos-15
-            arch: arm64
-            name: macos-15
-            build: 'cp310* cp311* cp312* cp313*'
-
-          - os: ubuntu-24.04
-            arch: x86_64
-            name: manylinux2014
-            build: 'cp310* cp311* cp312* cp313*'
-
-          - os: windows-2022
-            arch: AMD64
-            name: win
-            # cp13 fails w/ NumPy 1.x. TODO: add cp313* when qsim supports np 2.
-            build: 'cp310* cp311* cp312*'
+        conf: [
+          {os: macos-13, arch: x86_64},
+          {os: macos-14, arch: arm64},
+          {os: macos-15, arch: arm64},
+          {os: ubuntu-24.04, arch: x86_64},
+          {os: windows-2022, arch: AMD64},
+        ]
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -83,28 +71,51 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
 
-      - if: startsWith(matrix.os, 'macos')
-        name: Set cibuildwheel MACOSX_DEPLOYMENT_TARGET value on MacOS
+      - name: Install Python requirements
+        run: |
+          pip install -r requirements.txt
+          pip install -r dev-requirements.txt
+          pip install cibuildwheel==2.23.3
+
+      - if: startsWith(matrix.conf.os, 'macos')
+        name: Set CMake MACOSX_DEPLOYMENT_TARGET value on MacOS
         run: |
           set -x
-          os=${{matrix.os}}
+          os=${{matrix.conf.os}}
           echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
+
+      - if: startsWith(matrix.conf.os, 'ubuntu')
+        name: Determine the number of threads to use (Linux)
+        run: echo "num_threads=$(( $(nproc) - 1 ))" >> "$GITHUB_ENV"
+
+      - if: startsWith(matrix.conf.os, 'macos')
+        name: Determine the number of threads to use (MacOS)
+        run: echo "num_threads=$(( $(sysctl -n hw.ncpu) - 1 ))" >> "$GITHUB_ENV"
+
+      - if: startsWith(matrix.conf.os, 'win')
+        name: Determine the number of threads to use (Windows)
+        shell: bash
+        run: echo "num_threads=$(( NUMBER_OF_PROCESSORS - 1 ))" >> "$GITHUB_ENV"
 
       - name: Build and test wheels
         env:
           # Note: additional cibuildwheel settings are in pyproject.toml.
-          CIBW_ARCHS: ${{matrix.arch}}
-          CIBW_BUILD: ${{matrix.build}}
+          CIBW_BUILD: 'cp310* cp311* cp312* cp313*'
+          CIBW_ARCHS: ${{matrix.conf.arch}}
+          CIBW_BUILD_VERBOSITY: ${{inputs.debug && 1 || ''}}
+          # Color codes make the raw logs hard to read. (CMake uses CLICOLOR.)
+          CLICOLOR: ${{inputs.debug && 0 || ''}}
+          CMAKE_BUILD_PARALLEL_LEVEL: ${{env.num_threads}}
         run: |
-          python -m pip install -r requirements.txt
-          python -m pip install cibuildwheel==2.23.3 virtualenv==20.31.2 cmake
-          python -m cibuildwheel --output-dir wheelhouse
+          cibuildwheel --output-dir wheelhouse
 
       - if: inputs.upload != false
         name: Upload wheels to GitHub
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: python-wheels-${{matrix.name}}-${{matrix.arch}}
+          name: python-wheels-${{matrix.conf.os}}-${{matrix.conf.arch}}
           path: ./wheelhouse/*.whl
