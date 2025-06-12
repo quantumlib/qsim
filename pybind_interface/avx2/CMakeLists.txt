@@ -9,9 +9,20 @@ ENDIF()
 
 if(APPLE)
     set(CMAKE_CXX_STANDARD 14)
-    include_directories("/usr/local/include" "/usr/local/opt/llvm/include")
-    link_directories("/usr/local/lib" "/usr/local/opt/llvm/lib")
+    include_directories(
+      "/usr/local/include"
+      "/usr/local/opt/llvm/include"
+      "/opt/homebrew/include"
+      "/opt/homebrew/opt/llvm@19/include"
+    )
+    link_directories(
+      "/usr/local/lib"
+      "/usr/local/opt/llvm/lib"
+      "/opt/homebrew/lib"
+      "/opt/homebrew/opt/llvm@19/lib"
+    )
 endif()
+
 INCLUDE(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx2 pybind_main_avx2.cpp)
 

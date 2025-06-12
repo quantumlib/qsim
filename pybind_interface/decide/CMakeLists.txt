@@ -6,10 +6,20 @@ else()
     set(CMAKE_CXX_FLAGS "-O3")
 endif()
 
-if(APPLE AND NOT APPLE_ARM)
+if(APPLE)
     set(CMAKE_CXX_STANDARD 14)
-    include_directories("/usr/local/include" "/usr/local/opt/llvm/include")
-    link_directories("/usr/local/lib" "/usr/local/opt/llvm/lib")
+    include_directories(
+      "/usr/local/include"
+      "/usr/local/opt/llvm/include"
+      "/opt/homebrew/include"
+      "/opt/homebrew/opt/llvm@19/include"
+    )
+    link_directories(
+      "/usr/local/lib"
+      "/usr/local/opt/llvm/lib"
+      "/opt/homebrew/lib"
+      "/opt/homebrew/opt/llvm@19/lib"
+    )
 endif()
 
 include(../GetPybind11.cmake)
