@@ -1,0 +1,29 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[tool.cibuildwheel]
+test-extras = "dev"
+dependency-versions = "latest"
+# Due to package & module name conflict, temporarily move it away to run tests:
+before-test = "mv {package}/qsimcirq /tmp"
+test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+
+[tool.cibuildwheel.macos]
+before-build = "brew install -q libomp llvm@19 && brew unlink libomp && brew unlink llvm@19 && brew link --force libomp && brew link --force llvm@19"
+repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+skip = "*musllinux*"
