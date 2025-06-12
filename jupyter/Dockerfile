@@ -1,5 +1,5 @@
 # Base OS
-FROM debian:bullseye
+FROM ubuntu:24.04
 USER root
 
 # Install baseline

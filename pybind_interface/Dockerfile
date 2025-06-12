@@ -10,8 +10,8 @@ RUN python3 -m venv test_env
 # Activate venv.
 ENV PATH="test_env/bin:$PATH"
 
-# break-system-packages flag to override system packages (e.g. numpy) with Cirq's deps.
-RUN pip3 install --prefer-binary cirq-core
+# Install qsim requirements
+RUN pip3 install -r ./requirements.txt
 
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/
