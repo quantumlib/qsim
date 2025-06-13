@@ -1,3 +1,17 @@
+# Copyright 2018 The Cirq Developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import re
 import sys
@@ -120,9 +134,11 @@ setup(
     name="qsimcirq",
     version=__version__,
     url="https://github.com/quantumlib/qsim",
-    author="Vamsi Krishna Devabathini",
-    author_email="devabathini92@gmail.com",
-    python_requires=">=3.7.0",
+    author='The Cirq Developers',
+    author_email='cirq-dev@googlegroups.com',
+    maintainer="Google Quantum AI open-source maintainers",
+    maintainer_email="quantum-oss-maintainers@google.com",
+    python_requires=">=3.10.0",
     install_requires=requirements,
     setup_requires=["packaging"],
     extras_require={
@@ -146,4 +162,46 @@ setup(
     zip_safe=False,
     packages=["qsimcirq"],
     package_data={"qsimcirq": ["py.typed"]},
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: GPU :: NVIDIA CUDA",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: C++",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Topic :: Scientific/Engineering :: Quantum Computing",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Typing :: Typed",
+    ],
+    keywords=[
+        "algorithms",
+        "api",
+        'application programming interface',
+        "cirq",
+        "google quantum",
+        "google",
+        "nisq",
+        "python",
+        "quantum algorithm development",
+        "quantum circuit simulator",
+        "quantum computer simulator",
+        "quantum computing",
+        "quantum computing research",
+        "quantum programming",
+        "quantum simulation",
+        "quantum",
+        "schrödinger-feynman simulation",
+        "sdk",
+        "simulation",
+        "state vector simulator",
+        'software development kit',
+    ],
 )
