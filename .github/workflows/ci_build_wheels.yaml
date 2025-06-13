@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Build & release Python wheels'
-run-name: 'Build Python wheels and release them on PyPI'
+name: 'CI: build & verify Python wheels'
+run-name: Build Python wheels and verify them
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - master
+      - main
+
+  pull_request:
+    types: [opened, synchronize]
+
+  merge_group:
+    types:
+      - checks_requested
 
   workflow_dispatch:
     inputs:
@@ -28,33 +37,23 @@ on:
 
 permissions: read-all
 
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
 jobs:
+  find-changes:
+    name: Find changed files
+    uses: ./.github/workflows/reusable_find_changes.yaml
+    secrets: inherit
+
   build-wheels:
-    name: Build and save wheels
+    # For efficiency, skip this workflow if there were no code file changes.
+    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    name: Build & test wheels
+    needs: find-changes
     uses: ./.github/workflows/reusable_build_wheels.yaml
     secrets: inherit
     with:
-      upload: true
-      debug: ${{inputs.debug}}
-
-  release-wheels:
-    name: Publish wheels
-    needs: build-wheels
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-    - name: Retrieve saved wheels
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        path: dist/
-        pattern: python-wheels-*
-        merge-multiple: true
-
-    - name: Publish wheels on PyPI
-      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
-      with:
-        user: __token__
-        password: ${{secrets.PYPI_API_TOKEN}}
-        packages_dir: dist/
-        skip_existing: true
-        verbose: true
+      debug: ${{inputs.debug == true}}
