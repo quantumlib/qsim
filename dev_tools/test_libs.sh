@@ -28,28 +28,10 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-declare features=""
-shopt -s nocasematch
-# Note: can't use Bash $OSTYPE var here b/c the value is "linux-gnu" on Win 10.
-case "$(uname -s)" in
-    darwin*)
-        features=$(sysctl machdep.cpu.features)
-        ;;
-    linux*)
-        features=$(grep -m1 -i "^flags" /proc/cpuinfo)
-        ;;
-    windows*|cygwin*|mingw32*|msys*|mingw*)
-        features=$(wmic cpu get Caption,InstructionSet /value 2>/dev/null)
-        ;;
-    *)
-        echo "Unsupported OS: $(uname -s)"
-        exit 1
-        ;;
-esac
-shopt -u nocasematch
-
 # Unless we can tell this system supports AVX, we skip those tests.
+declare features=""
 declare filters=""
+features="$(python -c 'import cpuinfo; print(" ".join(cpuinfo.get_cpu_info().get("flags", [])))')"
 [[ "$features" == *avx2* ]] || filters+=",-avx"
 [[ "$features" == *sse* ]] || filters+=",-sse"
 filters="${filters#,}"
