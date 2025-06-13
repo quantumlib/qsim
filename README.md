@@ -1,14 +1,46 @@
+<div align="center">
+
 # qsim and qsimh
 
-Quantum circuit simulators qsim and qsimh. These simulators were used for cross
-entropy benchmarking in
+High-performance quantum circuit simulators for C++ and Python.
+
+[![Licensed under the Apache 2.0
+license](https://img.shields.io/badge/License-Apache%202.0-3c60b1.svg?logo=opensourceinitiative&logoColor=white&style=flat-square)](https://github.com/quantumlib/qsim/blob/main/LICENSE)
+![C++](https://img.shields.io/badge/C%2B%2B17-fcbc2c.svg?logo=c%2B%2B&logoColor=white&style=flat-square&label=C%2B%2B)
+[![qsim project on
+PyPI](https://img.shields.io/pypi/v/qsim.svg?logo=python&logoColor=white&label=PyPI&style=flat-square&color=e57430)](https://pypi.org/project/qsim)
+[![Compatible with Python versions 3.10 and
+higher](https://img.shields.io/badge/Python-3.10+-fcbc2c.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Archived in
+Zenodo](https://img.shields.io/badge/10.5281%2Fzenodo.4023103-gray.svg?label=DOI&logo=doi&logoColor=white&style=flat-square&colorA=gray&colorB=3c60b1)](https://doi.org/10.5281/zenodo.4023103)
+
+[Features](#features) &ndash;
+[Usage](#usage) &ndash;
+[Documentation](#cirq-documentation) &ndash;
+[Citing qsim](#citing-qsim) &ndash;
+[Contact](#contact)
+
+</div>
+
+_qsim_ and _qsimh_ are Schrödinger and Schrödinger-Feynman state vector
+simulators for quantum circuits. They are highly tuned to take advantage of
+vector arithmetic instruction sets and multithreading on computers that provide
+them, as well as GPUs when available. qsim also provides a
+[Cirq](https://quantumai.google/cirq) interface (`qsimcirq`) and can be used to
+simulate quantum circuits written in Cirq. These simulators were used to produce
+landmark cross-entropy benchmarking results published in Nature
 [[1]](https://www.nature.com/articles/s41586-019-1666-5).
 
 [[1]](https://www.nature.com/articles/s41586-019-1666-5), F. Arute et al,
 "Quantum Supremacy Using a Programmable Superconducting Processor",
 Nature 574, 505, (2019).
 
-## qsim
+## Features
+
+qsim and qsimh (yes, they really are spelled in all lower case!) are two
+closely-related libraries. They are described in more detail below.
+
+### qsim
 
 qsim is a Schrödinger full state-vector simulator. It computes all the *2<sup>n</sup>*
 amplitudes of the state vector, where *n* is the number of qubits.
@@ -18,7 +50,7 @@ The total runtime is proportional to *g2<sup>n</sup>*, where *g* is the number o
 2-qubit gates. To speed up the simulator, we use gate fusion
 [[2]](https://arxiv.org/abs/1601.07195) [[3]](https://arxiv.org/abs/1704.01127),
 single precision arithmetic, AVX/FMA instructions for vectorization and OpenMP
-for multi-threading.
+for multithreading on hardware that provides those features.
 
 [[2]](https://arxiv.org/abs/1601.07195) M. Smelyanskiy, N. P. Sawaya,
 A. Aspuru-Guzik, "qHiPSTER: The Quantum High Performance Software Testing
@@ -28,7 +60,7 @@ Environment", arXiv:1601.07195 (2016).
 "0.5 Petabyte Simulation of a 45-Qubit Quantum Circuit", arXiv:1704.01127
 (2017).
 
-## qsimh
+### qsimh
 
 qsimh is a hybrid Schrödinger-Feynman simulator
 [[4]](https://arxiv.org/abs/1807.10749). The lattice is split into two parts
@@ -59,61 +91,77 @@ simulations with different prefix paths and sum the results to get *F = 1*.
 S. Boixo, "Quantum Supremacy Is Both Closer and Farther than It Appears",
 arXiv:1807.10749 (2018).
 
-## C++ Usage
+## Usage
+
+### C++ usage
 
 The code is basically designed as a library. The user can modify sample
 applications in [apps](https://github.com/quantumlib/qsim/tree/master/apps)
 to meet their own needs. The usage of sample applications is described in the
 [docs](https://github.com/quantumlib/qsim/blob/master/docs/usage.md).
 
+### Python usage
+
+The Python `qsimcirq` module provides a Python interface to the qsim library.
+
+### Cirq usage
+
+[Cirq](https://github.com/quantumlib/cirq) is a framework for modeling and
+invoking Noisy Intermediate Scale Quantum (NISQ) circuits. Cirq can use qsim
+as its simulation library. To get started with simulating Cirq circuits using
+qsim, please refer to the
+[tutorial](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb).
+
+More detailed information about the qsim-Cirq API can be found in the
+[docs](https://github.com/quantumlib/qsim/blob/master/docs/cirq_interface.md).
+
 ### Input format
+
+> [!NOTE]
+> This format is deprecated, and no longer actively maintained.
 
 The circuit input format is described in the
 [docs](https://github.com/quantumlib/qsim/blob/master/docs/input_format.md).
 
-NOTE: This format is deprecated, and no longer actively maintained.
-
-### Sample Circuits
+### Sample circuits
 
 A number of sample circuits are provided in
 [circuits](https://github.com/quantumlib/qsim/tree/master/circuits).
 
 ### Unit tests
 
-Unit tests for C++ libraries use the Google test framework, and are
-located in [tests](https://github.com/quantumlib/qsim/tree/master/tests).
-Python tests use pytest, and are located in
+Unit tests for C++ libraries use the
+[GoogleTest](https://github.com/google/googletest) framework, and are located in
+[tests](https://github.com/quantumlib/qsim/tree/master/tests). Python tests use
+[pytest](https://docs.pytest.org/en/stable/), and are located in
 [qsimcirq_tests](https://github.com/quantumlib/qsim/tree/master/qsimcirq_tests).
 
 To build and run all tests, run:
-```
+
+```shell
 make run-tests
 ```
+
 This will compile all test binaries to files with `.x` extensions, and run each
 test in series. Testing will stop early if a test fails. It will also run tests
 of the `qsimcirq` python interface. To run C++ or python tests only, run
 `make run-cxx-tests` or `make run-py-tests`, respectively.
 
-To clean up generated test files, run `make clean` from the test directory.
+To clean up generated test files, run `make clean` from the test directory
 
-## Cirq Usage
+## qsim documentation
 
-[Cirq](https://github.com/quantumlib/cirq) is a framework for modeling and
-invoking Noisy Intermediate Scale Quantum (NISQ) circuits.
+Please visit the [qsim documentation site](https://quantumai.google/qsim)
+guides, tutorials, and API reference documentation.
 
-To get started simulating Google Cirq circuits with qsim, see the
-[tutorial](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb).
 
-More detailed information about the qsim-Cirq API can be found in the
-[docs](https://github.com/quantumlib/qsim/blob/master/docs/cirq_interface.md).
-
-# How to cite qsim
+## How to cite qsim<a name="how-to-cite-qsim"></a><a name="how-to-cite"></a>
 
 Qsim is uploaded to Zenodo automatically. Click on this badge [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4023103.svg)](https://doi.org/10.5281/zenodo.4023103) to see all the citation formats for all versions.
 
-An equivalent BibTex format reference is below for all the versions:
+An equivalent BibTeX format reference is below for all the versions:
 
-```
+```bibtex
 @software{quantum_ai_team_and_collaborators_2020_4023103,
   author       = {Quantum AI team and collaborators},
   title        = {qsim},
@@ -136,7 +184,7 @@ This is not an officially supported Google product. This project is not
 eligible for the [Google Open Source Software Vulnerability Rewards
 Program](https://bughunters.google.com/open-source-security).
 
-Copyright 2019 The Cirq Developers.
+Copyright 2019 Google LLC.
 
 <div align="center">
   <a href="https://quantumai.google">
