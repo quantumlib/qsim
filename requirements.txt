@@ -1,6 +1,6 @@
 absl-py
 cirq-core~=1.0
 numpy~=1.16
-pybind11
+pybind11[global]
 typing_extensions
 setuptools
