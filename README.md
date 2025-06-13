@@ -117,7 +117,7 @@ More detailed information about the qsim-Cirq API can be found in the
 
 ### Input format
 
-> [!NOTE]
+> [!WARNING]
 > This format is deprecated, and no longer actively maintained.
 
 The circuit input format is described in the
