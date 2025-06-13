@@ -107,10 +107,6 @@ To get started simulating Google Cirq circuits with qsim, see the
 More detailed information about the qsim-Cirq API can be found in the
 [docs](https://github.com/quantumlib/qsim/blob/master/docs/cirq_interface.md).
 
-## Disclaimer
-
-This is not an officially supported Google product.
-
 # How to cite qsim
 
 Qsim is uploaded to Zenodo automatically. Click on this badge [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4023103.svg)](https://doi.org/10.5281/zenodo.4023103) to see all the citation formats for all versions.
@@ -128,3 +124,23 @@ An equivalent BibTex format reference is below for all the versions:
   url          = {https://doi.org/10.5281/zenodo.4023103}
 }
 ```
+
+## Contact
+
+For any questions or concerns not addressed here, please email
+quantum-oss-maintainers@google.com.
+
+## Disclaimer
+
+This is not an officially supported Google product. This project is not
+eligible for the [Google Open Source Software Vulnerability Rewards
+Program](https://bughunters.google.com/open-source-security).
+
+Copyright 2019 The Cirq Developers.
+
+<div align="center">
+  <a href="https://quantumai.google">
+    <img width="15%" alt="Google Quantum AI"
+         src="https://raw.githubusercontent.com/quantumlib/Cirq/refs/heads/main/docs/images/quantum-ai-vertical.svg">
+  </a>
+</div>

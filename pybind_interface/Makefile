@@ -9,19 +9,19 @@ QSIMLIB_HIP = ../qsimcirq/qsim_hip`python3-config --extension-suffix`
 QSIMLIB_DECIDE = ../qsimcirq/qsim_decide`python3-config --extension-suffix`
 
 # The flags for the compilation of the simd-specific Pybind11 interfaces
-PYBINDFLAGS_BASIC = -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
-PYBINDFLAGS_SSE = -msse4.1 -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
-PYBINDFLAGS_AVX2 = -mavx2 -mfma -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
-PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 -Wall -shared -std=c++17 -fPIC `python3 -m pybind11 --includes`
+PYBINDFLAGS_BASIC = -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
+PYBINDFLAGS_SSE = -msse4.1 -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
+PYBINDFLAGS_AVX2 = -mavx2 -mfma -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
+PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
 
 # The flags for the compilation of CUDA-specific Pybind11 interfaces
-PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC `python3 -m pybind11 --includes`"
+PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC `pybind11-config --includes`"
 
 # The flags for the compilation of cuStateVec-specific Pybind11 interfaces
 PYBINDFLAGS_CUSTATEVEC = $(CUSTATEVECFLAGS) $(PYBINDFLAGS_CUDA)
 
 # The flags for the compilation of HIP-specific Pybind11 interfaces
-PYBINDFLAGS_HIP = -std=c++17 -Wall -shared -fPIC `python3 -m pybind11 --includes`
+PYBINDFLAGS_HIP = -std=c++17 -Wall -shared -fPIC `pybind11-config --includes`
 
 # Check for nvcc to decide compilation mode.
 ifeq ($(shell which $(NVCC)),)
