@@ -134,8 +134,8 @@ setup(
     name="qsimcirq",
     version=__version__,
     url="https://github.com/quantumlib/qsim",
-    author='The Cirq Developers',
-    author_email='cirq-dev@googlegroups.com',
+    author="The Cirq Developers",
+    author_email="cirq-dev@googlegroups.com",
     maintainer="Google Quantum AI open-source maintainers",
     maintainer_email="quantum-oss-maintainers@google.com",
     python_requires=">=3.10.0",
@@ -184,7 +184,7 @@ setup(
     keywords=[
         "algorithms",
         "api",
-        'application programming interface',
+        "application programming interface",
         "cirq",
         "google quantum",
         "google",
@@ -202,6 +202,6 @@ setup(
         "sdk",
         "simulation",
         "state vector simulator",
-        'software development kit',
+        "software development kit",
     ],
 )
