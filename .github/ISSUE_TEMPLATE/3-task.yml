@@ -1,0 +1,34 @@
+name: Task
+description: Describe a task that needs to be done
+type: Enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this feature request form!
+
+  - type: textarea
+    attributes:
+      label: What is the task?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: (Optional) Do you have ideas or preferences for the approach?
+    validations:
+      required: false
+
+  - type: dropdown
+    attributes:
+      label: How urgent is this for you?
+      description: >-
+        Please choose from among the following options. If the lack of this
+        feature is blocking important work, please choose from among P0–P2.
+      options:
+        - P0 – needed no later than a week
+        - P1 – needed by the next release
+        - P2 – needed within two quarters
+        - P3 – not blocked; it's an idea
+    validations:
+      required: false
