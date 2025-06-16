@@ -25,7 +25,7 @@ body:
         here. If you are aware of other similar or related work, please let us
         know about it here.
     validations:
-      required: true
+      required: false
 
   - type: dropdown
     attributes:
