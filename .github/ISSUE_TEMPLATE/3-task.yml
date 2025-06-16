@@ -1,6 +1,6 @@
 name: Task
 description: Describe a task that needs to be done
-type: Enhancement
+type: Task
 body:
   - type: markdown
     attributes:
