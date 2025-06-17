@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
+project(qsim LANGUAGES CXX CUDA)
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
@@ -26,14 +27,13 @@ include(../GetPybind11.cmake)
 
 # Configure based on the detected platform
 if(has_nvcc)
-    find_package(CUDA REQUIRED)
-    cuda_add_library(qsim_decide MODULE decide.cpp)
+    add_library(qsim_decide MODULE decide.cpp)
     if(DEFINED ENV{CUQUANTUM_ROOT})
         target_compile_options(qsim_decide PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
         )
     endif()
-    find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
         CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
@@ -47,7 +47,7 @@ elseif(has_hipcc)
     find_package(HIP REQUIRED)
     hip_add_library(qsim_decide MODULE decide.cpp)
     set_source_files_properties(decide.cpp PROPERTIES LANGUAGE HIP)
-    find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
         PREFIX "${PYTHON_MODULE_PREFIX}"
