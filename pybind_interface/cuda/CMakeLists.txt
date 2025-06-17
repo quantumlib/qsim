@@ -33,7 +33,6 @@ else()  # means pybind11 has been fetched in GetPybind11.cmake
     include_directories(${pybind11_SOURCE_DIR}/include)
 endif()
 
-#cuda_add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
 add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
 set_target_properties(qsim_cuda PROPERTIES
     CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
