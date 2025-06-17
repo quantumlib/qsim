@@ -63,7 +63,7 @@ class CMakeBuild(build_ext):
 
         if shutil.which("nvcc") is not None:
             cmake_args += [
-            "-DCMAKE_CUDA_COMPILER=nvcc",
+                "-DCMAKE_CUDA_COMPILER=nvcc",
             ]
 
         additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
