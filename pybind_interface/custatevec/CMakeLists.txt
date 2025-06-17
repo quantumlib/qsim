@@ -22,7 +22,6 @@ else()
 endif()
 
 if(APPLE)
-    set(CMAKE_CXX_STANDARD 14)
     include_directories(
       "/usr/local/include"
       "/usr/local/opt/llvm/include"

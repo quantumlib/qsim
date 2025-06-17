@@ -1,40 +1,46 @@
-set(CMAKE_CXX_STANDARD 11)
+# Copyright 2019 Google LLC. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set(CMAKE_CXX_STANDARD 17)
 cmake_minimum_required(VERSION 3.31)
+project(qsim LANGUAGES CXX)
 
-# Set prelimary value so that other variables we need are defined
-project(qsim)
+include(CheckLanguage)
+check_language(CUDA)
 
-# Darwin + Arm64 => Apple Silicon, where we can't build Cuda, AVX or SSE features.
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-    set(APPLE_ARM TRUE)
+if(CMAKE_CUDA_COMPILER)
+    message(STATUS "qsim: found CUDA compiler ${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
 else()
-    set(APPLE_ARM FALSE)
-endif()
-
-# Set the project name and language more precisely
-if(APPLE)
-    project(qsim LANGUAGES CXX)
-else()
-    execute_process(COMMAND which nvcc OUTPUT_VARIABLE has_nvcc OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if(has_nvcc)
-        project(qsim LANGUAGES CXX CUDA)
+    message(STATUS "qsim: did not find CUDA compiler")
+    execute_process(COMMAND which hipcc OUTPUT_VARIABLE has_hipcc OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(has_hipcc)
+        message(STATUS "qsim: found hipcc")
+        project(qsim LANGUAGES CXX HIP)
     else()
-        execute_process(COMMAND which hipcc OUTPUT_VARIABLE has_hipcc OUTPUT_STRIP_TRAILING_WHITESPACE)
-        if(has_hipcc)
-            project(qsim LANGUAGES CXX HIP)
-        else()
-            project(qsim LANGUAGES CXX)
-        endif()
+        message(STATUS "qsim: did not find nvcc or hipcc")
     endif()
 endif()
 
 find_package(OpenMP REQUIRED)
 
-# Add subdirectories based on the architecture or available compilers
+# Always build the basic part.
 ADD_SUBDIRECTORY(pybind_interface/basic)
 ADD_SUBDIRECTORY(pybind_interface/decide)
-if(NOT APPLE_ARM)
-    if(has_nvcc)
+
+# Add subdirectories based on the architecture or available compilers.
+if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
+    if(CMAKE_CUDA_COMPILER)
         ADD_SUBDIRECTORY(pybind_interface/cuda)
         if(DEFINED ENV{CUQUANTUM_ROOT})
             ADD_SUBDIRECTORY(pybind_interface/custatevec)
