@@ -79,10 +79,10 @@ jobs:
           {os: macos-15, pyarch: arm64, py: 12},
           {os: macos-15, pyarch: arm64, py: 13},
 
-          {os: windows-2022, pyarch: x64, py: 10},
-          {os: windows-2022, pyarch: x64, py: 11},
-          {os: windows-2022, pyarch: x64, py: 12},
-          {os: windows-2022, pyarch: x64, py: 13},
+          {os: windows-2025, pyarch: x64, py: 10},
+          {os: windows-2025, pyarch: x64, py: 11},
+          {os: windows-2025, pyarch: x64, py: 12},
+          {os: windows-2025, pyarch: x64, py: 13},
         ]
     steps:
       - name: Check out a copy of the git repository
@@ -115,14 +115,14 @@ jobs:
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
 
-      - if: matrix.conf.os != 'windows-2022'
+      - if: matrix.conf.os != 'windows-2025'
         name: Run the build and test script (non-Windows case)
         env:
           # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
           SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         run: dev_tools/test_libs.sh --config=verbose
 
-      - if: matrix.conf.os == 'windows-2022'
+      - if: matrix.conf.os == 'windows-2025'
         name: Run the build and test script (Windows case)
         # On GitHub Windows runners, Bazel ends up finding a different
         # "python3" binary than what's installed by setup-python unless we tell
