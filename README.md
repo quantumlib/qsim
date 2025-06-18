@@ -71,7 +71,24 @@ to meet their own needs. The usage of sample applications is described in the
 
 ### Python usage
 
-The Python `qsimcirq` module provides a Python interface to the qsim library.
+The qsim-Cirq Python interface is called `qsimcirq` and is available as a PyPI
+package for Linux, MacOS and Windows users. It can be installed by using the
+following command:
+
+```shell
+pip install qsimcirq
+```
+
+`qsimcirq` is also available for Conda for Linux and MacOS. To install it from
+conda-forge, you can use the following command:
+
+```shell
+conda install -c conda-forge qsimcirq
+```
+
+_Note_: The core qsim library (located in the source repository under the
+[`lib/`](https://github.com/quantumlib/qsim/blob/master/lib) subdirectory) can
+be included directly in C++ programs without installing the Python interface.
 
 ### Cirq usage
 
