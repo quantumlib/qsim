@@ -46,7 +46,6 @@ fi
 # The apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     bazel build "${build_filters[@]}" "$@" apps:all
-    bazel build "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
