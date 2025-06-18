@@ -34,6 +34,10 @@ on:
         description: 'Run with debugging options'
         type: boolean
         default: true
+      bazel-cache:
+        description: 'Use Bazel caches'
+        type: boolean
+        default: true
 
 permissions: read-all
 
@@ -102,13 +106,13 @@ jobs:
             requirements.txt
             dev-requirements.txt
 
-      - name: Set up Bazel with caching
+      - name: Set up Bazel ${{inputs.bazel-cache != 'false' && 'with' || 'without'}} caching
         uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
         with:
           disk-cache: ${{github.workflow}}
-          bazelisk-cache: true
-          external-cache: true
-          repository-cache: true
+          bazelisk-cache: ${{inputs.bazel-cache != 'false'}}
+          external-cache: ${{inputs.bazel-cache != 'false'}}
+          repository-cache: ${{inputs.bazel-cache != 'false'}}
 
       - name: Install qsim development dependencies
         run: |
