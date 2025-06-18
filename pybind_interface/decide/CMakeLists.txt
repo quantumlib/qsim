@@ -24,7 +24,7 @@ else()
     set(CMAKE_CXX_FLAGS "-O3")
 endif()
 
-if(CMAKE_APPLE_SILICON_PROCESSOR)
+if(APPLE)
     include_directories(
       "/usr/local/include"
       "/usr/local/opt/llvm/include"
