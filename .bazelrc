@@ -23,17 +23,17 @@ common --verbose_failures
 # Windows uses slightly different syntax.
 common --enable_platform_specific_config
 
-build:linux --copt -std=c++17
-build:linux --cxxopt -std=c++17
+build:linux --copt=-std=c++17
+build:linux --cxxopt=-std=c++17
 
-build:macos --copt -std=c++17
-build:macos --cxxopt -std=c++17
+build:macos --copt=-std=c++17
+build:macos --cxxopt=-std=c++17
 
-build:windows --copt /std:c++17
-build:windows --cxxopt /std:c++17
+build:windows --copt=/std:c++17
+build:windows --cxxopt=/std:c++17
 
-build --copt -D_GLIBCXX_USE_CXX11_ABI=1
-build --cxxopt -D_GLIBCXX_USE_CXX11_ABI=1
+build --copt=-D_GLIBCXX_USE_CXX11_ABI=1
+build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
 
 # The default for vector instruction sets is to exclude them.
 # Config options later in this file can be layered to enable them.
@@ -68,13 +68,13 @@ build:sanitizer --copt -fno-omit-frame-pointer
 
 # Address sanitizer
 build:asan --config=sanitizer
-build:asan --copt -fsanitize=address
-build:asan --linkopt=-fsanitize=address
+build:asan --copt=-fsanitize=address
+build:asan --linkopt -fsanitize=address
 
 # Memory sanitizer
 build:msan --config=sanitizer
-build:msan --copt -fsanitize=leak
-build:msan --linkopt=-fsanitize=leak
+build:msan --copt=-fsanitize=leak
+build:msan --linkopt -fsanitize=leak
 
 # No sanitizers
 build:nosan --
@@ -103,7 +103,7 @@ build:basic --copt -O3
 
 # Build with OpenMP
 build:openmp --copt -fopenmp
-build:openmp --linkopt=-lgomp
+build:openmp --linkopt -lgomp
 
 # No OpenMP
 build:nopenmp --
@@ -112,7 +112,7 @@ build:nopenmp --
 # ~~~~ Memory handler (choose one) ~~~~
 
 # Build with tcmalloc
-build:tcmalloc --linkopt="-ltcmalloc"
+build:tcmalloc --linkopt -ltcmalloc
 
 # Build using malloc (default)
 build:malloc --
