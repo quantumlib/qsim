@@ -39,6 +39,9 @@ build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
 # Config options later in this file can be layered to enable them.
 build --build_tag_filters=-avx,-sse
 test --test_tag_filters=-avx,-sse
+# "bazel run" inherits options from "build". Our run targets don't have tags,
+# so we must clear the filter explicitly or we get "No targets found to run".
+run:sse --build_tag_filters=
 
 # CUDA options
 build:cuda --@local_config_cuda//:enable_cuda
@@ -59,18 +62,18 @@ test:verbose --test_summary=detailed
 
 # Shared config for sanitizers
 build:sanitizer --strip=never
-build:sanitizer --copt -O1
-build:sanitizer --copt -fno-omit-frame-pointer
+build:sanitizer --copt=-O1
+build:sanitizer --copt=-fno-omit-frame-pointer
 
 # Address sanitizer
 build:asan --config=sanitizer
-build:asan --copt -fsanitize=address
-build:asan --linkopt -fsanitize=address
+build:asan --copt=-fsanitize=address
+build:asan --linkopt=-fsanitize=address
 
 # Memory sanitizer
 build:msan --config=sanitizer
-build:msan --copt -fsanitize=leak
-build:msan --linkopt -fsanitize=leak
+build:msan --copt=-fsanitize=leak
+build:msan --linkopt=-fsanitize=leak
 
 # No sanitizers
 build:nosan --
@@ -79,27 +82,27 @@ build:nosan --
 # ~~~~ Instruction set options (choose one) ~~~~
 
 # Build with AVX2 + FMA
-build:avx --copt -O3
-build:avx --copt -mavx2
-build:avx --copt -mfma
+build:avx --copt=-O3
+build:avx --copt=-mavx2
+build:avx --copt=-mfma
 build:avx --build_tag_filters=avx
 test:avx --test_tag_filters=avx
 
 # Build with SSE
-build:sse --copt -O3
-build:sse --copt -msse4
+build:sse --copt=-O3
+build:sse --copt=-msse4
 build:sse --build_tag_filters=sse
 test:sse --test_tag_filters=sse
 
 # Build without AVX or SSE
-build:basic --copt -O3
+build:basic --copt=-O3
 
 
 # ~~~~ Parallelization (choose one, or nopenmp for none) ~~~~
 
 # Build with OpenMP
-build:openmp --copt -fopenmp
-build:openmp --linkopt -lgomp
+build:openmp --copt=-fopenmp
+build:openmp --linkopt=-lgomp
 
 # No OpenMP
 build:nopenmp --
