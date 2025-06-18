@@ -42,6 +42,7 @@ test --test_tag_filters=-avx,-sse
 # "bazel run" inherits options from "build". Our run targets don't have tags,
 # so we must clear the filter explicitly or we get "No targets found to run".
 run:sse --build_tag_filters=
+run:avx --build_tag_filters=
 
 # CUDA options
 build:cuda --@local_config_cuda//:enable_cuda
