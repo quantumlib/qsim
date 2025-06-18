@@ -19,6 +19,18 @@ project(qsim LANGUAGES CXX)
 include(CheckLanguage)
 check_language(CUDA)
 
+if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
+    # When running builds using cibuildwheel, the value is not set even when
+    # running on Apple Silicon. Check and set it ourselves if we have to.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+        set(CMAKE_APPLE_SILICON_PROCESSOR TRUE)
+        message(STATUS "qsim: detected Apple Silicon")
+    else()
+        set(CMAKE_APPLE_SILICON_PROCESSOR FALSE)
+        message(STATUS "qsim: didn't detect Apple Silicon")
+    endif()
+endif()
+
 if(CMAKE_CUDA_COMPILER)
     message(STATUS "qsim: found CUDA compiler ${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
 else()
@@ -39,10 +51,7 @@ ADD_SUBDIRECTORY(pybind_interface/basic)
 ADD_SUBDIRECTORY(pybind_interface/decide)
 
 # Add subdirectories based on the architecture or available compilers.
-if(CMAKE_APPLE_SILICON_PROCESSOR)
-    message(STATUS "qsim: detected Apple Silicon; will exclude AVX/SSE/CUDA")
-else()
-    message(STATUS "qsim: didn't detect Apple Silicon; will include AVX/SSE/CUDA")
+if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     if(CMAKE_CUDA_COMPILER)
         ADD_SUBDIRECTORY(pybind_interface/cuda)
         if(DEFINED ENV{CUQUANTUM_ROOT})
