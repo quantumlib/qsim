@@ -28,12 +28,12 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-# Unless we can tell this system supports AVX, we skip those tests.
+# Look for AVX and SSE in the processor's feature flags.
 declare features=""
 declare filters=""
 features="$(python -c 'import cpuinfo; print(" ".join(cpuinfo.get_cpu_info().get("flags", [])))')"
-[[ "$features" == *avx2* ]] || filters+=",-avx"
-[[ "$features" == *sse* ]] || filters+=",-sse"
+[[ "$features" == *avx2* ]] && filters+=",avx"
+[[ "$features" == *sse* ]] && filters+=",sse"
 filters="${filters#,}"
 
 declare -a build_filters=()
@@ -43,10 +43,10 @@ if [[ -n "$filters" ]]; then
     test_filters=( "--test_tag_filters=$filters" )
 fi
 
-# Apps are sample programs and are only meant to run on Linux.
+# The apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build "${build_filters[@]}" --config=sse "$@" apps:all
     bazel build "${build_filters[@]}" "$@" apps:all
+    bazel build "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
