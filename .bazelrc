@@ -86,14 +86,14 @@ build:nosan --
 build:avx --copt=-O3
 build:avx --copt=-mavx2
 build:avx --copt=-mfma
-build:avx --build_tag_filters=avx
-test:avx --test_tag_filters=avx
+build:avx --build_tag_filters=avx --ui_event_filters=-WARNING
+test:avx --test_tag_filters=avx --ui_event_filters=-WARNING
 
 # Build with SSE
 build:sse --copt=-O3
 build:sse --copt=-msse4
-build:sse --build_tag_filters=sse
-test:sse --test_tag_filters=sse
+build:sse --build_tag_filters=sse --ui_event_filters=-WARNING
+test:sse --test_tag_filters=sse --ui_event_filters=-WARNING
 
 # Build without AVX or SSE
 build:basic --copt=-O3
