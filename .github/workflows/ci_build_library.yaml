@@ -106,13 +106,15 @@ jobs:
             requirements.txt
             dev-requirements.txt
 
-      - name: Set up Bazel ${{inputs.bazel-cache != 'false' && 'with' || 'without'}} caching
+      # Do not change the != false to be a direct !inputs.bazel-cache. (The
+      # value can be empty, in which case the latter won't work as expected.)
+      - name: Set up Bazel ${{inputs.bazel-cache != false && 'with' || 'without'}} caching
         uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
         with:
           disk-cache: ${{github.workflow}}
-          bazelisk-cache: ${{inputs.bazel-cache != 'false'}}
-          external-cache: ${{inputs.bazel-cache != 'false'}}
-          repository-cache: ${{inputs.bazel-cache != 'false'}}
+          bazelisk-cache: ${{inputs.bazel-cache != false}}
+          external-cache: ${{inputs.bazel-cache != false}}
+          repository-cache: ${{inputs.bazel-cache != false}}
 
       - name: Install qsim development dependencies
         run: |
