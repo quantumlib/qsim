@@ -50,4 +50,4 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 fi
 
 # Run all basic tests. This should work on all platforms.
-bazel test "${build_filters[@]}" "${test_filters[@]}" "$@" tests:all
+bazel test "${test_filters[@]}" "$@" tests:all
