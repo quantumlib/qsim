@@ -1,6 +1,6 @@
-name: Feature request
-description: Request a new feature or change in qsim
-type: Enhancement
+name: Task
+description: Describe a task that needs to be done
+type: Task
 body:
   - type: markdown
     attributes:
@@ -9,21 +9,13 @@ body:
 
   - type: textarea
     attributes:
-      label: Is your feature request related to a use case or problem?
-      description: >-
-        Please tell us the context of your request. Is it to help you do
-        something that you currently cannot due to limitations in qsim, or is it
-        an idea for an enhancement or new functionality, or something else?
+      label: What is the task?
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: What solution or approach do you envision?
-      description: >-
-        If you have ideas or preferences for the solution, you can let us know
-        here. If you are aware of other similar or related work, please let us
-        know about it here.
+      label: (Optional) Do you have ideas or preferences for the approach?
     validations:
       required: false
 
