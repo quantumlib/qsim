@@ -32,33 +32,24 @@ to simulate quantum circuits written in Cirq.
 
 qsim is a Schrödinger full state-vector simulator: it models quantum
 computations by representing the quantum state of a system as a vector of
-complex numbers (a state vector) and evolving it through the application of
-quantum gates. One matrix-vector multiplication corresponds to applying one
-gate. Essentially, the simulator performs matrix-vector multiplications
+complex numbers (a _state vector_) and evolving it through the application of
+quantum gates. One matrix-vector multiplication corresponds to the application
+of one gate. Essentially, the simulator performs matrix-vector multiplications
 repeatedly.
 
 Being a _full_ state-vector simulator means that qsim computes all the
-*2<sup>n</sup>* amplitudes of the state vector, where *n* is the number of
+*2<sup> n</sup>* amplitudes of the state vector, where *n* is the number of
 qubits. The total runtime is proportional to *g2<sup> n</sup>*, where *g* is the
-number of 2-qubit gates. To speed up the simulator, qsim uses gate fusion
-[[1]](#foonote1) [[2]](#foonote1), single-precision arithmetic, and (on
-hardware that provides those features) AVX/FMA instructions for vectorization
-and OpenMP for multithreading.
+number of 2-qubit gates. To speed up simulation, qsim uses gate fusion
+(Smelyanskiy et al., [arXiv:1601.07195](https://arxiv.org/abs/1601.07195), 2016;
+Häner and Steiger, [arXiv:1704.01127](https://arxiv.org/abs/1704.01127), 2017),
+single-precision arithmetic, AVX/FMA instructions for vectorization, and
+OpenMP for multithreading (on hardware that provides those features).
 
-qsim was used to produce landmark cross-entropy benchmarking results
-[[3]](#footnote3) published in Nature in 2019.
-
-<b id="footnote1">[1]</b>: M. Smelyanskiy, N. P. Sawaya, A. Aspuru-Guzik,
-"qHiPSTER: The Quantum High Performance Software Testing Environment",
-[arXiv:1601.07195](https://arxiv.org/abs/1601.07195) (2016).
-
-<b id="footnote2">[2]</b>: T. Häner, D. S. Steiger, "0.5 Petabyte Simulation of
-a 45-Qubit Quantum Circuit",
-[arXiv:1704.01127](https://arxiv.org/abs/1704.01127) (2017).
-
-<b id="footnote3">[3]</b>: F. Arute et al, "Quantum Supremacy Using a
-Programmable Superconducting Processor", [Nature 574,
-505](https://www.nature.com/articles/s41586-019-1666-5), (2019).
+qsim was used to produce landmark cross-entropy benchmarking results published
+in 2019 (Arute et al., "Quantum Supremacy Using a Programmable Superconducting
+Processor", [Nature
+vol.&nbsp;574](https://www.nature.com/articles/s41586-019-1666-5), 2019).
 
 ## Usage
 
