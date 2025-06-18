@@ -40,8 +40,9 @@ ADD_SUBDIRECTORY(pybind_interface/decide)
 
 # Add subdirectories based on the architecture or available compilers.
 if(CMAKE_APPLE_SILICON_PROCESSOR)
-    message(STATUS "qsim: detected Apple Silicon -- skipping AVX/SSE components")
+    message(STATUS "qsim: detected Apple Silicon; will exclude AVX/SSE/CUDA")
 else()
+    message(STATUS "qsim: didn't detect Apple Silicon; will include AVX/SSE/CUDA")
     if(CMAKE_CUDA_COMPILER)
         ADD_SUBDIRECTORY(pybind_interface/cuda)
         if(DEFINED ENV{CUQUANTUM_ROOT})
