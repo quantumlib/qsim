@@ -56,11 +56,15 @@ class CMakeBuild(build_ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         python_include_dir = sysconfig.get_path("include")
         cmake_args = [
-            "-DCMAKE_CUDA_COMPILER=nvcc",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
             "-DPYTHON_INCLUDE_DIR=" + python_include_dir,
         ]
+
+        if shutil.which("nvcc") is not None:
+            cmake_args += [
+                "-DCMAKE_CUDA_COMPILER=nvcc",
+            ]
 
         additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
         if additional_cmake_args:
