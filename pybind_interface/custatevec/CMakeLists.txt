@@ -22,7 +22,6 @@ else()
 endif()
 
 if(APPLE)
-    set(CMAKE_CXX_STANDARD 14)
     include_directories(
       "/usr/local/include"
       "/usr/local/opt/llvm/include"
@@ -38,15 +37,14 @@ if(APPLE)
 endif()
 
 INCLUDE(../GetPybind11.cmake)
-find_package(PythonLibs 3.7 REQUIRED)
-find_package(CUDA REQUIRED)
+find_package(Python3 3.10 REQUIRED)
 
 include_directories(${pybind11_INCLUDE_DIRS})
 
 include_directories($ENV{CUQUANTUM_ROOT}/include)
 link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
 
-cuda_add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
+add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
 target_link_libraries(qsim_custatevec -lcustatevec -lcublas)
 
 set_target_properties(qsim_custatevec PROPERTIES
