@@ -148,7 +148,7 @@ setup(
     extras_require={
         "dev": dev_requirements,
     },
-    license="Apache 2",
+    license="Apache-2.0",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -171,7 +171,6 @@ setup(
         "Environment :: GPU :: NVIDIA CUDA",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: Apache Software License",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX :: Linux",
