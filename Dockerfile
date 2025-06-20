@@ -1,6 +1,10 @@
 # Base OS
 FROM ubuntu:24.04
 
+# Allow passing this variable in from the outside.
+ARG CUDA_PATH
+ENV PATH="$CUDA_PATH/bin:$PATH"
+
 # Update package list & install some basic tools we'll need.
 RUN apt-get update
 RUN apt-get install -y python3-dev python3-pip python3-venv make g++ wget git
