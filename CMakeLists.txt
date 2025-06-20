@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(CMAKE_CXX_STANDARD 17)
 cmake_minimum_required(VERSION 3.31)
 project(qsim LANGUAGES CXX)
 
@@ -48,21 +47,25 @@ endif()
 find_package(OpenMP REQUIRED)
 
 # Always build the basic part.
-ADD_SUBDIRECTORY(pybind_interface/basic)
-ADD_SUBDIRECTORY(pybind_interface/decide)
+add_subdirectory(pybind_interface/basic)
+add_subdirectory(pybind_interface/decide)
 
 # Add subdirectories based on the architecture or available compilers.
 if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     if(CMAKE_CUDA_COMPILER)
-        ADD_SUBDIRECTORY(pybind_interface/cuda)
+        add_subdirectory(pybind_interface/cuda)
         if(DEFINED ENV{CUQUANTUM_ROOT})
-            ADD_SUBDIRECTORY(pybind_interface/custatevec)
+            add_subdirectory(pybind_interface/custatevec)
         endif()
     elseif(has_hipcc)
-        ADD_SUBDIRECTORY(pybind_interface/hip)
+        add_subdirectory(pybind_interface/hip)
     endif()
 
-    ADD_SUBDIRECTORY(pybind_interface/sse)
-    ADD_SUBDIRECTORY(pybind_interface/avx512)
-    ADD_SUBDIRECTORY(pybind_interface/avx2)
+    add_subdirectory(pybind_interface/sse)
+    add_subdirectory(pybind_interface/avx512)
+    add_subdirectory(pybind_interface/avx2)
 endif()
+
+# The following settings mirror what is in our hand-written Makefiles.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
