@@ -28,6 +28,16 @@ QSIMLIB_DECIDE = ../qsimcirq/qsim_decide$(SUFFIX)
 PYBIND_INCLUDES := $(shell pybind11-config --includes)
 PYBINDFLAGS = -Wall -shared -std=c++17 -fPIC $(PYBIND_INCLUDES)
 
+# GCC 12 produces false-positive array-bounds warnings in some code (see
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115824). Pybind 3.x automatically
+# disables them (see https://github.com/pybind/pybind11/pull/5355/files). We're
+# still using Pybind11, so we get the warnings unless we disable them ourselves.
+# TODO(mhucka): remove this once we can upgrade to Pybind11 version 3.x.
+GCC_MAJOR_VERSION := $(firstword $(subst ., ,$(shell gcc -dumpversion)))
+ifeq ($(GCC_MAJOR_VERSION), 12)
+    PYBINDFLAGS += -Wno-array-bounds -Wno-stringop-overread
+endif
+
 # The flags for the compilation of the simd-specific Pybind11 interfaces
 PYBINDFLAGS_BASIC = $(PYBINDFLAGS)
 PYBINDFLAGS_SSE = -msse4.1 $(PYBINDFLAGS)
