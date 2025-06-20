@@ -15,6 +15,8 @@ COPY ./Makefile /qsim/Makefile
 COPY ./apps/ /qsim/apps/
 COPY ./circuits/ /qsim/circuits/
 COPY ./lib/ /qsim/lib/
+COPY ./pybind_interface/ /qsim/lib/
+COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
 COPY ./requirements.txt /qsim/requirements.txt
 COPY ./dev-requirements.txt /qsim/dev-requirements.txt
 
