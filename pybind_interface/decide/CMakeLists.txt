@@ -1,4 +1,22 @@
+# Copyright 2019 Google LLC. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 cmake_minimum_required(VERSION 3.31)
+project(qsim LANGUAGES CXX)
+
+include(CheckLanguage)
+check_language(CUDA)
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
@@ -7,7 +25,6 @@ else()
 endif()
 
 if(APPLE)
-    set(CMAKE_CXX_STANDARD 14)
     include_directories(
       "/usr/local/include"
       "/usr/local/opt/llvm/include"
@@ -25,15 +42,14 @@ endif()
 include(../GetPybind11.cmake)
 
 # Configure based on the detected platform
-if(has_nvcc)
-    find_package(CUDA REQUIRED)
-    cuda_add_library(qsim_decide MODULE decide.cpp)
+if(CMAKE_CUDA_COMPILER)
+    add_library(qsim_decide MODULE decide.cpp)
     if(DEFINED ENV{CUQUANTUM_ROOT})
         target_compile_options(qsim_decide PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
         )
     endif()
-    find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
         CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
@@ -47,7 +63,7 @@ elseif(has_hipcc)
     find_package(HIP REQUIRED)
     hip_add_library(qsim_decide MODULE decide.cpp)
     set_source_files_properties(decide.cpp PROPERTIES LANGUAGE HIP)
-    find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
         PREFIX "${PYTHON_MODULE_PREFIX}"

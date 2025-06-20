@@ -56,11 +56,15 @@ class CMakeBuild(build_ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         python_include_dir = sysconfig.get_path("include")
         cmake_args = [
-            "-DCMAKE_CUDA_COMPILER=nvcc",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
             "-DPYTHON_INCLUDE_DIR=" + python_include_dir,
         ]
+
+        if shutil.which("nvcc") is not None:
+            cmake_args += [
+                "-DCMAKE_CUDA_COMPILER=nvcc",
+            ]
 
         additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
         if additional_cmake_args:
@@ -140,11 +144,17 @@ setup(
     maintainer_email="quantum-oss-maintainers@google.com",
     python_requires=">=3.10.0",
     install_requires=requirements,
-    setup_requires=["packaging"],
+    # "pip install" from sources needs to build Pybind, which needs CMake too.
+    setup_requires=[
+        "packaging",
+        "setuptools>=78",
+        "pybind11[global]",
+        "cmake~=3.31.0",
+    ],
     extras_require={
         "dev": dev_requirements,
     },
-    license="Apache 2",
+    license="Apache-2.0",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -167,7 +177,6 @@ setup(
         "Environment :: GPU :: NVIDIA CUDA",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: Apache Software License",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX :: Linux",
