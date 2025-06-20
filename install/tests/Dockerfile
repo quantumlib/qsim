@@ -1,6 +1,10 @@
 # Base OS
 FROM ubuntu:24.04
 
+# Allow passing this variable in from the outside.
+ARG CUDA_PATH
+ENV PATH="$CUDA_PATH/bin:$PATH"
+
 # Update package list & install some basic tools we'll need.
 RUN apt-get update
 RUN apt-get install -y python3-dev python3-pip python3-venv make g++ wget git
@@ -21,6 +25,8 @@ RUN python3 -m venv --upgrade-deps /qsim/test_env
 
 # Activate the venv.
 ENV PATH="/qsim/test_env/bin:$PATH"
+
+RUN echo "path is $PATH"
 
 # Install qsim from sources.
 # Note: use pip3 here, not python3 -m pip. We need to make sure to get the pip
