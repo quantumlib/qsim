@@ -39,8 +39,7 @@ namespace {
 template <typename T>
 T parseOptions(const py::dict &options, const char *key) {
   if (!options.contains(key)) {
-    char msg[100];
-    std::sprintf(msg, "Argument %s is not provided.\n", key);
+    std::string msg = std::string("Argument ") + key + " is not provided.\n";
     throw std::invalid_argument(msg);
   }
   const auto &value = options[key];
