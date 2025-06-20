@@ -36,7 +36,9 @@ if(APPLE)
     )
 endif()
 
-INCLUDE(../GetPybind11.cmake)
+include(../GetPybind11.cmake)
+include(../GetCUDAARCHS.cmake)
+
 find_package(Python 3.10 REQUIRED)
 
 include_directories(${PYTHON_INCLUDE_DIRS})
@@ -48,7 +50,7 @@ endif()
 
 add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
 set_target_properties(qsim_cuda PROPERTIES
-    CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
+    CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
