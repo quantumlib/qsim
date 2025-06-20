@@ -1,36 +1,106 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This Makefile uses syntax that needs at least GNU Make version 3.82.
+# Test it & fail early. (MacOS still ships version 3.81 as of MacOS 15.)
+ifeq ($(filter undefine,$(value .FEATURES)),)
+$(error Unsupported version of Make. \
+    This Makefile does not work properly with GNU Make $(MAKE_VERSION); \
+    it needs GNU Make version 3.82 or later)
+endif
+
+# Run all commands in the same shell.
+SHELL=/bin/bash
+.ONESHELL:
+
+# Version info for the copy of Eigen we will download and build locally.
 EIGEN_PREFIX = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
+# Default build targets. Additional may be added conditionally below.
 TARGETS = qsim
 TESTS = run-cxx-tests
 
-CXX=g++
-NVCC=nvcc
-HIPCC=hipcc
+# Whether to build the Pybind-based Python interface.
+PYBIND11 ?= true
 
-CXXFLAGS = -O3 -fopenmp
-ARCHFLAGS = -march=native
-NVCCFLAGS = -O3
-HIPCCFLAGS = -O3
+# Default compilers and compiler flags. Can be overriden via env variables.
+CXX ?= g++
+NVCC ?= nvcc
+HIPCC ?= hipcc
 
-# CUQUANTUM_ROOT should be set.
-CUSTATEVECFLAGS = -I$(CUQUANTUM_ROOT)/include -L${CUQUANTUM_ROOT}/lib -L$(CUQUANTUM_ROOT)/lib64 -lcustatevec -lcublas
+CXXFLAGS ?= -O3 -std=c++17 -fopenmp
+ARCHFLAGS ?= -march=native
+NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
+HIPCCFLAGS ?= -O3
 
-PYBIND11 = true
+# Default options for Pytest.
+PYTESTFLAGS ?= -v
 
-export CXX
-export CXXFLAGS
-export ARCHFLAGS
-export NVCC
-export NVCCFLAGS
-export CUSTATEVECFLAGS
-export HIPCC
-export HIPCCFLAGS
+# Determine whether to build CUDA and cuStateVec support. We build for CUDA if
+# (i) we find $NVCC or (ii) $CUDA_PATH is set or. OTOH, there's no way to find
+# the cuQuantum libraries other than by being told. So, this checks variable
+# $CUQUANTUM_ROOT.
+
+ifneq (,$(shell which $(NVCC)))
+    # nvcc adds appropriate -I and -L flags, so nothing more is needed here.
+    TARGETS += qsim-cuda
+    TESTS += run-cuda-tests
+else
+    ifneq (,$(strip $(CUDA_PATH)))
+        # $CUDA_PATH is set. Check that the path truly does exist.
+        ifneq (,$(strip $(wildcard $(CUDA_PATH)/.)))
+            # $CUDA_PATH is set, but we know we didn't find nvcc on the user's
+            # $PATH or as an absolute path (if $NVCC was set to a full path).
+	    # Try the safest choice for finding nvcc & give up if that fails.
+            NVCC = $(CUDA_PATH)/bin/nvcc
+            ifneq (,$(strip $(wildcard $(NVCC))))
+                CXXFLAGS += -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64
+                TARGETS += qsim-cuda
+                TESTS += run-cuda-tests
+            else
+                $(warning nvcc not found, so cannot build CUDA interfaces)
+            endif
+        else
+            $(warning $$CUDA_PATH is set, but the path does not seem to exist)
+        endif
+    endif
+endif
+
+ifneq (,$(strip $(CUQUANTUM_ROOT)))
+    # $CUQUANTUM_ROOT is set. Check that the path truly does exist.
+    ifneq (,$(strip $(wildcard $(CUQUANTUM_ROOT)/.)))
+        CUSVFLAGS =  -I$(CUQUANTUM_ROOT)/include
+        CUSVFLAGS += -L${CUQUANTUM_ROOT}/lib -L$(CUQUANTUM_ROOT)/lib64
+        CUSVFLAGS += -lcustatevec -lcublas
+        CUSTATEVECFLAGS ?= $(CUSVFLAGS)
+        TARGETS += qsim-custatevec
+        TESTS += run-custatevec-tests
+    else
+        $(warning $$CUQUANTUM_ROOT is set, but the path does not seem to exist)
+    endif
+endif
 
 ifeq ($(PYBIND11), true)
-  TARGETS += pybind
-  TESTS += run-py-tests
+    TARGETS += pybind
+    TESTS += run-py-tests
 endif
+
+# Export all variables to subprocesses without having to export them individually.
+.EXPORT_ALL_VARIABLES:
+
+# The rest is build rules and make targets.
 
 .PHONY: all
 all: $(TARGETS)
@@ -44,7 +114,7 @@ qsim-cuda:
 	$(MAKE) -C apps/ qsim-cuda
 
 .PHONY: qsim-custatevec
-qsim-custatevec:
+qsim-custatevec: | check-cuquantum-root-set
 	$(MAKE) -C apps/ qsim-custatevec
 
 .PHONY: qsim-hip
@@ -64,7 +134,7 @@ cuda-tests:
 	$(MAKE) -C tests/ cuda-tests
 
 .PHONY: custatevec-tests
-custatevec-tests:
+custatevec-tests: | check-cuquantum-root-set
 	$(MAKE) -C tests/ custatevec-tests
 
 .PHONY: hip-tests
@@ -91,21 +161,32 @@ PYTESTS = $(shell find qsimcirq_tests/ -name '*_test.py')
 
 .PHONY: run-py-tests
 run-py-tests: pybind
-	for exe in $(PYTESTS); do if ! python3 -m pytest $$exe; then exit 1; fi; done
+	for exe in $(PYTESTS); do
+	    if ! python3 -m pytest $(PYTESTFLAGS) $$exe; then
+		echo "Pytest $(PYTESTFLAGS) $$exe returned an error"
+	        exit 1;
+	    fi;
+	done
 
-.PHONY: run-tests
-run-tests: $(TESTS)
+.PHONY: run-tests tests
+run-tests tests: $(TESTS)
+
+.PHONY: check-cuquantum-root-set
+check-cuquantum-root-set:
+	@if [[ -z "$(CUQUANTUM_ROOT)" ]]; then
+	    echo Error: '$$CUQUANTUM_ROOT must be set in order to use cuStateVec.'
+	    exit 1
+	fi
 
 eigen:
-	$(shell\
-		rm -rf eigen;\
-		wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz;\
-		tar -xf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen;\
-		rm eigen-$(EIGEN_PREFIX).tar.gz;)
+	-rm -rf eigen
+	wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz
+	tar -xzf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen
+	rm eigen-$(EIGEN_PREFIX).tar.gz
 
 .PHONY: clean
 clean:
-	rm -rf eigen;
+	-rm -rf eigen
 	-$(MAKE) -C apps/ clean
 	-$(MAKE) -C tests/ clean
 	-$(MAKE) -C pybind_interface/ clean
