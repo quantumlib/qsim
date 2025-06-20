@@ -1,27 +1,47 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+SUFFIX := $(shell python3-config --extension-suffix)
+
 # The names of the shared libraries that result after compiling qsim for Pybind11
-QSIMLIB_BASIC = ../qsimcirq/qsim_basic`python3-config --extension-suffix`
-QSIMLIB_SSE = ../qsimcirq/qsim_sse`python3-config --extension-suffix`
-QSIMLIB_AVX2 = ../qsimcirq/qsim_avx2`python3-config --extension-suffix`
-QSIMLIB_AVX512 = ../qsimcirq/qsim_avx512`python3-config --extension-suffix`
-QSIMLIB_CUDA = ../qsimcirq/qsim_cuda`python3-config --extension-suffix`
-QSIMLIB_CUSTATEVEC = ../qsimcirq/qsim_custatevec`python3-config --extension-suffix`
-QSIMLIB_HIP = ../qsimcirq/qsim_hip`python3-config --extension-suffix`
-QSIMLIB_DECIDE = ../qsimcirq/qsim_decide`python3-config --extension-suffix`
+QSIMLIB_BASIC = ../qsimcirq/qsim_basic$(SUFFIX)
+QSIMLIB_SSE = ../qsimcirq/qsim_sse$(SUFFIX)
+QSIMLIB_AVX2 = ../qsimcirq/qsim_avx2$(SUFFIX)
+QSIMLIB_AVX512 = ../qsimcirq/qsim_avx512$(SUFFIX)
+QSIMLIB_CUDA = ../qsimcirq/qsim_cuda$(SUFFIX)
+QSIMLIB_CUSTATEVEC = ../qsimcirq/qsim_custatevec$(SUFFIX)
+QSIMLIB_HIP = ../qsimcirq/qsim_hip$(SUFFIX)
+QSIMLIB_DECIDE = ../qsimcirq/qsim_decide$(SUFFIX)
+
+# Certain Pybind11 flags are common for all cases.
+PYBIND_INCLUDES := $(shell pybind11-config --includes)
+PYBINDFLAGS = -Wall -shared -std=c++17 -fPIC $(PYBIND_INCLUDES)
 
 # The flags for the compilation of the simd-specific Pybind11 interfaces
-PYBINDFLAGS_BASIC = -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
-PYBINDFLAGS_SSE = -msse4.1 -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
-PYBINDFLAGS_AVX2 = -mavx2 -mfma -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
-PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 -Wall -shared -std=c++17 -fPIC `pybind11-config --includes`
+PYBINDFLAGS_BASIC = $(PYBINDFLAGS)
+PYBINDFLAGS_SSE = -msse4.1 $(PYBINDFLAGS)
+PYBINDFLAGS_AVX2 = -mavx2 -mfma $(PYBINDFLAGS)
+PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 $(PYBINDFLAGS)
 
 # The flags for the compilation of CUDA-specific Pybind11 interfaces
-PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC `pybind11-config --includes`"
+PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC $(PYBIND_INCLUDES)"
 
 # The flags for the compilation of cuStateVec-specific Pybind11 interfaces
 PYBINDFLAGS_CUSTATEVEC = $(CUSTATEVECFLAGS) $(PYBINDFLAGS_CUDA)
 
 # The flags for the compilation of HIP-specific Pybind11 interfaces
-PYBINDFLAGS_HIP = -std=c++17 -Wall -shared -fPIC `pybind11-config --includes`
+PYBINDFLAGS_HIP = -std=c++17 -Wall -shared -fPIC $(PYBIND_INCLUDES)
 
 # Check for nvcc to decide compilation mode.
 ifeq ($(shell which $(NVCC)),)
