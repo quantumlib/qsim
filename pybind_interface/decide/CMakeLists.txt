@@ -43,6 +43,7 @@ include(../GetPybind11.cmake)
 
 # Configure based on the detected platform
 if(CMAKE_CUDA_COMPILER)
+    include(../GetCUDAARCHS.cmake)
     add_library(qsim_decide MODULE decide.cpp)
     if(DEFINED ENV{CUQUANTUM_ROOT})
         target_compile_options(qsim_decide PRIVATE
@@ -52,7 +53,7 @@ if(CMAKE_CUDA_COMPILER)
     find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
     set_target_properties(qsim_decide PROPERTIES
-        CUDA_ARCHITECTURES "$ENV{CUDAARCHS}"
+        CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
         PREFIX "${PYTHON_MODULE_PREFIX}"
         SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
