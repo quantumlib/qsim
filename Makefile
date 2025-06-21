@@ -190,3 +190,9 @@ clean:
 	-$(MAKE) -C apps/ clean
 	-$(MAKE) -C tests/ clean
 	-$(MAKE) -C pybind_interface/ clean
+
+LOCAL_VARS = TARGETS TESTS PYTESTS PYTESTFLAGS CXX CXXFLAGS NVCC NVCCFLAGS $\
+	HIPCC HIPCCFLAGS CUDA_PATH CUQUANTUM_ROOT CUSTATEVECFLAGS
+
+.PHONY: print-vars
+print-vars: ; @$(foreach n,$(sort $(LOCAL_VARS)),echo $n=$($n);)

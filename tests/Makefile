@@ -107,3 +107,9 @@ $(GTEST_DIR)/build:
 clean:
 	-rm -f ./*.x ./*.a ./*.so ./*.mod
 	rm -rf $(GTEST_DIR)/build
+
+LOCAL_VARS = HAVE_SSE HAVE_AVX2 HAVE_AVX512 SSE_FLAGS AVX2_FLAGS $\
+	AVX512_FLAGS CXXFLAGS CXX_TARGETS TEST_FLAGS
+
+.PHONY: print-vars
+print-vars: ; @$(foreach n,$(sort $(LOCAL_VARS)),echo $n=$($n);)
