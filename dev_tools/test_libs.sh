@@ -31,10 +31,20 @@ fi
 # Look for AVX and SSE in the processor's feature flags.
 declare features=""
 declare filters=""
+declare -a configs=()
 features="$(python -c 'import cpuinfo; print(" ".join(cpuinfo.get_cpu_info().get("flags", [])))')"
-[[ "$features" == *avx2* ]] && filters+=",avx"
-[[ "$features" == *sse* ]] && filters+=",sse"
+if [[ "$features" == *avx2* ]]; then
+     filters+=",avx"
+     configs+=( "--config=avx" )
+fi
+if [[ "$features" == *sse* ]]; then
+     filters+=",sse"
+     configs+=( "--config=sse" )
+fi
 filters="${filters#,}"
+
+# If none of the optimization configs were added, use the basic config.
+[[ ${#configs[@]} -eq 0 ]] && configs=( "--config=basic" )
 
 declare -a build_filters=()
 declare -a test_filters=()
@@ -45,8 +55,8 @@ fi
 
 # The apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build "${build_filters[@]}" "$@" apps:all
+    bazel build "${configs[@]}" "${build_filters[@]}" "$@" apps:all
 fi
 
 # Run all basic tests. This should work on all platforms.
-bazel test "${test_filters[@]}" "$@" tests:all
+bazel test "${configs[@]}" "${test_filters[@]}" "$@" tests:all
