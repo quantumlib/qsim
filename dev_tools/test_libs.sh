@@ -44,7 +44,9 @@ fi
 filters="${filters#,}"
 
 # If none of the optimization configs were added, use the basic config.
-[[ ${#configs[@]} -eq 0 ]] && configs=( "--config=basic" )
+if [[ ${#configs[@]} -eq 0 ]]; then
+    configs=( "--config=basic" )
+fi
 
 declare -a build_filters=()
 declare -a test_filters=()
