@@ -29,6 +29,15 @@ on:
       - checks_requested
 
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
+      bazel-cache:
+        description: 'Use Bazel caches'
+        type: boolean
+        default: true
 
 permissions: read-all
 
@@ -61,12 +70,15 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
+      # Do not change the != false to be a direct !inputs.bazel-cache. (The
+      # value can be empty, in which case the latter won't work as expected.)
+      - name: Set up Bazel ${{inputs.bazel-cache != false && 'with' || 'without'}} caching
+        uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
         with:
-          disk-cache: ${{github.workflow}}
-          bazelisk-cache: true
-          external-cache: true
-          repository-cache: true
+          disk-cache: ${{inputs.bazel-cache != false && github.workflow}}
+          bazelisk-cache: ${{inputs.bazel-cache != false}}
+          external-cache: ${{inputs.bazel-cache != false}}
+          repository-cache: ${{inputs.bazel-cache != false}}
 
       - name: Set up Python with caching of pip dependencies
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -81,5 +93,9 @@ jobs:
 
       - name: Run C++ tests
         run: |
-          bazel test --config=verbose --config=avx --config=openmp \
-          --config=${{matrix.sanitizer_opt}} tests:all
+          bazel test \
+              --config=avx \
+              --config=openmp \
+              --config=${{matrix.sanitizer_opt}} \
+              ${{inputs.debug && '--config=verbose'}} \
+              tests:all
