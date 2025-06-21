@@ -20,9 +20,10 @@ $(error Unsupported version of Make. \
     it needs GNU Make version 3.82 or later)
 endif
 
-# Run all commands in the same shell.
+# Run all commands in the same shell. Exit at the first error.
 SHELL=/bin/bash
 .ONESHELL:
+.SHELLFLAGS += -e
 
 # Version info for the copy of Eigen we will download and build locally.
 EIGEN_PREFIX = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
@@ -32,10 +33,18 @@ EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 TARGETS = qsim
 TESTS = run-cxx-tests
 
-# Whether to build the Pybind-based Python interface.
+# By default, we also build the pybind11-based Python interface.
 PYBIND11 ?= true
 
-# Default compilers and compiler flags. Can be overriden via env variables.
+ifeq ($(PYBIND11), true)
+    TARGETS += pybind
+    TESTS += run-py-tests
+endif
+
+# Default options for Pytest (only used if the pybind interface is built).
+PYTESTFLAGS ?= -v
+
+# Default C++ compilers and compiler flags. Can be overriden via env variables.
 CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
@@ -44,13 +53,10 @@ CXXFLAGS ?= -O3 -std=c++17 -fopenmp
 NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
 HIPCCFLAGS ?= -O3
 
-# Default options for Pytest.
-PYTESTFLAGS ?= -v
-
-# Determine whether to build CUDA and cuStateVec support. We build for CUDA if
-# (i) we find $NVCC or (ii) $CUDA_PATH is set or. OTOH, there's no way to find
-# the cuQuantum libraries other than by being told. So, this checks variable
-# $CUQUANTUM_ROOT.
+# Determine whether we can include CUDA and cuStateVec support. We build for
+# CUDA if (i) we find $NVCC or (ii) $CUDA_PATH is set. For cuStateVec, there's
+# no way to find the cuQuantum libraries other than by being told, so we rely
+# on the user or calling environment to set variable $CUQUANTUM_ROOT.
 
 ifneq (,$(shell which $(NVCC)))
     # nvcc adds appropriate -I and -L flags, so nothing more is needed here.
@@ -89,11 +95,6 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
     else
         $(warning $$CUQUANTUM_ROOT is set, but the path does not seem to exist)
     endif
-endif
-
-ifeq ($(PYBIND11), true)
-    TARGETS += pybind
-    TESTS += run-py-tests
 endif
 
 # Export all variables to subprocesses without having to export them individually.
