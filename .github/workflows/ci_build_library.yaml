@@ -135,7 +135,4 @@ jobs:
           pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
           SHELLOPTS: ${{env.use-verbose && 'xtrace' || '' }}
         shell: cmd
-        run: >-
-          bash -x dev_tools/test_libs.sh \
-              ${{env.use-verbose && '--config=verbose'}} \
-              --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
+        run: bash -x dev_tools/test_libs.sh ${{env.use-verbose && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
