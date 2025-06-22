@@ -25,7 +25,7 @@ set(MSG_PREFIX "[qsim cmake configuration]")
 # CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
 # it doesn't happen when running builds using cibuildwheel, even on Apple
 # Silicon. We have had better luck checking and seting it ourselves.
-if(CMAKE_SYSTEM_NAMSG_PREFIX STREQUAL "Darwin"
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin"
    AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     set(CMAKE_APPLE_SILICON_PROCESSOR TRUE)
     message(STATUS "${MSG_PREFIX} detected Apple Silicon")
