@@ -88,7 +88,9 @@ jobs:
           pip install -r dev-requirements.txt
 
       - name: Install google-perftools for tcmalloc
-        run: sudo apt-get install libgoogle-perftools-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgoogle-perftools-dev
 
       - name: Run C++ tests
         env:
