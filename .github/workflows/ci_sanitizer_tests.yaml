@@ -59,6 +59,8 @@ jobs:
       matrix:
         # Memory and address sanitizers.
         sanitizer_opt: [msan, asan]
+    env:
+      use-verbose: ${{github.event.inputs.debug == true}}
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -94,5 +96,5 @@ jobs:
               --config=avx \
               --config=openmp \
               --config=${{matrix.sanitizer_opt}} \
-              ${{inputs.debug && '--config=verbose'}} \
+              ${{env.use-verbose && '--config=verbose'}} \
               tests:all

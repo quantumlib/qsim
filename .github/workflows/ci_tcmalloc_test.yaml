@@ -55,6 +55,8 @@ jobs:
     needs: find-changes
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      use-verbose: ${{github.event.inputs.debug == true}}
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -89,11 +91,11 @@ jobs:
 
       - name: Run C++ tests
         env:
-          PERFTOOLS_VERBOSE: ${{inputs.debug && 1 || ''}}
+          PERFTOOLS_VERBOSE: ${{env.use-verbose && 1 || ''}}
         run: |
           bazel test \
               --config=avx \
               --config=openmp \
               --config=tcmalloc \
-              ${{inputs.debug && '--config=verbose'}} \
+              ${{env.use-verbose && '--config=verbose'}} \
               tests:all
