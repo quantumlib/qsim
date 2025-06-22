@@ -93,9 +93,5 @@ jobs:
         env:
           PERFTOOLS_VERBOSE: ${{inputs.debug && 1 || ''}}
         run: |
-          bazel test \
-              --config=avx \
-              --config=openmp \
-              --config=tcmalloc \
-              ${{inputs.debug && '--config=verbose'}} \
-              tests:all
+          bazel test --config=verbose --config=avx --config=openmp \
+          --config=tcmalloc tests:all

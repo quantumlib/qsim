@@ -88,14 +88,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
 
-      - name: Install qsim requirements
-        run: python3 -m pip install -r requirements.txt
-
       - name: Run C++ tests
         run: |
-          bazel test \
-              --config=avx \
-              --config=openmp \
-              --config=${{matrix.sanitizer_opt}} \
-              ${{inputs.debug && '--config=verbose'}} \
-              tests:all
+          bazel test --config=verbose --config=avx --config=openmp \
+          --config=${{matrix.sanitizer_opt}} tests:all
