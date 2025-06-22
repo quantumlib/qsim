@@ -67,10 +67,14 @@ jobs:
         with:
           python-version: '3.13'
           cache: pip
-          cache-dependency-path: dev-requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
 
-      - name: Install dev requirements
-        run: pip install -r dev-requirements.txt
+      - name: Install qsim development dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r dev-requirements.txt
 
       - name: Check Python file format
         env:
