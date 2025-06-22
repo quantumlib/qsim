@@ -18,29 +18,37 @@ project(qsim LANGUAGES CXX)
 include(CheckLanguage)
 check_language(CUDA)
 
-if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
-    # When running builds using cibuildwheel, the value is not set even when
-    # running on Apple Silicon. Check and set it ourselves if we have to.
-    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-        set(CMAKE_APPLE_SILICON_PROCESSOR TRUE)
-        message(STATUS "qsim: detected Apple Silicon")
-    else()
-        set(CMAKE_APPLE_SILICON_PROCESSOR FALSE)
-        message(STATUS "qsim: did not detect Apple Silicon")
-    endif()
+# This text is prepended to messages printed by this config file so it's
+# easier to figure out what came from where in the logs.
+set(MSG_PREFIX "[qsim cmake configuration]")
+
+# CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
+# it doesn't happen when running builds using cibuildwheel, even on Apple
+# Silicon. We have had better luck checking and seting it ourselves.
+if(CMAKE_SYSTEM_NAMSG_PREFIX STREQUAL "Darwin"
+   AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(CMAKE_APPLE_SILICON_PROCESSOR TRUE)
+    message(STATUS "${MSG_PREFIX} detected Apple Silicon")
+else()
+    set(CMAKE_APPLE_SILICON_PROCESSOR FALSE)
+    message(STATUS "${MSG_PREFIX} did not detect Apple Silicon")
 endif()
 
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
-    message(STATUS "qsim: found CUDA compiler ${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
+    message(STATUS "${MSG_PREFIX} found CUDA compiler "
+                   "${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
 else()
-    message(STATUS "qsim: did not find CUDA compiler")
-    execute_process(COMMAND which hipcc OUTPUT_VARIABLE has_hipcc OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "${MSG_PREFIX} did not find CUDA compiler")
+    # Did not find the CUDA framewwork, so check for the HIP as an alternative.
+    execute_process(COMMAND which hipcc
+                    OUTPUT_VARIABLE has_hipcc
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
     if(has_hipcc)
-        message(STATUS "qsim: found hipcc")
+        message(STATUS "${MSG_PREFIX} found hipcc")
         project(qsim LANGUAGES CXX HIP)
     else()
-        message(STATUS "qsim: did not find nvcc or hipcc")
+        message(STATUS "${MSG_PREFIX} did not find hipcc")
     endif()
 endif()
 
@@ -66,6 +74,11 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     add_subdirectory(pybind_interface/avx2)
 endif()
 
+# Additional miscellanous settings.
 # The following settings mirror what is in our hand-written Makefiles.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Print additional useful info.
+message(STATUS "${MSG_PREFIX} OpenMP found = ${OPENMP_FOUND}")
+message(STATUS "${MSG_PREFIX} shell $PATH = $ENV{PATH}")
