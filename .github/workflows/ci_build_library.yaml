@@ -120,7 +120,7 @@ jobs:
         env:
           # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
           SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
-        run: dev_tools/test_libs.sh --config=verbose
+        run: dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
 
       - if: matrix.conf.os == 'windows-2025'
         name: Run the build and test script (Windows case)
@@ -133,5 +133,6 @@ jobs:
           SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         shell: cmd
         run: >-
-          bash -x dev_tools/test_libs.sh --config=verbose
-          --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
+          bash -x dev_tools/test_libs.sh \
+              ${{inputs.debug && '--config=verbose'}} \
+              --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}

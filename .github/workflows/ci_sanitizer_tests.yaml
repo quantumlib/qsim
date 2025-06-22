@@ -29,6 +29,11 @@ on:
       - checks_requested
 
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
 
 permissions: read-all
 
@@ -81,5 +86,9 @@ jobs:
 
       - name: Run C++ tests
         run: |
-          bazel test --config=verbose --config=avx --config=openmp \
-          --config=${{matrix.sanitizer_opt}} tests:all
+          bazel test \
+              --config=avx \
+              --config=openmp \
+              --config=${{matrix.sanitizer_opt}} \
+              ${{inputs.debug && '--config=verbose'}} \
+              tests:all
