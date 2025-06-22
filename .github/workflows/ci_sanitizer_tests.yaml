@@ -60,6 +60,7 @@ jobs:
         # Memory and address sanitizers.
         sanitizer_opt: [msan, asan]
     env:
+      # Must use explicit test for true so it works when inputs.debug is null.
       use-verbose: ${{github.event.inputs.debug == true}}
     steps:
       - name: Check out a copy of the git repository

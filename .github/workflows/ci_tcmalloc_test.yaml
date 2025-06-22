@@ -56,6 +56,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
+      # Must use explicit test for true so it works when inputs.debug is null.
       use-verbose: ${{github.event.inputs.debug == true}}
     steps:
       - name: Check out a copy of the git repository
