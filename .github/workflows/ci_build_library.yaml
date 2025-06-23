@@ -88,6 +88,9 @@ jobs:
           {os: windows-2025, pyarch: x64, py: 12},
           {os: windows-2025, pyarch: x64, py: 13},
         ]
+    env:
+      # Must use explicit test for true so it works when inputs.debug is null.
+      use-verbose: ${{github.event.inputs.debug == true}}
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -126,7 +129,7 @@ jobs:
         env:
           # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
           SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
-        run: dev_tools/test_libs.sh --config=verbose
+        run: dev_tools/test_libs.sh ${{env.use-verbose && '--config=verbose'}}
 
       - if: matrix.conf.os == 'windows-2025'
         name: Run the build and test script (Windows case)
@@ -136,8 +139,6 @@ jobs:
         env:
           pyroot: 'C:\\hostedtoolcache\\windows\\Python'
           pyexe: '${{steps.setup.outputs.python-version}}\\${{matrix.conf.pyarch}}\\python3.exe'
-          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
+          SHELLOPTS: ${{env.use-verbose && 'xtrace' || '' }}
         shell: cmd
-        run: >-
-          bash -x dev_tools/test_libs.sh --config=verbose
-          --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
+        run: bash -x dev_tools/test_libs.sh ${{env.use-verbose && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
