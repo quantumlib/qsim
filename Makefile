@@ -161,12 +161,7 @@ PYTESTS := $(wildcard qsimcirq_tests/*_test.py)
 
 .PHONY: run-py-tests
 run-py-tests: pybind
-	for exe in $(PYTESTS); do
-	    if ! python3 -m pytest $(PYTESTFLAGS) $$exe; then
-		echo "Pytest $(PYTESTFLAGS) $$exe returned an error"
-	        exit 1;
-	    fi;
-	done
+	python3 -m pytest $(PYTESTFLAGS) $(PYTESTS)
 
 .PHONY: run-tests tests
 run-tests tests: $(TESTS)
