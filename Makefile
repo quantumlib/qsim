@@ -12,19 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This Makefile uses syntax that needs at least GNU Make version 3.82.
-# Test it & fail early. (MacOS still ships version 3.81 as of MacOS 15.)
-ifeq ($(filter undefine,$(value .FEATURES)),)
-$(error Unsupported version of Make. \
-    This Makefile does not work properly with GNU Make $(MAKE_VERSION); \
-    it needs GNU Make version 3.82 or later)
-endif
-
-# Run all commands in the same shell. Exit at the first error.
-SHELL=/bin/bash
-.ONESHELL:
-.SHELLFLAGS += -e
-
 # Version info for the copy of Eigen we will download and build locally.
 EIGEN_PREFIX = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
@@ -161,16 +148,21 @@ PYTESTS := $(wildcard qsimcirq_tests/*_test.py)
 
 .PHONY: run-py-tests
 run-py-tests: pybind
-	python3 -m pytest $(PYTESTFLAGS) $(PYTESTS)
+	for exe in $(PYTESTS); do \
+	    if ! python3 -m pytest $(PYTESTFLAGS) $$exe; then \
+		echo "Pytest $(PYTESTFLAGS) $$exe returned an error" \
+	        exit 1; \
+	    fi; \
+	done
 
 .PHONY: run-tests tests
 run-tests tests: $(TESTS)
 
 .PHONY: check-cuquantum-root-set
 check-cuquantum-root-set:
-	@if [[ -z "$(CUQUANTUM_ROOT)" ]]; then
-	    echo Error: '$$CUQUANTUM_ROOT must be set in order to use cuStateVec.'
-	    exit 1
+	@if [[ -z "$(CUQUANTUM_ROOT)" ]]; then \
+	    echo Error: '$$CUQUANTUM_ROOT must be set in order to use cuStateVec.' \
+	    exit 1 \
 	fi
 
 eigen:
