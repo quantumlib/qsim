@@ -13,12 +13,12 @@
 # limitations under the License.
 
 # Determine the hardware features available in this CPU.
-HAVE_SSE := $(shell grep -qm 1 sse /proc/cpuinfo && echo "true")
-HAVE_AVX2 := $(shell grep -qm 1 avx2 /proc/cpuinfo && echo "true")
-HAVE_AVX512 := $(shell grep -qm 1 avx512f /proc/cpuinfo && echo "true")
+HAVE_SSE := $(shell grep -q sse /proc/cpuinfo && echo "true")
+HAVE_AVX2 := $(shell grep -q avx2 /proc/cpuinfo && echo "true")
+HAVE_AVX512 := $(shell grep -q avx512f /proc/cpuinfo && echo "true")
 
 # Default targets. Always built.
-BASIC_FILES := $(shell ls -1 *.cc | egrep -v '_avx|_sse')
+BASIC_FILES := $(shell ls *.cc | egrep -v '_avx|_sse')
 
 # Additional flags and targets for non-CUDA cases.
 SSE_FILES =
