@@ -99,11 +99,16 @@ jobs:
 
       - name: Run C++ tests
         run: |
-          bazel test --config=verbose --config=${{matrix.hardware_opt}} \
-          --config=${{matrix.parallel_opt}} tests:all
+          bazel test \
+              --config=${{matrix.hardware_opt}} \
+              --config=${{matrix.parallel_opt}} \
+              ${{env.use-verbose && '--config=verbose'}} \
+              tests:all
 
       - name: Run sample simulation
         run: |
-          bazel run --config=verbose --config=${{matrix.hardware_opt}} \
-          --config=${{matrix.parallel_opt}} apps:qsim_base \
-          -- -c circuits/circuit_q24
+          bazel run \
+              --config=${{matrix.hardware_opt}} \
+              --config=${{matrix.parallel_opt}} \
+              ${{env.use-verbose && '--config=verbose'}} \
+              apps:qsim_base -- -c circuits/circuit_q24

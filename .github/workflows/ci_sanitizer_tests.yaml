@@ -98,5 +98,9 @@ jobs:
 
       - name: Run C++ tests
         run: |
-          bazel test --config=verbose --config=avx --config=openmp \
-          --config=${{matrix.sanitizer_opt}} tests:all
+          bazel test \
+              --config=avx \
+              --config=openmp \
+              --config=${{matrix.sanitizer_opt}} \
+              ${{env.use-verbose && '--config=verbose'}} \
+              tests:all
