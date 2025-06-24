@@ -40,6 +40,22 @@ CXXFLAGS ?= -O3 -std=c++17 -fopenmp
 NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
 HIPCCFLAGS ?= -O3
 
+# For compatibility with CMake, if $CUDAARCHS is set, use it to set the
+# architecture options to nvcc. Otherwise, default to the "native" option,
+# which is what our pybind11_interface/GetCUDAARCHS.cmake also does.
+ifneq (,$(CUDAARCHS))
+    # Avoid a common mistake that leads to difficult-to-diagnose errors.
+    COMMA := ,
+    ifeq ($(COMMA),$(findstring $(COMMA),$(CUDAARCHS)))
+        $(error Error: the value of the CUDAARCHS environment variable \
+                must use semicolons as separators, not commas)
+    endif
+    ARCHS := $(subst ;, ,$(CUDAARCHS))
+    NVCCFLAGS += $(foreach a,$(ARCHS),--generate-code arch=compute_$(a),code=sm_$(a))
+else
+    NVCCFLAGS += -arch=native
+endif
+
 # Determine whether we can include CUDA and cuStateVec support. We build for
 # CUDA if (i) we find $NVCC or (ii) $CUDA_PATH is set. For cuStateVec, there's
 # no way to find the cuQuantum libraries other than by being told, so we rely
