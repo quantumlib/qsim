@@ -37,7 +37,7 @@ NVCC ?= nvcc
 HIPCC ?= hipcc
 
 CXXFLAGS ?= -O3 -std=c++17 -fopenmp
-NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets --threads 0
+NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
 HIPCCFLAGS ?= -O3
 
 # For compatibility with CMake, if $CUDAARCHS is set, use it to set the
