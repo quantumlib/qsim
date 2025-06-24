@@ -36,4 +36,4 @@ COPY ./qsimcirq_tests/ /test-install/
 
 # Run the tests from that location.
 WORKDIR /test-install/
-ENTRYPOINT python3 -m pytest ./
+ENTRYPOINT ["python3", "-m", "pytest", "./"]
