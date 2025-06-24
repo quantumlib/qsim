@@ -8,27 +8,28 @@ qsim makes use of AVX/FMA vector operations, OpenMP multithreading, and
 gate fusion [[1]](https://arxiv.org/abs/1601.07195)
 [[2]](https://arxiv.org/abs/1704.01127)
 to accelerate simulations. This performance is best demonstrated by the use
-of qsim in cross-entropy benchmarks here:
+of qsim in cross-entropy benchmarks
 [[3]](https://www.nature.com/articles/s41586-019-1666-5).
 
-Integration with [Cirq](https://github.com/quantumlib/Cirq) makes getting 
+Integration with [Cirq](https://github.com/quantumlib/Cirq) makes getting
 started with qsim easy! Check out the
-[install guide](https://github.com/quantumlib/qsim/blob/master/docs/install_qsimcirq.md)
+[installation guide](https://github.com/quantumlib/qsim/blob/master/docs/install_qsimcirq.md)
 or try the runnable
 [notebook tutorial](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb).
 
 ## Design
 
-This repository includes two top-level libraries for simulation:
+The git repository for qsim includes two top-level libraries for simulation:
 
 -   **qsim** is a Schrödinger state-vector simulator designed to run on a
-    single machine. It produces the full state vector as output which, 
+    single machine. It produces the full state vector as output which,
     for instance, allows users to sample repeatedly from a single execution.
 -   **qsimh** is a hybrid Schrödinger-Feynman simulator built for parallel
-    execution on a cluster of machines. It produces amplitudes for user-
-    specified output bitstrings.
+    execution on a cluster of machines. It produces amplitudes for
+    user-specified output bitstrings. Compared to qsim, by limiting what it
+    returns, qsimh can simulate more qubits.
 
-These libraries can be invoked either directly or through the qsim-Cirq 
+These libraries can be invoked either directly or through the qsim-Cirq
 interface to perform the following operations:
 
 -   Determine the final state vector of a circuit (qsim only).

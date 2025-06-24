@@ -97,9 +97,9 @@ my_sim = qsimcirq.QSimSimulator()
 myres = my_sim.compute_amplitudes(program=my_circuit,
                                   bitstrings=[0b00, 0b01, 0b10, 0b11])
 ```
-In the above example, the simulation is performed for the specified bitstrings
+In the example above, the simulation is performed for the specified bitstrings
 of length 2. All the bitstring lengths should be equal to the number of qubits
-in `qsim_circuit`. Otherwise, BitstringsFromStream will raise an error.
+in `qsim_circuit`. Otherwise, `BitstringsFromStream` will raise an error.
 
 Finally, to retrieve sample measurements the `run` method can be used. This requires
 the circuit to have measurements to sample from, else an error will be raised.
@@ -133,7 +133,7 @@ myres = my_sim.simulate(program=my_circuit)
 
 `QSimhSimulator` uses a hybrid Schrödinger-Feynman simulator. This limits it to
 returning amplitudes for specific output bitstrings, but raises its upper
-bound on number of qubits simulated (50+ qubits, depending on depth).
+bound on number of qubits simulated (50+ qubits, depending on circuit depth).
 
 To acquire amplitudes for all output bitstrings of length 2:
 ```

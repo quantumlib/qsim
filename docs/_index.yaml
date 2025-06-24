@@ -33,18 +33,18 @@ landing_page:
     - description: >
         <h4>qsim</h4>
         <p>
-        qsim is a full wave function simulator written in C++. It uses gate
-        fusion, AVX/FMA vectorized instructions and multi-threading using
-        OpenMP to achieve state of the art simulations of quantum circuits.
+        qsim is a full state-vector simulator written in C++. It uses gate
+        fusion, AVX/FMA vectorized instructions, and multithreading using
+        OpenMP to achieve state-of-the-art simulations of quantum circuits.
         qsim is integrated with Cirq and can be used to run simulations of up
-        to 40 qubits on a 90 core Intel Xeon workstation.
+        to 40 qubits on a 90-core Intel Xeon workstation.
         </p>
       buttons:
-      - label: Get started with qsim on Cirq
+      - label: Get started with qsim in Cirq
         path: /qsim/tutorials/qsimcirq
         classname: button button-primary
         icon_name: open_in_new
-      - label: GitHub repository
+      - label: GitHub repository for qsim
         path: //github.com/quantumlib/qsim
         classname: button button-white
         icon_name: open_in_new
@@ -82,10 +82,10 @@ landing_page:
       image_path: /site-assets/images/cards/qsim-card-cirq-integrations.png
       description: >
         Cirq is a python framework for writing, simulating, and executing
-        quantum programs. Cirq's built in simulator is useful to around 20
-        qubits. By using the qsim Cirq simulator one can boost the number of
-        qubits simulated to be mostly limited by available ram. Up to 40 qubits
-        can be simulated on a 90 core Intel Xeon workstation.
+        quantum programs. Cirq's built-in simulator is useful to around 20
+        qubits. By using the `qsimcirq` simulator, one can boost the number of
+        qubits simulated to be mostly limited by available RAM. Up to 40 qubits
+        can be simulated on a 90-core Intel Xeon workstation.
       buttons:
       - label: "Learn more"
         path: /qsim/cirq_interface
