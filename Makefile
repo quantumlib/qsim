@@ -157,7 +157,7 @@ run-custatevec-tests: custatevec-tests
 run-hip-tests: hip-tests
 	$(MAKE) -C tests/ run-hip-tests
 
-PYTESTS = $(shell find qsimcirq_tests/ -name '*_test.py')
+PYTESTS := $(wildcard qsimcirq_tests/*_test.py)
 
 .PHONY: run-py-tests
 run-py-tests: pybind
@@ -190,3 +190,9 @@ clean:
 	-$(MAKE) -C apps/ clean
 	-$(MAKE) -C tests/ clean
 	-$(MAKE) -C pybind_interface/ clean
+
+LOCAL_VARS = TARGETS TESTS PYTESTS PYTESTFLAGS CXX CXXFLAGS NVCC NVCCFLAGS $\
+	HIPCC HIPCCFLAGS CUDA_PATH CUQUANTUM_ROOT CUSTATEVECFLAGS
+
+.PHONY: print-vars
+print-vars: ; @$(foreach n,$(sort $(LOCAL_VARS)),echo $n=$($n);)

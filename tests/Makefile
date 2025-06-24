@@ -1,28 +1,61 @@
-HAVE_AVX512 = $(shell grep avx512f /proc/cpuinfo)
-CXX_TARGETS = $(shell\
-  if [ -z "$(HAVE_AVX512)" ] ; then\
-    find . -maxdepth 1 -name "*_test.cc" ! -name "*512*";\
-  else\
-    find . -maxdepth 1 -name "*_test.cc";\
-  fi\
-)
-CXX_TARGETS := $(CXX_TARGETS:%.cc=%.x)
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-CUDA_TARGETS = $(shell find . -maxdepth 1 -name "*cuda_test.cu")
-CUDA_TARGETS := $(CUDA_TARGETS:%cuda_test.cu=%cuda_test.x)
+# Determine the hardware features available in this CPU.
+HAVE_SSE := $(shell grep -q sse /proc/cpuinfo && echo "true")
+HAVE_AVX2 := $(shell grep -q avx2 /proc/cpuinfo && echo "true")
+HAVE_AVX512 := $(shell grep -q avx512f /proc/cpuinfo && echo "true")
 
-CUSTATEVEC_TARGETS = $(shell find . -maxdepth 1 -name "*custatevec_test.cu")
-CUSTATEVEC_TARGETS := $(CUSTATEVEC_TARGETS:%custatevec_test.cu=%custatevec_test.x)
+# Default targets. Always built.
+BASIC_FILES := $(shell ls *.cc | egrep -v '_avx|_sse')
 
-HIP_TARGETS = $(shell find . -maxdepth 1 -name "*cuda_test.cu")
-HIP_TARGETS := $(HIP_TARGETS:%cuda_test.cu=%hip_test.x)
+# Additional flags and targets for non-CUDA cases.
+SSE_FILES =
+AVX2_FILES =
+AVX512_FILES =
+ifneq (,$(HAVE_SSE))
+    SSE_FLAGS ?= -msse4.1
+    SSE_FILES := $(wildcard *_sse_test.cc)
+endif
+ifneq (,$(HAVE_AVX2))
+    AVX2_FLAGS ?= -mavx2 -mfma
+    AVX2_FILES := $(wildcard *_avx_test.cc)
+endif
+ifneq (,$(HAVE_AVX512))
+    AVX512_FLAGS ?= -mavx512f -mbmi2
+    AVX512_FILES := $(wildcard *_avx512_test.cc)
+endif
 
-GTEST_DIR = $(CURDIR)/googletest/googletest
-GMOCK_DIR = $(CURDIR)/googletest/googlemock
+CXX_FILES := $(BASIC_FILES) $(SSE_FILES) $(AVX2_FILES) $(AVX512_FILES)
+CXX_TARGETS := $(CXX_FILES:%.cc=%.x)
+CXXFLAGS := $(CXXFLAGS) $(SSE_FLAGS) $(AVX2_FLAGS) $(AVX512_FLAGS)
 
-CMAKE=cmake
+CUDA_FILES := $(wildcard *cuda_test.cu)
+CUDA_TARGETS := $(CUDA_FILES:%cuda_test.cu=%cuda_test.x)
+
+CUSTATEVEC_FILES := $(wildcard *custatevec_test.cu)
+CUSTATEVEC_TARGETS := $(CUSTATEVEC_FILES:%custatevec_test.cu=%custatevec_test.x)
+
+HIP_FILES := $(wildcard *cuda_test.cu)
+HIP_TARGETS := $(HIP_FILES:%cuda_test.cu=%hip_test.x)
+
+GTEST_DIR := $(CURDIR)/googletest/googletest
+GMOCK_DIR := $(CURDIR)/googletest/googlemock
 
 TESTFLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/build/lib -lgtest
+
+CMAKE = cmake
 
 .PHONY: cxx-tests
 cxx-tests: $(CXX_TARGETS)
@@ -74,3 +107,9 @@ $(GTEST_DIR)/build:
 clean:
 	-rm -f ./*.x ./*.a ./*.so ./*.mod
 	rm -rf $(GTEST_DIR)/build
+
+LOCAL_VARS = HAVE_SSE HAVE_AVX2 HAVE_AVX512 SSE_FLAGS AVX2_FLAGS $\
+	AVX512_FLAGS CXXFLAGS CXX_TARGETS TEST_FLAGS
+
+.PHONY: print-vars
+print-vars: ; @$(foreach n,$(sort $(LOCAL_VARS)),echo $n=$($n);)
