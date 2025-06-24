@@ -61,7 +61,7 @@ can use the following command:
 conda install -c conda-forge qsimcirq
 ```
 
-This will install the `qsimcirq` package from the conda-forge channe
+This will install the `qsimcirq` package from the conda-forge channel.
 
 ## Help! There's no compatible wheel for my machine!
 
