@@ -25,10 +25,11 @@ file. You can install them with `pip3 install -r dev-requirements.txt` or
 
 ## Linux installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with
-`Python 3.{10,11,12,13}`. The installation process will automatically
-detect CUDA GPUs on your computer if it exists. (Note that this may take
-time to finish.)
+We provide `qsimcirq` Python wheels on 64-bit `x86` and architectures with
+`Python 3.{10,11,12,13}`. The installation process will automatically check for
+CUDA and GPUs on your computer if they exist and attempt to build a version of
+qsim that can make use of the GPU(s). (Note that this is presently an
+installation-time action and will take several minutes to finish.)
 
 Simply run `pip3 install qsimcirq`.
 
@@ -60,9 +61,9 @@ can use the following command:
 conda install -c conda-forge qsimcirq
 ```
 
-This will install the `qsimcirq` package from the conda-forge channel.
+This will install the `qsimcirq` package from the conda-forge channe
 
-## There's no compatible wheel for my machine!
+## Help! There's no compatible wheel for my machine!
 
 If existing wheels do no meet your needs, please open an issue with your
 machine configuration (i.e., CPU architecture, Python version) and consider
