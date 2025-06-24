@@ -47,6 +47,9 @@ To build the Docker image without running tests, simply run:
 docker compose build
 ```
 
+Note that currently (qsim version 0.23.0), the Docker build does not make use
+of CUDA or GPUs.
+
 ## Run Simulations
 
 Once the `qsim` Docker image is created, it can be used to run the
