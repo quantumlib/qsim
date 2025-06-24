@@ -25,7 +25,7 @@ file. You can install them with `pip3 install -r dev-requirements.txt` or
 
 ## Linux installation
 
-We provide `qsimcirq` Python wheels on 64-bit `x86` and architectures with
+We provide `qsimcirq` Python wheels on 64-bit `x86` architectures with
 `Python 3.{10,11,12,13}`. The installation process will automatically check for
 CUDA and GPUs on your computer if they exist and attempt to build a version of
 qsim that can make use of the GPU(s). (Note that this is presently an
