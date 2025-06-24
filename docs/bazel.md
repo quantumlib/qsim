@@ -51,7 +51,7 @@ Pick at most one of the following options:
 # Use SSE instructions for vector arithmetic.
 --config=sse
 
-# Do not use vector arithmetic optimization (deault).
+# Do not use vector arithmetic optimization (default).
 --config=basic
 ```
 
