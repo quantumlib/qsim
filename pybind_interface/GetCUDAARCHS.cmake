@@ -15,35 +15,12 @@
 
 # Check whether the user has provided info about the GPU(s) installed
 # on their system. If not, try to determine what it is automaticaly.
-if(DEFINED ENV{CUDAARCHS})
-    set(CMAKE_CUDA_ARCHITECTURES "$ENV{CUDAARCHS}")
-    message(STATUS "qsim: using CUDA archs string $ENV{CUDAARCHS}")
+if(CMAKE_CUDA_ARCHITECTURES)
+    # CMake 3.18+ sets this variable from $CUDAARCHS automatically.
+    message(STATUS "qsim: using CUDA architectures "
+                   "${CMAKE_CUDA_ARCHITECTURES}")
 else()
-    find_program(NVIDIA_SMI nvidia-smi)
-    if(NVIDIA_SMI)
-        execute_process(
-            COMMAND ${NVIDIA_SMI} --query-gpu=compute_cap --format=csv,noheader
-            COMMAND tr -d .
-            OUTPUT_VARIABLE DETECTED_ARCHS
-            RESULT_VARIABLE NVIDIA_SMI_RESULT
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        if(NVIDIA_SMI_RESULT EQUAL 0 AND DETECTED_ARCHS)
-            # The command was successful. The output may contain
-            # multiple lines if there are multiple GPUs.
-            string(REPLACE "\n" ";" ARCHS_LIST "${DETECTED_ARCHS}")
-            set(CMAKE_CUDA_ARCHITECTURES "${ARCHS_LIST}")
-        else()
-            message(FATAL_ERROR "nvidia-smi failed or returned no GPU"
-                                " architectures. Please check your"
-                                " NVIDIA driver installation and your"
-                                " command search PATH variable.")
-        endif()
-    else()
-        message(FATAL_ERROR "nvidia-smi not found. Cannot autodetect"
-                            " the current GPU architecture(s). Please"
-                            " set the environment variable CUDAARCHS"
-                            " to an appropriate value and try again.")
-    endif()
+    # Compile for all supported major and minor real architectures, and the
+    # highest major virtual architecture.
+    set(CMAKE_CUDA_ARCHITECTURES native)
 endif()
-
