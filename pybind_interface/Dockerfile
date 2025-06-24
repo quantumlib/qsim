@@ -12,4 +12,4 @@ WORKDIR /qsim/
 RUN make -C /qsim/ pybind
 
 # Compile and run qsim tests
-ENTRYPOINT make -C /qsim/ run-py-tests
+ENTRYPOINT ["make", "-C", "/qsim/", "run-py-tests"]
