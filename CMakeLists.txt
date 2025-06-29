@@ -77,6 +77,13 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Options propagated to all sub-cmakefiles.
+if(WIN32)
+    add_compile_options(/O2 /std:c++17 /openmp)
+else()
+    add_compile_options(-O3 -std=c++17 -D_GLIBCXX_USE_CXX11_ABI=1 -flto=auto)
+endif()
+
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
 add_subdirectory(pybind_interface/decide)
@@ -103,6 +110,21 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     if(HAVE_AVX512)
       add_subdirectory(pybind_interface/avx512)
     endif()
+endif()
+
+if(APPLE)
+    include_directories(
+      "/usr/local/include"
+      "/usr/local/opt/llvm/include"
+      "/opt/homebrew/include"
+      "/opt/homebrew/opt/llvm@19/include"
+    )
+    link_directories(
+      "/usr/local/lib"
+      "/usr/local/opt/llvm/lib"
+      "/opt/homebrew/lib"
+      "/opt/homebrew/opt/llvm@19/lib"
+    )
 endif()
 
 
