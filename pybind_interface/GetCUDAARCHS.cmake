@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Check whether the user has provided info about the GPU(s) installed
-# on their system. If not, try to determine what it is automaticaly.
 if(CMAKE_CUDA_ARCHITECTURES)
     # CMake 3.18+ sets this variable from $CUDAARCHS automatically.
     message(STATUS "qsim: using CUDA architectures "
