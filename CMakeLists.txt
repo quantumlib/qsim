@@ -15,12 +15,18 @@
 cmake_minimum_required(VERSION 3.31)
 project(qsim LANGUAGES CXX)
 
-include(CheckLanguage)
-check_language(CUDA)
-
 # This text is prepended to messages printed by this config file so it's
 # easier to figure out what came from where in the logs.
 set(MSG_PREFIX "[qsim cmake configuration]")
+
+
+# ~~~~~ Analyze the host's hardware & software features ~~~~~
+
+include(CheckLanguage)
+include(CheckCXXCompilerFlag)
+include(CheckCXXSourceRuns)
+
+check_language(CUDA)
 
 # CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
 # it doesn't happen when running builds using cibuildwheel, even on Apple
@@ -54,6 +60,23 @@ endif()
 
 find_package(OpenMP REQUIRED)
 
+cmake_host_system_information(RESULT HAVE_SSE2 QUERY HAS_SSE2)
+
+if(WIN32)
+    check_cxx_compiler_flag("/arch:AVX2" HAVE_AVX512)
+    check_cxx_compiler_flag("/arch:AVX512" HAVE_AVX512)
+else()
+    check_cxx_compiler_flag("-mavx2" HAVE_AVX2)
+    check_cxx_compiler_flag("-mavx512f" HAVE_AVX512)
+endif()
+
+
+# ~~~~~ Configure the build ~~~~~
+
+# The following settings mirror what is in our hand-written Makefiles.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
 add_subdirectory(pybind_interface/decide)
@@ -69,16 +92,25 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
         add_subdirectory(pybind_interface/hip)
     endif()
 
-    add_subdirectory(pybind_interface/sse)
-    add_subdirectory(pybind_interface/avx512)
-    add_subdirectory(pybind_interface/avx2)
+    if(HAVE_SSE2)
+      add_subdirectory(pybind_interface/sse)
+    endif()
+
+    if(HAVE_AVX2)
+      add_subdirectory(pybind_interface/avx2)
+    endif()
+
+    if(HAVE_AVX512)
+      add_subdirectory(pybind_interface/avx512)
+    endif()
 endif()
 
-# Additional miscellanous settings.
-# The following settings mirror what is in our hand-written Makefiles.
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Print additional useful info.
-message(STATUS "${MSG_PREFIX} OpenMP found = ${OPENMP_FOUND}")
+# ~~~~~ Print misc. info ~~~~~
+
+message(STATUS "${MSG_PREFIX} host has SSE2 = ${HAVE_SSE2}")
+message(STATUS "${MSG_PREFIX} host has AVX2 = ${HAVE_AVX2}")
+message(STATUS "${MSG_PREFIX} host has AVX512 = ${HAVE_AVX512}")
+
 message(STATUS "${MSG_PREFIX} shell $PATH = $ENV{PATH}")
+message(STATUS "${MSG_PREFIX} shell $CUQUANTUM_ROOT = $ENV{CUQUANTUM_ROOT}")
