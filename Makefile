@@ -36,7 +36,7 @@ CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-CXXFLAGS ?= -O3 -std=c++17 -fopenmp
+CXXFLAGS ?= -O3 -std=c++17 -fopenmp -flto=auto
 NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
 HIPCCFLAGS ?= -O3
 
