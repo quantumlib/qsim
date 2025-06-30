@@ -17,6 +17,10 @@ project(qsim)
 
 IF (WIN32)
     add_compile_options(/arch:AVX2)
+ELSEIF(APPLE AND NOT CMAKE_APPLE_SILICON_PROCESSOR)
+    # On Intel MacOS, CMake detects AVX* but clang doesn't recognize -mavx2.
+    # Using arch=native should turn on the features if they're available.
+    add_compile_options(-march=native)
 ELSE()
     add_compile_options(-mavx2 -mfma)
 ENDIF()
