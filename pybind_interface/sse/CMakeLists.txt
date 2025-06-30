@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.31)
 project(qsim)
 
 if(NOT WIN32)
-    add_compile_options("-msse4.1")
+    add_compile_options(-msse4.1)
 endif()
 
 INCLUDE(../GetPybind11.cmake)

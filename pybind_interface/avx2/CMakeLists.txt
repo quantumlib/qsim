@@ -16,9 +16,9 @@ cmake_minimum_required(VERSION 3.31)
 project(qsim)
 
 IF (WIN32)
-    add_compile_options(CMAKE_CXX_FLAGS "/arch:AVX2")
+    add_compile_options(/arch:AVX2)
 ELSE()
-    add_compile_options(CMAKE_CXX_FLAGS "-mavx2 -mfma")
+    add_compile_options(-mavx2 -mfma)
 ENDIF()
 
 INCLUDE(../GetPybind11.cmake)
