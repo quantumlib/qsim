@@ -15,27 +15,6 @@
 cmake_minimum_required(VERSION 3.31)
 project(qsim LANGUAGES CXX CUDA)
 
-if(WIN32)
-    set(CMAKE_CXX_FLAGS "/O2 /openmp")
-else()
-    set(CMAKE_CXX_FLAGS "-O3")
-endif()
-
-if(APPLE)
-    include_directories(
-      "/usr/local/include"
-      "/usr/local/opt/llvm/include"
-      "/opt/homebrew/include"
-      "/opt/homebrew/opt/llvm@19/include"
-    )
-    link_directories(
-      "/usr/local/lib"
-      "/usr/local/opt/llvm/lib"
-      "/opt/homebrew/lib"
-      "/opt/homebrew/opt/llvm@19/lib"
-    )
-endif()
-
 include(../GetPybind11.cmake)
 include(../GetCUDAARCHS.cmake)
 
