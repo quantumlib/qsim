@@ -63,7 +63,7 @@ find_package(OpenMP REQUIRED)
 cmake_host_system_information(RESULT HAVE_SSE2 QUERY HAS_SSE2)
 
 if(WIN32)
-    check_cxx_compiler_flag("/arch:AVX2" HAVE_AVX512)
+    check_cxx_compiler_flag("/arch:AVX2" HAVE_AVX2)
     check_cxx_compiler_flag("/arch:AVX512" HAVE_AVX512)
 else()
     check_cxx_compiler_flag("-mavx2" HAVE_AVX2)
