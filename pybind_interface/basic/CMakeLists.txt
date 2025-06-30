@@ -18,7 +18,7 @@ project(qsim)
 if(WIN32)
     set(CMAKE_CXX_FLAGS "/O2 /openmp")
 else()
-    set(CMAKE_CXX_FLAGS "-O3")
+    set(CMAKE_CXX_FLAGS "-O3 -flto=auto")
 endif()
 
 if(APPLE)
