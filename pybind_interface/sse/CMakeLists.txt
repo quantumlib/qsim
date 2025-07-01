@@ -15,7 +15,24 @@
 cmake_minimum_required(VERSION 3.31)
 project(qsim)
 
-if(NOT WIN32)
+if(WIN32)
+    # Visual Studio 17.11.5 added /arch:SSE4.2 in Oct. 2024. Try to use
+    # that if it's available.
+    check_cxx_compiler_flag("/arch:SSE4.2" WIN32_SSE4_AVAILABLE)
+    if(WIN32_SSE4_AVAILABLE)
+        add_compile_options(/arch:SSE4.2)
+    else()
+        # VS 2022 docs say that using /arch:SSE2 will make the auto-vectorizer
+        # emit 4.2 instructions when available. So, resort to this if we can.
+        check_cxx_compiler_flag("/arch:SSE2" WIN32_SSE2_AVAILABLE)
+        if(WIN32_SSE2_AVAILABLE)
+            add_compile_options(/arch:SSE2)
+        else()
+            # Some sources say that to get SSE4.1, you typically use /arch:AVX.
+            add_compile_options(/arch:AVX)
+        endif()
+    endif()
+else()
     add_compile_options(-msse4.1)
 endif()
 
