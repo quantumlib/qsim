@@ -17,14 +17,7 @@ project(qsim)
 
 IF (WIN32)
     add_compile_options(/arch:AVX512)
-ELSEIF(APPLE
-       AND NOT CMAKE_APPLE_SILICON_PROCESSOR
-       AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # Note: some sources recommend against using -mavx512f, and say to use
-    # -march=native. The doesn't work on Mac Intel systems, at least in MacOS
-    # 13 (and possibly higher); the compiler does not enable AVX512 features.
-    add_compile_options(-mavx512f -mbmi2)
-ELSE()
+ELSEIF(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     add_compile_options(-mavx512f -mbmi2)
 ENDIF()
 
