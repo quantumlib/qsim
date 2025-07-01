@@ -37,7 +37,7 @@ if [[ "$features" == *avx2* ]]; then
      filters+=",avx"
      configs+=( "--config=avx" )
 fi
-if [[ "$features" == *sse* ]]; then
+if [[ "$features" == *sse4* ]]; then
      filters+=",sse"
      configs+=( "--config=sse" )
 fi
