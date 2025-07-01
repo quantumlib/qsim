@@ -17,10 +17,12 @@ project(qsim LANGUAGES CXX)
 
 # This text is prepended to messages printed by this config file so it's
 # easier to figure out what came from where in the logs.
-set(MSG_PREFIX "[qsim cmake configuration]")
+set(MSG_PREFIX "[qsim cmake]")
 
 
 # ~~~~~ Analyze the host's hardware & software features ~~~~~
+
+find_package(OpenMP REQUIRED)
 
 include(CheckLanguage)
 include(CheckCXXCompilerFlag)
@@ -46,7 +48,7 @@ if(CMAKE_CUDA_COMPILER)
                    "${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
 else()
     message(STATUS "${MSG_PREFIX} did not find CUDA compiler")
-    # Did not find the CUDA framewwork, so check for the HIP as an alternative.
+    # Did not find the CUDA framewwork, so check for HIP as an alternative.
     execute_process(COMMAND which hipcc
                     OUTPUT_VARIABLE has_hipcc
                     OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -58,16 +60,57 @@ else()
     endif()
 endif()
 
-find_package(OpenMP REQUIRED)
+macro(check_cpu_supports FEATURE HW_FLAG)
+    set(HAVE_${FEATURE} FALSE)
 
-cmake_host_system_information(RESULT HAVE_SSE2 QUERY HAS_SSE2)
+    message(STATUS "${MSG_PREFIX} testing hardware for ${FEATURE} …")
+    if(WIN32)
+
+    elseif(LINUX)
+        execute_process(
+            COMMAND bash --noprofile -c "grep -q ${HW_FLAG} /proc/cpuinfo"
+            RESULT_VARIABLE _CHECK_HW_FLAG_EXIT_CODE
+        )
+        if(_CHECK_HW_FLAG_EXIT_CODE EQUAL 0)
+            set(HAVE_${FEATURE} TRUE)
+        endif()
+    elseif(APPLE AND NOT CMAKE_APPLE_SILICON_PROCESSOR)
+        execute_process(
+            COMMAND bash --noprofile -c "sysctl -n hw.optional.${HW_FLAG}"
+            RESULT_VARIABLE _CHECK_HW_FLAG_EXIT_CODE
+            OUTPUT_VARIABLE _CHECK_HW_FLAG_VALUE
+        )
+        if(_CHECK_HW_FLAG_EXIT_CODE EQUAL 0)
+            if(_CHECK_HW_FLAG_VALUE EQUAL "1")
+                set(HAVE_${FEATURE} TRUE)
+            endif()
+        endif()
+    endif()
+    message(STATUS "${MSG_PREFIX} testing hardware for ${FEATURE} … Done.")
+    message(STATUS "${MSG_PREFIX} HAVE_${FEATURE} = ${HAVE_${FEATURE}}")
+endmacro()
+
+set(HAVE_AVX2 FALSE)
+set(HAVE_AVX512 FALSE)
+set(HAVE_SSE4 FALSE)
 
 if(WIN32)
-    check_cxx_compiler_flag("/arch:AVX2" HAVE_AVX2)
-    check_cxx_compiler_flag("/arch:AVX512" HAVE_AVX512)
-else()
-    check_cxx_compiler_flag("-mavx2" HAVE_AVX2)
-    check_cxx_compiler_flag("-mavx512f" HAVE_AVX512)
+    check_cpu_supports(AVX2 "avx2")
+    if(HAVE_AVX2)
+        # There seems to be no direct way to test for SSE4 on Windows. We'd
+        # need to compile & run a test program. However, AVX2 implies SSE4.1
+        # support because it's a later instruction set built upon SSE4.1.
+        set(HAVE_SSE4 TRUE)
+    endif()
+    check_cpu_supports(AVX512 "avx512f")
+elseif(LINUX)
+    check_cpu_supports(AVX2 "avx2")
+    check_cpu_supports(AVX512 "avx512f")
+    check_cpu_supports(SSE4 "sse4")
+elseif(APPLE NOT CMAKE_APPLE_SILICON_PROCESSOR)
+    check_cpu_supports(AVX2 "avx2_0")
+    check_cpu_supports(AVX512 "avx512f")
+    check_cpu_supports(SSE4 "sse4_1")
 endif()
 
 
@@ -99,16 +142,16 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
         add_subdirectory(pybind_interface/hip)
     endif()
 
-    if(HAVE_SSE2)
-      add_subdirectory(pybind_interface/sse)
-    endif()
-
     if(HAVE_AVX2)
       add_subdirectory(pybind_interface/avx2)
     endif()
 
     if(HAVE_AVX512)
       add_subdirectory(pybind_interface/avx512)
+    endif()
+
+    if(HAVE_SSE4)
+      add_subdirectory(pybind_interface/sse)
     endif()
 endif()
 
@@ -129,10 +172,6 @@ endif()
 
 
 # ~~~~~ Print misc. info ~~~~~
-
-message(STATUS "${MSG_PREFIX} host has SSE2 = ${HAVE_SSE2}")
-message(STATUS "${MSG_PREFIX} host has AVX2 = ${HAVE_AVX2}")
-message(STATUS "${MSG_PREFIX} host has AVX512 = ${HAVE_AVX512}")
 
 message(STATUS "${MSG_PREFIX} shell $PATH = $ENV{PATH}")
 message(STATUS "${MSG_PREFIX} shell $CUQUANTUM_ROOT = $ENV{CUQUANTUM_ROOT}")
