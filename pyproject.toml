@@ -15,7 +15,7 @@
 [tool.cibuildwheel]
 test-extras = "dev"
 dependency-versions = "latest"
-# Due to package & module name conflict, temporarily move it away to run tests:
+# Due to package & module name conflict, temporarily move qsimcirq away.
 before-test = "mv {package}/qsimcirq /tmp"
 test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
 
@@ -27,3 +27,6 @@ repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = "*musllinux*"
+# Pillow version 11.3.0 causes failures during wheel testing on Linux.
+# TODO: remove after the Pillow install no longer fails.
+before-test = "pip install 'pillow<11.3' && mv {package}/qsimcirq /tmp"
