@@ -23,7 +23,7 @@ ELSEIF(APPLE
     # Note: some sources recommend against using -mavx512f, and say to use
     # -march=native. The doesn't work on Mac Intel systems, at least in MacOS
     # 13 (and possibly higher); the compiler does not enable AVX512 features.
-    add_compile_options(-mavx512f)
+    add_compile_options(-mavx512f -mbmi2)
 ELSE()
     add_compile_options(-mavx512f -mbmi2)
 ENDIF()
