@@ -69,7 +69,7 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - uses: bazel-contrib/setup-bazel@8d2cb86a3680a820c3e219597279ce3f80d17a47 # 0.15.0
+      - uses: bazel-contrib/setup-bazel@4fd964a13a440a8aeb0be47350db2fc640f19ca8 # 0.15.0
         with:
           disk-cache: ${{github.workflow}}
           bazelisk-cache: true
