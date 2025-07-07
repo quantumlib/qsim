@@ -57,4 +57,3 @@ pybind11_add_module(qsim_sse pybind_main_sse.cpp)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(qsim_sse PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
 endif()
-

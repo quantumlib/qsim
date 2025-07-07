@@ -76,12 +76,20 @@ elseif(APPLE AND NOT CMAKE_APPLE_SILICON_PROCESSOR)
     check_cpu_support("sse4_1" CPU_SUPPORTS_SSE4)
 endif()
 
+# Configure LTO for compilers that support it.
+include(CheckIPOSupported)
+check_ipo_supported(RESULT HAVE_LTO)
+
 # ~~~~~ Configure the build ~~~~~
 
 if(WIN32)
     add_compile_options(/O2)
 else()
     add_compile_options(-O3 -D_GLIBCXX_USE_CXX11_ABI=1)
+endif()
+
+if(HAVE_LTO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
 include(dev_tools/cmake/GetPybind11.cmake)
