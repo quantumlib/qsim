@@ -15,44 +15,84 @@
 cmake_minimum_required(VERSION 3.31)
 project(qsim LANGUAGES CXX)
 
-include(CheckLanguage)
-check_language(CUDA)
+# ~~~~~ Set project-wide policies ~~~~~
 
-# This text is prepended to messages printed by this config file so it's
-# easier to figure out what came from where in the logs.
-set(MSG_PREFIX "[qsim cmake configuration]")
+# The following settings mirror what is in our hand-written Makefiles.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Check we have Python libraries & header files necessary to build modules.
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+
+# ~~~~~ Analyze the host's hardware & software features ~~~~~
 
 # CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
 # it doesn't happen when running builds using cibuildwheel, even on Apple
-# Silicon. We have had better luck checking and seting it ourselves.
+# Silicon. It's more reliable to check and set it ourselves.
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin"
    AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     set(CMAKE_APPLE_SILICON_PROCESSOR TRUE)
-    message(STATUS "${MSG_PREFIX} detected Apple Silicon")
+    message(VERBOSE "Detected Apple Silicon")
 else()
     set(CMAKE_APPLE_SILICON_PROCESSOR FALSE)
-    message(STATUS "${MSG_PREFIX} did not detect Apple Silicon")
 endif()
 
+find_package(OpenMP COMPONENTS CXX NO_POLICY_SCOPE)
+if(NOT OpenMP_CXX_FOUND)
+    message(STATUS "(Without OpenMP, qsim cannot support thread parallelization)")
+endif()
+
+include(CheckLanguage)
+check_language(CUDA)
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
-    message(STATUS "${MSG_PREFIX} found CUDA compiler "
-                   "${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
 else()
-    message(STATUS "${MSG_PREFIX} did not find CUDA compiler")
-    # Did not find the CUDA framewwork, so check for the HIP as an alternative.
-    execute_process(COMMAND which hipcc
-                    OUTPUT_VARIABLE has_hipcc
-                    OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if(has_hipcc)
-        message(STATUS "${MSG_PREFIX} found hipcc")
-        project(qsim LANGUAGES CXX HIP)
+    # If CUDA is not available, check for HIP as an alternative.
+    message(STATUS "CUDA not available; looking for a HIP compiler")
+    find_program(_HIP_COMPILER hipcc)
+    if(_HIP_COMPILER)
+        enable_language(HIP)
+        message(STATUS "CUDA not available; looking for a HIP compiler - found")
     else()
-        message(STATUS "${MSG_PREFIX} did not find hipcc")
+        message(STATUS "CUDA not available; looking for a HIP compiler - not found")
+        message(STATUS "(Without CUDA or HIP, qsim cannot use GPUs for acceleration)")
     endif()
 endif()
 
-find_package(OpenMP REQUIRED)
+include(dev_tools/cmake/CheckCPU.cmake)
+# Note: CMake uses "WIN32" for Windows targets, including Win64.
+if(WIN32)
+    check_cpu_support("avx2" CPU_SUPPORTS_AVX2)
+    check_cpu_support("avx512f" CPU_SUPPORTS_AVX512)
+    check_cpu_support("sse4.1" CPU_SUPPORTS_SSE4)
+elseif(LINUX)
+    check_cpu_support("avx2" CPU_SUPPORTS_AVX2)
+    check_cpu_support("avx512f" CPU_SUPPORTS_AVX512)
+    check_cpu_support("sse4" CPU_SUPPORTS_SSE4)
+elseif(APPLE AND NOT CMAKE_APPLE_SILICON_PROCESSOR)
+    check_cpu_support("avx2_0" CPU_SUPPORTS_AVX2)
+    check_cpu_support("avx512f" CPU_SUPPORTS_AVX512)
+    check_cpu_support("sse4_1" CPU_SUPPORTS_SSE4)
+endif()
+
+# Configure LTO for compilers that support it.
+include(CheckIPOSupported)
+check_ipo_supported(RESULT HAVE_LTO)
+
+# ~~~~~ Configure the build ~~~~~
+
+if(WIN32)
+    add_compile_options(/O2)
+else()
+    add_compile_options(-O3 -D_GLIBCXX_USE_CXX11_ABI=1)
+endif()
+
+if(HAVE_LTO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
+
+include(dev_tools/cmake/GetPybind11.cmake)
 
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
@@ -65,20 +105,34 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
         if(DEFINED ENV{CUQUANTUM_ROOT})
             add_subdirectory(pybind_interface/custatevec)
         endif()
-    elseif(has_hipcc)
+    elseif(HAVE_HIPCC)
         add_subdirectory(pybind_interface/hip)
     endif()
 
-    add_subdirectory(pybind_interface/sse)
-    add_subdirectory(pybind_interface/avx512)
-    add_subdirectory(pybind_interface/avx2)
+    if(CPU_SUPPORTS_AVX2)
+      add_subdirectory(pybind_interface/avx2)
+    endif()
+
+    if(CPU_SUPPORTS_AVX512)
+      add_subdirectory(pybind_interface/avx512)
+    endif()
+
+    if(CPU_SUPPORTS_SSE4)
+      add_subdirectory(pybind_interface/sse)
+    endif()
 endif()
 
-# Additional miscellanous settings.
-# The following settings mirror what is in our hand-written Makefiles.
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# Print additional useful info.
-message(STATUS "${MSG_PREFIX} OpenMP found = ${OPENMP_FOUND}")
-message(STATUS "${MSG_PREFIX} shell $PATH = $ENV{PATH}")
+if(APPLE)
+    include_directories(
+      "/usr/local/include"
+      "/usr/local/opt/llvm/include"
+      "/opt/homebrew/include"
+      "/opt/homebrew/opt/llvm@19/include"
+    )
+    link_directories(
+      "/usr/local/lib"
+      "/usr/local/opt/llvm/lib"
+      "/opt/homebrew/lib"
+      "/opt/homebrew/opt/llvm@19/lib"
+    )
+endif()

@@ -12,31 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.31)
-project(qsim)
-
 IF (WIN32)
-    set(CMAKE_CXX_FLAGS "/arch:AVX512 /O2 /openmp")
-ELSE()
-    set(CMAKE_CXX_FLAGS "-mavx512f -mbmi2 -O3 -flto=auto")
+    add_compile_options(/arch:AVX512)
+ELSEIF(NOT CMAKE_APPLE_SILICON_PROCESSOR)
+    add_compile_options(-mavx512f -mbmi2)
 ENDIF()
 
-if(APPLE)
-    include_directories(
-      "/usr/local/include"
-      "/usr/local/opt/llvm/include"
-      "/opt/homebrew/include"
-      "/opt/homebrew/opt/llvm@19/include"
-    )
-    link_directories(
-      "/usr/local/lib"
-      "/usr/local/opt/llvm/lib"
-      "/opt/homebrew/lib"
-      "/opt/homebrew/opt/llvm@19/lib"
-    )
-endif()
-
-INCLUDE(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
 
-target_link_libraries(qsim_avx512 PUBLIC OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(qsim_avx512 PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
+endif()
+
