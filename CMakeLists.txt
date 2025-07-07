@@ -22,6 +22,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Check we have Python libraries & header files necessary to build modules.
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+
 # ~~~~~ Analyze the host's hardware & software features ~~~~~
 
 # CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
@@ -80,8 +83,6 @@ if(WIN32)
 else()
     add_compile_options(-O3 -D_GLIBCXX_USE_CXX11_ABI=1)
 endif()
-
-find_package(Python3 COMPONENTS Interpreter Development)
 
 include(dev_tools/cmake/GetPybind11.cmake)
 
