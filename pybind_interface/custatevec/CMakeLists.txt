@@ -12,14 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.31)
-project(qsim LANGUAGES CXX CUDA)
-
-INCLUDE(../GetPybind11.cmake)
-find_package(Python3 3.10 REQUIRED)
-
-include_directories(${pybind11_INCLUDE_DIRS})
-
 include_directories($ENV{CUQUANTUM_ROOT}/include)
 link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
 
@@ -32,4 +24,4 @@ set_target_properties(qsim_custatevec PROPERTIES
 )
 set_source_files_properties(pybind_main_custatevec.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_custatevec OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_custatevec PUBLIC pybind11::headers OpenMP::OpenMP_CXX)

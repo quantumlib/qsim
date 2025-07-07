@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.31)
-project(qsim)
-
 IF (WIN32)
     add_compile_options(/arch:AVX2)
 ELSEIF(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     add_compile_options(-mavx2 -mfma)
 ENDIF()
 
-INCLUDE(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx2 pybind_main_avx2.cpp)
 
-target_link_libraries(qsim_avx2 PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_avx2 PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
