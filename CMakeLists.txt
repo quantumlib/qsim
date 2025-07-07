@@ -22,9 +22,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# For deduplication of static libraries, pick the first occurrence.
-cmake_policy(SET CMP0179 NEW)
-
 # ~~~~~ Analyze the host's hardware & software features ~~~~~
 
 find_package(OpenMP REQUIRED COMPONENTS CXX NO_POLICY_SCOPE)
