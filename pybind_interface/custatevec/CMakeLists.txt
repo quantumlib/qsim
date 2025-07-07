@@ -24,4 +24,7 @@ set_target_properties(qsim_custatevec PROPERTIES
 )
 set_source_files_properties(pybind_main_custatevec.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_custatevec PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(qsim_custatevec PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
+endif()
+

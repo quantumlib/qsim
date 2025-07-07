@@ -18,4 +18,7 @@ endif()
 
 pybind11_add_module(qsim_basic pybind_main_basic.cpp)
 
-target_link_libraries(qsim_basic PUBLIC OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(qsim_basic PUBLIC OpenMP::OpenMP_CXX)
+endif()
+

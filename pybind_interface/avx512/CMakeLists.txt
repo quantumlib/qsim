@@ -20,4 +20,7 @@ ENDIF()
 
 pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
 
-target_link_libraries(qsim_avx512 PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(qsim_avx512 PUBLIC pybind11::headers OpenMP::OpenMP_CXX)
+endif()
+

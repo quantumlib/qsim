@@ -24,11 +24,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # ~~~~~ Analyze the host's hardware & software features ~~~~~
 
-find_package(OpenMP REQUIRED COMPONENTS CXX NO_POLICY_SCOPE)
-if(NOT OpenMP_CXX_FOUND)
-    message(FATAL_ERROR "OpenMP CXX support not found")
-endif()
-
 # CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
 # it doesn't happen when running builds using cibuildwheel, even on Apple
 # Silicon. It's more reliable to check and set it ourselves.
@@ -38,6 +33,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin"
     message(VERBOSE "Detected Apple Silicon")
 else()
     set(CMAKE_APPLE_SILICON_PROCESSOR FALSE)
+endif()
+
+find_package(OpenMP COMPONENTS CXX NO_POLICY_SCOPE)
+if(NOT OpenMP_CXX_FOUND)
+    message(STATUS "(Without OpenMP, qsim cannot support thread parallelization)")
 endif()
 
 include(CheckLanguage)
