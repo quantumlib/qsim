@@ -44,16 +44,16 @@ include(CheckLanguage)
 check_language(CUDA)
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
-    message(VERBOSE "Have ${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_COMPILER_VERSION}")
 else()
     # If CUDA is not available, check for HIP as an alternative.
-    message(VERBOSE "Did not find CUDA compiler; cannot support CUDA.")
+    message(STATUS "CUDA not available; looking for a HIP compiler")
     find_program(_HIP_COMPILER hipcc)
     if(_HIP_COMPILER)
         enable_language(HIP)
-        message(VERBOSE "Found hipcc. Enabling HIP support.")
+        message(STATUS "CUDA not available; looking for a HIP compiler - found")
     else()
-        message(VERBOSE "Did not find hipcc; cannot support HIP.")
+        message(STATUS "CUDA not available; looking for a HIP compiler - not found")
+        message(STATUS "(Without CUDA or HIP, qsim cannot use GPUs for acceleration)")
     endif()
 endif()
 
@@ -127,8 +127,3 @@ if(APPLE)
       "/opt/homebrew/opt/llvm@19/lib"
     )
 endif()
-
-# ~~~~~ Print info for debugging ~~~~~
-
-message(DEBUG "Shell $PATH = $ENV{PATH}")
-message(DEBUG "Shell $CUQUANTUM_ROOT = $ENV{CUQUANTUM_ROOT}")

@@ -18,7 +18,7 @@ include(CheckCXXSourceRuns)
 macro(check_cpu_support _FEATURE_STRING _FEATURE_FLAG)
     set(${_FEATURE_FLAG} FALSE)
 
-    message(STATUS "Testing platform support for ${_FEATURE_STRING} …")
+    message(STATUS "Testing platform support for ${_FEATURE_STRING}")
     if(WIN32)
         # On Windows, there's no built-in method to learn the CPU flags. Third-
         # party tools exist, but downloading & running them is a security risk.
@@ -66,8 +66,11 @@ macro(check_cpu_support _FEATURE_STRING _FEATURE_FLAG)
         endif()
     endif()
 
-    message(STATUS "Testing hardware for ${_FEATURE_STRING} … Done.")
-    message(STATUS "${_FEATURE_FLAG} = ${${_FEATURE_FLAG}}")
+    if(${_FEATURE_FLAG})
+        message(STATUS "Testing platform support for ${_FEATURE_STRING} - found")
+    else()
+        message(STATUS "Testing platform support for ${_FEATURE_STRING} - not found")
+    endif()
 endmacro()
 
 # Small Windows C++ program to test bits in certain Intel CPU registers.
