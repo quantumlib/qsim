@@ -57,4 +57,5 @@ jobs:
     uses: ./.github/workflows/reusable_build_wheels.yaml
     secrets: inherit
     with:
-      debug: ${{inputs.debug == true}}
+      # debug: ${{inputs.debug == true}}
+      debug: true
