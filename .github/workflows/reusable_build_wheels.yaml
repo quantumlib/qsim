@@ -37,13 +37,14 @@ on:
       upload:
         description: 'Upload wheels to GitHub'
         type: boolean
-        default: false
+        default: true
       debug:
         description: 'Run with debugging options'
         type: boolean
         default: true
 
-permissions: read-all
+permissions:
+  contents: write
 
 jobs:
   build-wheels:
@@ -60,6 +61,8 @@ jobs:
           {os: macos-15,     arch: arm64},
           {os: windows-2025, arch: AMD64},
         ]
+    permissions:
+      contents: write
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -80,7 +83,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
-          pip install cibuildwheel==2.23.3
+          pip install cibuildwheel==2.23.3 twine==6.1.0 check-wheel-contents==0.6.2
 
       - if: startsWith(matrix.conf.os, 'macos')
         name: Set CMake MACOSX_DEPLOYMENT_TARGET value on MacOS
@@ -88,19 +91,6 @@ jobs:
           set -x
           os=${{matrix.conf.os}}
           echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
-
-      - if: startsWith(matrix.conf.os, 'ubuntu')
-        name: Determine the number of threads to use (Linux)
-        run: echo "num_threads=$(( $(nproc) - 1 ))" >> "$GITHUB_ENV"
-
-      - if: startsWith(matrix.conf.os, 'macos')
-        name: Determine the number of threads to use (MacOS)
-        run: echo "num_threads=$(( $(sysctl -n hw.ncpu) - 1 ))" >> "$GITHUB_ENV"
-
-      - if: startsWith(matrix.conf.os, 'win')
-        name: Determine the number of threads to use (Windows)
-        shell: bash
-        run: echo "num_threads=$(( NUMBER_OF_PROCESSORS - 1 ))" >> "$GITHUB_ENV"
 
       - name: Build and test wheels
         env:
@@ -110,11 +100,19 @@ jobs:
           CIBW_BUILD_VERBOSITY: ${{inputs.debug && 1 || ''}}
           # Color codes make the raw logs hard to read. (CMake uses CLICOLOR.)
           CLICOLOR: ${{inputs.debug && 0 || ''}}
-          CMAKE_BUILD_PARALLEL_LEVEL: ${{env.num_threads}}
         run: |
           cibuildwheel --output-dir wheelhouse
 
-      - if: inputs.upload != false
+      - name: Run twine check
+        run: |
+          twine check --strict wheelhouse/*
+
+      - name: Check wheel contents
+        run: |
+          check-wheel-contents wheelhouse/*
+
+      # Only take the time to save the wheels if doing a release.
+      - if: inputs.upload == true
         name: Upload wheels to GitHub
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
