@@ -27,3 +27,8 @@ repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = "*musllinux*"
+
+[tool.check-wheel-contents]
+toplevel = "qsimcirq,qsimcirq.libs"
+# See https://github.com/jwodder/check-wheel-contents for a list of codes.
+ignore = "W010"

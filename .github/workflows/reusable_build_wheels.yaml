@@ -37,7 +37,7 @@ on:
       upload:
         description: 'Upload wheels to GitHub'
         type: boolean
-        default: false
+        default: true
       debug:
         description: 'Run with debugging options'
         type: boolean
@@ -82,7 +82,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
-          pip install cibuildwheel==2.23.3
+          pip install cibuildwheel==2.23.3 twine==6.1.0 check-wheel-contents==0.6.2
 
       - if: startsWith(matrix.conf.os, 'macos')
         name: Set CMake MACOSX_DEPLOYMENT_TARGET value on MacOS
@@ -102,8 +102,16 @@ jobs:
         run: |
           cibuildwheel --output-dir wheelhouse
 
+      - name: Run twine check
+        run: |
+          twine check --strict wheelhouse/*
+
+      - name: Check wheel contents
+        run: |
+          check-wheel-contents wheelhouse/*
+
       # Only take the time to save the wheels if doing a release.
-      - if: inputs.upload != false
+      - if: inputs.upload == true
         name: Upload wheels to GitHub
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
