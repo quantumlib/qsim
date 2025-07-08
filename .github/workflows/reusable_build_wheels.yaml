@@ -89,19 +89,6 @@ jobs:
           os=${{matrix.conf.os}}
           echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
 
-      - if: startsWith(matrix.conf.os, 'ubuntu')
-        name: Determine the number of threads to use (Linux)
-        run: echo "num_threads=$(( $(nproc) - 1 ))" >> "$GITHUB_ENV"
-
-      - if: startsWith(matrix.conf.os, 'macos')
-        name: Determine the number of threads to use (MacOS)
-        run: echo "num_threads=$(( $(sysctl -n hw.ncpu) - 1 ))" >> "$GITHUB_ENV"
-
-      - if: startsWith(matrix.conf.os, 'win')
-        name: Determine the number of threads to use (Windows)
-        shell: bash
-        run: echo "num_threads=$(( NUMBER_OF_PROCESSORS - 1 ))" >> "$GITHUB_ENV"
-
       - name: Build and test wheels
         env:
           # Note: additional cibuildwheel settings are in pyproject.toml.
@@ -110,7 +97,6 @@ jobs:
           CIBW_BUILD_VERBOSITY: ${{inputs.debug && 1 || ''}}
           # Color codes make the raw logs hard to read. (CMake uses CLICOLOR.)
           CLICOLOR: ${{inputs.debug && 0 || ''}}
-          CMAKE_BUILD_PARALLEL_LEVEL: ${{env.num_threads}}
         run: |
           cibuildwheel --output-dir wheelhouse
 
