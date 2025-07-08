@@ -60,6 +60,8 @@ jobs:
           {os: macos-15,     arch: arm64},
           {os: windows-2025, arch: AMD64},
         ]
+    permissions:
+      contents: write
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -100,6 +102,7 @@ jobs:
         run: |
           cibuildwheel --output-dir wheelhouse
 
+      # Only take the time to save the wheels if doing a release.
       - if: inputs.upload != false
         name: Upload wheels to GitHub
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
