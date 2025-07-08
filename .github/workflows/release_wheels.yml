@@ -42,6 +42,8 @@ jobs:
     name: Build wheels
     uses: ./.github/workflows/reusable_build_wheels.yaml
     secrets: inherit
+    permissions:
+      contents: write
     with:
       upload: true
       debug: ${{inputs.debug == true}}

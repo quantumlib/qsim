@@ -55,5 +55,7 @@ jobs:
     needs: find-changes
     uses: ./.github/workflows/reusable_build_wheels.yaml
     secrets: inherit
+    permissions:
+      contents: write
     with:
       debug: ${{inputs.debug == true}}
