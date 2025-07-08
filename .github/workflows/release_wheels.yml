@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Build & release Python wheels'
-run-name: 'Build Python wheels and release them on PyPI'
+name: 'Build & publish Python wheels'
+run-name: 'Build Python wheels and publish them on PyPI'
 
 on:
   release:
@@ -23,6 +23,10 @@ on:
     inputs:
       debug:
         description: 'Run with debugging options'
+        type: boolean
+        default: true
+      testpypi:
+        description: 'Release on TestPyPI'
         type: boolean
         default: true
 
@@ -42,11 +46,44 @@ jobs:
       upload: true
       debug: ${{inputs.debug == true}}
 
-  release-wheels:
-    name: Publish wheels
+  publish-to-testpypi:
+    if: inputs.testpypi == true
+    name: Publish wheels on TestPyPI
     needs: build-wheels
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      id-token: write
+    steps:
+    - name: Retrieve saved wheels
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        path: dist/
+        pattern: python-wheels-*
+        merge-multiple: true
+
+    - name: Publish wheels on TestPyPI
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        user: __token__
+        password: ${{secrets.TEST_PYPI_API_TOKEN}}
+        packages_dir: dist/
+        verbose: ${{inputs.debug == true}}
+        print-hash: true
+
+  publish-to-pypi:
+    # Only publish on main/master branch. (This explicit test is necessary
+    # because in GHAs, you can't use "branches:" filters on release events.)
+    if: >-
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      && inputs.testpypi != true
+    name: Publish wheels on PyPI
+    needs: build-wheels
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      id-token: write
     steps:
     - name: Retrieve saved wheels
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -61,5 +98,6 @@ jobs:
         user: __token__
         password: ${{secrets.PYPI_API_TOKEN}}
         packages_dir: dist/
-        skip_existing: true
-        verbose: true
+        skip-existing: true
+        verbose: ${{inputs.debug == true}}
+        print-hash: true
