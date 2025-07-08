@@ -28,6 +28,11 @@ on:
 
 permissions: read-all
 
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
 jobs:
   build-wheels:
     name: Build wheels
