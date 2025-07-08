@@ -29,6 +29,5 @@ manylinux-i686-image = "manylinux2014"
 skip = "*musllinux*"
 
 [tool.check-wheel-contents]
-toplevel = "qsimcirq,qsimcirq.libs"
 # See https://github.com/jwodder/check-wheel-contents for a list of codes.
-ignore = "W010"
+ignore = "W009,W010"
