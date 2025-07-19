@@ -13,7 +13,7 @@ repository page.
 
 <div align="center">
 <img width="75%" alt="Location of the report button on the repository page"
-    src="./report-vulnerability-button.png">
+    src="/.github/report-vulnerability-button.png">
 </div>
 
 Please report security issues in third-party modules to the person or team
