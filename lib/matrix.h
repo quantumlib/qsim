@@ -50,7 +50,7 @@ inline void MatrixClear(Matrix<fp_type>& m) {
  */
 template <typename fp_type>
 inline void MatrixIdentity(unsigned n, Matrix<fp_type>& m) {
-  m.resize(2 * n * n);
+  m.resize(2 * static_cast<typename Matrix<fp_type>::size_type>(n) * n);
 
   MatrixClear(m);
 
