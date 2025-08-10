@@ -8,6 +8,7 @@ services:
             target: qsim-base
 
     qsim-cxx-tests:
+        image: qsim-cxx-tests
         build:
             context: ./
             dockerfile: tests/Dockerfile
@@ -16,6 +17,7 @@ services:
           - qsim-base-image
 
     qsim-py-tests:
+        image: qsim-py-tests
         build:
             context: ./
             dockerfile: pybind_interface/Dockerfile
