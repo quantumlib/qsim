@@ -6,8 +6,6 @@ services:
         build:
             context: ./
             dockerfile: Dockerfile
-        outputs:
-        - type=docker
     qsim-cxx-tests:
         platform: linux/amd64
         image: qsim-cxx-tests
@@ -16,7 +14,7 @@ services:
             context: ./
             dockerfile: tests/Dockerfile
         depends_on:
-        - qsim
+          - qsim
     qsim-py-tests:
         platform: linux/amd64
         image: qsim-py-tests
@@ -25,4 +23,4 @@ services:
             context: ./
             dockerfile: pybind_interface/Dockerfile
         depends_on:
-        - qsim
+          - qsim
