@@ -65,14 +65,15 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
+
       - name: Build Docker images
         run: |
-          docker version
-          docker buildx version
-          # First, build the base image that the other images depend on.
           docker compose build qsim-base-image
-          # Now build the other images.
-          docker compose build
+          docker compose build qsim-cxx-tests-image qsim-py-tests-image
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
@@ -81,7 +82,7 @@ jobs:
         run: docker run --rm qsim-py-tests:latest
 
       - name: Run a sample simulation
-        run: docker run --rm qsim-base-image:latest -c /qsim/circuits/circuit_q24
+        run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
 
       - name: Test installation process
         run: |
