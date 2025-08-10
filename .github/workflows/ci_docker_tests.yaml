@@ -69,13 +69,16 @@ jobs:
         run: |
           docker version
           docker buildx version
-          docker buildx bake --load --progress=plain -f docker-compose.yml
+          # First, build the base image that the other images depend on.
+          docker compose build qsim-base-image
+          # Now build the other images.
+          docker compose build
 
       - name: Run C++ tests
-        run: docker run --rm qsim-cxx-tests:latest
+        run: docker run --rm qsim-cxx-tests
 
       - name: Run Python tests
-        run: docker run --rm qsim-py-tests:latest
+        run: docker run --rm qsim-py-tests
 
       - name: Run a sample simulation
         run: docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
@@ -83,4 +86,4 @@ jobs:
       - name: Test installation process
         run: |
           cd install/tests
-          docker buildx bake --load --progress=plain -f docker-compose.yml
+          docker compose build
