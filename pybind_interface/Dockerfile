@@ -1,5 +1,5 @@
 # Base OS
-FROM qsim
+FROM qsim-base as qsim-py-tests
 
 # Copy relevant files
 COPY ./pybind_interface/ /qsim/pybind_interface/

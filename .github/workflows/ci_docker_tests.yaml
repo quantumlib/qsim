@@ -69,7 +69,7 @@ jobs:
         run: |
           docker version
           docker buildx version
-          docker compose build --no-cache
+          docker compose build
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
