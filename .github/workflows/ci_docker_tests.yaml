@@ -69,7 +69,8 @@ jobs:
         run: |
           docker version
           docker buildx version
-          docker compose build
+          docker compose build qsim-base-image
+          docker compose build qsim-cxx-tests qsim-py-tests
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
