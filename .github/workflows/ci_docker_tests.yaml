@@ -66,7 +66,7 @@ jobs:
           submodules: recursive
 
       - name: Clear the Docker buildx cache
-        run: docker buildx --force --all --verbose prune
+        run: docker buildx prune --force --all --verbose
 
       - name: Build Docker images
         run: docker compose build
