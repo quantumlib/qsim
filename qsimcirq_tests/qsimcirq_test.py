@@ -1057,7 +1057,7 @@ class NoiseMixture(NoiseChannel):
         super().__init__(*args, **kwargs)
 
     def _mixture_(self):
-        return [(prob, cirq.unitary(op)) for prob, op, in self._prob_op_pairs]
+        return [(prob, op) for prob, op, in self._prob_op_pairs]
 
 
 @pytest.mark.parametrize(
