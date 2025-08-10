@@ -1,5 +1,5 @@
 # Base OS
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS qsim-base
 
 # Allow passing this variable in from the outside.
 ARG CUDA_PATH
