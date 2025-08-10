@@ -65,11 +65,11 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - name: Clear the Docker buildx cache
-        run: docker buildx prune --force --all --verbose
-
       - name: Build Docker images
-        run: docker compose build
+        run: |
+          docker version
+          docker buildx version
+          docker compose build --no-cache
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
