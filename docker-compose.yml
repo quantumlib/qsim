@@ -1,11 +1,13 @@
 services:
     qsim:
+        platform: linux/amd64
         image: qsim
         container_name: qsim
         build:
             context: ./
             dockerfile: Dockerfile
     qsim-cxx-tests:
+        platform: linux/amd64
         image: qsim-cxx-tests
         container_name: qsim-cxx-tests
         build:
@@ -14,6 +16,7 @@ services:
         depends_on:
         - qsim
     qsim-py-tests:
+        platform: linux/amd64
         image: qsim-py-tests
         container_name: qsim-py-tests
         build:
