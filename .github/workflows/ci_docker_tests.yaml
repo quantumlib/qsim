@@ -76,7 +76,7 @@ jobs:
           # On GitHub, buildx tries to build all 3 images in parallel even if
           # you set COMPOSE_PARALLEL_LIMIT or use --parallel 1. That fails b/c
           # the qsim-base image is not available to the other two build jobs.
-          docker compose --parallel 1 build
+          docker compose build qsim-base-image
           docker compose build qsim-cxx-tests-image qsim-py-tests-image
 
       - name: Run C++ tests
