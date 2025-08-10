@@ -1045,7 +1045,7 @@ class NoiseChannel(cirq.Gate):
         return [m for _, m in self._prob_op_pairs]
 
     def __str__(self):
-        return f"NoiseChannel({self._ops})"
+        return f"NoiseChannel({self._prob_op_pairs})"
 
     def __repr__(self):
         return str(self)
