@@ -65,11 +65,6 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
-        with:
-          driver: docker
-
       - name: Build Docker images
         run: |
           # Running locally, a plain "docker compose build" works as expected.
