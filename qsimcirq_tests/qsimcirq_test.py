@@ -2025,11 +2025,11 @@ def test_qsimcirq_identity_expectation_value():
     for w, pauli in objs:
         pauli = pauli[::-1]
         hamiltonian += float(w) * cirq.PauliString(
-            cirq.I(cirq.LineQubit(i))
-            if p == "I"
-            else cirq.Z(cirq.LineQubit(i))
-            if p == "Z"
-            else None
+            (
+                cirq.I(cirq.LineQubit(i))
+                if p == "I"
+                else cirq.Z(cirq.LineQubit(i)) if p == "Z" else None
+            )
             for i, p in enumerate(pauli)
         )
 
