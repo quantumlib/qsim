@@ -69,7 +69,7 @@ jobs:
         run: |
           docker version
           docker buildx version
-          docker compose build
+          docker buildx bake --load --progress=plain -f docker-compose.yml
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
@@ -83,4 +83,4 @@ jobs:
       - name: Test installation process
         run: |
           cd install/tests
-          docker compose build
+          docker buildx bake --load --progress=plain -f docker-compose.yml
