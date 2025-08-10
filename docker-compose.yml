@@ -1,11 +1,12 @@
 services:
-    qsim:
+    qsim-base:
         platform: linux/amd64
         image: qsim
         container_name: qsim
         build:
             context: ./
             dockerfile: Dockerfile
+
     qsim-cxx-tests:
         platform: linux/amd64
         image: qsim-cxx-tests
@@ -14,7 +15,8 @@ services:
             context: ./
             dockerfile: tests/Dockerfile
         depends_on:
-          - qsim
+          - qsim-base
+
     qsim-py-tests:
         platform: linux/amd64
         image: qsim-py-tests
@@ -23,4 +25,4 @@ services:
             context: ./
             dockerfile: pybind_interface/Dockerfile
         depends_on:
-          - qsim
+          - qsim-base
