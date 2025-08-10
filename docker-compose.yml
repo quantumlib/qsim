@@ -6,6 +6,8 @@ services:
         build:
             context: ./
             dockerfile: Dockerfile
+        outputs:
+        - type=docker
     qsim-cxx-tests:
         platform: linux/amd64
         image: qsim-cxx-tests
