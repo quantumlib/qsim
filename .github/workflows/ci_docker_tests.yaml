@@ -75,13 +75,13 @@ jobs:
           docker compose build
 
       - name: Run C++ tests
-        run: docker run --rm qsim-cxx-tests
+        run: docker run --rm qsim-cxx-tests:latest
 
       - name: Run Python tests
-        run: docker run --rm qsim-py-tests
+        run: docker run --rm qsim-py-tests:latest
 
       - name: Run a sample simulation
-        run: docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
+        run: docker run --rm qsim-base-image:latest -c /qsim/circuits/circuit_q24
 
       - name: Test installation process
         run: |
