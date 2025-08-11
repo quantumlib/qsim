@@ -1057,6 +1057,16 @@ class NoiseMixture(NoiseChannel):
         super().__init__(*args, **kwargs)
 
     def _mixture_(self):
+        # Cirq's mixture() function in mixture_protocol.py returns tuples of
+        # the form (probability, unitary peration). It does this by applying
+        # Cirq's unitary() function to the second elements of the tuples
+        # returned from here. Now, the values in self._prob_op_pairs will be
+        # tuples of the form (probability, NoiseStep). NoiseStep defines a
+        # _unitary_() method that simply returns the array as-is. Thus, when
+        # Cirq's mixture() function gets the value returned here and calls
+        # unitary() on those NoiseStep objects, the values unitary() returns
+        # will not actually be unitary. This is done knowingly. The nonunitary
+        # values are eventually normalized in test_multi_qubit_noise().
         return [(prob, op) for prob, op, in self._prob_op_pairs]
 
 
