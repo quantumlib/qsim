@@ -1058,7 +1058,7 @@ class NoiseMixture(NoiseChannel):
 
     def _mixture_(self):
         # Cirq's mixture() function in mixture_protocol.py returns tuples of
-        # the form (probability, unitary peration). It does this by applying
+        # the form (probability, unitary operation). It does this by applying
         # Cirq's unitary() function to the second elements of the tuples
         # returned from here. Now, the values in self._prob_op_pairs will be
         # tuples of the form (probability, NoiseStep). NoiseStep defines a
