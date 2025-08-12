@@ -1057,7 +1057,17 @@ class NoiseMixture(NoiseChannel):
         super().__init__(*args, **kwargs)
 
     def _mixture_(self):
-        return [(prob, cirq.unitary(op)) for prob, op, in self._prob_op_pairs]
+        # Cirq's mixture() function in mixture_protocol.py returns tuples of
+        # the form (probability, unitary operation). It does this by applying
+        # Cirq's unitary() function to the second elements of the tuples
+        # returned from here. Now, the values in self._prob_op_pairs will be
+        # tuples of the form (probability, NoiseStep). NoiseStep defines a
+        # _unitary_() method that simply returns the array as-is. Thus, when
+        # Cirq's mixture() function gets the value returned here and calls
+        # unitary() on those NoiseStep objects, the values unitary() returns
+        # will not actually be unitary. This is done knowingly. The nonunitary
+        # values are eventually normalized in test_multi_qubit_noise().
+        return [(prob, op) for prob, op, in self._prob_op_pairs]
 
 
 @pytest.mark.parametrize(
@@ -2025,11 +2035,11 @@ def test_qsimcirq_identity_expectation_value():
     for w, pauli in objs:
         pauli = pauli[::-1]
         hamiltonian += float(w) * cirq.PauliString(
-            cirq.I(cirq.LineQubit(i))
-            if p == "I"
-            else cirq.Z(cirq.LineQubit(i))
-            if p == "Z"
-            else None
+            (
+                cirq.I(cirq.LineQubit(i))
+                if p == "I"
+                else cirq.Z(cirq.LineQubit(i)) if p == "Z" else None
+            )
             for i, p in enumerate(pauli)
         )
 
