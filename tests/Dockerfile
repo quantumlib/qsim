@@ -1,5 +1,5 @@
 # Base OS
-FROM qsim
+FROM qsim-base AS qsim-cxx-tests
 
 # Copy relevant files
 COPY ./tests/ /qsim/tests/
