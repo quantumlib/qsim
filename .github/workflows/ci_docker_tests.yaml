@@ -66,7 +66,13 @@ jobs:
           submodules: recursive
 
       - name: Build Docker images
-        run: docker compose build
+        run: |
+          # Running locally, a plain "docker compose build" works as expected.
+          # On GitHub, buildx tries to build all 3 images in parallel even if
+          # you set COMPOSE_PARALLEL_LIMIT or use --parallel 1. That fails b/c
+          # the qsim-base image is not available to the other two build jobs.
+          docker compose build qsim-base-image
+          docker compose build qsim-cxx-tests-image qsim-py-tests-image
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
@@ -75,7 +81,7 @@ jobs:
         run: docker run --rm qsim-py-tests:latest
 
       - name: Run a sample simulation
-        run: docker run --rm qsim:latest -c /qsim/circuits/circuit_q24
+        run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
 
       - name: Test installation process
         run: |

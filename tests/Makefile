@@ -70,19 +70,19 @@ custatevec-tests: $(CUSTATEVEC_TARGETS)
 hip-tests: $(HIP_TARGETS)
 
 .PHONY: run-cxx-tests
-run-cxx-tests: cxx-tests
+run-cxx-tests: | $(GTEST_DIR)/build cxx-tests
 	for exe in $(CXX_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 .PHONY: run-cuda-tests
-run-cuda-tests: cuda-tests
+run-cuda-tests: | $(GTEST_DIR)/build cuda-tests
 	for exe in $(CUDA_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 .PHONY: run-custatevec-tests
-run-custatevec-tests: custatevec-tests
+run-custatevec-tests: | $(GTEST_DIR)/build custatevec-tests
 	for exe in $(CUSTATEVEC_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 .PHONY: run-hip-tests
-run-hip-tests: hip-tests
+run-hip-tests: | $(GTEST_DIR)/build hip-tests
 	for exe in $(HIP_TARGETS); do if ! ./$$exe; then exit 1; fi; done
 
 $(GTEST_DIR)/build:
