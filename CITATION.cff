@@ -1,0 +1,122 @@
+# Citation information for this repository.                         -*- yaml -*-
+#
+# CITATION.cff provide human- & machine-readable citation info for software and
+# datasets. GitHub, Zenodo, and the Zotero browser plugin all use CFF files
+# automatically. Tools exist to generate CITATION.cff files from other formats
+# such as BibTeX. For more info, visit https://citation-file-format.github.io/.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+cff-version: 1.2.0
+message: >-
+  Please cite your use of qsim using the reference metadata provided here.
+
+# If preferred-citation is present, GitHub uses its value for the "cite this
+# repository" button and ignores the rest of this file; conversely, the Zenodo-
+# GitHub integration ignores this field when archiving a new software release
+# and uses the metadata in the rest of this file.
+preferred-citation:
+  type: generic
+  authors:
+    - family-names: Isakov
+      given-names: Sergei V.
+      affiliation: Google
+    - family-names: Kafri
+      given-names: Dvir
+      affiliation: Google
+    - family-names: Martin
+      given-names: Orion
+      affiliation: Google
+    - family-names: Vollgraff Heidweiller
+      given-names: Catherine
+      affiliation: Google
+    - family-names: Mruczkiewicz
+      given-names: Wojciech
+      affiliation: Google
+    - family-names: Harrigan
+      given-names: Matthew P.
+      affiliation: Google
+    - family-names: Rubin
+      given-names: Nicholas C.
+      affiliation: Google
+    - family-names: Thomson
+      given-names: Ross
+      affiliation: Google
+    - family-names: Broughton
+      given-names: Michael B.
+      affiliation: Google
+    - family-names: Kissell
+      given-names: Kevin
+      affiliation: Google
+    - family-names: Peters
+      given-names: Evan
+      affiliation: Fermi National Accelerator Laboratory
+    - family-names: Gustafson
+      given-names: Erik
+      affiliation: Fermi National Accelerator Laboratory
+    - family-names: Li
+      given-names: Andy C. Y.
+      affiliation: Fermi National Accelerator Laboratory
+    - family-names: Lamm
+      given-names: Henry
+      affiliation: Fermi National Accelerator Laboratory
+    - family-names: Perdue
+      given-names: Gabriel
+      affiliation: Fermi National Accelerator Laboratory
+    - family-names: Ho
+      given-names: Alan K.
+      affiliation: Google
+    - family-names: Strain
+      given-names: Doug
+      affiliation: Google
+    - family-names: Boixo
+      given-names: Sergio
+      affiliation: Google
+  title: Simulations of Quantum Circuits with Approximate Noise using qsim and Cirq
+  year: 2021
+  date-published: 2021-11-03
+  doi: 10.48550/arXiv.2111.02396
+  url: https://arxiv.org/abs/2111.02396
+
+# The remaining metadata in this file describes the current software release.
+
+title: qsim
+authors:
+  - name: Quantum AI team and collaborators
+abstract: High-performance quantum circuit simulator for C++ and Python.
+date-released: 2025-06-24
+url: https://github.com/quantumlib/qsim
+repository-code: https://github.com/quantumlib/qsim
+license: Apache-2.0
+type: software
+identifiers:
+  - description: Publication about qsim
+    value: 10.48550/arXiv.2111.02396
+    type: doi
+  - description: GitHub repository for qsim
+    value: https://github.com/quantumlib/qsim
+    type: url
+keywords:
+  - algorithms
+  - API
+  - C++
+  - Cirq
+  - CUDA
+  - gate fusion
+  - GPU
+  - NISQ
+  - noise modeling
+  - Noisy Intermediate-Scale Quantum
+  - Python
+  - quantum
+  - quantum circuit
+  - quantum computing
+  - quantum information
+  - quantum programming
+  - quantum simulation
+  - quantum trajectories
+  - research
+  - Schrödinger equation
+  - science
+  - SDK
+  - simulation
+  - software
