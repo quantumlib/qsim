@@ -1007,15 +1007,15 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
     if (verbosity < 3) return;
 
     if (stat.num_controlled_gates > 0) {
-      IO::messagef("%lu controlled gates\n", stat.num_controlled_gates);
+      IO::messagef("%u controlled gates\n", stat.num_controlled_gates);
     }
 
     if (stat.num_mea_gates > 0) {
-      IO::messagef("%lu measurement gates", stat.num_mea_gates);
+      IO::messagef("%u measurement gates", stat.num_mea_gates);
       if (stat.num_fused_mea_gates == stat.num_mea_gates) {
         IO::messagef("\n");
       } else {
-        IO::messagef(" are fused into %lu gates\n", stat.num_fused_mea_gates);
+        IO::messagef(" are fused into %u gates\n", stat.num_fused_mea_gates);
       }
     }
 
@@ -1031,7 +1031,7 @@ class MultiQubitGateFuser final : public Fuser<IO, Gate> {
       }
     }
 
-    IO::messagef(" gates are fused into %lu gates\n", stat.num_fused_gates);
+    IO::messagef(" gates are fused into %u gates\n", stat.num_fused_gates);
 
     if (verbosity < 5) return;
 
