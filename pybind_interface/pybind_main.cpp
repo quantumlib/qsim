@@ -370,7 +370,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     circuit = getCircuit(options);
     bitstrings = getBitstrings(options, circuit.num_qubits);
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -414,7 +414,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -439,7 +439,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     num_qubits = ncircuit.num_qubits;
     bitstrings = getBitstrings(options, num_qubits);
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -478,7 +478,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -687,7 +687,7 @@ class SimulatorHelper {
       }
     } catch (const std::invalid_argument &exp) {
       // If this triggers, is_valid is false.
-      IO::errorf(exp.what());
+      IO::errorf("%s", exp.what());
     }
   }
 
@@ -976,7 +976,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   try {
     circuit = getCircuit(options);
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -1008,7 +1008,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
     param.verbosity = parseOptions<unsigned>(options, "v\0");
     param.seed = parseOptions<unsigned>(options, "s\0");
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -1042,7 +1042,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   try {
     ncircuit = getNoisyCircuit(options);
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -1077,7 +1077,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
     seed = parseOptions<unsigned>(options, "s\0");
     param.collect_mea_stat = true;
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
@@ -1152,7 +1152,7 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
     param.max_fused_size = parseOptions<unsigned>(options, "f\0");
     param.verbosity = parseOptions<unsigned>(options, "v\0");
   } catch (const std::invalid_argument &exp) {
-    IO::errorf(exp.what());
+    IO::errorf("%s", exp.what());
     return {};
   }
 
