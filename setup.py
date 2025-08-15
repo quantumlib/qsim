@@ -14,6 +14,7 @@
 
 import os
 import re
+import runpy
 import sys
 import shutil
 import platform
@@ -131,8 +132,9 @@ description = "Schrödinger and Schrödinger-Feynman simulators for quantum circ
 # README file as long_description.
 long_description = open("README.md", encoding="utf-8").read()
 
-__version__ = ""
-exec(open("qsimcirq/_version.py").read())
+__version__ = runpy.run_path("qsimcirq/_version.py")["__version__"]
+if not __version__:
+    raise ValueError("Version string cannot be empty")
 
 setup(
     name="qsimcirq",
