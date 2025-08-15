@@ -350,7 +350,7 @@ class StateSpaceAVX512 :
           double re = p[32 * k + j];
           double im = p[32 * k + 16 + j];
           csum += re * re + im * im;
-          while (rs[m] < csum && m < num_samples) {
+          while (m < num_samples && rs[m] < csum) {
             bitstrings.emplace_back(16 * k + j);
             ++m;
           }

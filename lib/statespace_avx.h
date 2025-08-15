@@ -399,7 +399,7 @@ class StateSpaceAVX :
           double re = p[16 * k + j];
           double im = p[16 * k + 8 + j];
           csum += re * re + im * im;
-          while (rs[m] < csum && m < num_samples) {
+          while (m < num_samples && rs[m] < csum) {
             bitstrings.emplace_back(8 * k + j);
             ++m;
           }
