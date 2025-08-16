@@ -1,0 +1,11 @@
+# This file is read by the license-checker.yaml GitHub Actions workflow file to
+# construct a list of -ignore=PATTERN arguments be passed to the program
+# `addlicense` (https://github.com/google/addlicense). The pattern syntax is
+# that of `doublestar` (https://github.com/bmatcuk/doublestar#patterns).
+# Patterns must be written one per line. Paths start from the repository root.
+# Blank lines and comment lines in this file are ignored.
+
+.github/ISSUE_TEMPLATE/**
+tests/googletest/**
+third_party/BUILD
+third_party/cuquantum/BUILD
