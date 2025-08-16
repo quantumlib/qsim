@@ -1,3 +1,17 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Setup cuQuantum as external dependency"""
 _CUQUANTUM_ROOT = "CUQUANTUM_ROOT"
 
@@ -175,7 +189,7 @@ def _symlink_genrule_for_dir(
         src_files = files.splitlines()
     command = []
     outs = []
-    
+
     for i in range(len(dest_files)):
         if dest_files[i] != "":
             # If we have only one file to link we do not want to use the dest_dir, as
@@ -234,7 +248,7 @@ def _cuquantum_pip_impl(repository_ctx):
         "%{CUQUANTUM_HEADER_GENRULE}": cuquantum_header_rule,
         "%{CUSTATEVEC_SHARED_LIBRARY_GENRULE}": custatevec_shared_library_rule,
     })
-        
+
 
 cuquantum_configure = repository_rule(
     implementation = _cuquantum_pip_impl,
