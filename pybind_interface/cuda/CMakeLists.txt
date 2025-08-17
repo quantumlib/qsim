@@ -12,40 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.31)
-project(qsim LANGUAGES CXX CUDA)
-
-if(WIN32)
-    set(CMAKE_CXX_FLAGS "/O2 /openmp")
+if(CMAKE_CUDA_ARCHITECTURES)
+    # CMake 3.18+ sets this variable from $CUDAARCHS automatically.
+    message(STATUS "using CUDA architectures ${CMAKE_CUDA_ARCHITECTURES}")
 else()
-    set(CMAKE_CXX_FLAGS "-O3 -flto=auto")
-endif()
-
-if(APPLE)
-    include_directories(
-      "/usr/local/include"
-      "/usr/local/opt/llvm/include"
-      "/opt/homebrew/include"
-      "/opt/homebrew/opt/llvm@19/include"
-    )
-    link_directories(
-      "/usr/local/lib"
-      "/usr/local/opt/llvm/lib"
-      "/opt/homebrew/lib"
-      "/opt/homebrew/opt/llvm@19/lib"
-    )
-endif()
-
-include(../GetPybind11.cmake)
-include(../GetCUDAARCHS.cmake)
-
-find_package(Python 3.10 REQUIRED)
-
-include_directories(${PYTHON_INCLUDE_DIRS})
-if(pybind11_FOUND)
-    include_directories(${pybind11_INCLUDE_DIRS})
-else()  # means pybind11 has been fetched in GetPybind11.cmake
-    include_directories(${pybind11_SOURCE_DIR}/include)
+    message(STATUS "using 'native' for the CUDA architecture value")
+    set(CMAKE_CUDA_ARCHITECTURES native)
 endif()
 
 add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
@@ -56,4 +28,7 @@ set_target_properties(qsim_cuda PROPERTIES
 )
 set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_cuda OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(qsim_cuda PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
