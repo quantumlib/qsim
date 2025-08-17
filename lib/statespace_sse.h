@@ -359,7 +359,7 @@ class StateSpaceSSE :
           double re = p[8 * k + j];
           double im = p[8 * k + 4 + j];
           csum += re * re + im * im;
-          while (rs[m] < csum && m < num_samples) {
+          while (m < num_samples && rs[m] < csum) {
             bitstrings.emplace_back(4 * k + j);
             ++m;
           }
