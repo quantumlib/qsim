@@ -5,33 +5,75 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to fill out this bug report!
+        Thank you for making the effort to open an issue report. Before
+        continuing, it's worth [searching through the existing issues in this
+        repository](https://github.com/quantumlib/qsim/issues?q=is%3Aissue) in
+        case the same issue has already been asked and possibly answered.
 
   - type: textarea
     attributes:
       label: Describe the issue
       description: >-
-        Please explain clearly and in detail what the issue is. What led up
-        to it, or how did you encounter it?
+        Please explain clearly and in detail what the issue is. How did you
+        encounter it? What were you trying to do?
     validations:
       required: true
 
   - type: input
     attributes:
-      label: What version of qsim are you using?
+      label: Tell us the version of qsim or qsimcirq you are using
+      description: >-
+        If the problem involves a qsim/qsimcirq error or behavior, it is vital
+        that we know the version installed in your computing environment. This
+        can be determined in more than one way.
+
+        **In a terminal:**
+
+        If you are using the Python package (`qsimcirq`) and are running within
+        a terminal emulator, then typing the following command in the shell will
+        print the version number:
+
+        ```shell
+        python3 -c 'import qsimcirq; print(qsimcirq.__version__)'
+        ```
+
+        **In a Colab or Jupyter notebook:**
+
+        If you are using the `qsimcirq` package in a Google Colab or Jupyter
+        notebook, then running the following command will print the version
+        number:
+
+        ```python
+        import qsimcirq; print(qsimcirq.__version__)
+        ```
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Tell us about the computing environment you are using
+      description: >-
+        To investigate the cause of the problem, we will also need to know the
+        computing environment you are using. Please tell us if you are using
+        Linux, macOS, Windows, Google Colab, or something else. If it is a
+        Linux/Mac/Windows environment, please also tell us its version.
     validations:
       required: false
 
   - type: textarea
     attributes:
-      label: How can the issue be reproduced?
+      label: Tell us how the issue can be reproduced
       description: >-
-        Explain in a step-by-step fashion what someone else would need to
+        Explain in a step-by-step fashion what someone else will need to
         do in order to reproduce the issue. If possible, include literal
         examples of commands or code using [Markdown fenced code
         blocks](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks).
         For long output, paste the text into [collapsed
         sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
         or attach text files.
+      placeholder: |
+        1. …
+        2. …
+        3. …
     validations:
       required: false
