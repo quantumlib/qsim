@@ -45,12 +45,14 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
   build-and-test:
     # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    if: >-
+      ${{needs.find-changes.outputs.code == 'true'
+         || github.event_name == 'workflow_dispatch'}}
     name: Build and test Docker images
     needs: find-changes
     runs-on: ubuntu-24.04
