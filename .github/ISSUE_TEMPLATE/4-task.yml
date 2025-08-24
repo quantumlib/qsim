@@ -33,7 +33,7 @@ body:
         Please choose from among the following options. If the lack of this
         feature is blocking important work, please choose from among P0–P2.
       options:
-        - P0 – needed no later than two weeks
+        - P0 – needed within two weeks
         - P1 – needed by the next release
         - P2 – needed within two quarters
         - P3 – not blocked; it's an idea
