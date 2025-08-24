@@ -45,12 +45,14 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
   build-wheels:
     # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    if: >-
+      ${{needs.find-changes.outputs.code == 'true'
+         || github.event_name == 'workflow_dispatch'}}
     name: ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
     needs: find-changes
     runs-on: ${{matrix.conf.os}}
@@ -121,7 +123,7 @@ jobs:
       - if: matrix.conf.os != 'windows-2025'
         name: Run the build and test script (non-Windows case)
         env:
-          # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
+      # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
           SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         run: dev_tools/test_libs.sh ${{env.use-verbose && '--config=verbose'}}
 

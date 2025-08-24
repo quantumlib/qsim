@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: TCMalloc test'
+name: 'CI: run TCMalloc test'
 run-name: Test with TCMalloc (thread-caching malloc)
 
 on:
@@ -45,12 +45,14 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
   tcmalloc-test:
     # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    if: >-
+      ${{needs.find-changes.outputs.code == 'true'
+         || github.event_name == 'workflow_dispatch'}}
     name: Test with TCMalloc
     needs: find-changes
     runs-on: ubuntu-24.04
