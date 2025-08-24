@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: hardware options tests'
+name: 'CI: test with different hardware options'
 run-name: Test with instruction set extensions and parallelism
 
 on:
@@ -45,12 +45,14 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
   test-options:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
+    # For efficiency, skip this workflow if there were no Python file changes.
+    if: >-
+      ${{needs.find-changes.outputs.python == 'true'
+         || github.event_name == 'workflow_dispatch'}}
     name: Test ${{matrix.hardware_opt}} + ${{matrix.parallel_opt}}
     needs: find-changes
     runs-on: ubuntu-24.04
