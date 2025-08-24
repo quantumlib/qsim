@@ -4,18 +4,25 @@ type: Task
 body:
   - type: markdown
     attributes:
-      value: |
-        Thank you for taking the time to fill out this feature request form!
+      value: >-
+        Thank you for your interest in qsim! Before continuing, it's worth
+        [searching through the existing issues in this
+        repository](https://github.com/quantumlib/qsim/issues?q=is%3Aissue) in
+        case the same or similar task already exists.
 
   - type: textarea
     attributes:
       label: What is the task?
+      placeholder: >-
+        Describe the task here
     validations:
       required: true
 
   - type: textarea
     attributes:
       label: (Optional) Do you have ideas or preferences for the approach?
+      placeholder: >-
+        Describe a suggested or preferred approach here
     validations:
       required: false
 
@@ -26,7 +33,7 @@ body:
         Please choose from among the following options. If the lack of this
         feature is blocking important work, please choose from among P0–P2.
       options:
-        - P0 – needed no later than a week
+        - P0 – needed no later than two weeks
         - P1 – needed by the next release
         - P2 – needed within two quarters
         - P3 – not blocked; it's an idea
