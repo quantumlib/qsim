@@ -49,9 +49,9 @@ jobs:
     secrets: inherit
 
   sanitizer-tests:
-    # For efficiency, skip this workflow if there were no Python file changes.
+    # For efficiency, skip this workflow if there were no code file changes.
     if: >-
-      ${{needs.find-changes.outputs.python == 'true'
+      ${{needs.find-changes.outputs.code == 'true'
          || github.event_name == 'workflow_dispatch'}}
     name: Test with sanitizers
     needs: find-changes
