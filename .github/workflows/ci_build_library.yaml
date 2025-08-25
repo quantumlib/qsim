@@ -86,6 +86,12 @@ jobs:
     env:
       use-verbose: ${{inputs.debug}}
     steps:
+      - if: >-
+          ${{needs.find-changes.outputs.code == 'false'
+            && github.event_name != 'workflow_dispatch'}}
+        name: Exit early if there were no changes to code files
+        run: exit 0
+
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
