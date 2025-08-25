@@ -803,7 +803,7 @@ class SimulatorHelper {
     state_space.InternalToNormalOrder(state);
     uint64_t fsv_size = 2 * (uint64_t{1} << num_qubits);
 
-    return Releaser<state.requires_copy_to_host()>::release(
+    return Releaser<State::requires_copy_to_host()>::release(
         state_space, state, fsv_size);
   }
 
