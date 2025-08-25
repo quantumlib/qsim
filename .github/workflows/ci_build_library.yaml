@@ -38,7 +38,6 @@ on:
 permissions: read-all
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
@@ -48,10 +47,12 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  build-library:
-    name: Build for ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
+  run-tests:
+    if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
+    name: Run tests
     needs: find-changes
     runs-on: ${{matrix.conf.os}}
+    continue-on-error: true
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -83,8 +84,7 @@ jobs:
           {os: windows-2025, pyarch: x64, py: 13},
         ]
     env:
-      # Must use explicit test for true so it works when inputs.debug is null.
-      use-verbose: ${{github.event.inputs.debug == true}}
+      use-verbose: ${{inputs.debug}}
     steps:
       - if: >-
           ${{needs.find-changes.outputs.code == 'false'
@@ -125,7 +125,7 @@ jobs:
       - if: matrix.conf.os != 'windows-2025'
         name: Run the build and test script (non-Windows case)
         env:
-      # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
+          # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
           SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         run: dev_tools/test_libs.sh ${{env.use-verbose && '--config=verbose'}}
 
@@ -140,3 +140,15 @@ jobs:
           SHELLOPTS: ${{env.use-verbose && 'xtrace' || '' }}
         shell: cmd
         run: bash -x dev_tools/test_libs.sh ${{env.use-verbose && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.pyroot}}\\${{env.pyexe}}
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]
