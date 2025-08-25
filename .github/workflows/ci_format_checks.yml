@@ -49,7 +49,7 @@ jobs:
     secrets: inherit
 
   check-format:
-    name: Python format check
+    name: Check Python code format
     needs: find-changes
     runs-on: ubuntu-24.04
     timeout-minutes: 30
