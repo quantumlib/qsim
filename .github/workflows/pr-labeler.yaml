@@ -19,7 +19,7 @@
 # getting applied, check the run summary page for errors.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-name: Pull request labeler
+name: Label pull requests
 run-name: >-
   Label pull request ${{github.event.pull_request.number}} by ${{github.actor}}
 

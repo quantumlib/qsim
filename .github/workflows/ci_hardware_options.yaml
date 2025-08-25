@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: hardware options tests'
+name: 'CI: test hardware options'
 run-name: Test with instruction set extensions and parallelism
 
 on:
@@ -38,22 +38,21 @@ on:
 permissions: read-all
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  test-options:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
-    name: Test ${{matrix.hardware_opt}} + ${{matrix.parallel_opt}}
+  run-tests:
+    if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
+    name: Run tests
     needs: find-changes
     runs-on: ubuntu-24.04
+    continue-on-error: true
     timeout-minutes: 30
     strategy:
       matrix:
@@ -62,9 +61,14 @@ jobs:
         # Optimizers for parallelism.
         parallel_opt: [openmp, nopenmp]
     env:
-      # Must use explicit test for true so it works when inputs.debug is null.
-      use-verbose: ${{github.event.inputs.debug == true}}
+      use-verbose: ${{inputs.debug}}
     steps:
+      - if: >-
+          ${{needs.find-changes.outputs.code == 'false'
+            && github.event_name != 'workflow_dispatch'}}
+        name: Exit early if there were no changes to code files
+        run: exit 0
+
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -108,3 +112,15 @@ jobs:
               --config=${{matrix.parallel_opt}} \
               ${{env.use-verbose && '--config=verbose'}} \
               apps:qsim_base -- -c circuits/circuit_q24
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]

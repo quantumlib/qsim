@@ -31,7 +31,7 @@ permissions: read-all
 jobs:
   build-wheels:
     name: Build and save wheels
-    uses: ./.github/workflows/reusable_build_wheels.yaml
+    uses: ./.github/workflows/_build_wheels.yaml
     secrets: inherit
     with:
       upload: true
