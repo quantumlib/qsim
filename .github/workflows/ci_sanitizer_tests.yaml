@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: sanitizer tests'
+name: 'CI: run sanitizer tests'
 run-name: Test with address and memory sanitizers
 
 on:
@@ -45,12 +45,10 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
   sanitizer-tests:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
     name: Test with sanitizers
     needs: find-changes
     runs-on: ubuntu-24.04
@@ -63,6 +61,12 @@ jobs:
       # Must use explicit test for true so it works when inputs.debug is null.
       use-verbose: ${{github.event.inputs.debug == true}}
     steps:
+      - if: >-
+          ${{needs.find-changes.outputs.code == 'false'
+            && github.event_name != 'workflow_dispatch'}}
+        name: Exit early if there were no changes to code files
+        run: exit 0
+
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:

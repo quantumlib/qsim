@@ -45,15 +45,29 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  build-wheels:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
-    name: Build & test wheels
+  build-wheels-skip:
+    if: >-
+      ${{needs.find-changes.outputs.code == 'false'
+        && github.event_name != 'workflow_dispatch'}}
+    # Important: the name must be the same as that of the build-wheels job.
+    name: Build & verify wheels
     needs: find-changes
-    uses: ./.github/workflows/reusable_build_wheels.yaml
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Exit with success if there were no changes to code files
+        run: exit 0
+
+  build-wheels:
+    if: >-
+      ${{needs.find-changes.outputs.code == 'true'
+         || github.event_name == 'workflow_dispatch'}}
+    name: Build & verify wheels
+    needs: find-changes
+    uses: ./.github/workflows/_build_wheels.yaml
     secrets: inherit
     with:
       debug: ${{inputs.debug == true}}

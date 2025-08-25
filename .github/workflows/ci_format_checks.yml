@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: lint & format checks'
+name: 'CI: check code format'
 run-name: Test with linters and formatters
 
 on:
@@ -45,17 +45,24 @@ concurrency:
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
   check-format:
-    # For efficiency, skip this workflow if there were no Python file changes.
-    if: needs.find-changes.outputs.python || github.event_name == 'workflow_dispatch'
-    name: Python format check
+    name: Check Python code format
     needs: find-changes
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
+      SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
     steps:
+      - if: >-
+          ${{needs.find-changes.outputs.python == 'false'
+            && github.event_name != 'workflow_dispatch'}}
+        name: Exit early if there were no changes to code files
+        run: exit 0
+
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -77,7 +84,4 @@ jobs:
           pip install -r dev-requirements.txt
 
       - name: Check Python file format
-        env:
-          # SHELLOPTS is used by Bash. Add xtrace when doing manual debug runs.
-          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         run: check/format-incremental
