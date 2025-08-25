@@ -48,8 +48,8 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  build-wheels:
-    name: ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
+  build-library:
+    name: Build for ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
     needs: find-changes
     runs-on: ${{matrix.conf.os}}
     timeout-minutes: 30
