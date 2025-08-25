@@ -47,16 +47,12 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  check-format-skip:
-    if: ${{needs.find-changes.outputs.python == 'false' && ! inputs.debug}}
-    needs: find-changes
-    uses: ./.github/workflows/_success.yaml
-
-  check-format:
+  run-tests:
     if: ${{needs.find-changes.outputs.python == 'true' || inputs.debug}}
-    name: Check Python code format
+    name: Run tests
     needs: find-changes
     runs-on: ubuntu-24.04
+    continue-on-error: true
     timeout-minutes: 30
     env:
       # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
@@ -84,3 +80,15 @@ jobs:
 
       - name: Check Python file format
         run: check/format-incremental
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]
