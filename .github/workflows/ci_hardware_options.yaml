@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: test with different hardware options'
+name: 'CI: test hardware options'
 run-name: Test with instruction set extensions and parallelism
 
 on:

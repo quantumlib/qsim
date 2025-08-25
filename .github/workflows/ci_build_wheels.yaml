@@ -53,7 +53,7 @@ jobs:
       ${{needs.find-changes.outputs.code == 'false'
         && github.event_name != 'workflow_dispatch'}}
     # Important: the name must be the same as that of the build-wheels job.
-    name: Build & test wheels
+    name: Build & verify wheels
     needs: find-changes
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -65,7 +65,7 @@ jobs:
     if: >-
       ${{needs.find-changes.outputs.code == 'true'
          || github.event_name == 'workflow_dispatch'}}
-    name: Build & test wheels
+    name: Build & verify wheels
     needs: find-changes
     uses: ./.github/workflows/_build_wheels.yaml
     secrets: inherit
