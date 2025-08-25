@@ -51,8 +51,6 @@ jobs:
     if: ${{needs.find-changes.outputs.python == 'false' && ! inputs.debug}}
     needs: find-changes
     uses: ./.github/workflows/_success.yaml
-    # Important: the name must be identical to that of the non-skip job below.
-    name: Check Python code format
 
   check-format:
     if: ${{needs.find-changes.outputs.python == 'true' || inputs.debug}}
