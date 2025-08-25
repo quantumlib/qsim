@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: sanitizer tests'
+name: 'CI: run sanitizer tests'
 run-name: Test with address and memory sanitizers
 
 on:
@@ -38,30 +38,28 @@ on:
 permissions: read-all
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
 jobs:
   find-changes:
     name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
+    uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  sanitizer-tests:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
-    name: Test with sanitizers
+  run-tests:
+    if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
+    name: Run tests
     needs: find-changes
     runs-on: ubuntu-24.04
+    continue-on-error: true
     timeout-minutes: 30
     strategy:
       matrix:
         # Memory and address sanitizers.
         sanitizer_opt: [msan, asan]
     env:
-      # Must use explicit test for true so it works when inputs.debug is null.
-      use-verbose: ${{github.event.inputs.debug == true}}
+      use-verbose: ${{inputs.debug}}
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -99,3 +97,15 @@ jobs:
               --config=${{matrix.sanitizer_opt}} \
               ${{env.use-verbose && '--config=verbose'}} \
               tests:all
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]
