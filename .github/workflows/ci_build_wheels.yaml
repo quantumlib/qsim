@@ -47,18 +47,23 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  build-wheels-skip:
-    if: ${{needs.find-changes.outputs.code == 'false' && ! inputs.debug}}
-    needs: find-changes
-    uses: ./.github/workflows/_success.yaml
-    # Important: the name must be identical to that of the non-skip job below.
-    name: Build & verify wheels
-
-  build-wheels:
+  run-tests:
     if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
-    name: Build & verify wheels
+    name: Run tests
     needs: find-changes
     uses: ./.github/workflows/_build_wheels.yaml
     secrets: inherit
     with:
       debug: ${{inputs.debug == true}}
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]

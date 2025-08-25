@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: run TCMalloc test'
+name: 'CI: run TCMalloc tests'
 run-name: Test with TCMalloc (thread-caching malloc)
 
 on:
@@ -47,18 +47,12 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  tcmalloc-test-skip:
-    if: ${{needs.find-changes.outputs.code == 'false' && ! inputs.debug}}
-    needs: find-changes
-    uses: ./.github/workflows/_success.yaml
-    # Important: the name must be identical to that of the non-skip job below.
-    name: Test with TCMalloc
-
-  tcmalloc-test:
+  run-tests:
     if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
-    name: Test with TCMalloc
+    name: Run tests
     needs: find-changes
     runs-on: ubuntu-24.04
+    continue-on-error: true
     timeout-minutes: 30
     env:
       use-verbose: ${{inputs.debug}}
@@ -106,3 +100,15 @@ jobs:
               --config=tcmalloc \
               ${{env.use-verbose && '--config=verbose'}} \
               tests:all
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]

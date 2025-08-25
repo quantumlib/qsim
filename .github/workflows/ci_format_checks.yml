@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: check code format'
-run-name: Test with linters and formatters
+name: 'CI: run code format tests'
+run-name: Check source code with linters and formatters
 
 on:
   push:
