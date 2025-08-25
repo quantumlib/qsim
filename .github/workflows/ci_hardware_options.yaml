@@ -38,7 +38,6 @@ on:
 permissions: read-all
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
@@ -48,10 +47,12 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  test-options:
-    name: Test ${{matrix.hardware_opt}} + ${{matrix.parallel_opt}}
+  run-tests:
+    if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
+    name: Run tests
     needs: find-changes
     runs-on: ubuntu-24.04
+    continue-on-error: true
     timeout-minutes: 30
     strategy:
       matrix:
@@ -60,8 +61,7 @@ jobs:
         # Optimizers for parallelism.
         parallel_opt: [openmp, nopenmp]
     env:
-      # Must use explicit test for true so it works when inputs.debug is null.
-      use-verbose: ${{github.event.inputs.debug == true}}
+      use-verbose: ${{inputs.debug}}
     steps:
       - if: >-
           ${{needs.find-changes.outputs.code == 'false'
@@ -112,3 +112,15 @@ jobs:
               --config=${{matrix.parallel_opt}} \
               ${{env.use-verbose && '--config=verbose'}} \
               apps:qsim_base -- -c circuits/circuit_q24
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]

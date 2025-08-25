@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'CI: check code format'
-run-name: Test with linters and formatters
+name: 'CI: run code format tests'
+run-name: Check source code with linters and formatters
 
 on:
   push:
@@ -38,7 +38,6 @@ on:
 permissions: read-all
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
@@ -48,10 +47,12 @@ jobs:
     uses: ./.github/workflows/_find_changes.yaml
     secrets: inherit
 
-  check-format:
-    name: Check Python code format
+  run-tests:
+    if: ${{needs.find-changes.outputs.python == 'true' || inputs.debug}}
+    name: Run tests
     needs: find-changes
     runs-on: ubuntu-24.04
+    continue-on-error: true
     timeout-minutes: 30
     env:
       # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
@@ -85,3 +86,15 @@ jobs:
 
       - name: Check Python file format
         run: check/format-incremental
+
+  report-results:
+    if: always()
+    name: ${{github.workflow}}
+    needs: run-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Exit with an appropriate status code
+        run: |
+          result="${{needs.run-tests.result}}"
+          [[ "$result" == "success" || "$result" == "skipped" ]]
