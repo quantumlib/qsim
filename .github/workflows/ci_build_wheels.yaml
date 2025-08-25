@@ -38,7 +38,6 @@ on:
 permissions: read-all
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
@@ -49,22 +48,14 @@ jobs:
     secrets: inherit
 
   build-wheels-skip:
-    if: >-
-      ${{needs.find-changes.outputs.code == 'false'
-        && github.event_name != 'workflow_dispatch'}}
-    # Important: the name must be the same as that of the build-wheels job.
-    name: Build & verify wheels
+    if: ${{needs.find-changes.outputs.code == 'false' && ! inputs.debug}}
     needs: find-changes
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Exit with success if there were no changes to code files
-        run: exit 0
+    uses: ./.github/workflows/_success.yaml
+    # Important: the name must be identical to that of the non-skip job below.
+    name: Build & verify wheels
 
   build-wheels:
-    if: >-
-      ${{needs.find-changes.outputs.code == 'true'
-         || github.event_name == 'workflow_dispatch'}}
+    if: ${{needs.find-changes.outputs.code == 'true' || inputs.debug}}
     name: Build & verify wheels
     needs: find-changes
     uses: ./.github/workflows/_build_wheels.yaml
