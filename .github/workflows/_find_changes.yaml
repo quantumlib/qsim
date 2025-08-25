@@ -21,8 +21,8 @@
 # protection rules work is: "If a workflow is skipped due to path filtering
 # [...] the checks associated with that workflow will remain in a Pending
 # state. A PR that requires those checks to be successful will be blocked from
-# merging." This makes path filters unusable with merge queues. We forgo the
-# use of path filters, and instead check file changes using our own workflow.
+# merging." This makes path filters unusable with merge queues. So, we forgo the
+# use of path filters and instead check file changes using our own workflow.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # The tilde is only to make our reusable workflows be listed last in the UI.
@@ -31,13 +31,16 @@ run-name: Determine which files have been changed
 
 on:
   workflow_call:
+    # N.B.: GitHub Actions workflow_call output values are ALWAYS strings, even
+    # for (what you think are) Booleans. Consequently, calling workflows have to
+    # test values using, e.g., ${{foo = 'false'}}, and not ${{foo}} or similar.
     outputs:
       code:
-        description: 'True if any code files were changed'
-        value: jobs.test.outputs.only-noncode-changes == 'false'
+        description: 'True if any potential code file was changed'
+        value: ${{jobs.test.outputs.nondoc-file-changes == 'true'}}
       python:
-        description: 'True if Python files were changed'
-        value: jobs.test.outputs.have-python-changes == 'true'
+        description: 'True if any Python file was changed'
+        value: ${{jobs.test.outputs.python-changes == 'true'}}
 
 permissions: read-all
 
@@ -47,24 +50,34 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      only-noncode-changes: steps.only-noncode-files.outputs.matched
-      python-changes: steps.python-files.outputs.matched
+      nondoc-file-changes: ${{steps.nondoc-files.outputs.matched}}
+      python-changes: ${{steps.python-files.outputs.matched}}
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Test whether only docs or similar files were changed
+      - name: Test whether the changes involved one or more non-doc files
         uses: tomi/paths-filter-action@32c62f5ca100c1110406e3477d5b3ecef4666fec # v3.0.2
-        id: only-noncode-files
+        id: nondoc-files
         with:
           base: ${{github.ref_name}}
-          predicate-quantifier: 'every'
+          # Note: when editing the patterns below, always make sure to negate
+          # the condition (i.e., use a leading '!'). See the next comment.
           filters: |
             matched:
-              - '!**/*.md'
-              - '!docs/**'
               - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/dependabot.yaml'
+              - '!.github/problem-matchers/**'
               - '!CITATION.cff'
+              - '!docs/**'
+              - '!**/*.md'
+              - '!**/*.png'
+          # The default paths-filter-action behavior is "match at least one"
+          # pattern. We change the behavior to be "match every" pattern.
+          # Combined with negating every pattern above, it means the final output
+          # will be non-empty only if there is at least one file that is NOT a
+          # documentation file, or in other words, is a potential code file.
+          predicate-quantifier: 'every'
 
       - name: Test whether Python files are among the changed files
         uses: tomi/paths-filter-action@32c62f5ca100c1110406e3477d5b3ecef4666fec # v3.0.2
@@ -74,3 +87,9 @@ jobs:
           filters: |
             matched:
               - '**/*.py'
+
+      - name: Summary of test results
+        run: |
+          set -x
+          echo steps.nondoc-files.outputs.matched = │${{steps.nondoc-files.outputs.matched}}│
+          echo steps.python-files.outputs.matched = │${{steps.python-files.outputs.matched}}│

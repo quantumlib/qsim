@@ -317,7 +317,7 @@ __global__ void SampleKernel(unsigned num_blocks,
         FP3 re = state[l];
         FP3 im = state[l + warp_size];
         csum += re * re + im * im;
-        while (rs[m] < csum && m < num_samples) {
+        while (m < num_samples && rs[m] < csum) {
           bitstrings[m++] = k0 + k;
         }
       }

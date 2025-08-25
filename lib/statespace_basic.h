@@ -218,7 +218,7 @@ class StateSpaceBasic :
         double re = p[2 * k];
         double im = p[2 * k + 1];
         csum += re * re + im * im;
-        while (rs[m] < csum && m < num_samples) {
+        while (m < num_samples && rs[m] < csum) {
           bitstrings.emplace_back(k);
           ++m;
         }
