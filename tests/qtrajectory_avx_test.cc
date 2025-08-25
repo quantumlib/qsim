@@ -16,6 +16,10 @@
 
 #include "gtest/gtest.h"
 
+#include "../lib/fuser_mqubit.h"
+#include "../lib/gates_cirq.h"
+#include "../lib/io.h"
+#include "../lib/run_qsim.h"
 #include "../lib/seqfor.h"
 #include "../lib/simulator_avx.h"
 
@@ -37,31 +41,45 @@ struct Factory {
 };
 
 TEST(QTrajectoryAVXTest, BitFlip) {
-  TestBitFlip(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestBitFlip<Runner>(Factory<SequentialFor>());
 }
 
 TEST(QTrajectoryAVXTest, GenDump) {
-  TestGenDump(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestGenDump<Runner>(Factory<SequentialFor>());
 }
 
 TEST(QTrajectoryAVXTest, ReusingResults) {
-  TestReusingResults(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestReusingResults<Runner>(Factory<SequentialFor>());
 }
 
 TEST(QTrajectoryAVXTest, CollectKopStat) {
-  TestCollectKopStat(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestCollectKopStat<Runner>(Factory<SequentialFor>());
 }
 
 TEST(QTrajectoryAVXTest, CleanCircuit) {
-  TestCleanCircuit(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestCleanCircuit<Runner>(Factory<SequentialFor>());
 }
 
 TEST(QTrajectoryAVXTest, InitialState) {
-  TestInitialState(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestInitialState<Runner>(Factory<SequentialFor>());
 }
 
 TEST(QTrajectoryAVXTest, UncomputeFinalState) {
-  TestUncomputeFinalState(qsim::Factory<SequentialFor>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<SequentialFor>>;
+  TestUncomputeFinalState<Runner>(Factory<SequentialFor>());
 }
 
 }  // namespace qsim

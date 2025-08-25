@@ -475,6 +475,7 @@ cc_library(
     name = "run_qsim",
     hdrs = ["run_qsim.h"],
     deps = [
+        ":circuit",
         ":gate",
         ":gate_appl",
         ":util",
@@ -636,7 +637,6 @@ cuda_library(
     name = "simulator_custatevec",
     hdrs = [
         "simulator_custatevec.h",
-        "simulator_custatevec_kernels.h",
     ],
     deps = [
         ":bits",

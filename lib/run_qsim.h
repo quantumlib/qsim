@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "circuit.h"
 #include "gate.h"
 #include "gate_appl.h"
 #include "util.h"
@@ -174,6 +175,56 @@ struct QSimRunner final {
   static bool Run(const Parameter& param, const Factory& factory,
                   const Circuit& circuit, State& state,
                   std::vector<MeasurementResult>& measure_results) {
+    StateSpace state_space = factory.CreateStateSpace();
+    Simulator simulator = factory.CreateSimulator();
+
+    return Run(param, circuit, state_space, simulator, state, measure_results);
+  }
+
+  /**
+   * Runs the given circuit and make the final state available to the caller,
+   * discarding the result of any intermediate measurements in the circuit.
+   * @param param Options for gate fusion, parallelism and logging.
+   * @param factory Object to create simulators and state spaces.
+   * @param circuit The circuit to be simulated.
+   * @param state As an input parameter, this should contain the initial state
+   *   of the system. After a successful run, it will be populated with the
+   *   final state of the system.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
+  template <typename Circuit>
+  static bool Run(const Parameter& param, const Factory& factory,
+                  const Circuit& circuit, State& state) {
+    StateSpace state_space = factory.CreateStateSpace();
+    Simulator simulator = factory.CreateSimulator();
+
+    std::vector<MeasurementResult> discarded_results;
+
+    return Run(
+        param, circuit, state_space, simulator, state, discarded_results);
+  }
+
+  /**
+   * Runs the given circuit and make the final state available to the caller,
+   * recording the result of any intermediate measurements in the circuit.
+   * @param param Options for gate fusion, parallelism and logging.
+   * @param circuit The circuit to be simulated.
+   * @param state_space StateSpace object required to perform measurements.
+   * @param simulator Simulator object. Provides specific implementations for
+   *   applying gates.
+   * @param state As an input parameter, this should contain the initial state
+   *   of the system. After a successful run, it will be populated with the
+   *   final state of the system.
+   * @param measure_results As an input parameter, this should be empty.
+   *   After a successful run, this will contain all measurements results from
+   *   the run, ordered by time and qubit index.
+   * @return True if the simulation completed successfully; false otherwise.
+   */
+  template <typename Circuit>
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  const StateSpace& state_space, const Simulator& simulator,
+                  State& state,
+                  std::vector<MeasurementResult>& measure_results) {
     double t0 = 0.0;
     double t1 = 0.0;
 
@@ -183,19 +234,18 @@ struct QSimRunner final {
 
     RGen rgen(param.seed);
 
-    StateSpace state_space = factory.CreateStateSpace();
-    Simulator simulator = factory.CreateSimulator();
-
     if (param.verbosity > 1) {
       t1 = GetTime();
       IO::messagef("init time is %g seconds.\n", t1 - t0);
       t0 = GetTime();
     }
 
-    auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
-                                        circuit.gates);
+    using Gates = detail::Gates<Circuit>;
+    const auto& gates = Gates::get(circuit);
 
-    if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
+    auto fused_gates = Fuser::FuseGates(param, state.num_qubits(), gates);
+
+    if (fused_gates.size() == 0 && gates.size() > 0) {
       return false;
     }
 
@@ -242,18 +292,23 @@ struct QSimRunner final {
    * Runs the given circuit and make the final state available to the caller,
    * discarding the result of any intermediate measurements in the circuit.
    * @param param Options for gate fusion, parallelism and logging.
-   * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
+   * @param state_space StateSpace object required to perform measurements.
+   * @param simulator Simulator object. Provides specific implementations for
+   *   applying gates.
    * @param state As an input parameter, this should contain the initial state
    *   of the system. After a successful run, it will be populated with the
    *   final state of the system.
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
-  static bool Run(const Parameter& param, const Factory& factory,
-                  const Circuit& circuit, State& state) {
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  const StateSpace& state_space, const Simulator& simulator,
+                  State& state) {
     std::vector<MeasurementResult> discarded_results;
-    return Run(param, factory, circuit, state, discarded_results);
+
+    return Run(
+        param, circuit, state_space, simulator, state, discarded_results);
   }
 };
 
