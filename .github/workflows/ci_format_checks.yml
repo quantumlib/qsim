@@ -49,11 +49,7 @@ jobs:
     secrets: inherit
 
   check-format:
-    # For efficiency, skip this workflow if there were no Python file changes.
-    if: >-
-      ${{needs.find-changes.outputs.python == 'true'
-         || github.event_name == 'workflow_dispatch'}}
-    name: Python format check
+    name: Check Python code format
     needs: find-changes
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -61,6 +57,12 @@ jobs:
       # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
       SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
     steps:
+      - if: >-
+          ${{needs.find-changes.outputs.python == 'false'
+            && github.event_name != 'workflow_dispatch'}}
+        name: Exit early if there were no changes to code files
+        run: exit 0
+
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
