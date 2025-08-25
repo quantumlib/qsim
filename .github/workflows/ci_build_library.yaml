@@ -49,10 +49,6 @@ jobs:
     secrets: inherit
 
   build-wheels:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: >-
-      ${{needs.find-changes.outputs.code == 'true'
-         || github.event_name == 'workflow_dispatch'}}
     name: ${{matrix.conf.os}}/${{matrix.conf.pyarch}}/py3${{matrix.conf.py}}
     needs: find-changes
     runs-on: ${{matrix.conf.os}}
@@ -90,6 +86,12 @@ jobs:
       # Must use explicit test for true so it works when inputs.debug is null.
       use-verbose: ${{github.event.inputs.debug == true}}
     steps:
+      - if: >-
+          ${{needs.find-changes.outputs.code == 'false'
+            && github.event_name != 'workflow_dispatch'}}
+        name: Exit early if there were no changes to code files
+        run: exit 0
+
       - name: Check out a copy of the git repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
