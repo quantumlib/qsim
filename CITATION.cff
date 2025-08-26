@@ -92,12 +92,18 @@ repository-code: https://github.com/quantumlib/qsim
 license: Apache-2.0
 type: software
 identifiers:
-  - description: Publication about qsim
-    value: 10.48550/arXiv.2111.02396
-    type: doi
+  - description: The home page for qsim
+    value: https://quantumai.google/qsim
+    type: url
   - description: GitHub repository for qsim
     value: https://github.com/quantumlib/qsim
     type: url
+  - description: Archival DOI for qsim software releases
+    value: 10.5281/zenodo.4067237
+    type: doi
+  - description: Publication about qsim
+    value: 10.48550/arXiv.2111.02396
+    type: doi
 keywords:
   - algorithms
   - API
