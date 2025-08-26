@@ -71,7 +71,8 @@ preferred-citation:
     - family-names: Boixo
       given-names: Sergio
       affiliation: Google
-  title: Simulations of Quantum Circuits with Approximate Noise using qsim and Cirq
+  title: >-
+    Simulations of Quantum Circuits with Approximate Noise using qsim and Cirq
   year: 2021
   date-published: 2021-11-03
   doi: 10.48550/arXiv.2111.02396
@@ -83,6 +84,7 @@ title: qsim
 authors:
   - name: Quantum AI team and collaborators
 abstract: High-performance quantum circuit simulator for C++ and Python.
+version: 0.22.0
 date-released: 2025-06-24
 url: https://github.com/quantumlib/qsim
 repository-code: https://github.com/quantumlib/qsim
