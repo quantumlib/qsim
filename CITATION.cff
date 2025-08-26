@@ -83,6 +83,7 @@ preferred-citation:
 title: qsim
 authors:
   - name: Quantum AI team and collaborators
+    website: https://github.com/quantumlib/qsim/graphs/contributors
 abstract: High-performance quantum circuit simulator for C++ and Python.
 version: 0.22.0
 date-released: 2025-06-24
