@@ -19,34 +19,34 @@ preferred-citation:
   authors:
     - family-names: Isakov
       given-names: Sergei V.
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Kafri
       given-names: Dvir
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Martin
       given-names: Orion
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Vollgraff Heidweiller
       given-names: Catherine
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Mruczkiewicz
       given-names: Wojciech
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Harrigan
       given-names: Matthew P.
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Rubin
       given-names: Nicholas C.
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Thomson
       given-names: Ross
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Broughton
       given-names: Michael B.
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Kissell
       given-names: Kevin
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Peters
       given-names: Evan
       affiliation: Fermi National Accelerator Laboratory
@@ -64,13 +64,13 @@ preferred-citation:
       affiliation: Fermi National Accelerator Laboratory
     - family-names: Ho
       given-names: Alan K.
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Strain
       given-names: Doug
-      affiliation: Google
+      affiliation: Google LLC
     - family-names: Boixo
       given-names: Sergio
-      affiliation: Google
+      affiliation: Google LLC
   title: >-
     Simulations of Quantum Circuits with Approximate Noise using qsim and Cirq
   year: 2021
@@ -83,6 +83,7 @@ preferred-citation:
 title: qsim
 authors:
   - name: Quantum AI team and collaborators
+    website: https://github.com/quantumlib/qsim/graphs/contributors
 abstract: High-performance quantum circuit simulator for C++ and Python.
 version: 0.22.0
 date-released: 2025-06-24
@@ -91,12 +92,18 @@ repository-code: https://github.com/quantumlib/qsim
 license: Apache-2.0
 type: software
 identifiers:
-  - description: Publication about qsim
-    value: 10.48550/arXiv.2111.02396
-    type: doi
+  - description: The home page for qsim
+    value: https://quantumai.google/qsim
+    type: url
   - description: GitHub repository for qsim
     value: https://github.com/quantumlib/qsim
     type: url
+  - description: Archival DOI for qsim software releases
+    value: 10.5281/zenodo.4067237
+    type: doi
+  - description: Publication about qsim
+    value: 10.48550/arXiv.2111.02396
+    type: doi
 keywords:
   - algorithms
   - API
