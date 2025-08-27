@@ -1,37 +1,66 @@
 name: Bug report
 description: Report a problem with qsim or this project
-type: Bug
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to fill out this bug report!
+        Thank you for taking the time to open an issue report. Before
+        continuing, it's worth [searching through the existing issues in this
+        repository](https://github.com/quantumlib/qsim/issues?q=is%3Aissue) in
+        case the same topic has already been reported.
 
   - type: textarea
     attributes:
       label: Describe the issue
       description: >-
-        Please explain clearly and in detail what the issue is. What led up
-        to it, or how did you encounter it?
+        Please explain clearly and in detail what the issue is. What were you
+        trying to do? What happened? What was unexpected about what happened?
+      placeholder: >-
+        Describe the issue here
     validations:
       required: true
 
-  - type: input
-    attributes:
-      label: What version of qsim are you using?
-    validations:
-      required: false
-
   - type: textarea
     attributes:
-      label: How can the issue be reproduced?
+      label: Tell us how to reproduce the issue
       description: >-
-        Explain in a step-by-step fashion what someone else would need to
+        Explain in a step-by-step fashion what someone else will need to
         do in order to reproduce the issue. If possible, include literal
         examples of commands or code using [Markdown fenced code
         blocks](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks).
         For long output, paste the text into [collapsed
         sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
         or attach text files.
+      placeholder: >-
+        Write a step-by-step explanation of how to reproduce the issue here
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Tell us the version of qsim or qsimcirq (if relevant)
+      description: |-
+        For qsim software problems, we need to know the exact version you are
+        using. If you are using the Python package and are running within a
+        terminal emulator, then typing the following command in the shell will
+        print the version number:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        ```python3 -c 'import qsimcirq; print(qsimcirq.__version__)'```<br>
+        If you are using a Google Colab or Jupyter notebook environment,
+        then running the following command in a notebook cell will print
+        the version number:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        `import qsimcirq; print(qsimcirq.__version__)`
+      placeholder: >-
+        Write the qsim version number here
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Tell us the computing environment (if relevant)
+      description: >-
+        Please tell us if you are using Linux, macOS, Windows, Google Colab, or
+        something else, and its version.
+      placeholder: >-
+        Describe the computing environment and its version here
     validations:
       required: false
