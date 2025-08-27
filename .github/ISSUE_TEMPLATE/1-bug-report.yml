@@ -1,6 +1,5 @@
 name: Bug report
 description: Report a problem with qsim or this project
-type: Bug
 body:
   - type: markdown
     attributes:
