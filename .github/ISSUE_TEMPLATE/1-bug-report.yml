@@ -45,7 +45,7 @@ body:
         using. If you are using the Python package and are running within a
         terminal emulator, then typing the following command in the shell will
         print the version number:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        `python3 -c 'import qsimcirq; print(qsimcirq.__version__)'`<br>
+        ```python3 -c 'import qsimcirq; print(qsimcirq.__version__)'```<br>
         If you are using a Google Colab or Jupyter notebook environment,
         then running the following command in a notebook cell will print
         the version number:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
