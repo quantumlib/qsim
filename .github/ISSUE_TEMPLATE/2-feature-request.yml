@@ -1,5 +1,5 @@
 name: Feature request
-description: Request a new feature or change in qsim
+description: Request a feature or suggest an enhancement
 type: Enhancement
 body:
   - type: markdown
@@ -12,7 +12,7 @@ body:
 
   - type: textarea
     attributes:
-      label: What is your feature request?
+      label: What is your request or suggestion?
       description: >-
         Please describe the request and its context in detail. Is the feature
         something that would help you do something that you currently cannot due
