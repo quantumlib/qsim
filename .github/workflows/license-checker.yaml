@@ -1,0 +1,116 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Check that the files in a PR include license headers.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+name: License checker
+run-name: >-
+  Check license headers in the files of PR
+  #${{github.event.inputs.pr-number || github.event.pull_request.number}}
+  by ${{github.actor}}
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+      - master
+
+  # Support merge queues.
+  merge_group:
+    types:
+      - checks_requested
+
+  # Allow manual invocation.
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: 'The PR number of the PR to check:'
+        type: string
+        required: true
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
+
+env:
+  # Location of a file containing path patterns to be ignored when checking
+  # files for license headers. The file uses `doublestar` file pattern syntax.
+  ignore_patterns_file: .github/workflows/config/license-checker-ignore.txt
+
+# Declare default workflow permissions as read only.
+permissions: read-all
+
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+jobs:
+  check-license:
+    if: github.repository_owner == 'quantumlib'
+    name: Check files for license headers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PR_NUMBER: ${{inputs.pr-number || github.event.pull_request.number}}
+      # The next var is used by Bash. Add 'xtrace' to the options for all Bash
+      # scripts if this is a workflow_dispatch run & the user set debug=true.
+      SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
+    steps:
+      - if: github.event_name == 'workflow_dispatch'
+        name: Check out a copy of the git repository (manual invocation)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/pull/${{env.PR_NUMBER}}/head
+          repository: ${{github.repository}}
+
+      - if: github.event_name != 'workflow_dispatch'
+        name: Check out a copy of the git repository (pull requests)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check files
+        env:
+          GH_TOKEN: ${{github.token}}
+          VERBOSE: ${{inputs.debug && '-v' || '' }}
+        run: |
+          changed_files=$(gh pr diff "$PR_NUMBER" --name-only)
+          if [[ -z "$changed_files" ]]; then
+            echo "::notice::No files changed in PR #$PR_NUMBER."
+            exit 0
+          fi
+
+          # As of v.1.2.0 addlicense doesn't have a config file option or a way
+          # to read ignore patterns from a file. This our homegrown solution.
+          ignore_patterns=$(awk '!/^#/ && NF' ${{env.ignore_patterns_file}})
+          ignore_args=$(printf -- "-ignore='%s' " "${ignore_patterns[@]}")
+
+          unlicensed=$(go run github.com/google/addlicense@v1.2.0 \
+            -check "$ignore_args" "$VERBOSE" "${changed_files[@]}")
+
+          if [[ -n "$unlicensed" ]]; then
+            echo '::error::Found files missing licenses.'
+            echo '::error::Please visit the workflow summary.'
+            {
+            echo "## Some files in PR #$PR_NUMBER lack license headers"
+            echo ""
+            echo "$unlicensed"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
