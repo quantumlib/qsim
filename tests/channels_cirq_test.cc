@@ -25,18 +25,36 @@
 #include "../lib/gates_cirq.h"
 #include "../lib/io.h"
 #include "../lib/qtrajectory.h"
+#include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 
 namespace qsim {
 
 namespace {
 
-using StateSpace = Simulator<For>::StateSpace;
+template <typename For>
+struct Factory {
+  using Simulator = qsim::Simulator<For>;
+  using StateSpace = typename Simulator::StateSpace;
+  using fp_type = typename StateSpace::fp_type;
+
+  StateSpace CreateStateSpace() const {
+    return StateSpace(1);
+  }
+
+  Simulator CreateSimulator() const {
+    return Simulator(1);
+  }
+};
+
+using Simulator = Factory<For>::Simulator;
+using StateSpace = Simulator::StateSpace;
 using State = StateSpace::State;
 using fp_type = StateSpace::fp_type;
 using Gate = Cirq::GateCirq<fp_type>;
-using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
-                                               Simulator<For>>;
+using Fuser = MultiQubitGateFuser<IO, const Gate*>;
+using Runner = QSimRunner<IO, Fuser, Factory<For>>;
+using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
 
 Circuit<Gate> CleanCircuit() {
   using Hd = Cirq::H<fp_type>;
@@ -79,8 +97,8 @@ void RunBatch(const NoisyCircuit<Gate>& ncircuit,
   QTSimulator::Parameter param;
   param.collect_mea_stat = true;
 
-  Simulator<For> simulator(num_threads);
-  Simulator<For>::StateSpace state_space(num_threads);
+  Simulator simulator(num_threads);
+  StateSpace state_space(num_threads);
 
   EXPECT_TRUE(QTSimulator::RunBatch(param, ncircuit, 0, num_reps, state_space,
                                     simulator, measure, histogram));

@@ -31,6 +31,49 @@ struct Circuit {
   std::vector<Gate> gates;
 };
 
+namespace detail {
+
+/**
+ * An adapter for vectors of gates.
+ */
+template <typename Circuit>
+struct Gates;
+
+template <typename Gate>
+struct Gates<qsim::Circuit<Gate>> {
+  static const std::vector<Gate>& get(const qsim::Circuit<Gate>& circuit) {
+    return circuit.gates;
+  }
+
+  static const Gate& gate(const Gate& g) {
+    return g;
+  }
+};
+
+template <typename Gate>
+struct Gates<std::vector<Gate>> {
+  static const std::vector<Gate>& get(const std::vector<Gate>& gates) {
+    return gates;
+  }
+
+  static const Gate& gate(const Gate& g) {
+    return g;
+  }
+};
+
+template <typename Gate>
+struct Gates<std::vector<Gate*>> {
+  static const std::vector<Gate*>& get(const std::vector<Gate*>& gates) {
+    return gates;
+  }
+
+  static const Gate& gate(const Gate* g) {
+    return *g;
+  }
+};
+
+}  // namespace detail
+
 }  // namespace qsim
 
 #endif  // CIRCUIT_H_

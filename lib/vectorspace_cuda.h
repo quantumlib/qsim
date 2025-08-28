@@ -72,7 +72,7 @@ class VectorSpaceCUDA {
       return num_qubits_;
     }
 
-    bool requires_copy_to_host() const {
+    static constexpr bool requires_copy_to_host() {
       return true;
     }
 
@@ -160,7 +160,7 @@ class VectorSpaceCUDA {
     return true;
   }
 
-  void DeviceSync() {
+  static void DeviceSync() {
     ErrorCheck(cudaDeviceSynchronize());
   }
 

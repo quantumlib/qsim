@@ -14,20 +14,32 @@
 
 #include "pybind_main_hip.h"
 
+#include "../../lib/fuser_mqubit.h"
+#include "../../lib/gates_cirq.h"
+#include "../../lib/io.h"
+#include "../../lib/run_qsim.h"
 #include "../../lib/simulator_cuda.h"
 
 namespace qsim {
   using Simulator = SimulatorCUDA<float>;
 
   struct Factory {
-    using Simulator = qsim::Simulator;
-    using StateSpace = Simulator::StateSpace;
-
     Factory(
       unsigned num_sim_threads,
       unsigned num_state_threads,
       unsigned num_dblocks
     ) : ss_params{num_state_threads, num_dblocks} {}
+
+    using Simulator = qsim::Simulator;
+    using StateSpace = Simulator::StateSpace;
+
+    using Gate = Cirq::GateCirq<float>;
+    using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Gate>, Factory>;
+    using RunnerQT =
+        QSimRunner<IO, MultiQubitGateFuser<IO, const Gate*>, Factory>;
+    using RunnerParameter = Runner::Parameter;
+    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Gate, RunnerQT>;
+    using NoisyRunnerParameter = NoisyRunner::Parameter;
 
     StateSpace CreateStateSpace() const {
       return StateSpace(ss_params);

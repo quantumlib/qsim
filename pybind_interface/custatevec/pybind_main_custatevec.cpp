@@ -17,45 +17,55 @@
 
 #include "pybind_main_custatevec.h"
 
+#include "../../lib/fuser_mqubit.h"
+#include "../../lib/gates_cirq.h"
+#include "../../lib/io.h"
+#include "../../lib/run_qsim.h"
 #include "../../lib/simulator_custatevec.h"
 
 namespace qsim {
+  using Simulator = SimulatorCuStateVec<float>;
 
-using Simulator = SimulatorCuStateVec<float>;
+  struct Factory {
+    // num_sim_threads, num_state_threads and num_dblocks are unused, but kept
+    // for consistency with other factories.
+    Factory(unsigned num_sim_threads,
+            unsigned num_state_threads,
+            unsigned num_dblocks) {
+      ErrorCheck(cublasCreate(&cublas_handle));
+      ErrorCheck(custatevecCreate(&custatevec_handle));
+    }
 
-struct Factory {
-  using Simulator = qsim::Simulator;
-  using StateSpace = Simulator::StateSpace;
+    ~Factory() {
+      ErrorCheck(cublasDestroy(cublas_handle));
+      ErrorCheck(custatevecDestroy(custatevec_handle));
+    }
 
-  // num_sim_threads, num_state_threads and num_dblocks are unused, but kept
-  // for consistency with other factories.
-  Factory(unsigned num_sim_threads,
-          unsigned num_state_threads,
-          unsigned num_dblocks) {
-    ErrorCheck(cublasCreate(&cublas_handle));
-    ErrorCheck(custatevecCreate(&custatevec_handle));
-  }
+    using Simulator = qsim::Simulator;
+    using StateSpace = Simulator::StateSpace;
 
-  ~Factory() {
-    ErrorCheck(cublasDestroy(cublas_handle));
-    ErrorCheck(custatevecDestroy(custatevec_handle));
-  }
+    using Gate = Cirq::GateCirq<float>;
+    using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Gate>, Factory>;
+    using RunnerQT =
+        QSimRunner<IO, MultiQubitGateFuser<IO, const Gate*>, Factory>;
+    using RunnerParameter = Runner::Parameter;
+    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Gate, RunnerQT>;
+    using NoisyRunnerParameter = NoisyRunner::Parameter;
 
-  StateSpace CreateStateSpace() const {
-    return StateSpace(cublas_handle, custatevec_handle);
-  }
+    StateSpace CreateStateSpace() const {
+      return StateSpace(cublas_handle, custatevec_handle);
+    }
 
-  Simulator CreateSimulator() const {
-    return Simulator(cublas_handle, custatevec_handle);
-  }
+    Simulator CreateSimulator() const {
+      return Simulator(cublas_handle, custatevec_handle);
+    }
 
-  cublasHandle_t cublas_handle;
-  custatevecHandle_t custatevec_handle;
-};
+    cublasHandle_t cublas_handle;
+    custatevecHandle_t custatevec_handle;
+  };
 
-inline void SetFlushToZeroAndDenormalsAreZeros() {}
-inline void ClearFlushToZeroAndDenormalsAreZeros() {}
-
+  inline void SetFlushToZeroAndDenormalsAreZeros() {}
+  inline void ClearFlushToZeroAndDenormalsAreZeros() {}
 }
 
 #include "../pybind_main.cpp"
