@@ -66,7 +66,7 @@ class SimulatorCuStateVec final {
       uint64_t size = uint64_t{1} << state.num_qubits();
 
       if (StateSpace::is_float) {
-        cuComplex a = {matrix[0], matrix[1]};
+        cuComplex a = {(float) matrix[0], (float) matrix[1]};
         auto p = (cuComplex*) state.get();
         ErrorCheck(cublasCscal(cublas_handle_, size, &a, p, 1));
       } else {

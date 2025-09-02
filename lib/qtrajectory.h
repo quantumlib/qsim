@@ -31,19 +31,18 @@ namespace qsim {
  * Quantum trajectory simulator.
  */
 template <typename IO, typename Gate,
-          template <typename, typename> class FuserT, typename Simulator,
-          typename RGen = std::mt19937>
+          typename Runner, typename RGen = std::mt19937>
 class QuantumTrajectorySimulator {
  public:
-  using Fuser = FuserT<IO, const Gate*>;
+  using Simulator = typename Runner::Simulator;
   using StateSpace = typename Simulator::StateSpace;
-  using State = typename Simulator::State;
+  using State = typename StateSpace::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
   /**
    * User-specified parameters for the simulator.
    */
-  struct Parameter : public Fuser::Parameter {
+  struct Parameter : public Runner::Parameter {
     /**
      * If true, collect statistics of sampled Kraus operator indices.
      */
@@ -265,7 +264,8 @@ class QuantumTrajectorySimulator {
       if (channel[0].kind == gate::kMeasurement) {
         // Measurement channel.
 
-        if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
+        if (!ApplyDeferredOps(
+                 param, num_qubits, state_space, simulator, gates, state)) {
           return false;
         }
 
@@ -309,7 +309,8 @@ class QuantumTrajectorySimulator {
 
       if (r < cp) continue;
 
-      if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
+      if (!ApplyDeferredOps(
+               param, num_qubits, state_space, simulator, gates, state)) {
         return false;
       }
 
@@ -351,7 +352,8 @@ class QuantumTrajectorySimulator {
     }
 
     if (apply_last_deferred_ops || !stat.primary) {
-      if (!ApplyDeferredOps(param, num_qubits, simulator, gates, state)) {
+      if (!ApplyDeferredOps(
+               param, num_qubits, state_space, simulator, gates, state)) {
         return false;
       }
 
@@ -372,20 +374,13 @@ class QuantumTrajectorySimulator {
   }
 
   static bool ApplyDeferredOps(
-      const Parameter& param, unsigned num_qubits, const Simulator& simulator,
+      const Parameter& param, unsigned num_qubits,
+      const StateSpace& state_space, const Simulator& simulator,
       std::vector<const Gate*>& gates, State& state) {
     if (gates.size() > 0) {
-      auto fgates = Fuser::FuseGates(param, num_qubits, gates);
-
+      bool rc = Runner::Run(param, gates, state_space, simulator, state);
       gates.resize(0);
-
-      if (fgates.size() == 0) {
-        return false;
-      }
-
-      for (const auto& fgate : fgates) {
-        ApplyFusedGate(simulator, fgate, state);
-      }
+      return rc;
     }
 
     return true;

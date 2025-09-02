@@ -171,9 +171,9 @@ run-tests tests: $(TESTS)
 
 .PHONY: check-cuquantum-root-set
 check-cuquantum-root-set:
-	@if [[ -z "$(CUQUANTUM_ROOT)" ]]; then \
-	    echo Error: '$$CUQUANTUM_ROOT must be set in order to use cuStateVec.' \
-	    exit 1 \
+	@if test -z "$(CUQUANTUM_ROOT)"; then \
+	    echo Error: '$$CUQUANTUM_ROOT must be set in order to use cuStateVec.'; \
+	    exit 1; \
 	fi
 
 eigen:

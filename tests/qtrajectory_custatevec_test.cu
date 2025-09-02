@@ -19,6 +19,10 @@
 
 #include "gtest/gtest.h"
 
+#include "../lib/fuser_mqubit.h"
+#include "../lib/gates_cirq.h"
+#include "../lib/io.h"
+#include "../lib/run_qsim.h"
 #include "../lib/simulator_custatevec.h"
 
 namespace qsim {
@@ -52,31 +56,45 @@ struct Factory {
 };
 
 TEST(QTrajectoryCuStateVecTest, BitFlip) {
-  TestBitFlip(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestBitFlip<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, GenDump) {
-  TestGenDump(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestGenDump<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, ReusingResults) {
-  TestReusingResults(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestReusingResults<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, CollectKopStat) {
-  TestCollectKopStat(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestCollectKopStat<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, CleanCircuit) {
-  TestCleanCircuit(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestCleanCircuit<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, InitialState) {
-  TestInitialState(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestInitialState<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, UncomputeFinalState) {
-  TestUncomputeFinalState(qsim::Factory<float>());
+  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Runner = QSimRunner<IO, Fuser, Factory<float>>;
+  TestUncomputeFinalState<Runner>(Factory<float>());
 }
 
 }  // namespace qsim

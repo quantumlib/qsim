@@ -74,7 +74,7 @@ class VectorSpace {
       return num_qubits_;
     }
 
-    bool requires_copy_to_host() const {
+    static constexpr bool requires_copy_to_host() {
       return false;
     }
 
@@ -174,7 +174,7 @@ class VectorSpace {
     return true;
   }
 
-  void DeviceSync() {}
+  static void DeviceSync() {}
 
  protected:
   For for_;
