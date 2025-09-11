@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# yamlfmt configuration for this project.
+# Summary: configure yamlfmt for this project.
 # See https://github.com/google/yamlfmt for info about options.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Read .gitignore for paths to exclude.
 gitignore_excludes: true
@@ -23,6 +21,7 @@ gitignore_excludes: true
 formatter:
   type: basic
   eof_newline: true
+# Note: if you change the line length here, update .editorconfig too.
   max_line_length: 80
   retain_line_breaks: true
   trim_trailing_whitespace: true

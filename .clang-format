@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Basic clang-format config for this project.
+
+# Summary: configure clang-format for this project.
 # See https://clang.llvm.org/docs/ClangFormatStyleOptions.html for more info.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Note: if you change line length or indentation here, update .editorconfig too.
 ---
 Language: Cpp
 BasedOnStyle: Google
