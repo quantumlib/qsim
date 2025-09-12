@@ -15,6 +15,10 @@
 #include "pybind_main_avx512.h"
 
 #include "../../lib/formux.h"
+#include "../../lib/fuser_mqubit.h"
+#include "../../lib/gates_cirq.h"
+#include "../../lib/io.h"
+#include "../../lib/run_qsim.h"
 #include "../../lib/simulator_avx512.h"
 #include "../../lib/util_cpu.h"
 
@@ -32,6 +36,14 @@ namespace qsim {
 
     using Simulator = qsim::Simulator<For>;
     using StateSpace = Simulator::StateSpace;
+
+    using Gate = Cirq::GateCirq<float>;
+    using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Gate>, Factory>;
+    using RunnerQT =
+        QSimRunner<IO, MultiQubitGateFuser<IO, const Gate*>, Factory>;
+    using RunnerParameter = Runner::Parameter;
+    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Gate, RunnerQT>;
+    using NoisyRunnerParameter = NoisyRunner::Parameter;
 
     StateSpace CreateStateSpace() const {
       return StateSpace(num_threads);
