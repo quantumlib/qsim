@@ -341,14 +341,13 @@ NoisyCircuit<Gate> GenerateNoisyCircuit(
   return ncircuit;
 }
 
-template <typename Factory, typename Gate>
+template <typename Runner, typename Factory, typename Gate>
 void RunBatch(const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
               const std::vector<double>& expected_results) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -376,15 +375,14 @@ void RunBatch(const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
   }
 }
 
-template <typename Factory, typename Gate>
+template <typename Runner, typename Factory, typename Gate>
 void RunOnceRepeatedly(const Factory& factory,
                        const NoisyCircuit<Gate>& ncircuit,
                        const std::vector<double>& expected_results) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -417,7 +415,7 @@ void RunOnceRepeatedly(const Factory& factory,
   }
 }
 
-template <typename Factory, typename Gate>
+template <typename Runner, typename Factory, typename Gate>
 std::vector<std::complex<double>> ExpValsRunBatch(
     const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
     bool reuse_results) {
@@ -425,8 +423,7 @@ std::vector<std::complex<double>> ExpValsRunBatch(
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using Fuser = MultiQubitGateFuser<IO, Gate>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -507,7 +504,7 @@ std::vector<std::complex<double>> ExpValsRunBatch(
   return results;
 }
 
-template <typename Factory, typename Gate>
+template <typename Runner, typename Factory, typename Gate>
 std::vector<std::complex<double>> ExpValsRunOnceRepeatedly(
     const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
     bool reuse_results) {
@@ -515,8 +512,7 @@ std::vector<std::complex<double>> ExpValsRunOnceRepeatedly(
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using Fuser = MultiQubitGateFuser<IO, Gate>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -592,7 +588,7 @@ std::vector<std::complex<double>> ExpValsRunOnceRepeatedly(
   return results;
 }
 
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestBitFlip(const Factory& factory) {
 /* The expected results are obtained with the following Cirq code.
 
@@ -633,10 +629,10 @@ for key, val in sorted(res.histogram(key='m').items()):
 
   auto ncircuit = GenerateNoisyCircuit<Gate>(0.01, AddBitFlipNoise1<Gate>,
                                              AddBitFlipNoise2<Gate>);
-  RunBatch(factory, ncircuit, expected_results);
+  RunBatch<Runner>(factory, ncircuit, expected_results);
 }
 
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestGenDump(const Factory& factory) {
 /* The expected results are obtained with the following Cirq code.
 
@@ -692,27 +688,27 @@ for key, val in sorted(res.histogram(key='m').items()):
   {
     auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
                                                AddGenAmplDumpNoise2<Gate>);
-    RunOnceRepeatedly(factory, ncircuit, expected_results);
+    RunOnceRepeatedly<Runner>(factory, ncircuit, expected_results);
   }
 
   {
     auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
                                                AddGenAmplDumpNoise2Alt<Gate>);
-    RunOnceRepeatedly(factory, ncircuit, expected_results);
+    RunOnceRepeatedly<Runner>(factory, ncircuit, expected_results);
   }
 }
 
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestReusingResults(const Factory& factory) {
   using Gate = Cirq::GateCirq<typename Factory::fp_type>;
 
   auto ncircuit = GenerateNoisyCircuit<Gate>(0.02, AddAmplDumpNoise1<Gate>,
                                              AddAmplDumpNoise2<Gate>, false);
 
-  auto results1 = ExpValsRunOnceRepeatedly(factory, ncircuit, false);
-  auto results2 = ExpValsRunOnceRepeatedly(factory, ncircuit, true);
-  auto results3 = ExpValsRunBatch(factory, ncircuit, false);
-  auto results4 = ExpValsRunBatch(factory, ncircuit, true);
+  auto results1 = ExpValsRunOnceRepeatedly<Runner>(factory, ncircuit, false);
+  auto results2 = ExpValsRunOnceRepeatedly<Runner>(factory, ncircuit, true);
+  auto results3 = ExpValsRunBatch<Runner>(factory, ncircuit, false);
+  auto results4 = ExpValsRunBatch<Runner>(factory, ncircuit, true);
 
   for (std::size_t k = 0; k < results1.size(); ++k) {
     EXPECT_NEAR(std::real(results1[k]), std::real(results2[k]), 1e-8);
@@ -724,16 +720,14 @@ void TestReusingResults(const Factory& factory) {
   }
 }
 
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestCollectKopStat(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
   using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
-                                                 MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
 
   unsigned num_qubits = 4;
   unsigned num_reps = 20000;
@@ -799,16 +793,14 @@ void TestCollectKopStat(const Factory& factory) {
   }
 }
 
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestCleanCircuit(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
   using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
-                                                 MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
 
   unsigned num_qubits = 4;
   auto size = uint64_t{1} << num_qubits;
@@ -892,16 +884,14 @@ void TestCleanCircuit(const Factory& factory) {
 }
 
 // Test that QTSimulator::Run does not overwrite initial states.
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestInitialState(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
   using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
-                                                 MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
 
   unsigned num_qubits = 3;
 
@@ -942,16 +932,14 @@ void TestInitialState(const Factory& factory) {
   }
 }
 
-template <typename Factory>
+template <typename Runner, typename Factory>
 void TestUncomputeFinalState(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
   using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq,
-                                                 MultiQubitGateFuser,
-                                                 Simulator>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
 
   unsigned num_qubits = 4;
 

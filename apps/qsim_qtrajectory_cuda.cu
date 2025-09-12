@@ -30,6 +30,7 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
 #include "../lib/qtrajectory.h"
+#include "../lib/run_qsim.h"
 #include "../lib/simulator_cuda.h"
 
 struct Options {
@@ -190,7 +191,7 @@ int main(int argc, char* argv[]) {
   using fp_type = float;
 
   struct Factory {
-    using Simulator = qsim::SimulatorCUDA<float>;
+    using Simulator = qsim::SimulatorCUDA<fp_type>;
     using StateSpace = Simulator::StateSpace;
 
     Factory(const StateSpace::Parameter& param) : param(param) {}
@@ -209,17 +210,18 @@ int main(int argc, char* argv[]) {
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Fuser = MultiQubitGateFuser<IO, GateQSim<fp_type>>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateQSim<fp_type>,
-                                                 MultiQubitGateFuser,
-                                                 Simulator>;
+  using Gate = GateQSim<fp_type>;
+  using Fuser = MultiQubitGateFuser<IO, Gate>;
+  using FuserQT = MultiQubitGateFuser<IO, const Gate*>;
+  using RunnerQT = QSimRunner<IO, FuserQT, Factory>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, RunnerQT>;
 
   auto opt = GetOptions(argc, argv);
   if (!ValidateOptions(opt)) {
     return 1;
   }
 
-  Circuit<GateQSim<fp_type>> circuit;
+  Circuit<Gate> circuit;
   unsigned maxtime = opt.times.back();
   if (!CircuitQsimParser<IOFile>::FromFile(maxtime, opt.circuit_file,
                                            circuit)) {
@@ -254,7 +256,7 @@ int main(int argc, char* argv[]) {
 
   auto noisy_circuits = AddNoise(circuit, opt.times, channel1, channel2);
 
-  auto observables = GetObservables<GateQSim<fp_type>>(circuit.num_qubits);
+  auto observables = GetObservables<Gate>(circuit.num_qubits);
 
   std::vector<std::vector<std::vector<std::complex<double>>>> results;
   results.reserve(opt.num_trajectories);
