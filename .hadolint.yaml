@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Hadolint (a Dockerfile linter) used in this project's CI checks.
+# Summary: configure the Dockerfile linter "hadolint" for this project.
 # Info about options can be found at https://github.com/hadolint/hadolint/.
 # Rule/error numbers are described at https://github.com/hadolint/hadolint/wiki
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 format: tty
 no-color: false

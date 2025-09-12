@@ -13,8 +13,7 @@
   // See the License for the specific language governing permissions and
   // limitations under the License.
 
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Markdownlint linter configuration for this project.
+  // Summary: configure markdownlint for this project.
   //
   // Note: there are multiple programs programs named "markdownlint". We use
   // https://github.com/igorshubovych/markdownlint-cli/, which is the one you
@@ -28,7 +27,6 @@
   // https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
   // (Beware that the above looks similar but is NOT the same as the page
   // https://github.com/markdownlint/markdownlint/blob/main/docs/RULES.md.)
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
 
