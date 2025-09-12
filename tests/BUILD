@@ -77,6 +77,7 @@ cc_test(
         "//lib:gates_cirq",
         "//lib:io",
         "//lib:qtrajectory",
+        "//lib:run_qsim",
         "//lib:simulator",
     ],
     copts = select({
@@ -260,6 +261,10 @@ cc_test(
     deps = [
         ":qtrajectory_testfixture",
         "@com_google_googletest//:gtest_main",
+        "//lib:fuser_mqubit",
+        "//lib:gates_cirq",
+        "//lib:io",
+        "//lib:run_qsim",
         "//lib:seqfor",
         "//lib:simulator_avx",
     ],
