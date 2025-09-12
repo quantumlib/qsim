@@ -38,6 +38,9 @@ indent_size = 4
 [{CMakeLists.txt,*.cmake}]
 indent_size = 4
 
+[{Makefile,makefile,*.mk}]
+indent_size = 4
+
 [{*.cc,*.h}]
 indent_size = 2
 
