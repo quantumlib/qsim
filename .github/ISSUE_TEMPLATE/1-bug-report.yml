@@ -1,9 +1,10 @@
 name: Bug report
 description: Report a problem with qsim or this project
+type: Bug
 body:
   - type: markdown
     attributes:
-      value: |
+      value: >-
         Thank you for taking the time to open an issue report. Before
         continuing, it's worth [searching through the existing issues in this
         repository](https://github.com/quantumlib/qsim/issues?q=is%3Aissue) in
