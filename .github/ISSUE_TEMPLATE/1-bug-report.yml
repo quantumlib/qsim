@@ -1,9 +1,10 @@
 name: Bug report
 description: Report a problem with qsim or this project
+type: Bug
 body:
   - type: markdown
     attributes:
-      value: |
+      value: >-
         Thank you for taking the time to open an issue report. Before
         continuing, it's worth [searching through the existing issues in this
         repository](https://github.com/quantumlib/qsim/issues?q=is%3Aissue) in
@@ -59,7 +60,8 @@ body:
       label: Tell us the computing environment (if relevant)
       description: >-
         Please tell us if you are using Linux, macOS, Windows, Google Colab, or
-        something else, and its version.
+        something else, and its version. If you are trying to use a GPU and
+        CUDA, please tell us the model of GPU and version of CUDA.
       placeholder: >-
         Describe the computing environment and its version here
     validations:
