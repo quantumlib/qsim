@@ -60,7 +60,8 @@ body:
       label: Tell us the computing environment (if relevant)
       description: >-
         Please tell us if you are using Linux, macOS, Windows, Google Colab, or
-        something else, and its version.
+        something else, and its version. If you are trying to use a GPU and
+        CUDA, please tell us the model of GPU and version of CUDA.
       placeholder: >-
         Describe the computing environment and its version here
     validations:
