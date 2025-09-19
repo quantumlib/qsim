@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Common editor configurations for this project.
-#
-# EditorConfig is a file format for specifying some common style parameters.
+# Summary: define basic code editor style parameters for this project.
+
 # Many IDEs & editors read .editorconfig files, either natively or via plugins.
 # We mostly follow Google's style guides (https://google.github.io/styleguide/)
 # with only a few deviations for line length and indentation in some files.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 root = true
 
@@ -41,6 +38,10 @@ indent_size = 4
 [{CMakeLists.txt,*.cmake}]
 indent_size = 4
 
+[{Makefile,makefile,*.mk}]
+indent_style = tab
+indent_size = 4
+
 [{*.cc,*.h}]
 indent_size = 2
 
@@ -51,7 +52,7 @@ indent_size = 2
 indent_size = 4
 
 [*.sh]
-indent_size = 2
+indent_size = 4
 
 [{*.yaml,*.yml}]
 indent_size = 2
