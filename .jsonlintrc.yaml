@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Project configuration for jsonlint (https://github.com/prantlf/jsonlint).
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Summary: configure https://github.com/prantlf/jsonlint for this project.
 
 comments: false
 compact: true
 continue: true
 endOfLine: lf
+# Note: if you change indentation or line length, update .editorconfig too.
 indent: 2
 log-files: false
 no-duplicate-keys: true
