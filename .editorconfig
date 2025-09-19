@@ -39,6 +39,7 @@ indent_size = 4
 indent_size = 4
 
 [{Makefile,makefile,*.mk}]
+indent_style = tab
 indent_size = 4
 
 [{*.cc,*.h}]
