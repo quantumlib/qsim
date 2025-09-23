@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: run the OSSF Scorecard scanner on PRs and every night.
-#
+name: Scorecard analysis
+run-name: Run Scorecard scanner for security best practices
+
 # Scorecard (https://github.com/ossf/scorecard) is a repository-scanning tool
 # that evaluates a project's security practices. Its use is suggested by
 # Google's GitHub team. Scorecard's findings are reported in a repo's scanning
 # results page, https://github.com/quantumlib/REPO/security/code-scanning/.
-
-name: Scorecard analysis
-run-name: Run Scorecard scanner for security best practices
 
 on:
   schedule:

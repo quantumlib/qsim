@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: run the Open Source Vulnerabilities scanner on PRs & weekly.
-#
+name: OSV vulnerabilities scan
+run-name: Run open-source vulnerabilities (OSV) scanner
+
 # The OSV scanner is a dependency vulnerability scanner that identifies known
 # vulnerabilities in a project's dependencies. It supports C/C++, Python, Java,
 # JavaScript, and others. The findings are reported in the repo's code-scanning
 # results page, https://github.com/quantumlib/REPO/security/code-scanning/.
 # For more OSV scanner examples and options, including how to ignore specific
 # vulnerabilities, see https://google.github.io/osv-scanner/github-action/.
-
-name: OSV vulnerabilities scan
-run-name: Run open-source vulnerabilities (OSV) scanner
 
 on:
   schedule:
@@ -148,6 +146,6 @@ jobs:
           path: osv-results.sarif
           retention-days: 5
 
-      - name: Error troubleshooter
+      - name: Print an alert message if an error occurred
         if: ${{always() && steps.upload_artifact.outcome == 'failure'}}
         run: echo '::error::Artifact upload failed. Check the workflow logs.'
