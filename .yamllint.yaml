@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Yamllint configuration to match project settings like line length.
+# Summary: configure yamllint for this project.
 # See https://yamllint.readthedocs.io/ for info about configuration options.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 rules:
   line-length:
+    # Note: if you change the line length here, update .editorconfig too.
     max: 80
     # When the last item on a line can't be broken (e.g., a URL as a value),
     # it's rarely useful to flag it. The next 2 settings save developer time by
