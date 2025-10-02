@@ -151,7 +151,7 @@ setup(
         "packaging",
         "setuptools>=75.2.0",
         "pybind11[global]",
-        "cmake~=3.31.0",
+        "cmake~=3.28.0",
     ],
     extras_require={
         "dev": dev_requirements,
