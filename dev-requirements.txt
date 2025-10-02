@@ -1,5 +1,5 @@
 black~=25.1.0
-cmake~=3.28.0
+cmake~=3.28.1
 flynt~=1.0
 pytest
 pytest-xdist
