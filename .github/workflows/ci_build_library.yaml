@@ -53,7 +53,7 @@ jobs:
     needs: find-changes
     runs-on: ${{matrix.conf.os}}
     continue-on-error: true
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
