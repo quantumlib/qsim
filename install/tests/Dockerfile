@@ -27,8 +27,8 @@ RUN apt-get update && \
 
 # Ubuntu 24's version of CMake is 3.28. We need a newer version.
 RUN apt-get remove --purge --auto-remove cmake
-RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.31.7/cmake-3.31.7-linux-x86_64.sh && \
-    sh cmake-3.31.7-linux-x86_64.sh --prefix=/usr/local --skip-license
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.28.1/cmake-3.28.1-linux-x86_64.sh && \
+    sh cmake-3.28.1-linux-x86_64.sh --prefix=/usr/local --skip-license
 
 # Copy qsim files from the outside-Docker location to an inside-Docker location.
 COPY ./ /qsim/
