@@ -27,7 +27,7 @@ flags.DEFINE_string("output_dir", "/tmp/qsim_api", "Where to output the docs")
 
 flags.DEFINE_string(
     "code_url_prefix",
-    ("https://github.com/quantumlib/qsim/tree/master/" "qsimcirq"),
+    ("https://github.com/quantumlib/qsim/tree/main/" "qsimcirq"),
     "The url prefix for links to code.",
 )
 
