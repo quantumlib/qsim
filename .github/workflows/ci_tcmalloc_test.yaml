@@ -18,7 +18,6 @@ run-name: Test with TCMalloc (thread-caching malloc)
 on:
   push:
     branches:
-      - master
       - main
 
   pull_request:

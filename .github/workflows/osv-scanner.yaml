@@ -31,7 +31,6 @@ on:
     types: [opened, synchronize]
     branches:
       - main
-      - master
 
   # Support merge queues.
   merge_group:

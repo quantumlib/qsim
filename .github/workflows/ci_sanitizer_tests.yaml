@@ -18,7 +18,6 @@ run-name: Test with address and memory sanitizers
 on:
   push:
     branches:
-      - master
       - main
 
   pull_request:

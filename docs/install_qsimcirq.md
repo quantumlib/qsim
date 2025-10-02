@@ -5,7 +5,7 @@ For all others, Dockerfiles are provided to install qsim in a containerized
 environment.
 
 **Note:** The core qsim library (under
-[lib/](https://github.com/quantumlib/qsim/blob/master/lib)) can be included
+[lib/](https://github.com/quantumlib/qsim/blob/main/lib)) can be included
 directly in C++ code without building and installing the qsimcirq interface.
 
 ## Before installation
@@ -14,12 +14,12 @@ Prior to installation, consider opening a
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 
 Prerequisites are included in the
-[`requirements.txt`](https://github.com/quantumlib/qsim/blob/master/requirements.txt)
+[`requirements.txt`](https://github.com/quantumlib/qsim/blob/main/requirements.txt)
 file, and will be automatically installed along with qsimcirq.
 
 If you'd like to develop qsimcirq, a separate set of dependencies are includes
 in the
-[`dev-requirements.txt`](https://github.com/quantumlib/qsim/blob/master/dev-requirements.txt)
+[`dev-requirements.txt`](https://github.com/quantumlib/qsim/blob/main/dev-requirements.txt)
 file. You can install them with `pip3 install -r dev-requirements.txt` or
 `pip3 install qsimcirq[dev]`.
 

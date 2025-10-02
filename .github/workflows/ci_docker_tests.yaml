@@ -18,7 +18,6 @@ run-name: Build Docker images and test them
 on:
   push:
     branches:
-      - master
       - main
 
   pull_request:
