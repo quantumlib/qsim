@@ -44,7 +44,7 @@ directory.
 make run-py-tests
 ```
 This will run
-[qsimcirq_test](https://github.com/quantumlib/qsim/blob/master/qsimcirq_tests/qsimcirq_test.py),
+[qsimcirq_test](https://github.com/quantumlib/qsim/blob/main/qsimcirq_tests/qsimcirq_test.py),
 which invokes qsim through the qsim-Cirq interface.
 
 ## Interface design and operations
@@ -79,7 +79,7 @@ average PC, or up to 40 qubits on high-performance VMs).
 Options for the simulator, including number of threads and verbosity, can be
 set with the `qsim_options` field, which accepts a `QSimOptions` object as
 defined in
-[qsim_simulator.py](https://github.com/quantumlib/qsim/blob/master/qsimcirq/qsim_simulator.py).
+[qsim_simulator.py](https://github.com/quantumlib/qsim/blob/main/qsimcirq/qsim_simulator.py).
 These options can also be passed as a {str: val} dict, using the format
 described by that class.
 
