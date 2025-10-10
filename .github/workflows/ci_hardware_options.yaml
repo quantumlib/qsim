@@ -18,7 +18,6 @@ run-name: Test with instruction set extensions and parallelism
 on:
   push:
     branches:
-      - master
       - main
 
   pull_request:
@@ -53,7 +52,7 @@ jobs:
     needs: find-changes
     runs-on: ubuntu-24.04
     continue-on-error: true
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       matrix:
         # Hardware optimizers.

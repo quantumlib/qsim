@@ -27,7 +27,7 @@
 namespace qsim {
 
 /**
- * Parser for the (deprecated) qsim <a href="https://github.com/quantumlib/qsim/blob/master/docs/input_format.md">file input format</a>.
+ * Parser for the (deprecated) qsim <a href="https://github.com/quantumlib/qsim/blob/main/docs/input_format.md">file input format</a>.
  * The primary supported interface for designing circuits to simulate with qsim
  * is <a href="https://github.com/quantumlib/Cirq">Cirq</a>, which relies on
  * the Python-based qsimcirq interface. For C++ applications, Cirq gates can be
