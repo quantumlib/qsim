@@ -13,9 +13,9 @@ of qsim in cross-entropy benchmarks
 
 Integration with [Cirq](https://github.com/quantumlib/Cirq) makes getting
 started with qsim easy! Check out the
-[installation guide](https://github.com/quantumlib/qsim/blob/master/docs/install_qsimcirq.md)
+[installation guide](https://github.com/quantumlib/qsim/blob/main/docs/install_qsimcirq.md)
 or try the runnable
-[notebook tutorial](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb).
+[notebook tutorial](https://github.com/quantumlib/qsim/blob/main/docs/tutorials/qsimcirq.ipynb).
 
 ## Design
 
