@@ -227,7 +227,7 @@ Instances dashboard to prevent further billing.
 
 You are now ready to run your own large simulations on Google Cloud. If you want
 to try a large circuit on Google Cloud, you can connect the
-[Simulate a large quantum circuit](https://colab.sandbox.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/q32d14.ipynb)
+[Simulate a large quantum circuit](https://colab.sandbox.google.com/github/quantumlib/qsim/blob/main/docs/tutorials/q32d14.ipynb)
 Colab notebook to your VM
 ([documentation](https://quantumai.google/qsim/tutorials/q32d14)).
 

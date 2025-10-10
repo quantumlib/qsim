@@ -56,9 +56,9 @@ vol.&nbsp;574](https://www.nature.com/articles/s41586-019-1666-5), 2019).
 ### C++ usage
 
 The code is basically designed as a library. The user can modify sample
-applications in [apps](https://github.com/quantumlib/qsim/tree/master/apps)
+applications in [apps](https://github.com/quantumlib/qsim/tree/main/apps)
 to meet their own needs. The usage of sample applications is described in the
-[docs](https://github.com/quantumlib/qsim/blob/master/docs/usage.md).
+[docs](https://github.com/quantumlib/qsim/blob/main/docs/usage.md).
 
 ### Python usage
 
@@ -78,7 +78,7 @@ conda install -c conda-forge qsimcirq
 ```
 
 _Note_: The core qsim library (located in the source repository under the
-[`lib/`](https://github.com/quantumlib/qsim/blob/master/lib) subdirectory) can
+[`lib/`](https://github.com/quantumlib/qsim/blob/main/lib) subdirectory) can
 be included directly in C++ programs without installing the Python interface.
 
 ### Cirq usage
@@ -87,10 +87,10 @@ be included directly in C++ programs without installing the Python interface.
 invoking Noisy Intermediate-Scale Quantum (NISQ) circuits. Cirq can use qsim
 as its simulation library. To get started with simulating Cirq circuits using
 qsim, please refer to the
-[tutorial](https://github.com/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb).
+[tutorial](https://github.com/quantumlib/qsim/blob/main/docs/tutorials/qsimcirq.ipynb).
 
 More detailed information about the qsim-Cirq API can be found in the
-[docs](https://github.com/quantumlib/qsim/blob/master/docs/cirq_interface.md).
+[docs](https://github.com/quantumlib/qsim/blob/main/docs/cirq_interface.md).
 
 ### Input format
 
@@ -98,20 +98,20 @@ More detailed information about the qsim-Cirq API can be found in the
 > This format is deprecated, and no longer actively maintained.
 
 The circuit input format is described in the
-[docs](https://github.com/quantumlib/qsim/blob/master/docs/input_format.md).
+[docs](https://github.com/quantumlib/qsim/blob/main/docs/input_format.md).
 
 ### Sample circuits
 
 A number of sample circuits are provided in
-[circuits](https://github.com/quantumlib/qsim/tree/master/circuits).
+[circuits](https://github.com/quantumlib/qsim/tree/main/circuits).
 
 ### Unit tests
 
 Unit tests for C++ libraries use the
 [GoogleTest](https://github.com/google/googletest) framework, and are located in
-[tests](https://github.com/quantumlib/qsim/tree/master/tests). Python tests use
+[tests](https://github.com/quantumlib/qsim/tree/main/tests). Python tests use
 [pytest](https://docs.pytest.org/en/stable/), and are located in
-[qsimcirq_tests](https://github.com/quantumlib/qsim/tree/master/qsimcirq_tests).
+[qsimcirq_tests](https://github.com/quantumlib/qsim/tree/main/qsimcirq_tests).
 
 To build and run all tests, run:
 
