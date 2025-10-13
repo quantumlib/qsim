@@ -345,7 +345,9 @@ def test_confusion_matrix_exception():
     x, y = sympy.Symbol("x"), sympy.Symbol("y")
     prs = [{x: np.int64(0), y: np.int64(1)}]
     qsim_simulator = qsimcirq.QSimSimulator()
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Confusion Matrices are not currently supported"
+    ):
         _ = qsim_simulator.simulate_sweep(circuit, params=prs)
 
 

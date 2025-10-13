@@ -374,13 +374,11 @@ class QSimCircuit(cirq.Circuit):
             for _, op, _ in self.findall_operations_with_gate_type(cirq.MeasurementGate)
             if op.gate.confusion_map
         ]
-        for confusion_map in confusion_maps_on_measurement_gates:
-            for map_values in confusion_map.values():
-                if map_values:
-                    raise ValueError(
-                        "Confusion Matrices are not currently supported in Qsim. "
-                        "See https://github.com/quantumlib/Cirq/issues/6305 for latest status"
-                    )
+        if confusion_maps_on_measurement_gates:
+            raise ValueError(
+                "Confusion Matrices are not currently supported in Qsim. "
+                "See https://github.com/quantumlib/Cirq/issues/6305 for latest status"
+            )
 
     def translate_cirq_to_qsim(
         self, qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT
