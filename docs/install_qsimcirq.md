@@ -51,18 +51,6 @@ with `Python 3.{10,11,12,13}`.
 
 Simply run `pip3 install qsimcirq`.
 
-## Conda Installation
-
-`qsimcirq` is also available on conda-forge for Linux x86 including CUDA builds
-and MacOS x86 and Apple Silicon ARM64. To install `qsimcirq` using conda, you
-can use the following command:
-
-```
-conda install -c conda-forge qsimcirq
-```
-
-This will install the `qsimcirq` package from the conda-forge channel.
-
 ## Help! There's no compatible wheel for my machine!
 
 If existing wheels do no meet your needs, please open an issue with your
