@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: OSV vulnerabilities scan
+name: OSV scan
 run-name: Run open-source vulnerabilities (OSV) scanner
 
 # The OSV scanner is a dependency vulnerability scanner that identifies known
