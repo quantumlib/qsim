@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Nightly Cirq compatibility test'
+name: 'Cirq dev compatibility test'
 run-name: Regularly test code against latest Cirq dev release
 
 on:
@@ -64,6 +64,5 @@ jobs:
 
       - name: Run Python tests
         env:
-          MAKEFLAGS: ${{inputs.debug && '--debug=b' || '' }}
           PYTEST_ADDOPTS: ${{inputs.debug && '-v' || '' }}
         run: make -j run-py-tests

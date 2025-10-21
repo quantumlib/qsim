@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Label PRs with labels such as size. Note that this workflow is designed not to
-# fail if labeling actions encounter errors; instead, it writes error messages
-# as annotations on the workflow's run summary page. If labels don't seem to be
-# getting applied, check the run summary page for errors.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-name: Label pull requests
+name: Pull request labeler
 run-name: >-
   Label pull request ${{github.event.pull_request.number}} by ${{github.actor}}
+
+# This workflow is designed NOT to fail if labeling actions encounter errors;
+# instead, it notes errors as annotations on the workflow's run summary page. If
+# labels don't seem to be getting applied, check there for errors.
 
 on:
   # Note: do not copy-paste this workflow with `pull_request_target` left as-is.
@@ -32,6 +29,7 @@ on:
       - opened
       - synchronize
 
+  # Allow manual invocation.
   workflow_dispatch:
     inputs:
       pr-number:
@@ -39,10 +37,11 @@ on:
         type: string
         required: true
       debug:
-        description: 'Run with debugging turned on'
+        description: 'Run with debugging options'
         type: boolean
         default: true
 
+# Declare default workflow permissions as read only.
 permissions: read-all
 
 jobs:
@@ -56,9 +55,9 @@ jobs:
       issues: write
       pull-requests: write
     env:
+      # Environment variable PR_NUMBER is needed by size-labeler.sh.
       PR_NUMBER: ${{inputs.pr-number || github.event.pull_request.number}}
-      # The next var is used by Bash. We add 'xtrace' to the options if this run
-      # is a workflow_dispatch invocation and the user set the 'trace' option.
+      # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
       SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
     steps:
       - name: Check out a copy of the git repository
@@ -68,7 +67,6 @@ jobs:
             ./dev_tools/ci/size-labeler.sh
 
       - name: Label the PR with a size label
-        id: label
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
