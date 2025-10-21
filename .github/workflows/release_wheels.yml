@@ -41,7 +41,7 @@ jobs:
     name: Publish wheels
     needs: build-wheels
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
     - name: Retrieve saved wheels
       uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
@@ -51,7 +51,7 @@ jobs:
         merge-multiple: true
 
     - name: Publish wheels on PyPI
-      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # release/v1
       with:
         user: __token__
         password: ${{secrets.PYPI_API_TOKEN}}

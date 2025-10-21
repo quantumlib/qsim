@@ -153,7 +153,7 @@ The container port is now forwarded to your local machine.
 ## Connect Colab to your local runtime
 
 First, get a notebook up and running on Colab. Open the
-<a target="_blank" class="external" href="https://colab.research.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/qsimcirq.ipynb">Get started with qsimcirq</a>
+<a target="_blank" class="external" href="https://colab.research.google.com/github/quantumlib/qsim/blob/main/docs/tutorials/qsimcirq.ipynb">Get started with qsimcirq</a>
 notebook in Colab.
 
 If you are connect to Colab with a notebook visible, you can click *Connect* to
@@ -175,7 +175,7 @@ You should now be able to run the cells in the notebook.
 
 A large circuit is provided with 32 qubits and a depth of 14 gate operations.
 Open the
-<a target="_blank" class="external" href="https://colab.research.google.com/github/quantumlib/qsim/blob/master/docs/tutorials/q32d14.ipynb">Simulate large quantum circuit</a>
+<a target="_blank" class="external" href="https://colab.research.google.com/github/quantumlib/qsim/blob/main/docs/tutorials/q32d14.ipynb">Simulate large quantum circuit</a>
 notebook in Colab.
 
 This large circuit will not succeed if you attempt to run the default runtime.
