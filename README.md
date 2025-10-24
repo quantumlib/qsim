@@ -88,11 +88,6 @@ qsim, please refer to the
 More detailed information about the qsim-Cirq API can be found in the
 [docs](https://github.com/quantumlib/qsim/blob/main/docs/cirq_interface.md).
 
-### Sample circuits
-
-A number of sample circuits are provided in
-[circuits](https://github.com/quantumlib/qsim/tree/main/circuits).
-
 ### Unit tests
 
 Unit tests for C++ libraries use the
