@@ -17,11 +17,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import cirq
-
 import numpy as np
 
-from . import qsim, qsim_gpu, qsim_custatevec
 import qsimcirq.qsim_circuit as qsimc
+
+from . import qsim, qsim_custatevec, qsim_gpu
 
 
 # This should probably live in Cirq...
@@ -389,7 +389,7 @@ class QSimSimulator(
               string array where each string is formed from measured qubit values
               according to `qubit_order` from most to least significant qubit,
               i.e., in big-endian ordering.
-            param_resolver: Parameters to run with the program.
+            params: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This is
               often used in specifying the initial state, i.e., the ordering of the
               computational basis states.

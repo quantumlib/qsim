@@ -16,8 +16,9 @@ from typing import Sequence
 
 import cirq
 
-from . import qsim
 import qsimcirq.qsim_circuit as qsimc
+
+from . import qsim
 
 
 class QSimhSimulator(cirq.SimulatesAmplitudes):
