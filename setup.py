@@ -47,8 +47,8 @@ class CMakeBuild(build_ext):
             cmake_version = parse(
                 re.search(r"version\s*([\d.]+)", out.decode()).group(1)
             )
-            if cmake_version < parse("3.31.0"):
-                raise RuntimeError("CMake >= 3.31.0 is required on Windows")
+            if cmake_version < parse("3.28.0"):
+                raise RuntimeError("CMake >= 3.28.0 is required on Windows")
 
         for ext in self.extensions:
             self.build_extension(ext)
@@ -151,7 +151,7 @@ setup(
         "packaging",
         "setuptools>=75.2.0",
         "pybind11[global]",
-        "cmake~=3.31.0",
+        "cmake~=3.28.1",
     ],
     extras_require={
         "dev": dev_requirements,
