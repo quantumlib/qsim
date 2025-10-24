@@ -16,49 +16,52 @@ Zenodo](https://img.shields.io/badge/10.5281%2Fzenodo.4023103-gray.svg?label=DOI
 
 [Features](#features) &ndash;
 [Usage](#usage) &ndash;
-[Documentation](#cirq-documentation) &ndash;
-[Citing qsim](#citing-qsim) &ndash;
+[Documentation](#documentation) &ndash;
+[Citing qsim](#how-to-cite-qsim) &ndash;
 [Contact](#contact)
 
 </div>
 
-_qsim_ is a state-vector simulator for quantum circuits. It is highly tuned to
-take advantage of vector arithmetic instruction sets and multithreading on
-computers that provide them, as well as GPUs when available. qsim also provides
-a [Cirq](https://quantumai.google/cirq) interface (`qsimcirq`) and can be used
-to simulate quantum circuits written in Cirq.
+_qsim_ is a state-vector simulator for quantum circuits. Also known as a
+_Schrödinger_ simulator, it represents a quantum state as a vector of
+complex-valued amplitudes (a _state vector_) and applies matrix-vector
+multiplication to simulate transformations that evolve the state over time.
 
-## Introduction
-
-qsim is a Schrödinger full state-vector simulator: it models quantum
-computations by representing the quantum state of a system as a vector of
-complex numbers (a _state vector_) and evolving it through the application of
-quantum gates. One matrix-vector multiplication corresponds to the application
-of one gate. Essentially, the simulator performs matrix-vector multiplications
-repeatedly.
-
-Being a _full_ state-vector simulator means that qsim computes all the
-*2<sup> n</sup>* amplitudes of the state vector, where *n* is the number of
-qubits. The total runtime is proportional to *g2<sup> n</sup>*, where *g* is the
-number of 2-qubit gates. To speed up simulation, qsim uses gate fusion
-(Smelyanskiy et al., [arXiv:1601.07195](https://arxiv.org/abs/1601.07195), 2016;
-Häner and Steiger, [arXiv:1704.01127](https://arxiv.org/abs/1704.01127), 2017),
-single-precision arithmetic, AVX/FMA instructions for vectorization, and
-OpenMP for multithreading (on hardware that provides those features).
-
-qsim was used to produce landmark cross-entropy benchmarking results published
+qsim was used to produce landmark cross-entropy benchmark results published
 in 2019 (Arute et al., "Quantum Supremacy Using a Programmable Superconducting
 Processor", [Nature
 vol.&nbsp;574](https://www.nature.com/articles/s41586-019-1666-5), 2019).
+
+## Features
+
+Being a _full_ state-vector simulator means that qsim computes all the
+_2<sup> n</sup>_ amplitudes of the state vector, where _n_ is the number of
+qubits. The total runtime is proportional to _g2<sup>n</sup>_, where _g_ is the
+number of 2-qubit gates.
+
+*   To speed up simulation, qsim uses gate fusion (Smelyanskiy et al.,
+    [arXiv:1601.07195](https://arxiv.org/abs/1601.07195), 2016; Häner and
+    Steiger, [arXiv:1704.01127](https://arxiv.org/abs/1704.01127), 2017),
+    single-precision arithmetic, AVX/FMA instructions for vectorization, and
+    OpenMP for multithreading (on hardware that provides those features).
+
+*   qsim is highly tuned to take advantage of vector arithmetic instruction sets
+    and multithreading on computers that provide them, as well as GPUs when
+    available.
+
+*   qsim includes a [Cirq](https://quantumai.google/cirq) interface (`qsimcirq`)
+    and can be used to simulate quantum circuits written in Cirq.
 
 ## Usage
 
 ### C++ usage
 
-The code is basically designed as a library. The user can modify sample
-applications in [apps](https://github.com/quantumlib/qsim/tree/main/apps)
-to meet their own needs. The usage of sample applications is described in the
-[docs](https://github.com/quantumlib/qsim/blob/main/docs/usage.md).
+The code is designed as a library that can be included in users' applications.
+The sample applications provided in the qsim
+[apps](https://github.com/quantumlib/qsim/tree/main/apps) directory can be used
+as starting points. More information about the sample applications can be found
+in the qsim
+[documentation](https://github.com/quantumlib/qsim/blob/main/docs/usage.md).
 
 ### Python usage
 
@@ -68,13 +71,6 @@ following command:
 
 ```shell
 pip install qsimcirq
-```
-
-`qsimcirq` is also available for Conda for Linux and MacOS. To install it from
-conda-forge, you can use the following command:
-
-```shell
-conda install -c conda-forge qsimcirq
 ```
 
 _Note_: The core qsim library (located in the source repository under the
@@ -91,19 +87,6 @@ qsim, please refer to the
 
 More detailed information about the qsim-Cirq API can be found in the
 [docs](https://github.com/quantumlib/qsim/blob/main/docs/cirq_interface.md).
-
-### Input format
-
-> [!WARNING]
-> This format is deprecated, and no longer actively maintained.
-
-The circuit input format is described in the
-[docs](https://github.com/quantumlib/qsim/blob/main/docs/input_format.md).
-
-### Sample circuits
-
-A number of sample circuits are provided in
-[circuits](https://github.com/quantumlib/qsim/tree/main/circuits).
 
 ### Unit tests
 
@@ -126,29 +109,30 @@ of the `qsimcirq` python interface. To run C++ or python tests only, run
 
 To clean up generated test files, run `make clean` from the test directory
 
-## qsim documentation
+## Documentation
 
 Please visit the [qsim documentation site](https://quantumai.google/qsim)
 guides, tutorials, and API reference documentation.
 
+## How to cite qsim<a name="citing-qsim"></a><a name="how-to-cite"></a>
 
-## How to cite qsim<a name="how-to-cite-qsim"></a><a name="how-to-cite"></a>
+When publishing articles or otherwise writing about qsim, please cite the qsim
+version you use – it will help others reproduce your results. We use Zenodo to
+preserve releases. The following links let you download the bibliographic
+record for the latest stable release of qsim in some popular formats:
 
-Qsim is uploaded to Zenodo automatically. Click on this badge [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4023103.svg)](https://doi.org/10.5281/zenodo.4023103) to see all the citation formats for all versions.
+<div align="center">
 
-An equivalent BibTeX format reference is below for all the versions:
+[![Download BibTeX bibliography record for latest qsim
+release](https://img.shields.io/badge/Download%20record-e0e0e0.svg?style=flat-square&logo=LaTeX&label=BibTeX&labelColor=106f6e)](https://zenodo.org/records/4067237/export/bibtex)&nbsp;&nbsp;
+[![Download CSL JSON bibliography record for latest qsim
+release](https://img.shields.io/badge/Download%20record-e0e0e0.svg?style=flat-square&label=CSL&labelColor=2d98e0&logo=json)](https://zenodo.org/records/4067237/export/csl)
 
-```bibtex
-@software{quantum_ai_team_and_collaborators_2020_4023103,
-  author       = {Quantum AI team and collaborators},
-  title        = {qsim},
-  month        = Sep,
-  year         = 2020,
-  publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.4023103},
-  url          = {https://doi.org/10.5281/zenodo.4023103}
-}
-```
+</div>
+
+For formatted citations and records in other formats, as well as records for all
+releases of qsim past and present, please visit the [qsim page on
+Zenodo](https://doi.org/10.5281/zenodo.4023103).
 
 ## Contact
 
