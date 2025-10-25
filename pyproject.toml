@@ -27,3 +27,7 @@ repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = "*musllinux*"
+
+[tool.black]
+target-version = ['py310', 'py311', 'py312', 'py313']
+extend-exclude = 'third_party'
