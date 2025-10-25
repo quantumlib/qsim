@@ -21,8 +21,8 @@
 root = true
 
 # IMPORTANT: some of the other config files (.markdownlintrc, .jsonlintrc.yaml,
-# etc.) also have settings for indent and line length. When making changes to
-# this file, make sure to update the other files to match.
+# pyproject.toml, etc.) also have settings for indent and line length. When
+# making changes to this file, make sure to update the other files to match.
 
 [*]
 charset = utf-8
@@ -50,6 +50,8 @@ indent_size = 2
 
 [*.py]
 indent_size = 4
+# This is the Black default line length.
+max_line_length = 88
 
 [*.sh]
 indent_size = 4
