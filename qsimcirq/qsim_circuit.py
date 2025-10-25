@@ -383,8 +383,7 @@ class QSimCircuit(cirq.Circuit):
     def translate_cirq_to_qsim(
         self, qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT
     ) -> qsim.Circuit:
-        """
-        Translates this Cirq circuit to the qsim representation.
+        """Translates this Cirq circuit to the qsim representation.
         :qubit_order: Ordering of qubits
         :return: a tuple of (C++ qsim Circuit object, moment boundary
             gate indices)
@@ -436,8 +435,7 @@ class QSimCircuit(cirq.Circuit):
     def translate_cirq_to_qtrajectory(
         self, qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT
     ) -> qsim.NoisyCircuit:
-        """
-        Translates this noisy Cirq circuit to the qsim representation.
+        """Translates this noisy Cirq circuit to the qsim representation.
         :qubit_order: Ordering of qubits
         :return: a tuple of (C++ qsim NoisyCircuit object, moment boundary
             gate indices)
