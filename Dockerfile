@@ -53,6 +53,6 @@ RUN python3 -m pip install -r /qsim/requirements.txt && \
 
 # Compile qsim.
 WORKDIR /qsim/
-RUN make qsim
+RUN make -j qsim
 
 ENTRYPOINT ["/qsim/apps/qsim_base.x"]
