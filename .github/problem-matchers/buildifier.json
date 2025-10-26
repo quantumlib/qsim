@@ -1,13 +1,14 @@
 {
   "problemMatcher": [
     {
-      "owner": "hadolint",
+      "owner": "buildifier",
       "pattern": [
         {
-          "regexp": "^(.+?):(\\d+)\\s+(.*)$",
+          "regexp": "^(.+?):(\\d+):(\\d+): (.+)$",
           "file": 1,
           "line": 2,
-          "message": 3
+          "column": 3,
+          "message": 4
         }
       ]
     }
