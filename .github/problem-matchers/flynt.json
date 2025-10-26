@@ -1,10 +1,11 @@
 {
   "problemMatcher": [
     {
-      "owner": "json-lint",
+      "owner": "flynt",
+      "severity": "warning",
       "pattern": [
         {
-          "regexp": "^(.+):\\sline\\s(\\d+),\\scol\\s(\\d+),\\s(.+)$",
+          "regexp": "^(.*?):(\\d+):(\\d+):(.*)$",
           "file": 1,
           "line": 2,
           "column": 3,
