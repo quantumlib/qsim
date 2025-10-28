@@ -390,13 +390,13 @@ class QSimSimulator(
         Args:
             program: The circuit to simulate.
             bitstrings: The bitstrings whose amplitudes are desired, input as an
-              string array where each string is formed from measured qubit values
-              according to `qubit_order` from most to least significant qubit,
-              i.e., in big-endian ordering.
+                string array where each string is formed from measured qubit values
+                according to `qubit_order` from most to least significant qubit,
+                i.e., in big-endian ordering.
             params: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This is
-              often used in specifying the initial state, i.e., the ordering of the
-              computational basis states.
+                often used in specifying the initial state, i.e., the ordering of the
+                computational basis states.
 
         Yields:
             Amplitudes.
@@ -473,17 +473,19 @@ class QSimSimulator(
         num_qubits = len(qsim_order)
         if isinstance(initial_state, np.ndarray):
             if initial_state.dtype != np.complex64:
-                raise TypeError(f"initial_state vector must have dtype np.complex64.")
+                raise TypeError("initial_state vector must have dtype np.complex64.")
             input_vector = initial_state.view(np.float32)
             if len(input_vector) != 2**num_qubits * 2:
                 raise ValueError(
-                    f"initial_state vector size must match number of qubits."
+                    "initial_state vector size must match number of qubits. "
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
                 )
 
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            fullstate_simulator_fn = self._sim_module.qtrajectory_simulate_fullstate
+            fullstate_simulator_fn = (
+                self._sim_module.qtrajectory_simulate_fullstate
+            )
         else:
             translator_fn_name = "translate_cirq_to_qsim"
             fullstate_simulator_fn = self._sim_module.qsim_simulate_fullstate
@@ -514,10 +516,11 @@ class QSimSimulator(
         qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
         initial_state: Any = None,
     ) -> Tuple[cirq.ParamResolver, np.ndarray, Sequence[int]]:
-        """Same as simulate() but returns raw simulation result without wrapping it.
+        """Same as simulate() but returns raw simulation result without
+        wrapping it.
 
-            The returned result is not wrapped in a StateVectorTrialResult but can be used
-            to create a StateVectorTrialResult.
+        The returned result is not wrapped in a StateVectorTrialResult but can be used
+        to create a StateVectorTrialResult.
 
         Returns:
             Tuple of (param resolver, final state, qubit order)
@@ -547,12 +550,12 @@ class QSimSimulator(
             program: The circuit to simulate.
             params: Parameters to run with the program.
             qubit_order: Determines the canonical ordering of the qubits. This is
-              often used in specifying the initial state, i.e., the ordering of the
-              computational basis states.
+                often used in specifying the initial state, i.e., the ordering of the
+                computational basis states.
             initial_state: The initial state for the simulation. This can either
-              be an integer representing a pure state (e.g. 11010) or a numpy
-              array containing the full state vector. If none is provided, this
-              is assumed to be the all-zeros state.
+                be an integer representing a pure state (e.g. 11010) or a numpy
+                array containing the full state vector. If none is provided, this
+                is assumed to be the all-zeros state.
 
         Returns:
             Iterator over SimulationTrialResults for this run, one for each
@@ -664,11 +667,11 @@ class QSimSimulator(
         param_resolvers = cirq.to_resolvers(params)
         if isinstance(initial_state, np.ndarray):
             if initial_state.dtype != np.complex64:
-                raise TypeError(f"initial_state vector must have dtype np.complex64.")
+                raise TypeError("initial_state vector must have dtype np.complex64.")
             input_vector = initial_state.view(np.float32)
             if len(input_vector) != 2**num_qubits * 2:
                 raise ValueError(
-                    f"initial_state vector size must match number of qubits."
+                    "initial_state vector size must match number of qubits. "
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
                 )
 
@@ -797,11 +800,11 @@ class QSimSimulator(
         param_resolver = cirq.to_resolvers(param_resolver)
         if isinstance(initial_state, np.ndarray):
             if initial_state.dtype != np.complex64:
-                raise TypeError(f"initial_state vector must have dtype np.complex64.")
+                raise TypeError("initial_state vector must have dtype np.complex64.")
             input_vector = initial_state.view(np.float32)
             if len(input_vector) != 2**num_qubits * 2:
                 raise ValueError(
-                    f"initial_state vector size must match number of qubits."
+                    "initial_state vector size must match number of qubits. "
                     f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
                 )
 

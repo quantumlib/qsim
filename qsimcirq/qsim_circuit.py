@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 import cirq
 import numpy as np
@@ -159,7 +158,7 @@ def _translate_MatrixGate(gate: cirq.MatrixGate):
         return qsim.kMatrixGate
     raise NotImplementedError(
         f"Received matrix on {gate.num_qubits()} qubits; "
-        + "only up to 6-qubit gates are supported."
+        "only up to 6-qubit gates are supported."
     )
 
 
@@ -219,7 +218,8 @@ def _control_details(
     assignments = list(gate.control_values.expand())
     if len(qubits) > 1 and len(assignments) > 1:
         raise ValueError(
-            f"Cannot translate controlled gate with multiple assignments for multiple qubits: {gate}"
+            "Cannot translate controlled gate with multiple assignments for "
+            f" multiple qubits: {gate}"
         )
     for q, cvs in zip(qubits, zip(*assignments)):
         if 0 in cvs and 1 in cvs:
@@ -227,9 +227,8 @@ def _control_details(
             continue
         elif any(cv not in (0, 1) for cv in cvs):
             raise ValueError(
-                f"Cannot translate control values other than 0 and 1: cvs={cvs}"
-            )
-        # Either 0 or 1 is in cvs, but not both.
+                f"Cannot translate control values other than 0 and 1: {cvs=}"
+            )        # Either 0 or 1 is in cvs, but not both.
         control_qubits.append(q)
         if 0 in cvs:
             control_values.append(0)
@@ -247,7 +246,7 @@ def add_op_to_opstring(
     """Adds an operation to an opstring (observable).
 
     Raises:
-      ValueError if qsim_op is not a single-qubit Pauli (I, X, Y, or Z).
+        ValueError if qsim_op is not a single-qubit Pauli (I, X, Y, or Z).
     """
     qsim_gate = qsim_op.gate
     gate_kind = _cirq_gate_kind(qsim_gate)
@@ -258,7 +257,7 @@ def add_op_to_opstring(
 
     is_controlled = isinstance(qsim_gate, cirq.ControlledGate)
     if is_controlled:
-        raise ValueError(f"OpString ops should not be controlled.")
+        raise ValueError("OpString ops should not be controlled.")
 
     qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
     qsim.add_gate_to_opstring(gate_kind, qubits, opstring)
@@ -289,7 +288,7 @@ def add_op_to_circuit(
         if num_targets > 4:
             raise NotImplementedError(
                 f"Received control gate on {num_targets} target qubits; "
-                + "only up to 4-qubit gates are supported."
+                "only up to 4-qubit gates are supported."
             )
 
         qsim_qubits = qubits[qsim_gate.num_controls() :]
@@ -366,18 +365,23 @@ class QSimCircuit(cirq.Circuit):
 
     def _check_for_confusion_matrix(self):
         """Checks cirq Circuit for Measurement Gates with confusion matrices.
+
         Returns:
-            Throws a runtime exception if a MeasurementGate with a confusion matrix is included in the circuit
+            Throws a runtime exception if a MeasurementGate with a confusion
+            matrix is included in the circuit.
         """
         confusion_maps_on_measurement_gates = [
             op.gate.confusion_map
-            for _, op, _ in self.findall_operations_with_gate_type(cirq.MeasurementGate)
+            for _, op, _ in self.findall_operations_with_gate_type(
+                cirq.MeasurementGate
+            )
             if op.gate.confusion_map
         ]
         if confusion_maps_on_measurement_gates:
             raise ValueError(
                 "Confusion Matrices are not currently supported in Qsim. "
-                "See https://github.com/quantumlib/Cirq/issues/6305 for latest status"
+                "See https://github.com/quantumlib/Cirq/issues/6305 "
+                "for latest status"
             )
 
     def translate_cirq_to_qsim(
@@ -474,15 +478,12 @@ class QSimCircuit(cirq.Circuit):
                     )
                     ops_by_gate.append(oplist)
                     moment_length = max(moment_length, len(oplist))
-                    pass
                 elif cirq.has_mixture(qsim_op):
                     ops_by_mix.append(qsim_op)
                     moment_length = max(moment_length, 1)
-                    pass
                 elif cirq.has_kraus(qsim_op):
                     ops_by_channel.append(qsim_op)
                     moment_length = max(moment_length, 1)
-                    pass
                 else:
                     raise ValueError(f"Encountered unparseable op: {qsim_op}")
 

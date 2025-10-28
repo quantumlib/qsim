@@ -315,13 +315,13 @@ def test_input_vector_validation():
 
     with pytest.raises(ValueError):
         initial_state = np.asarray([0.25] * 16, dtype=np.complex64)
-        qsim_result = qsimSim.simulate_sweep(
+        qsimSim.simulate_sweep(
             cirq_circuit, params, initial_state=initial_state
         )
 
     with pytest.raises(TypeError):
         initial_state = np.asarray([0.5] * 4)
-        qsim_result = qsimSim.simulate_sweep(
+        qsimSim.simulate_sweep(
             cirq_circuit, params, initial_state=initial_state
         )
 
@@ -334,6 +334,7 @@ def test_numpy_params():
 
     qsim_simulator = qsimcirq.QSimSimulator()
     qsim_result = qsim_simulator.simulate_sweep(circuit, params=prs)
+    assert qsim_result is not None
 
 
 def test_confusion_matrix_exception():
@@ -441,7 +442,7 @@ def test_cirq_qsim_run(mode: str):
     assert isinstance(qsimSim, cirq.SimulatesSamples)
 
     result = qsimSim.run(cirq_circuit, repetitions=5)
-    for key, value in result.measurements.items():
+    for _, value in result.measurements.items():
         assert value.shape == (5, 1)
 
 
@@ -1247,9 +1248,9 @@ def test_cirq_qsim_simulate_random_unitary(mode: str):
     q0, q1 = cirq.LineQubit.range(2)
     options = qsimcirq.QSimOptions(cpu_threads=16, verbosity=0)
     qsimSim = qsimcirq.QSimSimulator(qsim_options=options)
-    for iter in range(10):
+    for i in range(10):
         random_circuit = cirq.testing.random_circuit(
-            qubits=[q0, q1], n_moments=8, op_density=0.99, random_state=iter
+            qubits=[q0, q1], n_moments=8, op_density=0.99, random_state=i
         )
 
         random_circuit = cirq.optimize_for_target_gateset(
@@ -1984,7 +1985,7 @@ def test_cirq_qsim_circuit_memoization_run(mode: str):
 
     for _ in range(execution_repetitions):
         result = qsim_sim.run(cirq_circuit, repetitions=5)
-        for key, value in result.measurements.items():
+        for _, value in result.measurements.items():
             assert value.shape == (5, 1)
 
 
