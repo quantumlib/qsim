@@ -81,7 +81,7 @@ class CMakeBuild(build_ext):
             build_args += ["--", "/m"]
         else:
             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
-            build_args += ["--", "-j2"]
+            build_args += ["--", "-j"]
 
         if platform.system() == "Darwin":
             homebrew_x86 = "/usr/local/opt/llvm@19/bin"
