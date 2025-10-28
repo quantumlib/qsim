@@ -109,9 +109,9 @@ class CMakeBuild(build_ext):
             ]
 
         env = os.environ.copy()
+        cxxflags = env.get("CXXFLAGS", "")
         env["CXXFLAGS"] = (
-            env.get("CXXFLAGS", "")
-            + f'-DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
+            f'{cxxflags} -DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
         )
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
