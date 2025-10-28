@@ -219,7 +219,7 @@ def _control_details(
     if len(qubits) > 1 and len(assignments) > 1:
         raise ValueError(
             "Cannot translate controlled gate with multiple assignments for "
-            f" multiple qubits: {gate}"
+            f"multiple qubits: {gate}"
         )
     for q, cvs in zip(qubits, zip(*assignments)):
         if 0 in cvs and 1 in cvs:
