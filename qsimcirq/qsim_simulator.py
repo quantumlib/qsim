@@ -514,8 +514,7 @@ class QSimSimulator(
         qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
         initial_state: Any = None,
     ) -> Tuple[cirq.ParamResolver, np.ndarray, Sequence[int]]:
-        """Same as simulate() but returns raw simulation result without
-        wrapping it.
+        """Same as simulate() but returns raw simulation result without wrapping it.
 
         The returned result is not wrapped in a StateVectorTrialResult but can be used
         to create a StateVectorTrialResult.
