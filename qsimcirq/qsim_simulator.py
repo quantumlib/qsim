@@ -483,9 +483,7 @@ class QSimSimulator(
 
         if _needs_trajectories(program):
             translator_fn_name = "translate_cirq_to_qtrajectory"
-            fullstate_simulator_fn = (
-                self._sim_module.qtrajectory_simulate_fullstate
-            )
+            fullstate_simulator_fn = self._sim_module.qtrajectory_simulate_fullstate
         else:
             translator_fn_name = "translate_cirq_to_qsim"
             fullstate_simulator_fn = self._sim_module.qsim_simulate_fullstate

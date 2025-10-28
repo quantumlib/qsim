@@ -228,7 +228,7 @@ def _control_details(
         elif any(cv not in (0, 1) for cv in cvs):
             raise ValueError(
                 f"Cannot translate control values other than 0 and 1: {cvs=}"
-            )        # Either 0 or 1 is in cvs, but not both.
+            )  # Either 0 or 1 is in cvs, but not both.
         control_qubits.append(q)
         if 0 in cvs:
             control_values.append(0)
@@ -372,9 +372,7 @@ class QSimCircuit(cirq.Circuit):
         """
         confusion_maps_on_measurement_gates = [
             op.gate.confusion_map
-            for _, op, _ in self.findall_operations_with_gate_type(
-                cirq.MeasurementGate
-            )
+            for _, op, _ in self.findall_operations_with_gate_type(cirq.MeasurementGate)
             if op.gate.confusion_map
         ]
         if confusion_maps_on_measurement_gates:

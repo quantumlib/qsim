@@ -315,15 +315,11 @@ def test_input_vector_validation():
 
     with pytest.raises(ValueError):
         initial_state = np.asarray([0.25] * 16, dtype=np.complex64)
-        qsimSim.simulate_sweep(
-            cirq_circuit, params, initial_state=initial_state
-        )
+        qsimSim.simulate_sweep(cirq_circuit, params, initial_state=initial_state)
 
     with pytest.raises(TypeError):
         initial_state = np.asarray([0.5] * 4)
-        qsimSim.simulate_sweep(
-            cirq_circuit, params, initial_state=initial_state
-        )
+        qsimSim.simulate_sweep(cirq_circuit, params, initial_state=initial_state)
 
 
 def test_numpy_params():
