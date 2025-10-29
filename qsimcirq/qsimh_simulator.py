@@ -16,12 +16,15 @@ from typing import Sequence
 
 import cirq
 
-from . import qsim
 import qsimcirq.qsim_circuit as qsimc
+
+from . import qsim
 
 
 class QSimhSimulator(cirq.SimulatesAmplitudes):
-    def __init__(self, qsimh_options: dict = {}):
+    def __init__(self, qsimh_options: dict = None):
+        if qsimh_options is None:
+            qsimh_options = {}
         """Creates a new QSimhSimulator using the given options.
 
         Args:
