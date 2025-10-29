@@ -54,9 +54,9 @@ PYBINDFLAGS_CUSTATEVEC = $(CUSTATEVECFLAGS) $(PYBINDFLAGS_CUDA)
 PYBINDFLAGS_HIP = -std=c++17 -Wall -shared -fPIC $(PYBIND_INCLUDES)
 
 # Check for nvcc to decide compilation mode.
-ifeq ($(shell which $(NVCC)),)
+ifeq ($(shell command -v $(NVCC) > /dev/null 2>&1),)
 # Check for hipcc to decide compilation mode.
-ifeq ($(shell which $(HIPCC)),)
+ifeq ($(shell command -v $(HIPCC) > /dev/null 2>&1),)
 pybind: pybind-cpu decide-cpu
 else
 pybind: pybind-hip decide-hip

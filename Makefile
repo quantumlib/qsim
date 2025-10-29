@@ -61,7 +61,7 @@ endif
 # no way to find the cuQuantum libraries other than by being told, so we rely
 # on the user or calling environment to set variable $CUQUANTUM_ROOT.
 
-ifneq (,$(shell which $(NVCC)))
+ifneq (,$(shell command -v $(NVCC) > /dev/null 2>&1))
     # nvcc adds appropriate -I and -L flags, so nothing more is needed here.
     TARGETS += qsim-cuda
     TESTS += run-cuda-tests
