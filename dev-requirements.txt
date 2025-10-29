@@ -1,6 +1,7 @@
 cmake~=3.28.1
 black~=25.9.0
 flynt~=1.0
+pylint~=4.0.2
 pytest
 pytest-xdist
 py-cpuinfo

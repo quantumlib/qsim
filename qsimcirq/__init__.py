@@ -1,3 +1,4 @@
+# pylint: disable=wrong-import-position
 # Copyright 2019 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # limitations under the License.
 
 import importlib
+
 from qsimcirq import qsim_decide
 
 
@@ -53,10 +55,10 @@ qsim = _load_simd_qsim()
 qsim_gpu = _load_qsim_gpu()
 qsim_custatevec = _load_qsim_custatevec()
 
-from .qsim_circuit import add_op_to_opstring, add_op_to_circuit, QSimCircuit
+# Note: the following imports must remain at the bottom of this file.
+
+from qsimcirq._version import __version__
+
+from .qsim_circuit import QSimCircuit, add_op_to_circuit, add_op_to_opstring
 from .qsim_simulator import QSimOptions, QSimSimulator
 from .qsimh_simulator import QSimhSimulator
-
-from qsimcirq._version import (
-    __version__,
-)
