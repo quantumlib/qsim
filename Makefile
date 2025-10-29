@@ -57,11 +57,14 @@ else
 endif
 
 # Determine whether we can include CUDA and cuStateVec support. We build for
-# CUDA if (i) we find $NVCC or (ii) $CUDA_PATH is set. For cuStateVec, there's
-# no way to find the cuQuantum libraries other than by being told, so we rely
-# on the user or calling environment to set variable $CUQUANTUM_ROOT.
+# CUDA if (i) we find nvidia-smi or (ii) $CUDA_PATH is set. For cuStateVec,
+# there's no way to find the cuQuantum libraries other than by being told, so
+# we rely on the user or calling environment to set variable $CUQUANTUM_ROOT.
+# (Testing for nvidia-smi is a more reliable way of checking that a system has
+# an NVIDIA GPU. Checking for nvcc may only tell you if the system can compile
+# CUDA code, not necessarily if it can run it.)
 
-ifneq (,$(shell command -v $(NVCC) > /dev/null 2>&1))
+ifneq (,$(shell command -v nvidia-smi > /dev/null 2>&1))
     # nvcc adds appropriate -I and -L flags, so nothing more is needed here.
     TARGETS += qsim-cuda
     TESTS += run-cuda-tests
