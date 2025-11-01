@@ -1,4 +1,4 @@
-cmake~=3.28.1
+cmake~=4.1.2
 black~=25.9.0
 flynt~=1.0
 pylint~=4.0.2
