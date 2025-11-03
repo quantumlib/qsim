@@ -78,7 +78,7 @@ jobs:
 
       - name: Run OSV scanner on existing code
         # yamllint disable rule:line-length
-        uses: google/osv-scanner-action/osv-scanner-action@e92b5d07338d4f0ba0981dffed17c48976ca4730 # v2.2.3
+        uses: google/osv-scanner-action/osv-scanner-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
         continue-on-error: true
         with:
           scan-args: |-
@@ -96,7 +96,7 @@ jobs:
 
       - name: Run OSV scanner on new code
         # yamllint disable rule:line-length
-        uses: google/osv-scanner-action/osv-scanner-action@e92b5d07338d4f0ba0981dffed17c48976ca4730 # v2.2.3
+        uses: google/osv-scanner-action/osv-scanner-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
         continue-on-error: true
         with:
           scan-args: |-
@@ -108,7 +108,7 @@ jobs:
 
       - name: Run the OSV scanner reporter for the job summary page
         # yamllint disable rule:line-length
-        uses: google/osv-scanner-action/osv-reporter-action@e92b5d07338d4f0ba0981dffed17c48976ca4730 # v2.2.3
+        uses: google/osv-scanner-action/osv-reporter-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
         with:
           scan-args: |-
             --output=markdown:output.md
@@ -121,7 +121,7 @@ jobs:
 
       - name: Run the OSV scanner reporter for the code-scanning dashboard
         # yamllint disable rule:line-length
-        uses: google/osv-scanner-action/osv-reporter-action@e92b5d07338d4f0ba0981dffed17c48976ca4730 # v2.2.3
+        uses: google/osv-scanner-action/osv-reporter-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
         with:
           scan-args: |-
             --output=osv-results.sarif
@@ -133,13 +133,13 @@ jobs:
       - name: Upload results to the repository's code-scanning results dashboard
         id: upload_artifact
         # yamllint disable rule:line-length
-        uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885 # v3.29.5
+        uses: github/codeql-action/upload-sarif@0499de31b99561a6d14a36a5f662c2a54f91beee # v3.29.5
         with:
           sarif_file: osv-results.sarif
 
       - if: github.event.inputs.debug == true
         name: Upload results as artifacts to the workflow Summary page
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: SARIF file
           path: osv-results.sarif
