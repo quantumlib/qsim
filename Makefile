@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Version info for the copy of Eigen we will download and build locally.
-EIGEN_PREFIX = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
+EIGEN_HASH = "d71c30c47858effcbd39967097a2d99ee48db464"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
 # Default build targets. Additional may be added conditionally below.
@@ -178,9 +178,9 @@ check-cuquantum-root-set:
 
 eigen:
 	-rm -rf eigen
-	wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz
-	tar -xzf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen
-	rm eigen-$(EIGEN_PREFIX).tar.gz
+	wget $(EIGEN_URL)/$(EIGEN_HASH)/eigen-$(EIGEN_HASH).tar.gz
+	tar -xzf eigen-$(EIGEN_HASH).tar.gz && mv eigen-$(EIGEN_HASH) eigen
+	rm eigen-$(EIGEN_HASH).tar.gz
 
 .PHONY: clean
 clean:
