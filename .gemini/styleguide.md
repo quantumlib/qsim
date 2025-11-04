@@ -113,10 +113,10 @@ For comments in other parts of the files, follow these guidelines:
 
 ### Overall nomenclature conventions
 
-This project follows some naming rules and conventions in order to maintain a
-consistent interface that is easy to use. By using consistent naming, we can
-reduce cognitive load on human users and developers. Please try to use these
-terms when writing code.
+This project follows some nomenclature rules and conventions in order to
+maintain a consistent interface that is easy to use. By using consistent naming,
+we can reduce cognitive load on human users and developers. Please try to use
+these terms when writing code.
 
 *   Use `state_vector` to describe a pure state.  **Do not** use `wavefunction`,
     `wave_function`, or `state` for this object (`state` is too overloaded).
@@ -167,7 +167,7 @@ strings](http://google.github.io/styleguide/pyguide.html#381-docstrings) with a
 Markdown flavor and support for LaTeX. Docstrings use tripe double quotes, and
 the first line should be a concise one-line summary of the function or object.
 
- Here is an example docstring:
+Here is an example docstring:
 
 ```python
 def some_method(a: int, b: str) -> float:
@@ -312,7 +312,7 @@ This section outlines the coding conventions for C++ code in this project.
 
 #### `For` and `ForArgs`
 
-`For` type represents a `for` loop. It is a template parameter of the
+The `For` type represents a `for` loop. It is a template parameter of the
 `StateSpace*` (lib/statespace*.h) and `Simulator*` (lib/simulator*.h) classes.
 `For` objects in these classes are utilized to iterate over quantum state
 arrays. `ForArgs` is a variadic template parameter pack of the constructors of
