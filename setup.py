@@ -124,13 +124,16 @@ class CMakeBuild(build_ext):
         )
 
 
-requirements = open("requirements.txt").readlines()
-dev_requirements = open("dev-requirements.txt").readlines()
+with open("requirements.txt") as f:
+    requirements = f.readlines()
+with open("dev-requirements.txt") as f:
+    dev_requirements = f.readlines()
 
 description = "Schrödinger and Schrödinger-Feynman simulators for quantum circuits."
 
 # README file as long_description.
-long_description = open("README.md", encoding="utf-8").read()
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 __version__ = runpy.run_path("qsimcirq/_version.py")["__version__"]
 if not __version__:
