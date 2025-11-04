@@ -62,11 +62,6 @@ jobs:
           {os: ubuntu-24.04, pyarch: x64, py: 12},
           {os: ubuntu-24.04, pyarch: x64, py: 13},
 
-          {os: macos-13, pyarch: x64, py: 10},
-          {os: macos-13, pyarch: x64, py: 11},
-          {os: macos-13, pyarch: x64, py: 12},
-          {os: macos-13, pyarch: x64, py: 13},
-
           {os: macos-14, pyarch: arm64, py: 10},
           {os: macos-14, pyarch: arm64, py: 11},
           {os: macos-14, pyarch: arm64, py: 12},
