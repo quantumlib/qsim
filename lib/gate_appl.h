@@ -118,10 +118,16 @@ template <typename Simulator, typename Gate, typename Rgen>
 inline bool ApplyGate(const typename Simulator::StateSpace& state_space,
                       const Simulator& simulator, const Gate& gate, Rgen& rgen,
                       typename Simulator::State& state) {
-  using MeasurementResult = typename Simulator::StateSpace::MeasurementResult;
-  std::vector<MeasurementResult> discarded_results;
-  return
-      ApplyGate(state_space, simulator, gate, rgen, state, discarded_results);
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (!measure_result.valid) {
+      return false;
+    }
+  } else {
+    ApplyGate(state_space, simulator, gate);
+  }
+
+  return true;
 }
 
 /**
@@ -172,37 +178,6 @@ inline void ApplyFusedGateDagger(const Simulator& simulator, const Gate& gate,
 }
 
 /**
- * Implementation of the two variants of ApplyFusedGate below. Similar to the
- * six-parameter version of ApplyFusedGate, this also has an mresults parameter
- * but as a pointer. This pointer can be nullptr to explicitly signal that
- * measurement results should be discarded. This approach saves creating a dummy
- * results vector that would merely be discarded immediately. For the meanings
- * of the parameters, refer to the two functions following this one.
- */
-template <typename Simulator, typename Gate, typename Rgen>
-inline bool ApplyFusedGateInternal(
-    const typename Simulator::StateSpace& state_space,
-    const Simulator& simulator, const Gate& gate, Rgen& rgen,
-    typename Simulator::State& state,
-    std::vector<typename Simulator::StateSpace::MeasurementResult>* mresults) {
-
-  if (gate.kind == gate::kMeasurement) {
-    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
-    if (measure_result.valid) {
-      if (mresults) {
-        mresults->push_back(std::move(measure_result));
-      }
-    } else {
-      return false;
-    }
-  } else {
-    ApplyFusedGate(simulator, gate, state);
-  }
-
-  return true;
-}
-
-/**
  * Applies the given fused gate to the simulator state.
  * @param state_space StateSpace object required to perform measurements.
  * @param simulator Simulator object. Provides specific implementations for
@@ -222,8 +197,18 @@ inline bool ApplyFusedGate(
     const Simulator& simulator, const Gate& gate, Rgen& rgen,
     typename Simulator::State& state,
     std::vector<typename Simulator::StateSpace::MeasurementResult>& mresults) {
-  return ApplyFusedGateInternal(
-      state_space, simulator, gate, rgen, state, &mresults);
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (measure_result.valid) {
+      mresults.push_back(std::move(measure_result));
+    } else {
+      return false;
+    }
+  } else {
+    ApplyFusedGate(simulator, gate, state);
+  }
+
+  return true;
 }
 
 /**
@@ -241,8 +226,16 @@ template <typename Simulator, typename Gate, typename Rgen>
 inline bool ApplyFusedGate(const typename Simulator::StateSpace& state_space,
                            const Simulator& simulator, const Gate& gate,
                            Rgen& rgen, typename Simulator::State& state) {
-  return ApplyFusedGateInternal(
-      state_space, simulator, gate, rgen, state, nullptr);
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (!measure_result.valid) {
+      return false;
+    }
+  } else {
+    ApplyFusedGate(simulator, gate, state);
+  }
+
+  return true;
 }
 
 }  // namespace qsim
