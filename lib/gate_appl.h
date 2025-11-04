@@ -15,6 +15,7 @@
 #ifndef GATE_APPL_H_
 #define GATE_APPL_H_
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -221,9 +222,9 @@ inline bool ApplyFusedGate(const typename Simulator::StateSpace& state_space,
                            const Simulator& simulator, const Gate& gate,
                            Rgen& rgen, typename Simulator::State& state) {
   using MeasurementResult = typename Simulator::StateSpace::MeasurementResult;
-  std::vector<MeasurementResult> discarded_results;
+  auto discarded_results = std::make_unique<std::vector<MeasurementResult>>();
   return ApplyFusedGate(
-      state_space, simulator, gate, rgen, state, discarded_results);
+      state_space, simulator, gate, rgen, state, *discarded_results);
 }
 
 }  // namespace qsim
