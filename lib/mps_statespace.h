@@ -241,7 +241,7 @@ class MPSStateSpace {
     const auto num_qubits = state.num_qubits();
     const auto bond_dim = state.bond_dim();
     const auto end = Size(state);
-    const bool last_index = (index == num_qubits - 1);
+    const bool last_index = (static_cast<unsigned>(index) == num_qubits - 1);
     const auto right_dim = (last_index ? 1 : bond_dim);
     auto offset = 0;
     fp_type* state_raw = state.get();
@@ -266,10 +266,11 @@ class MPSStateSpace {
     }
 
     // Contract all internal blocks together.
-    for (unsigned i = 1; i < index; ++i) {
+    for (unsigned i = 1; i < static_cast<unsigned>(index); ++i) {
       offset = GetBlockOffset(state, i);
 
       // reshape:
+
       new (&partial_contract2)
           MatrixMap((Complex*)(state_raw_workspace), bond_dim, 2 * bond_dim);
 
@@ -301,11 +302,11 @@ class MPSStateSpace {
 
     partial_contract.setZero();
     partial_contract(0, 0) = 1;
-    if (index < num_qubits - 1) {
+    if (static_cast<unsigned>(index) < num_qubits - 1) {
       partial_contract.noalias() = top * bot.adjoint();
     }
 
-    for (unsigned i = num_qubits - 2; i > index; --i) {
+    for (unsigned i = num_qubits - 2; i > static_cast<unsigned>(index); --i) {
       offset = GetBlockOffset(state, i);
 
       // reshape:
