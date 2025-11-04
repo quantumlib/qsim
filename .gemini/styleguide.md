@@ -49,9 +49,22 @@ separate subsections for Python, C++, and other file types below.
 
 ### Overall code format conventions
 
-This project follows Google coding conventions, with a few changes that are
-mostly defined in the various configuration files at the top level of the source
-tree. To learn the conventions for line length, indentation, and other style
+This project generally follows Google coding conventions, with a few changes
+that are mostly defined in the various configuration files at the top level of
+the source tree. The following Google style guides are the starting points:
+
+*   [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
+
+*   [Google Python Style
+    Guide](https://google.github.io/styleguide/pyguide.html)
+
+*   [Google Markdown Style
+    Guide](https://google.github.io/styleguide/docguide/style.html)
+
+*   [Google Shell Style
+    Guide](https://google.github.io/styleguide/shellguide.html)
+
+To learn the conventions for line length, indentation, and other style
 characteristics, please inspect the following configuration files (if present at
 the top level of this project repository):
 
