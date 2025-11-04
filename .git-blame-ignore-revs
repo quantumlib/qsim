@@ -1,0 +1,10 @@
+# git-blame can be instructed to ignore certain commits, which is useful to do
+# for commits that only involve large refactoring and reformatting operations.
+# The format of this file is one full 40-character commit hash (SHA-1) per line.
+# Blank lines and comments (such as this) are allowed.
+#
+# Usage: run the following command to configure git to use this file as a
+# default ignore file for git blame:
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
