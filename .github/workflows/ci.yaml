@@ -341,9 +341,9 @@ jobs:
           pip install -r dev-requirements.txt
 
       - name: Set up Bazelisk and Bazel
+        uses: './.github/actions/set-up-bazelisk'
         with:
           debug: ${{inputs.debug}}
-        uses: './.github/actions/set-up-bazelisk'
 
       - if: matrix.os != 'windows-2025'
         name: Build the qsim++ library and run tests (non-Windows case)
@@ -378,7 +378,7 @@ jobs:
           brew link --force llvm@19
 
           xcode_prefix="$(xcrun --sdk macosx --show-sdk-path)"
-          brew_prefix="$(brew --prefix llvm)"
+          brew_prefix="$(brew --prefix)"
 
           export PATH="${brew_prefix}/bin:$PATH"
           echo "PATH=${PATH}" >> "$GITHUB_ENV"
@@ -430,9 +430,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Set up Bazelisk and Bazel
+        uses: './.github/actions/set-up-bazelisk'
         with:
           debug: ${{inputs.debug}}
-        uses: './.github/actions/set-up-bazelisk'
 
       - name: Run C++ tests
         run: |
@@ -485,9 +485,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Set up Bazelisk and Bazel
+        uses: './.github/actions/set-up-bazelisk'
         with:
           debug: ${{inputs.debug}}
-        uses: './.github/actions/set-up-bazelisk'
 
       - name: Install google-perftools for tcmalloc
         run: |
