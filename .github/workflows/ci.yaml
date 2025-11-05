@@ -386,7 +386,7 @@ jobs:
           export LDFLAGS="-L${brew_prefix}/lib -Wl,-rpath,${brew_prefix}/lib"
           echo "LDFLAGS=${LDFLAGS}" >> "$GITHUB_ENV"
 
-          export CXXFLAGS="-I${xcode_prefix}/usr/include -I${brew_prefix}/include -O3 -std=c++17 -fopenmp -flto=auto"
+          export CXXFLAGS="-I${xcode_prefix}/usr/include -I${brew_prefix}/include -O3 -std=c++17 -flto=auto -Xpreprocessor -fopenmp"
           echo "CXXFLAGS=${CXXFLAGS}" >> "$GITHUB_ENV"
 
       - name: Run Python tests
