@@ -15,6 +15,8 @@
 [tool.cibuildwheel]
 test-extras = "dev"
 dependency-versions = "latest"
+enable = ["cpython-prerelease"]
+environment.PIP_PREFER_BINARY = "1"
 # Due to package & module name conflict, temporarily move it away to run tests:
 before-test = "mv {package}/qsimcirq /tmp"
 test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
