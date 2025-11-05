@@ -47,7 +47,7 @@ runs:
       env:
         BAZELISK_SHOW_PROGRESS: ${{inputs.debug == 'true'}}
       shell: bash
-      run: npm install -g @bazel/bazelisk
+      run: npm install @bazel/bazelisk
 
     - name: Set up cache for Bazelisk
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
