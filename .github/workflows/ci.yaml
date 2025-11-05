@@ -1,0 +1,537 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Continuous integration
+run-name: >-
+  Run CI checks for ${{github.event_name}} on ${{github.ref_name}}
+  by @${{github.actor}}
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  # Support merge queues.
+  merge_group:
+    types:
+      - checks_requested
+
+  # Allow manual invocation.
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: 'SHA of base commit to run against:'
+        type: string
+        required: true
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
+      upload:
+        description: 'Upload wheels'
+        type: boolean
+        default: false
+
+env:
+  # Default Python version to use.
+  python-version: '3.13'
+  # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
+  SHELLOPTS: ${{inputs.debug && 'xtrace'}}
+  # Don't bother showing progress bars for pip commands.
+  PIP_PROGRESS_BAR: 'off'
+
+concurrency:
+  # Cancel any previously-started but still active runs on the same branch.
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+# Declare default workflow permissions as read only.
+permissions: read-all
+
+jobs:
+  python-format:
+    name: Python format checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Get a list of changed Python files
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          base_sha: ${{inputs.base_sha}}
+          files: '**/*.py'
+
+      - name: Set up Python
+        if: steps.changes.outputs.any_changed == 'true'
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          pip install -r requirements.txt
+          pip install -r dev-requirements.txt
+
+      - name: Check the format of changed Python files
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          echo '::add-matcher::.github/problem-matchers/flynt.json'
+          echo '::add-matcher::.github/problem-matchers/black.json'
+          check/format-incremental
+
+  python-lint:
+    name: Python lint checks
+    needs: [python-format]
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Get a list of changed Python files
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          base_sha: ${{inputs.base_sha}}
+          files: '**/*.py'
+
+      - name: Set up Python
+        if: steps.changes.outputs.any_changed == 'true'
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        if: steps.changes.outputs.any_changed == 'true'
+        run: pip install pylint~=3.3.1
+
+      - name: Lint the changed Python files
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          echo '::add-matcher::.github/problem-matchers/pylint.json'
+          pylint -j 0 -v ${{steps.changes.outputs.all_changed_files}}
+
+  docker-lint:
+    name: Dockerfile checks
+    # This uses a Mac runner because hadolint isn't available via Linux apt.
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Determine if Docker files were changed
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          files: '**/Dockerfile'
+
+      # Note: there is a hadolint GitHub Actions available, but it only accepts
+      # one Dockerfile to check. We have > 1 file to check, so we need the CLI.
+      - name: Install hadolint
+        if: steps.changes.outputs.any_changed == 'true'
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install hadolint
+
+      - name: Run hadolint on Dockerfiles that have been changed
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          echo '::add-matcher::.github/problem-matchers/hadolint.json'
+          hadolint --version
+          hadolint ${{steps.changes.outputs.all_changed_files}}
+
+  shell-script-lint:
+    name: Shell script checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Determine if shell scripts were changed
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          base_sha: ${{inputs.base_sha}}
+          files: |
+            **/*.sh
+            check/format-incremental
+
+      - name: Run shellcheck on shell scripts that have been changed
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          echo "::add-matcher::.github/problem-matchers/shellcheck.json"
+          shellcheck --version
+          shellcheck ${{steps.changes.outputs.all_changed_files}}
+
+  yaml-lint:
+    name: YAML file checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Get a list of changed YAML files
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          base_sha: ${{inputs.base_sha}}
+          files: '**/*.{yaml,yml}'
+          # Ignore GHA workflows here. A separate job handles workflow files.
+          files_ignore: .github/workflows/**
+
+      - name: Lint the YAML files
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          echo "::add-matcher::.github/problem-matchers/yamllint.json"
+          yamllint --version
+          yamllint -f github ${{steps.changes.outputs.all_changed_files}}
+
+  bazel-lint:
+    name: Bazel file checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine if Bazel files were changed
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          base_sha: ${{inputs.base_sha}}
+          files: |
+            **/BUILD
+            **/*.bzl
+            WORKSPACE
+
+      - name: Install buildifier
+        uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
+        with:
+          buildifier-version: '8.2.1'
+
+      - name: Run Buildifier in lint mode on changed files
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          echo '::add-matcher::.github/problem-matchers/buildifier.json'
+          buildifier --version
+          buildifier -mode=diff -lint=warn ${{steps.changes.outputs.all_changed_files}}
+
+  action-lint:
+    name: Workflow file checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine if workflow files were changed
+        id: changes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          base_sha: ${{inputs.base_sha}}
+          files: .github/workflows/*.{yaml,yml}
+
+      - name: Run actionlint
+        if: steps.changes.outputs.any_changed == 'true'
+        uses: raven-actions/actionlint@3a24062651993d40fed1019b58ac6fbdfbf276cc # v2
+        with:
+          # Note: pass the list of files here, not via the "files:" parameter.
+          flags: ${{inputs.debug && '-verbose'}} ${{steps.changes.outputs.all_changed_files}}
+          pyflakes: false
+
+  library-tests:
+    name: Library tests
+    needs:
+      - action-lint
+      - bazel-lint
+      - docker-lint
+      - python-format
+      - python-lint
+      - shell-script-lint
+      - yaml-lint
+    runs-on: ${{matrix.os}}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # It's not worth testing every single Python version here, so this only
+        # tests the endpoints of the supported range. The wheel build process
+        # (in a separate workflow) *does* use all the versions.
+        os:
+          - ubuntu-24.04
+          - macos-14
+          - macos-15
+          - macos-15-intel
+          - windows-2025
+        python_version:
+          - '3.10'
+          - '3.13'
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        id: setup
+        with:
+          python-version: ${{matrix.python_version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r dev-requirements.txt
+
+      - name: Set up Bazelisk and Bazel
+        with:
+          debug: ${{inputs.debug}}
+        uses: './.github/actions/set-up-bazelisk'
+
+      - if: matrix.os != 'windows-2025'
+        name: Build the qsim++ library and run tests (non-Windows case)
+        run: |
+          alias bazel=bazelisk
+          dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
+
+      - if: matrix.os == 'windows-2025'
+        name: Build the qsim library and run tests (Windows case)
+        # On GitHub Windows runners, Bazel ends up finding a different "python3"
+        # binary than what's installed by setup-python unless we tell Bazel what
+        # to use. Here we do that by setting PYTHON_BIN_PATH.
+        env:
+          root: 'C:\\hostedtoolcache\\windows\\Python'
+          exe: '${{steps.setup.outputs.python-version}}\\x64\\python3.exe'
+        shell: cmd
+        run: bash -x dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.root}}\\${{env.exe}}
+
+      - name: Install LLVM and Clang on macOS
+        if: startsWith(matrix.os, 'macos')
+        uses: KyleMayes/install-llvm-action@a7a1a882e2d06ebe05d5bb97c3e1f8c984ae96fc # v2
+        with:
+          version: "19.1.7"
+
+      - name: Install and configure OpenMP and compiler options on macOS
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install -q libomp llvm@19
+          brew unlink libomp
+          brew unlink llvm@19
+          brew link --force libomp
+          brew link --force llvm@19
+
+          xcode_prefix="$(xcrun --sdk macosx --show-sdk-path)"
+          brew_prefix="$(brew --prefix llvm)"
+
+          export PATH="${brew_prefix}/bin:$PATH"
+          echo "PATH=${PATH}" >> "$GITHUB_ENV"
+
+          export LDFLAGS="-L${brew_prefix}/lib -Wl,-rpath,${brew_prefix}/lib"
+          echo "LDFLAGS=${LDFLAGS}" >> "$GITHUB_ENV"
+
+          export CXXFLAGS="-I${xcode_prefix}/usr/include -I${brew_prefix}/include -O3 -std=c++17 -fopenmp -flto=auto"
+          echo "CXXFLAGS=${CXXFLAGS}" >> "$GITHUB_ENV"
+
+      - name: Run Python tests
+        shell: bash
+        run: |
+          echo '::add-matcher::.github/problem-matchers/pytest.json'
+          make -j run-py-tests
+
+  options-tests:
+    name: Options tests
+    needs:
+      - action-lint
+      - docker-lint
+      - python-format
+      - shell-script-lint
+      - yaml-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        # Hardware optimizers.
+        hardware_opt: [avx, sse, basic]
+        # Optimizers for parallelism.
+        parallel_opt: [openmp, nopenmp]
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Bazelisk and Bazel
+        with:
+          debug: ${{inputs.debug}}
+        uses: './.github/actions/set-up-bazelisk'
+
+      - name: Run C++ tests
+        run: |
+          bazel test \
+              --config=${{matrix.hardware_opt}} \
+              --config=${{matrix.parallel_opt}} \
+              ${{inputs.debug && '--config=verbose'}} \
+              tests:all
+
+      - name: Run sample simulation
+        run: |
+          bazel run \
+              --config=${{matrix.hardware_opt}} \
+              --config=${{matrix.parallel_opt}} \
+              ${{inputs.debug && '--config=verbose'}} \
+              apps:qsim_base -- -c circuits/circuit_q24
+
+  memory-addressing-tests:
+    name: Malloc/asan/msan tests
+    needs:
+      - action-lint
+      - docker-lint
+      - python-format
+      - shell-script-lint
+      - yaml-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      common_args: >-
+        --config=avx
+        --config=openmp
+        ${{inputs.debug && '--config=verbose'}}
+        tests:all
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Bazelisk and Bazel
+        with:
+          debug: ${{inputs.debug}}
+        uses: './.github/actions/set-up-bazelisk'
+
+      - name: Install google-perftools for tcmalloc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgoogle-perftools-dev
+
+      - name: Run TCMalloc tests
+        env:
+          PERFTOOLS_VERBOSE: ${{inputs.debug && 1}}
+        run: bazel test --config=tcmalloc ${{env.common_args}}
+
+      - name: Run memory sanitizer tests
+        run: bazel test --config=msan ${{env.common_args}}
+
+      - name: Run address sanitizer tests
+        run: bazel test --config=asan ${{env.common_args}}
+
+  docker-tests:
+    name: Docker build tests
+    needs:
+      - action-lint
+      - docker-lint
+      - python-format
+      - shell-script-lint
+      - yaml-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # The next environment variable is used by Docker.
+      BUILDKIT_PROGRESS: ${{inputs.debug && 'plain'}}
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Build Docker images
+        run: |
+          # Running locally, a plain "docker compose build" works as expected.
+          # On GitHub, buildx tries to build all 3 images in parallel even if
+          # you set COMPOSE_PARALLEL_LIMIT or use --parallel 1. That fails b/c
+          # the qsim-base image is not available to the other two build jobs.
+          docker compose build qsim-base-image
+          docker compose build qsim-cxx-tests-image qsim-py-tests-image
+
+      - name: Run C++ tests
+        run: docker run --rm qsim-cxx-tests:latest
+
+      - name: Run Python tests
+        run: docker run --rm qsim-py-tests:latest
+
+      - name: Run a sample simulation
+        run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
+
+      - name: Test installation process
+        run: |
+          cd install/tests
+          docker compose build
