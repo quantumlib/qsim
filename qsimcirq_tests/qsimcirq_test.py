@@ -26,9 +26,6 @@ class NoiseTrigger(cirq.Gate):
     new circuit will otherwise behave identically to the original.
     """
 
-    # def _mixture_(self):
-    #   return ((1.0, np.asarray([1, 0, 0, 1])),)
-
     def _num_qubits_(self) -> int:
         return 1
 

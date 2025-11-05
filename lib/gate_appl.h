@@ -118,10 +118,16 @@ template <typename Simulator, typename Gate, typename Rgen>
 inline bool ApplyGate(const typename Simulator::StateSpace& state_space,
                       const Simulator& simulator, const Gate& gate, Rgen& rgen,
                       typename Simulator::State& state) {
-  using MeasurementResult = typename Simulator::StateSpace::MeasurementResult;
-  std::vector<MeasurementResult> discarded_results;
-  return
-      ApplyGate(state_space, simulator, gate, rgen, state, discarded_results);
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (!measure_result.valid) {
+      return false;
+    }
+  } else {
+    ApplyGate(state_space, simulator, gate);
+  }
+
+  return true;
 }
 
 /**
@@ -220,10 +226,16 @@ template <typename Simulator, typename Gate, typename Rgen>
 inline bool ApplyFusedGate(const typename Simulator::StateSpace& state_space,
                            const Simulator& simulator, const Gate& gate,
                            Rgen& rgen, typename Simulator::State& state) {
-  using MeasurementResult = typename Simulator::StateSpace::MeasurementResult;
-  std::vector<MeasurementResult> discarded_results;
-  return ApplyFusedGate(
-      state_space, simulator, gate, rgen, state, discarded_results);
+  if (gate.kind == gate::kMeasurement) {
+    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+    if (!measure_result.valid) {
+      return false;
+    }
+  } else {
+    ApplyFusedGate(simulator, gate, state);
+  }
+
+  return true;
 }
 
 }  // namespace qsim
