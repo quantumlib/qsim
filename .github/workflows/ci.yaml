@@ -42,10 +42,6 @@ on:
         description: 'Run with debugging options'
         type: boolean
         default: true
-      upload:
-        description: 'Upload wheels'
-        type: boolean
-        default: false
 
 env:
   # Default Python version to use.
