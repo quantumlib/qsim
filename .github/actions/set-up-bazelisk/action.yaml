@@ -50,14 +50,14 @@ runs:
       run: npm install -g @bazel/bazelisk
 
     - name: Set up cache for Bazelisk
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
         path: ~/.cache/bazelisk
         key: bazelisk-v1-${{runner.os}}-${{steps.read-version.outputs.version}}
         restore-keys: bazelisk-v1-${{runner.os}}-
 
     - name: Set up Bazel repository cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
         path: ~/.cache/bazel/repository_cache
         # yamllint disable-line rule:line-length
@@ -65,7 +65,7 @@ runs:
         restore-keys: bazel-repo-v1-${{runner.os}}-
 
     - name: Set up Bazel external repositories cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
         path: ~/.cache/bazel/output_base/external
         # yamllint disable-line rule:line-length
@@ -73,7 +73,7 @@ runs:
         restore-keys: bazel-external-v1-${{runner.os}}-
 
     - name: Set up Bazel disk cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
         path: ~/.cache/bazel/disk_cache
         key: bazel-disk-v1-${{runner.os}}-${{github.ref}}-${{github.sha}}
