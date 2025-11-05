@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: config actionlint (https://github.com/rhysd/actionlint), which
-# is used in our CI workflow.
+# Summary: config actionlint (https://github.com/rhysd/actionlint) for certain
+# things we use.
 
 self-hosted-runner:
   # We don't have self-hosted runners, but we do use some of the "partner"
-  # runner images from https://github.com/actions/partner-runner-images.
+  # runner images from https://github.com/actions/partner-runner-images
+  # and some runners that actionlint doesn't currently recognize.
   labels:
     - ubuntu-24.04-arm
+    - ubuntu-slim
