@@ -227,7 +227,7 @@ jobs:
 
       - name: Install yamllint
         if: steps.changes.outputs.any_changed == 'true'
-        run: pip install yamllint
+        run: pip install yamllint~=1.37.0
 
       - name: Lint the YAML files
         if: steps.changes.outputs.any_changed == 'true'
