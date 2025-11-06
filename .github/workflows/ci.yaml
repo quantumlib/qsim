@@ -177,19 +177,11 @@ jobs:
           # Ignore GHA workflows here. A separate job handles workflow files.
           files_ignore: .github/workflows/**
 
-      - name: Set up Python
-        if: steps.changes.outputs.any_changed == 'true'
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
-        with:
-          python-version: ${{env.python-version}}
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            dev-requirements.txt
-
       - name: Install yamllint
         if: steps.changes.outputs.any_changed == 'true'
-        run: pip install yamllint~=1.37.0
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y yamllint
 
       - name: Lint the YAML files
         if: steps.changes.outputs.any_changed == 'true'
