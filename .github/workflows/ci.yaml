@@ -395,6 +395,7 @@ jobs:
     name: Options tests
     needs:
       - action-lint
+      - bazel-lint
       - docker-lint
       - python-format
       - shell-lint
@@ -450,6 +451,7 @@ jobs:
     name: Malloc/asan/msan tests
     needs:
       - action-lint
+      - bazel-lint
       - docker-lint
       - python-format
       - shell-lint
