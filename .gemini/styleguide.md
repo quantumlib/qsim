@@ -53,36 +53,37 @@ This project generally follows Google coding conventions, with a few changes
 that are mostly defined in the various configuration files at the top level of
 the source tree. The following Google style guides are the starting points:
 
-*   [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
+*   [Google C++ Style Guide](
+    https://google.github.io/styleguide/cppguide.html)
 
-*   [Google Python Style
-    Guide](https://google.github.io/styleguide/pyguide.html)
+*   [Google Python Style Guide](
+    https://google.github.io/styleguide/pyguide.html)
 
-*   [Google Markdown Style
-    Guide](https://google.github.io/styleguide/docguide/style.html)
+*   [Google Markdown Style Guide](
+    https://google.github.io/styleguide/docguide/style.html)
 
-*   [Google Shell Style
-    Guide](https://google.github.io/styleguide/shellguide.html)
+*   [Google Shell Style Guide](
+    https://google.github.io/styleguide/shellguide.html)
 
 To learn the conventions for line length, indentation, and other style
 characteristics, please inspect the following configuration files (if present at
 the top level of this project repository):
 
-*   `.editorconfig` for basic code editor configuration for indentation and line
-    length.
+*   [`.editorconfig`](../.editorconfig) for basic code editor configuration for
+    indentation and line length.
 
-*   `.clang-format` for C++ code and also protobuf (Protocol Buffers) data
-    structure definitions.
+*   [`.clang-format`](../.clang-format) for C++ code and also protobuf (Protocol
+    Buffers) data structure definitions.
 
-*   `.hadolint.yaml` for `Dockerfile`s.
+*   [`.hadolint.yaml`](../.hadolint.yaml) for `Dockerfile`s.
 
-*   `.jsonlintrc.yaml` for JSON files.
+*   [`.jsonlintrc.yaml`](../.jsonlintrc.yaml) for JSON files.
 
-*   `.markdownlintrc` for Markdown files.
+*   [`.markdownlintrc`](../.markdownlintrc) for Markdown files.
 
-*   `.pylintrc` for Python code.
+*   [`.pylintrc`](../.pylintrc) for Python code.
 
-*   `.yamllint.yaml` for YAML files.
+*   [`.yamllint.yaml`](../.yamllint.yaml) for YAML files.
 
 ### Overall code commenting conventions
 
@@ -175,10 +176,10 @@ This section outlines the coding conventions for Python code in this project.
 
 ###  Docstrings and documentation
 
-This project uses [Google style doc
-strings](http://google.github.io/styleguide/pyguide.html#381-docstrings) with a
-Markdown flavor and support for LaTeX. Docstrings use tripe double quotes, and
-the first line should be a concise one-line summary of the function or object.
+This project uses [Google style doc strings](
+http://google.github.io/styleguide/pyguide.html#381-docstrings) with a Markdown
+flavor and support for LaTeX. Docstrings use tripe double quotes, and the first
+line should be a concise one-line summary of the function or object.
 
 Here is an example docstring:
 
@@ -239,10 +240,10 @@ The following programs can be used to perform some automated formatting.
 
 ### Python type annotations
 
-This project makes extensive use of type annotations as defined by [PEP
-484](https://peps.python.org/pep-0484/). All new code should use type
-annotations where possible, especially on public classes and functions to serve
-as documentation, but also on internal code so that the `mypy` type checker can
+This project makes extensive use of type annotations as defined by [PEP 484](
+https://peps.python.org/pep-0484/). All new code should use type annotations
+where possible, especially on public classes and functions to serve as
+documentation, but also on internal code so that the `mypy` type checker can
 help catch coding errors.
 
 ### Python linting
@@ -267,111 +268,6 @@ make run-py-tests
 ## C++-specific guidance
 
 This section outlines the coding conventions for C++ code in this project.
-
-### C++ naming conventions
-
-#### Functions, variables, classes, and similar code elements
-
-*   _Variables_: Use lowercase with underscores (snake_case). Examples:
-    `user_name`, `total_count`.
-
-*   _Constants_: Use uppercase with underscores. Examples: `MAX_VALUE`,
-    `DATABASE_NAME`.
-
-*   _Functions_: Use CapWords (CamelCase). Examples: `PrintAmplitudes`,
-    `FillIndices,`.
-
-*   _Classes_/_Structs_: Use CapWords (CamelCase). Examples: `UserManager`,
-    `PaymentProcessor`.
-
-*   _Namespaces_: Use snake_case.
-
-*   _Enum Members_: Usually prefixed with `k` followed by a CamelCase name.
-    Examples: `kX`, `kY`, as seen from Python.
-
-#### Template names
-
-| Name                    | Example Type                                             |
-|-------------------------|----------------------------------------------------------|
-| `Args` (`parfor.h`)     | Arguments to a `Function` object.                        |
-| `Bitstring`             | Alias for `uint64_t`.                                    |
-| `Circuit`               | [`Circuit`](../lib/circuit.h)                            |
-| `Container` (`util.h`)  | A vector of strings, or `Op`'s output type.              |
-| `Ctype`                 | A complex type, e.g., `std::complex<float>`.             |
-| `For`                   | `for` loop abstractions, see below.                      |
-| `ForArgs`               | Arguments for constructing `For` objects, see below.     |
-| `FP`                    | (In `simulator_basic.h`.) Same as `fp_type`.             |
-| `fp_type`               | A floating-point type, i.e., `float` or `double`.        |
-| `Function` (`parfor.h`) | Any function; args are specified with `Args`.            |
-| `FuserT`                | [`BasicGateFuser`](../lib/fuser_basic.h)                 |
-| `Gate`                  | [`Gate`](../lib/gate.h)                                  |
-| `GateCirq`              | [`GateCirq`](../lib/gates_cirq.h)                        |
-| `GateDef`               | [`GateRX`](../lib/gate.h)                                |
-| `GateQSim`              | [`GateQSim`](../lib/gates_qsim.h)                        |
-| `GK` / `GateKind`       | [`GateKind`](../lib/gate.h)                              |
-| `HybridSimulator`       | [`HybridSimulator`](../lib/hybrid.h)                     |
-| `IO`                    | [`IO`](../lib/io.h)                                      |
-| `IOFile`                | [`IOFile`](../lib/io_file.h)                             |
-| `Matrix`                | A numeric C++ vector representing a matrix.              |
-| `MeasurementFunc`       | [`measure` (in `PrintAmplitudes`)](../apps/qsim_base.cc) |
-| `Op` (`util.h`)         | [`to_int` (in `Options`)](../apps/qsim_amplitudes.cc)    |
-| `ParallelFor`           | [`ParallelFor`](../lib/parfor.h)                         |
-| `Params`                | Vector of `fp_type`.                                     |
-| `SequentialFor`         | [`SequentialFor`](../lib/seqfor.h)                       |
-| `Simulator`             | [`SimulatorAVX`](../lib/simulator_avx.h)                 |
-| `State`                 | Unique pointer to `fp_type`.                             |
-| `StateSpace`            | [`StateSpace`](../lib/statespace.h)                      |
-| `Stream`                | A valid input for `std::getline()`.                      |
-
-#### `For` and `ForArgs`
-
-The `For` type represents a `for` loop. It is a template parameter of the
-`StateSpace*` (lib/statespace*.h) and `Simulator*` (lib/simulator*.h) classes.
-`For` objects in these classes are utilized to iterate over quantum state
-arrays. `ForArgs` is a variadic template parameter pack of the constructors of
-`StateSpace*` and `Simulator*`. It is utilized to pass arguments to the
-constructors of `For` objects.
-
-The qsim library provides `ParallelFor` (lib/parfor.h) and `SequentialFor`
-(lib/seqfor.h). The user can also use custom `For` types. Examples of usage
-follow.
-
-```C++
-// ParallelFor(unsigned num_threads) constructor
-SimulatorAVX<ParallelFor> simulator(num_qubits, num_threads);
-```
-
-```C++
-// copy constructor
-ParallelFor parallel_for(num_threads);
-SimulatorAVX<ParallelFor> simulator(num_qubits, parallel_for);
-```
-
-```C++
-ParallelFor parallel_for(num_threads);
-// const reference to parallel_for in simulator
-SimulatorAVX<const ParallelFor&> simulator(num_qubits, parallel_for);
-```
-
-In the following, we assume a custom `MyFor` type that has
-`MyFor(unsigned num_threads, const Context& context)` and copy constructors.
-
-```C++
-// MyFor(unsigned num_threads, const Context& context) constructor
-SimulatorAVX<MyFor> simulator(num_qubits, num_threads, context);
-```
-
-```C++
-// copy constructor
-MyFor my_for(num_threads, context);
-SimulatorAVX<MyFor> simulator(num_qubits, my_for);
-```
-
-```C++
-// const reference to my_for in simulator
-MyFor my_for(num_threads, context);
-SimulatorAVX<const MyFor&> simulator(num_qubits, my_for);
-```
 
 ### C++ formatting
 
