@@ -480,7 +480,7 @@ jobs:
           # you set COMPOSE_PARALLEL_LIMIT or use --parallel 1. That fails b/c
           # the qsim-base image is not available to the other two build jobs.
           docker compose build qsim-base-image
-          docker compose build qsim-cxx-tests-image qsim-py-tests-image
+          docker compose build --parallel qsim-cxx-tests-image qsim-py-tests-image
 
       - name: Run C++ tests
         run: docker run --rm qsim-cxx-tests:latest
