@@ -289,9 +289,7 @@ jobs:
             dev-requirements.txt
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r dev-requirements.txt
+        run: pip install -r requirements.txt -r dev-requirements.txt
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
