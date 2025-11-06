@@ -141,7 +141,7 @@ jobs:
           pylint -j 0 -v ${{steps.changes.outputs.all_changed_files}}
 
   docker-lint:
-    name: Dockerfile checks
+    name: Dockerfile lint checks
     # This uses a Mac runner because hadolint isn't available via Linux apt.
     runs-on: macos-15
     timeout-minutes: 15
@@ -171,7 +171,7 @@ jobs:
           hadolint ${{steps.changes.outputs.all_changed_files}}
 
   shell-script-lint:
-    name: Shell script checks
+    name: Shell script lint checks
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -197,7 +197,7 @@ jobs:
           shellcheck ${{steps.changes.outputs.all_changed_files}}
 
   yaml-lint:
-    name: YAML file checks
+    name: YAML lint checks
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -237,7 +237,7 @@ jobs:
           yamllint -f github ${{steps.changes.outputs.all_changed_files}}
 
   bazel-lint:
-    name: Bazel file checks
+    name: Bazel build lint checks
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -269,7 +269,7 @@ jobs:
           buildifier -mode=diff -lint=warn ${{steps.changes.outputs.all_changed_files}}
 
   action-lint:
-    name: Workflow file checks
+    name: GitHub Actions lint checks
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
