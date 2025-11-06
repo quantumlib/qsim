@@ -60,26 +60,17 @@ runs:
       shell: bash
       run: npm install @bazel/bazelisk
 
-    # Explanation of the following caches:
-    #
-    # Bazelisk cache: stores copies of Bazel downloaded by Bazelisk. The copies
-    # are stored in subdirs coded by hash numbers, and thus this cache can be
+    # This cache stores copies of Bazel downloaded by Bazelisk. The copies are
+    # stored in subdirs coded by hash numbers, and thus this cache can be
     # shared between workflows.
-    #
-    # Bazel --repository_cache: stores the raw downloaded files (like .zip,
-    # .tar.gz) specified by repository rules like http_archive. This can be
-    # shared between workflows.
-    #
-    # Bazel --disk_cache: stores the compiled outputs of build actions, such as
-    # object files (.o), linked libraries (.so), binaries, & test results.
-
     - name: Set up cache for Bazelisk
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
-        # Bazelisk doesn't have an option to control this cache location.
         path: ~/.cache/bazelisk
         key: bazelisk-cache
 
+    # This cache stores downloaded files (like .zip, .tar.gz) specified by
+    # repository rules like http_archive. This can be shared between workflows.
     - name: Set up Bazel repository cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
@@ -87,6 +78,8 @@ runs:
         key: bazel-repo-${{env.USE_BAZEL_VERSION}}
         restore-keys: bazel-repo-
 
+    # This cache stores the compiled outputs of build actions, such as object
+    # files (.o), linked libraries (.so), binaries, & test results.
     - name: Set up Bazel disk cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
