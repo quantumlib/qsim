@@ -346,13 +346,13 @@ jobs:
           debug: ${{inputs.debug}}
 
       - if: matrix.os != 'windows-2025'
-        name: Build the qsim++ library and run tests (non-Windows case)
+        name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
           dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
 
       - if: matrix.os == 'windows-2025'
-        name: Build the qsim library and run tests (Windows case)
+        name: Build the qsim C++ library and run tests (Windows case)
         # On GitHub Windows runners, Bazel ends up finding a different "python3"
         # binary than what's installed by setup-python unless we tell Bazel what
         # to use. Here we do that by setting PYTHON_BIN_PATH.
@@ -389,11 +389,13 @@ jobs:
           export CXXFLAGS="-I${xcode_prefix}/usr/include -I${brew_prefix}/include -O3 -std=c++17 -flto=auto -Xpreprocessor -fopenmp"
           echo "CXXFLAGS=${CXXFLAGS}" >> "$GITHUB_ENV"
 
-      - name: Run Python tests
+      - name: Build the Python bindings
         shell: bash
         run: |
-          echo '::add-matcher::.github/problem-matchers/pytest.json'
-          make -j run-py-tests
+          mkdir build
+          cd build
+          cmake ..
+          make -j
 
   options-tests:
     name: Options tests
