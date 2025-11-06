@@ -385,13 +385,10 @@ jobs:
 
       - name: Build the Python bindings
         shell: bash
-        env:
-          CMAKE_MESSAGE_LOG_LEVEL: 'DEBUG'
         run: |
           mkdir build
           cd build
           cmake ..
-          ls -l
           make -j
 
   options-tests:
