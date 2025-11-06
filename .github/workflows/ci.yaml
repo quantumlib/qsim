@@ -170,7 +170,7 @@ jobs:
           hadolint --version
           hadolint ${{steps.changes.outputs.all_changed_files}}
 
-  shell-script-lint:
+  shell-lint:
     name: Shell script lint checks
     runs-on: ubuntu-slim
     timeout-minutes: 15
@@ -301,7 +301,7 @@ jobs:
       - docker-lint
       - python-format
       - python-lint
-      - shell-script-lint
+      - shell-lint
       - yaml-lint
     runs-on: ${{matrix.os}}
     timeout-minutes: 60
@@ -397,7 +397,7 @@ jobs:
       - action-lint
       - docker-lint
       - python-format
-      - shell-script-lint
+      - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -446,13 +446,13 @@ jobs:
               ${{inputs.debug && '--config=verbose'}} \
               apps:qsim_base -- -c circuits/circuit_q24
 
-  memory-addressing-tests:
+  memory-tests:
     name: Malloc/asan/msan tests
     needs:
       - action-lint
       - docker-lint
       - python-format
-      - shell-script-lint
+      - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -507,7 +507,7 @@ jobs:
       - action-lint
       - docker-lint
       - python-format
-      - shell-script-lint
+      - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -542,3 +542,44 @@ jobs:
         run: |
           cd install/tests
           docker compose build
+
+  report-results:
+    name: CI
+    if: 'always()'
+    needs:
+      - action-lint
+      - bazel-lint
+      - docker-lint
+      - docker-tests
+      - library-tests
+      - memory-tests
+      - options-tests
+      - python-format
+      - python-lint
+      - shell-lint
+      - yaml-lint
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Report failure
+        if: >-
+          ${{
+            (needs.action-lint.result != 'success' && needs.action-lint.result != 'skipped')
+            || (needs.bazel-lint.result != 'success' && needs.bazel-lint.result != 'skipped')
+            || (needs.docker-lint.result != 'success' && needs.docker-lint.result != 'skipped')
+            || (needs.docker-tests.result != 'success' && needs.docker-tests.result != 'skipped')
+            || (needs.library-tests.result != 'success' && needs.library-tests.result != 'skipped')
+            || (needs.memory-tests.result != 'success' && needs.memory-tests.result != 'skipped')
+            || (needs.options-tests.result != 'success' && needs.options-tests.result != 'skipped')
+            || (needs.python-format.result != 'success' && needs.python-format.result != 'skipped')
+            || (needs.python-lint.result != 'success' && needs.python-lint.result != 'skipped')
+            || (needs.shell-lint.result != 'success' && needs.shell-lint.result != 'skipped')
+            || (needs.yaml-lint.result != 'success' && needs.yaml-lint.result != 'skipped')
+          }}
+        run: |
+          echo ":x: One or more CI jobs failed."
+          exit 1
+
+      - name: Report success
+        run: |
+          echo ':white_check_mark: All CI jobs passed!'
