@@ -211,6 +211,7 @@ jobs:
             WORKSPACE
 
       - name: Install buildifier
+        if: steps.changes.outputs.any_changed == 'true'
         uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
         with:
           buildifier-version: '8.2.1'
