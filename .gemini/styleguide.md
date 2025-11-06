@@ -22,7 +22,7 @@ separate subsections for Python, C++, and other file types below.
     _before_ writing new code. This ensures testability and clarifies
     requirements.
 
-*   Isolate tests. tests must be independent and must not rely on the state of
+*   Isolate tests. Tests must be independent and must not rely on the state of
     other tests. Use setup and teardown functions to create a clean environment
     for each test run.
 
