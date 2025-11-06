@@ -340,8 +340,8 @@ jobs:
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
 
-      - name: Set up Bazelisk and Bazel
-        uses: './.github/actions/set-up-bazelisk'
+      - name: Set up Bazel
+        uses: './.github/actions/set-up-bazel'
         with:
           debug: ${{inputs.debug}}
 
@@ -425,8 +425,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Set up Bazelisk and Bazel
-        uses: './.github/actions/set-up-bazelisk'
+      - name: Set up Bazel
+        uses: './.github/actions/set-up-bazel'
         with:
           debug: ${{inputs.debug}}
 
@@ -480,8 +480,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Set up Bazelisk and Bazel
-        uses: './.github/actions/set-up-bazelisk'
+      - name: Set up Bazel
+        uses: './.github/actions/set-up-bazel'
         with:
           debug: ${{inputs.debug}}
 
