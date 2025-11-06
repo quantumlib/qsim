@@ -28,12 +28,10 @@ on:
     branches:
       - main
 
-  # Support merge queues.
   merge_group:
     types:
       - checks_requested
 
-  # Allow manual invocation.
   workflow_dispatch:
     inputs:
       base_sha:
@@ -54,11 +52,9 @@ env:
   PIP_PROGRESS_BAR: 'off'
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
-# Declare default workflow permissions as read only.
 permissions: read-all
 
 jobs:
@@ -527,9 +523,12 @@ jobs:
       - name: Report failure
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
-          echo ":x: One or more CI jobs failed."
+          {
+          echo ":x: CI checks failed"
+          echo "One or more CI jobs failed. Please check the logs for details."
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
 
       - name: Report success
         run: |
-          echo ':white_check_mark: All CI jobs passed!'
+          echo ":white_check_mark: All CI checks passed" >> "$GITHUB_STEP_SUMMARY"
