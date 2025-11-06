@@ -25,59 +25,78 @@ inputs:
     type: boolean
     required: false
     default: true
+  bazel-version:
+    description: 'Version of Bazel to use:'
+    type: string
+    required: false
+    default: ''
 
 permissions:
   actions: write
   contents: read
 
+env:
+  debug: ${{inputs.debug || runner.debug}}
+  bazel-cache: ~/.cache/bazel
+
 runs:
   using: 'composite'
   steps:
-    - name: Read .bazelversion
-      id: read-version
+    - name: Set environment variables
       shell: bash
+      SHELLOPTS: ${{env.debug && 'xtrace' || ''}}
       run: |
-        if [[ ! -f ".bazelversion" ]]; then
-          echo "::error::.bazelversion file not found in repository root."
+        version=""
+        if [[ -n "${{inputs.bazel-version}}" ]]; then
+          version="${{inputs.bazel-version}}"
+        elif [[ -f ".bazelversion" ]]; then
+          version="$(cat .bazelversion | tr -d ' \n\r')"
+        else
+          echo "::error::Bazel version has not been specified."
           exit 1
         fi
-        echo "version=$(cat .bazelversion | tr -d ' \n\r')" >> "$GITHUB_OUTPUT"
+        echo "bazelversion=${version}" >> "$GITHUB_ENV"
 
     - name: Install Bazelisk
       env:
-        BAZELISK_SHOW_PROGRESS: ${{inputs.debug == 'true'}}
+        BAZELISK_SHOW_PROGRESS: ${{env.debug}}
       shell: bash
       run: npm install @bazel/bazelisk
+
+    # Explanation of the following caches:
+    #
+    # Bazelisk cache: stores copies of Bazel downloaded by Bazelisk. The copies
+    # are stored in subdirs coded by hash numbers, and thus this cache can be
+    # shared between workflows.
+    #
+    # Bazel --repository_cache: stores the raw downloaded files (like .zip,
+    # .tar.gz) specified by repository rules like http_archive. This can also
+    # be shared between workflows.
+    #
+    # Bazel --disk_cache: stores the compiled outputs of build actions, such as
+    # compiled object files (.o), linked libraries (.so, .dll), binaries, & test
+    # results. This is also sharable between workflows.
 
     - name: Set up cache for Bazelisk
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
+        # Bazelisk doesn't have an option to control this cache location.
         path: ~/.cache/bazelisk
-        key: bazelisk-v1-${{runner.os}}-${{steps.read-version.outputs.version}}
-        restore-keys: bazelisk-v1-${{runner.os}}-
+        key: bazelisk-cache
 
     - name: Set up Bazel repository cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
-        path: ~/.cache/bazel/repository_cache
-        # yamllint disable-line rule:line-length
-        key: bazel-repo-v1-${{runner.os}}-${{hashFiles('**/WORKSPACE', '**/BUILD', '**/BUILD.tpl', '**/*.bzl')}}
-        restore-keys: bazel-repo-v1-${{runner.os}}-
-
-    - name: Set up Bazel external repositories cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
-      with:
-        path: ~/.cache/bazel/output_base/external
-        # yamllint disable-line rule:line-length
-        key: bazel-external-v1-${{runner.os}}-${{hashFiles('**/WORKSPACE', '**/BUILD', '**/BUILD.tpl', '**/*.bzl')}}
-        restore-keys: bazel-external-v1-${{runner.os}}-
+        path: ${{env.bazel-cache}}/repository_cache
+        key: bazel-repo-${{env.bazelversion}}
+        restore-keys: bazel-repo-
 
     - name: Set up Bazel disk cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
-        path: ~/.cache/bazel/disk_cache
-        key: bazel-disk-v1-${{runner.os}}-${{github.ref}}-${{github.sha}}
-        restore-keys: bazel-disk-v1-${{runner.os}}-${{github.ref}}-
+        path: ${{env.bazel-cache}}/disk_cache
+        key: bazel-disk-${{runner.os}}-${{runner.arch}}-${{github.ref}}-${{github.sha}}
+        restore-keys: bazel-disk-${{runner.os}}-${{runner.arch}}-${{github.ref}}-
 
     - name: Determine the number of processors we can use
       shell: bash
@@ -88,18 +107,19 @@ runs:
           echo "num_cpus=$(getconf _NPROCESSORS_ONLN)" >> "$GITHUB_ENV"
         fi
 
-    - name: Make additions to .bazelrc for the cache configuration
+    - name: Add configuration settings to .bazelrc
       shell: bash
       run: |
         {
-        echo "startup --output_base=~/.cache/bazel/output_base"
-        echo "build --disk_cache=~/.cache/bazel/disk_cache"
-        echo "build --repository_cache=~/.cache/bazel/repository_cache"
+        echo "startup --output_base=${{env.bazel-cache}}/output_base"
+        echo "build --disk_cache=${{env.bazel-cache}}/disk_cache"
+        echo "build --repository_cache=${{env.bazel-cache}}/repository_cache"
         echo "build --jobs=${{env.num_cpus}}"
+        echo "test --cache_test_results=no"
         } >> .bazelrc
 
     - name: Print configuration information
-      if: inputs.debug == 'true'
+      if: env.debug
       shell: bash
       run: |
         bazelisk --version
