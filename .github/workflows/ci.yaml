@@ -396,6 +396,7 @@ jobs:
       - action-lint
       - bazel-lint
       - python-format
+      - python-lint
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
@@ -451,6 +452,7 @@ jobs:
       - action-lint
       - bazel-lint
       - python-format
+      - python-lint
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
@@ -506,6 +508,7 @@ jobs:
       - action-lint
       - docker-lint
       - python-format
+      - python-lint
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
