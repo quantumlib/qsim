@@ -261,7 +261,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # It's not worth testing every single Python version here, so this only
+        # It's not worth testing every possible combination here, so this only
         # tests the endpoints of the supported range. The wheel build process
         # (in a separate workflow) *does* use all the versions.
         os:
