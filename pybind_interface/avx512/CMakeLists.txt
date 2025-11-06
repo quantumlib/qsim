@@ -17,9 +17,9 @@ project(qsim)
 
 if(WIN32)
     add_compile_options(/arch:AVX512 /openmp)
-    # Only apply /O2 if the configuration is RELEASE.
+    # Add /O2 to any configuration that is NOT Debug.
     # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<CONFIG:RELEASE>:/O2>)
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
     add_compile_options(-mavx512f -mbmi2 -O3 -flto=auto)
 endif()
