@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Set up Bazelisk with caching
-description: Installs Bazelisk and sets up multiple caches for Bazel
+name: Set up Bazel with caching
+description: Installs Bazel and sets up multiple caches
 
 # Summary: reusable workflow to install Bazelisk (for Bazel) and set up Bazel
 # caches. It grew out of trouble getting the existing bazel-contrib/setup-bazel
