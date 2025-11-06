@@ -62,10 +62,10 @@ concurrency:
 permissions: read-all
 
 jobs:
-  python-format:
-    name: Python format checks
+  python-checks:
+    name: 'Python format & lint checks'
     runs-on: ubuntu-slim
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -91,48 +91,14 @@ jobs:
 
       - name: Install dependencies
         if: steps.changes.outputs.any_changed == 'true'
-        run: |
-          pip install -r requirements.txt
-          pip install -r dev-requirements.txt
+        run: pip install -r requirements.txt -r dev-requirements.txt
 
       - name: Check the format of changed Python files
         if: steps.changes.outputs.any_changed == 'true'
         run: |
           echo '::add-matcher::.github/problem-matchers/flynt.json'
           echo '::add-matcher::.github/problem-matchers/black.json'
-          check/format-incremental
-
-  python-lint:
-    name: Python lint checks
-    needs: [python-format]
-    runs-on: ubuntu-slim
-    timeout-minutes: 15
-    steps:
-      - name: Check out a copy of the git repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 0
-
-      - name: Get a list of changed Python files
-        id: changes
-        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
-        with:
-          base_sha: ${{inputs.base_sha}}
-          files: '**/*.py'
-
-      - name: Set up Python
-        if: steps.changes.outputs.any_changed == 'true'
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
-        with:
-          python-version: ${{env.python-version}}
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            dev-requirements.txt
-
-      - name: Install dependencies
-        if: steps.changes.outputs.any_changed == 'true'
-        run: pip install pylint~=3.3.1
+          check/format-incremental ${{inputs.base_sha}}
 
       - name: Lint the changed Python files
         if: steps.changes.outputs.any_changed == 'true'
@@ -298,8 +264,7 @@ jobs:
     needs:
       - action-lint
       - bazel-lint
-      - python-format
-      - python-lint
+      - python-checks
       - shell-lint
       - yaml-lint
     runs-on: ${{matrix.os}}
@@ -395,8 +360,7 @@ jobs:
     needs:
       - action-lint
       - bazel-lint
-      - python-format
-      - python-lint
+      - python-checks
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
@@ -451,8 +415,7 @@ jobs:
     needs:
       - action-lint
       - bazel-lint
-      - python-format
-      - python-lint
+      - python-checks
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
@@ -507,8 +470,7 @@ jobs:
     needs:
       - action-lint
       - docker-lint
-      - python-format
-      - python-lint
+      - python-checks
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-24.04
@@ -556,8 +518,7 @@ jobs:
       - library-tests
       - memory-tests
       - options-tests
-      - python-format
-      - python-lint
+      - python-checks
       - shell-lint
       - yaml-lint
     runs-on: ubuntu-slim
@@ -573,8 +534,7 @@ jobs:
             || (needs.library-tests.result != 'success' && needs.library-tests.result != 'skipped')
             || (needs.memory-tests.result != 'success' && needs.memory-tests.result != 'skipped')
             || (needs.options-tests.result != 'success' && needs.options-tests.result != 'skipped')
-            || (needs.python-format.result != 'success' && needs.python-format.result != 'skipped')
-            || (needs.python-lint.result != 'success' && needs.python-lint.result != 'skipped')
+            || (needs.python-checks.result != 'success' && needs.python-checks.result != 'skipped')
             || (needs.shell-lint.result != 'success' && needs.shell-lint.result != 'skipped')
             || (needs.yaml-lint.result != 'success' && needs.yaml-lint.result != 'skipped')
           }}
