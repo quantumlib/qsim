@@ -44,11 +44,9 @@ on:
         default: true
 
 env:
-  # Default Python version to use.
+  # Python version to use for actions/setup-python.
   python-version: '3.13'
-  # Add xtrace to SHELLOPTS for all Bash scripts when doing debug runs.
   SHELLOPTS: ${{inputs.debug && 'xtrace'}}
-  # Don't bother showing progress bars for pip commands.
   PIP_PROGRESS_BAR: 'off'
 
 concurrency:
@@ -104,8 +102,7 @@ jobs:
 
   docker-lint:
     name: Dockerfile lint checks
-    # This uses a Mac runner because hadolint isn't available via Linux apt.
-    runs-on: macos-15
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
@@ -119,18 +116,18 @@ jobs:
         with:
           files: '**/Dockerfile'
 
-      # Note: there is a hadolint GitHub Actions available, but it only accepts
-      # one Dockerfile to check. We have > 1 file to check, so we need the CLI.
-      - name: Install hadolint
-        if: steps.changes.outputs.any_changed == 'true'
-        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install hadolint
-
       - name: Run hadolint on Dockerfiles that have been changed
         if: steps.changes.outputs.any_changed == 'true'
+        env:
+          hadolint_version: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
         run: |
           echo '::add-matcher::.github/problem-matchers/hadolint.json'
-          hadolint --version
-          hadolint ${{steps.changes.outputs.all_changed_files}}
+          for file in ${{steps.changes.outputs.all_changed_files}}; do
+            echo "Checking ${file} ..."
+            docker run --rm -i -v "${PWD}"/.hadolint.yaml:/.config/hadolint.yaml \
+              ghcr.io/hadolint/hadolint@${{env.hadolint_version}} < "${file}"
+          done
+          echo 'Done ...'
 
   shell-lint:
     name: Shell script lint checks
