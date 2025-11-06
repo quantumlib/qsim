@@ -362,13 +362,7 @@ jobs:
         shell: cmd
         run: bash -x dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.root}}\\${{env.exe}}
 
-      - name: Install LLVM and Clang on macOS
-        if: startsWith(matrix.os, 'macos')
-        uses: KyleMayes/install-llvm-action@a7a1a882e2d06ebe05d5bb97c3e1f8c984ae96fc # v2
-        with:
-          version: "19.1.7"
-
-      - name: Install and configure OpenMP and compiler options on macOS
+      - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
         run: |
           brew install -q libomp llvm@19
@@ -377,8 +371,8 @@ jobs:
           brew link --force libomp
           brew link --force llvm@19
 
-          xcode_prefix="$(xcrun --sdk macosx --show-sdk-path)"
           brew_prefix="$(brew --prefix)"
+          xcode_prefix="$(xcrun --sdk macosx --show-sdk-path)"
 
           export PATH="${brew_prefix}/bin:$PATH"
           echo "PATH=${PATH}" >> "$GITHUB_ENV"
@@ -391,10 +385,13 @@ jobs:
 
       - name: Build the Python bindings
         shell: bash
+        env:
+          CMAKE_MESSAGE_LOG_LEVEL: 'DEBUG'
         run: |
           mkdir build
           cd build
           cmake ..
+          ls -l
           make -j
 
   options-tests:
