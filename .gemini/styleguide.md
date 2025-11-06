@@ -183,7 +183,7 @@ the first line should be a concise one-line summary of the function or object.
 Here is an example docstring:
 
 ```python
-def some_method(a: int, b: str) -> float:
+def some_function(a: int, b: str) -> float:
     r"""One-line summary of method.
 
     Additional information about the method, perhaps with some sort of LaTeX
