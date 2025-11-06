@@ -342,7 +342,7 @@ jobs:
           mkdir build
           cd build
           cmake ..
-          cmake --build .
+          cmake --build . -j
 
   options-tests:
     name: Options tests
