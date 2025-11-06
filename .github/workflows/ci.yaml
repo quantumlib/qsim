@@ -298,7 +298,6 @@ jobs:
     needs:
       - action-lint
       - bazel-lint
-      - docker-lint
       - python-format
       - python-lint
       - shell-lint
@@ -396,7 +395,6 @@ jobs:
     needs:
       - action-lint
       - bazel-lint
-      - docker-lint
       - python-format
       - shell-lint
       - yaml-lint
@@ -452,7 +450,6 @@ jobs:
     needs:
       - action-lint
       - bazel-lint
-      - docker-lint
       - python-format
       - shell-lint
       - yaml-lint
