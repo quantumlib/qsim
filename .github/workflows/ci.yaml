@@ -525,19 +525,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Report failure
-        if: >-
-          ${{
-            (needs.action-lint.result != 'success' && needs.action-lint.result != 'skipped')
-            || (needs.bazel-lint.result != 'success' && needs.bazel-lint.result != 'skipped')
-            || (needs.docker-lint.result != 'success' && needs.docker-lint.result != 'skipped')
-            || (needs.docker-tests.result != 'success' && needs.docker-tests.result != 'skipped')
-            || (needs.library-tests.result != 'success' && needs.library-tests.result != 'skipped')
-            || (needs.memory-tests.result != 'success' && needs.memory-tests.result != 'skipped')
-            || (needs.options-tests.result != 'success' && needs.options-tests.result != 'skipped')
-            || (needs.python-checks.result != 'success' && needs.python-checks.result != 'skipped')
-            || (needs.shell-lint.result != 'success' && needs.shell-lint.result != 'skipped')
-            || (needs.yaml-lint.result != 'success' && needs.yaml-lint.result != 'skipped')
-          }}
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo ":x: One or more CI jobs failed."
           exit 1
