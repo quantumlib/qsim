@@ -16,12 +16,15 @@ cmake_minimum_required(VERSION 3.28)
 project(qsim LANGUAGES CXX HIP)
 
 if(WIN32)
-    add_compile_options(/O2 /openmp)
+    add_compile_options(/openmp)
+    # Only apply /O2 if the configuration is RELEASE.
+    # This prevents a conflict with /RTC1 in DEBUG builds.
+    add_compile_options($<$<CONFIG:RELEASE>:/O2>)
 else()
     add_compile_options(-O3 -flto=auto)
 endif()
 
-INCLUDE(../GetPybind11.cmake)
+include(../GetPybind11.cmake)
 find_package(PythonLibs 3.10 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")

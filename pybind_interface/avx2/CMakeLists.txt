@@ -15,11 +15,14 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim)
 
-IF (WIN32)
-    add_compile_options(/arch:AVX2 /O2 /openmp)
-ELSE()
+if(WIN32)
+    add_compile_options(/arch:AVX2 /openmp)
+    # Only apply /O2 if the configuration is RELEASE.
+    # This prevents a conflict with /RTC1 in DEBUG builds.
+    add_compile_options($<$<CONFIG:RELEASE>:/O2>)
+else()
     add_compile_options(-mavx2 -mfma -O3 -flto=auto)
-ENDIF()
+endif()
 
 if(APPLE)
     include_directories(
@@ -36,7 +39,7 @@ if(APPLE)
     )
 endif()
 
-INCLUDE(../GetPybind11.cmake)
+include(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx2 pybind_main_avx2.cpp)
 
 target_link_libraries(qsim_avx2 PUBLIC OpenMP::OpenMP_CXX)
