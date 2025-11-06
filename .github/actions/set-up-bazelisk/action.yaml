@@ -105,21 +105,3 @@ runs:
         echo "build --jobs=${num_cpus}"
         echo "test --cache_test_results=no"
         } >> .bazelrc
-
-    - name: Print configuration information
-      if: ${{inputs.debug || runner.debug}}
-      shell: bash
-      run: |
-        bazelisk --version
-        echo "::group::Contents of .bazelversion"
-        cat .bazelversion
-        echo "::endgroup::"
-        echo "::group::Contents of .bazelrc"
-        cat .bazelrc
-        echo "::endgroup::"
-        echo "::group::GitHub context"
-        echo "The job_id is: $GITHUB_JOB"
-        echo "The id of this action is: $GITHUB_ACTION"
-        echo "The run id is: $GITHUB_RUN_ID"
-        echo "GitHub SHA: $GITHUB_SHA"
-        echo "::endgroup::"
