@@ -44,8 +44,8 @@ separate subsections for Python, C++, and other file types below.
 *   Test coverage must be high. We don't require 100% coverage, but any
     uncovered code must be annotated with `# pragma: no cover`. To ignore
     coverage of a single line, place `# pragma: no cover` at the end of the
-    line. To ignore coverage for an entire block, start the block with a `#
-    pragma: no cover` comment on its own line.
+    line. To ignore coverage for an entire block, start the block with a
+    `# pragma: no cover` comment on its own line.
 
 ### Overall code format conventions
 
