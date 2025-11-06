@@ -16,9 +16,9 @@ cmake_minimum_required(VERSION 3.28)
 project(qsim LANGUAGES CXX HIP)
 
 if(WIN32)
-    set(CMAKE_CXX_FLAGS "/O2 /openmp")
+    add_compile_options(/O2 /openmp)
 else()
-    set(CMAKE_CXX_FLAGS "-O3 -flto=auto")
+    add_compile_options(-O3 -flto=auto)
 endif()
 
 INCLUDE(../GetPybind11.cmake)
