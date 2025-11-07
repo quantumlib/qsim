@@ -27,8 +27,17 @@ if command -v nvcc &>/dev/null; then
     nvcc -O3 -o qsim_qtrajectory_cuda.x qsim_qtrajectory_cuda.cu
 
     if [ -n "$CUQUANTUM_ROOT" ]; then
-        CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
-        nvcc -O3 "$CUSTATEVECFLAGS" -o qsim_base_custatevec.x qsim_base_custatevec.cu
+        declare -a CUSTATEVECFLAGS
+        CUSTATEVECFLAGS=(
+            "-I${CUQUANTUM_ROOT}/include"
+            "-L${CUQUANTUM_ROOT}/lib"
+            "-L${CUQUANTUM_ROOT}/lib64"
+            "-lcustatevec"
+            "-lcublas"
+        )
+        nvcc -O3 "${CUSTATEVECFLAGS[@]}" \
+             -o qsim_base_custatevec.x qsim_base_custatevec.cu
+
     fi
 elif command -v hipcc &>/dev/null; then
     hipcc -O3 -o qsim_base_hip.x qsim_base_cuda.cu
