@@ -14,15 +14,15 @@
 # limitations under the License.
 
 ################################################################################
-# Formats Python and notebook files that have been modified.
+# Formats Python files that have been modified.
 #
 # Usage:
 #     check/format-incremental [BASE_REVISION] [--apply] [--all]
 #
-# By default, the script analyzes Python and notebook files that have changed
-# relative to the base revision and determines whether they need to be
-# formatted. If any changes are needed, it prints the diff and exits with
-# code 1, otherwise it exits with code 0.
+# By default, the script analyzes Python files that have changed relative to the
+# base revision and determines whether they need to be formatted. If any changes
+# are needed, it prints the diff and exits with code 1, otherwise it exits with
+# code 0.
 #
 # With '--apply', reformats the files instead of printing the diff and exits
 # with code 0.
@@ -98,7 +98,7 @@ if (( only_changed == 1 )); then
         rev="${base}"
     fi
 
-    # Get the modified, added and moved Python and notebook files.
+    # Get the modified, added, and moved files.
     IFS=$'\n' read -r -d '' -a format_files < \
         <(git diff --name-only --diff-filter=MAR "${rev}" -- \
         '*.py' ':(exclude)*_pb2.py')
