@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2019 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#!/bin/bash
 
 # This file provides an alternate method for building tests in this directory.
 # Prefer using the Makefile (e.g. `make -C tests/`) if possible.
@@ -63,10 +62,10 @@ if command -v nvcc &>/dev/null; then
 
     if [ -n "$CUQUANTUM_ROOT" ]; then
         CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
-        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o hybrid_custatevec_test.x hybrid_custatevec_test.cu -lgtest -lpthread
-        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o qtrajectory_custatevec_test.x qtrajectory_custatevec_test.cu -lgtest -lpthread
-        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o simulator_custatevec_test.x simulator_custatevec_test.cu -lgtest -lpthread
-        nvcc -O3 $CUSTATEVECFLAGS -I$path_to_include -L$path_to_lib -o statespace_custatevec_test.x statespace_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 "$CUSTATEVECFLAGS" -I$path_to_include -L$path_to_lib -o hybrid_custatevec_test.x hybrid_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 "$CUSTATEVECFLAGS" -I$path_to_include -L$path_to_lib -o qtrajectory_custatevec_test.x qtrajectory_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 "$CUSTATEVECFLAGS" -I$path_to_include -L$path_to_lib -o simulator_custatevec_test.x simulator_custatevec_test.cu -lgtest -lpthread
+        nvcc -O3 "$CUSTATEVECFLAGS" -I$path_to_include -L$path_to_lib -o statespace_custatevec_test.x statespace_custatevec_test.cu -lgtest -lpthread
     fi
 elif command -v hipcc &>/dev/null; then
     hipcc -O3 -I$path_to_include -L$path_to_lib -o hybrid_hip_test.x hybrid_cuda_test.cu -lgtest -lpthread
