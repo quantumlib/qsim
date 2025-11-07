@@ -246,7 +246,7 @@ Unit and integration tests can be run for the Python portions of this project
 using the following command:
 
 ```shell
-make run-py-tests
+make -j run-py-tests
 ```
 
 ## C++-specific guidance
@@ -254,6 +254,17 @@ make run-py-tests
 This section outlines coding conventions for C++ code in this project.
 
 ### C++ naming conventions
+
+*   _Variables_: Use lowercase with underscores (snake_case). Examples:
+    `user_name`, `total_count`.
+
+*   _Functions_: Use CapWords (CamelCase). Examples: `PrintAmplitudes`,
+    `FillIndices,`.
+
+*   _Classes_/_Structs_: Use CapWords (CamelCase). Examples: `UserManager`,
+    `PaymentProcessor`.
+
+*   _Namespaces_: Use snake_case.
 
 *   _Domain-specific terms_:
 
@@ -276,11 +287,11 @@ Note: the C++ code files use 80-column line widths. (The Python files use 88.)
 If you only want to run tests for the core C++ libraries, use this command:
 
 ```shell
-make run-cxx-tests
+bazel test tests:all
 ```
 
 To build tests without running them, instead use:
 
 ```shell
-make cxx-tests
+bzel build tests:all
 ```
