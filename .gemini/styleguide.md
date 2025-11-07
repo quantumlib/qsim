@@ -259,8 +259,8 @@ This section outlines coding conventions for C++ code in this project.
 
     *   In the C++ code, `state` is used everywhere for state vectors.
 
-    *   A computational basis state (say, $\ket{0000}$) is typically referred
-        to as a `bitstring`.
+    *   A computational basis state (say, $|0000\rangle$) is typically
+        referred to as a `bitstring`.
 
 ### C++ formatting
 
