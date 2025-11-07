@@ -80,7 +80,6 @@ jobs:
 
       - name: Check format
         run: |
-          echo '::add-matcher::.github/problem-matchers/flynt.json'
           echo '::add-matcher::.github/problem-matchers/black.json'
           check/format-incremental --all
 
