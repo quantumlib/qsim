@@ -12,24 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Base OS
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS qsimcirq
+
+# hadolint ignore=DL3002
 USER root
 
-# Install baseline
-RUN apt-get -y update && \
-        apt-get install -y python3-dev python3-pip git && \
-        python3 -m pip install --upgrade pip && \
-        python3 -m pip install cirq && \
-        python3 -m pip install cirq[contrib] && \
-        python3 -m pip install qsimcirq && \
-        python3 -m pip install jupyterlab && \
-    python3 -m pip install jupyter_http_over_ws && \
-    jupyter serverextension enable --py jupyter_http_over_ws && \
-        cd / && \
-        git clone https://github.com/quantumlib/qsim.git
+# hadolint ignore=DL3008
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3-pip python3-dev git \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN  jupyter serverextension enable --py jupyter_http_over_ws
+# Newer Ubuntus adopted PEP 668, which blocks pip from installing into system
+# locations, but Docker is already an isolated environment, so we don't mind.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
+RUN python3 -m pip install --no-cache-dir \
+    cirq~=1.0 \
+    cirq[contrib]~=1.0 \
+    qsimcirq~=0.1 \
+    notebook==6.4.8 \
+    jupyterlab==4.4.10 \
+    jupyter-contrib-nbextensions==0.7.0 \
+    jupyter-nbextensions-configurator==0.6.4 \
+    jupyter-http-over-ws==0.0.8
+
+RUN pip list
+
+WORKDIR /
+
+RUN git clone https://github.com/quantumlib/qsim.git
+
+RUN jupyter contrib nbextension install --user
+RUN jupyter nbextension enable varInspector/main
+RUN jupyter serverextension enable --py jupyter_http_over_ws
 
 CMD ["jupyter-notebook", "--port=8888", "--no-browser",\
       "--ip=0.0.0.0", "--allow-root", \
