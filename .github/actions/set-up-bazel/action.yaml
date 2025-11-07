@@ -46,7 +46,7 @@ runs:
         if [[ -n "${{inputs.bazel-version}}" ]]; then
           version="${{inputs.bazel-version}}"
         elif [[ -f ".bazelversion" ]]; then
-          version="$(cat .bazelversion | tr -d ' \n\r')"
+          version="$(tr -d ' \n\r' <.bazelversion)"
         else
           echo "::error::Bazel version has not been specified."
           exit 1
