@@ -40,9 +40,9 @@ WORKDIR /
 
 RUN git clone https://github.com/quantumlib/qsim.git
 
-RUN jupyter contrib nbextension install --user
-RUN jupyter nbextension enable varInspector/main
-RUN jupyter serverextension enable --py jupyter_http_over_ws
+RUN jupyter contrib nbextension install --user && \
+    jupyter nbextension enable varInspector/main && \
+    jupyter serverextension enable --py jupyter_http_over_ws
 
 CMD ["jupyter-notebook", "--port=8888", "--no-browser",\
       "--ip=0.0.0.0", "--allow-root", \
