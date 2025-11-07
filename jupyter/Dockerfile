@@ -36,8 +36,6 @@ RUN python3 -m pip install --no-cache-dir \
     jupyter-nbextensions-configurator==0.6.4 \
     jupyter-http-over-ws==0.0.8
 
-RUN pip list
-
 WORKDIR /
 
 RUN git clone https://github.com/quantumlib/qsim.git
