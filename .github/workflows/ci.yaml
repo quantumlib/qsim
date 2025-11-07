@@ -180,7 +180,7 @@ jobs:
 
   action-lint:
     name: GitHub Actions lint checks
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
@@ -191,7 +191,8 @@ jobs:
       - name: Run actionlint
         uses: raven-actions/actionlint@3a24062651993d40fed1019b58ac6fbdfbf276cc # v2
         with:
-          flags: ${{inputs.debug && '-verbose'}} .github/workflows/*.{yaml,yml}
+          flags: ${{inputs.debug && '-verbose'}}
+          files: '.github/workflows/*.{yaml,yml}'
           pyflakes: false
 
   library-tests:
