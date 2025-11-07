@@ -18,40 +18,29 @@ separate subsections for Python, C++, and other file types below.
 
 ### Overall development approach
 
-*   Use test-driven development (TDD) whenever possible. Write a failing test
-    _before_ writing new code. This ensures testability and clarifies
-    requirements.
+*   When new functions, classes, and files are introduced, they should also
+    have corresponding tests. Existing tests must continue to pass (or be
+    updated) when changes are introduced, and code should be covered by tests.
 
-*   Isolate tests. Tests must be independent and must not rely on the state of
-    other tests. Use setup and teardown functions to create a clean environment
+*   Test coverage must be high. We don't require 100% coverage, but any
+    uncovered code must be annotated appropriate directives (for example,
+    `# pragma: no cover` in Python).
+
+*   Tests must be independent and must not rely on the state of other tests.
+    Setup and teardown functions should be used to create a clean environment
     for each test run.
 
-*   When new functions, classes, and files are introduced, they should also have
-    corresponding tests. Existing tests must continue to pass (or be updated)
-    when changes are introduced, and code should be covered by tests.
+*   Make sure to cover edge cases: write tests for invalid inputs, null values,
+    empty arrays, zero values, and off-by-one errors.
 
-*   Make sure to cover edge cases: Test for invalid inputs, null values, empty
-    arrays, zero values, and off-by-one errors.
-
-*   Use mocking for dependencies. In unit tests, external dependencies (e.g.,
-    databases, network services, file system) must be mocked to ensure the test
-    is isolated to the unit under test.
-
-*   Use asserts intelligently. Test assertions should be specific. Instead of
+*   Use asserts intelligently. Test assertions should be specific: instead of
     just asserting `true`, assert that a specific value equals an expected
     value. Provide meaningful failure messages.
 
-*   Test coverage must be high. We don't require 100% coverage, but any
-    uncovered code must be annotated with `# pragma: no cover`. To ignore
-    coverage of a single line, place `# pragma: no cover` at the end of the
-    line. To ignore coverage for an entire block, start the block with a
-    `# pragma: no cover` comment on its own line.
-
 ### Overall code format conventions
 
-This project generally follows Google coding conventions, with a few changes
-that are mostly defined in the various configuration files at the top level of
-the source tree. The following Google style guides are the starting points:
+This project generally follows Google coding conventions, with a few changes.
+The following Google style guides are the starting points:
 
 *   [Google C++ Style Guide](
     https://google.github.io/styleguide/cppguide.html)
@@ -107,56 +96,32 @@ example of the required file header for a Python language code file:
 # limitations under the License.
 ```
 
-License headers are necessary on Python, C++, Bash/shell, and similar
-programming language files, as well as configuration files in YAML, TOML, ini,
-and other configuration file formats. They are not necessary in Markdown,
-reStructuredText, or plain text files.
+License headers are necessary on Python, C++, Bash/shell, and other programming
+language files, as well as configuration files in YAML, TOML, ini, and other
+config file formats. They are not necessary in Markdown or plain text files.
 
 For comments in other parts of the files, follow these guidelines:
 
-*   _Write clear and concise comments_: Comments must explain the "why", not the
-    "what". The code itself shows what it's doing. The comments should explain
-    the intent, the trade-offs, and the reasoning behind the implementation.
+*   _Write clear and concise comments_: Comments should explain the "why", not
+    the "what". The code itself shows what it's doing. The comments should
+    explain the intent, trade-offs, and reasoning behind the implementation.
 
 *   _Comment sparingly_: Well-written code should be self-documenting where
     possible. It's not necessary to add comments for code fragments that can
     reasonably be assumed to be self-explanatory.
 
-*   _Use complete sentences_: Start comments with a capital letter and use
-    proper punctuation.
-
-### Overall nomenclature conventions
-
-This project follows some nomenclature rules and conventions in order to
-maintain a consistent interface that is easy to use. By using consistent naming,
-we can reduce cognitive load on human users and developers. Please try to use
-these terms when writing code.
-
-*   Use `state_vector` to describe a pure state.  **Do not** use `wavefunction`,
-    `wave_function`, or `state` for this object (`state` is too overloaded).
-
-*   If the object is an array or possibly a computational basis state
-    (given by an `int`), use `state_rep` or, if it is the initial state of
-    a system `initial_state`.
-
-*   A function argument (`state_vector`, `state_rep`, or `initial_state`)
-    should permit any of the possible representations of a state: A NumPy
-    array, a NumPy tensor, an integer representing a qubit-system's
-    computational basis state, a sequence of _n_ integers representing a
-    qudit's basis state, or a `cirq.ProductState`. The type annotation should
-    be `cirq.STATE_VECTOR_LIKE` and you should use `cirq.to_valid_state_vector`
-    to canonicalize as a NumPy array of amplitudes. If a function expects a
-    NumPy array of amplitudes, its type annotation should be `np.ndarray`.
-
-*   Use `density_matrix` to describe a mixed state that is passed in as a NumPy
-    matrix or NumPy tensor.  **Do not** used `mixed_state`, `density_operator`,
-    or `state`.
+*   _Use complete sentences_: Start comments with a capital letter, use
+    proper punctuation, and use proper grammar.
 
 ## Python-specific guidance
 
-This section outlines the coding conventions for Python code in this project.
+This section outlines coding conventions for Python code in this project.
 
 ### Python naming conventions
+
+This project follows some nomenclature rules and conventions in order to
+maintain a consistent interface that is easy to use. By using consistent
+naming, we can reduce cognitive load on human users and developers.
 
 *   _Variables_: Use lowercase with underscores (snake_case). Examples:
     `qsim_op`, `qubit_to_index_dict`, `gate_kind`.
@@ -173,6 +138,25 @@ This section outlines the coding conventions for Python code in this project.
 
 *   _Modules_: Use lowercase with underscores (snake_case). Examples:
     `user_utils`, `payment_gateway`.
+
+*   _Domain-specific terms_:
+
+    *   Use `state_vector` to describe a pure state; do not use
+        `wavefunction` or `wave_function`.
+
+    *   If an object is an array or a computational basis state (given by an
+        `int`), use the term `state_rep`. If it is the initial state of a
+        system, use `initial_state`.
+
+    *   A function argument (`state_vector`, `state_rep`, or `initial_state`)
+        should permit any of the possible representations of a state: A NumPy
+        array, a NumPy tensor, an integer representing a qubit-system's
+        computational basis state, a sequence of _n_ integers representing a
+        qudit's basis state, or a `cirq.ProductState`. The type annotation
+        should be `cirq.STATE_VECTOR_LIKE` and you should use
+        `cirq.to_valid_state_vector` to canonicalize as a NumPy array of
+        amplitudes. If a function expects a NumPy array of amplitudes, its type
+        annotation should be `np.ndarray`.
 
 ###  Docstrings and documentation
 
@@ -267,7 +251,16 @@ make run-py-tests
 
 ## C++-specific guidance
 
-This section outlines the coding conventions for C++ code in this project.
+This section outlines coding conventions for C++ code in this project.
+
+### C++ naming conventions
+
+*   _Domain-specific terms_:
+
+    *   In the C++ code, `state` is used everywhere for state vectors.
+
+    *   A computational basis state (say, $\ket{0000}$) is typically referred
+        to as a `bitstring`.
 
 ### C++ formatting
 
