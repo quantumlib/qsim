@@ -493,7 +493,7 @@ jobs:
 
   report-results:
     name: CI
-    if: 'always()'
+    if: always()
     needs:
       - action-lint
       - bazel-lint
