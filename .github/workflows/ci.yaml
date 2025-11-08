@@ -105,17 +105,15 @@ jobs:
           fetch-depth: 0
 
       - name: Run hadolint on Dockerfiles
+        continue-on-error: ${{env.soft-linting == 'true'}}
         env:
           hadolint_version: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
         run: |
           echo '::add-matcher::.github/problem-matchers/hadolint.json'
-          find . -name Dockerfile | while IFS= read -r file; do
-            echo "Checking ${file} ..."
-            docker run --rm -i -v "${PWD}"/.hadolint.yaml:/.config/hadolint.yaml \
-              ghcr.io/hadolint/hadolint@${{env.hadolint_version}} \
-              ${{env.soft-linting && '--no-fail'}} < "${file}"
-          done
-          echo 'Done ...'
+          find . -name Dockerfile -print0 | \
+            xargs -0 -r docker run --rm -i -v "${PWD}:/app" -w /app \
+            --entrypoint /bin/hadolint \
+            ghcr.io/hadolint/hadolint@${{env.hadolint_version}}
 
   shell-lint:
     name: Shell script lint checks
