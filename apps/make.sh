@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2019 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#!/bin/bash
 
 # This file provides an alternate method for building apps in this directory.
 # Prefer using the Makefile (e.g. `make -C apps/`) if possible.
@@ -28,8 +27,17 @@ if command -v nvcc &>/dev/null; then
     nvcc -O3 -o qsim_qtrajectory_cuda.x qsim_qtrajectory_cuda.cu
 
     if [ -n "$CUQUANTUM_ROOT" ]; then
-        CUSTATEVECFLAGS="-I${CUQUANTUM_ROOT}/include -L${CUQUANTUM_ROOT}/lib -L${CUQUANTUM_ROOT}/lib64 -lcustatevec -lcublas"
-        nvcc -O3 $CUSTATEVECFLAGS -o qsim_base_custatevec.x qsim_base_custatevec.cu
+        declare -a CUSTATEVECFLAGS
+        CUSTATEVECFLAGS=(
+            "-I${CUQUANTUM_ROOT}/include"
+            "-L${CUQUANTUM_ROOT}/lib"
+            "-L${CUQUANTUM_ROOT}/lib64"
+            "-lcustatevec"
+            "-lcublas"
+        )
+        nvcc -O3 "${CUSTATEVECFLAGS[@]}" \
+             -o qsim_base_custatevec.x qsim_base_custatevec.cu
+
     fi
 elif command -v hipcc &>/dev/null; then
     hipcc -O3 -o qsim_base_hip.x qsim_base_cuda.cu
