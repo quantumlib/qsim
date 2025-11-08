@@ -285,8 +285,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake ..
-          cmake --build . -j
+          cmake ${{inputs.debug && '--debug-output' || ''}} ..
+          cmake --build . -j ${{inputs.debug && '--verbose' || ''}}
 
   options-tests:
     name: Options tests
