@@ -16,10 +16,11 @@
 # For more info about Scorecard options, see https://scorecard.dev/.
 
 checks:
-  # TODO: remove after fixing https://github.com/quantumlib/qsim/issues/951
   - name: Pinned-Dependencies
     reason: >-
-      Unpinned dependencies in the CI workflow are currently a known risk.
-      Tracking issue: https://github.com/quantumlib/qsim/issues/951
+      Unpinned dependencies are allowed in test environments for ease of
+      maintenance in this project.
     ignored-paths:
+      - "**/*test*/**"
+      # TODO: remove after fixing https://github.com/quantumlib/qsim/issues/951
       - ".github/workflows/**"
