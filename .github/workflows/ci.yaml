@@ -96,6 +96,7 @@ jobs:
 
   docker-lint:
     name: Dockerfile lint checks
+    # ubuntu-slim runners don't have docker installed.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -170,7 +171,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install buildifier
+      - name: Install Buildifier
         uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
         with:
           buildifier-version: '8.2.1'
@@ -194,12 +195,12 @@ jobs:
           fetch-depth: 0
 
       - name: Run actionlint
+        continue-on-error: ${{env.soft-linting == 'true'}}
         uses: raven-actions/actionlint@3a24062651993d40fed1019b58ac6fbdfbf276cc # v2
         with:
           flags: ${{inputs.debug && '-verbose'}}
           files: '.github/workflows/*.{yaml,yml}'
           pyflakes: false
-          fail-on-error: ${{!env.soft-linting}}
 
   library-tests:
     name: Library tests
@@ -471,8 +472,20 @@ jobs:
           echo ":x: CI checks failed"
           echo "One or more CI jobs failed. Please check the logs for details."
           } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
 
       - name: Report success
         run: |
           echo ":white_check_mark: All CI checks passed" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Point out if soft-linting is in effect
+        if: env.soft-linting
+        run: |
+          {
+          echo "> [!CAUTION]:"
+          echo "> **Soft linting is in effect**."
+          echo "> Format and lint errors have been ignored."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Exit with error (if appropriate)
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
