@@ -2,24 +2,12 @@
   "problemMatcher": [
     {
       "owner": "black",
+      "severity": "warning",
       "pattern": [
         {
-          "regexp": "^--- a/(.+)$",
-          "file": 1,
-          "severity": "warning",
-          "message": "Black detected formatting differences."
-        },
-        {
-          "regexp": "^\\+\\+\\+ b/(.+)$",
-          "file": 1,
-          "severity": "warning",
-          "message": "Black detected formatting differences."
-        },
-        {
-          "regexp": "^@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@$",
-          "line": 2,
-          "severity": "warning",
-          "message": "Black detected formatting differences."
+          "regexp": "^(would reformat\\s(.*))$",
+          "message": 1,
+          "file": 2
         }
       ]
     }
