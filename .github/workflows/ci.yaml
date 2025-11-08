@@ -80,7 +80,7 @@ jobs:
             dev-requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install black~=25.9.0 flynt~=1.0 pylint~=4.0.0
 
       - name: Check format
         continue-on-error: ${{env.soft-linting == 'true'}}
