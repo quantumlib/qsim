@@ -34,10 +34,6 @@ on:
 
   workflow_dispatch:
     inputs:
-      base_sha:
-        description: 'SHA of base commit to run against:'
-        type: string
-        required: true
       debug:
         description: 'Run with debugging options'
         type: boolean
