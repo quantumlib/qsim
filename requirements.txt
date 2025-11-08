@@ -5,4 +5,3 @@ numpy>=1.26.0
 # CMake will find them. It makes a crucial difference in some environments.
 pybind11[global]
 typing_extensions
-setuptools>=78.1.1

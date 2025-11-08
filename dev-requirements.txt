@@ -5,3 +5,4 @@ pylint~=4.0.2
 pytest
 pytest-xdist
 py-cpuinfo
+setuptools>=78.1.1
