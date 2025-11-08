@@ -78,7 +78,7 @@ def _find_file(repository_ctx, filename):
     The returned string contains the parent path of the filename.
     """
     result = repository_ctx.execute(
-        ["timeout", "5", "find", "/", "-name", filename, "-print", "-quit", "-not", "-path", "'*/.*'", "-quit"],
+        ["timeout", "5", "find", "/", "-path", "*/.*", "-prune", "-o", "-name", filename, "-print", "-quit"],
     ).stdout
     result = result[:result.find(filename) + len(filename)]
     return result
