@@ -38,12 +38,20 @@ on:
         description: 'Run with debugging options'
         type: boolean
         default: true
+      soft-linting:
+        description: 'Do not quit for linting errors'
+        type: boolean
+        default: true
 
 env:
   # Python version to use for actions/setup-python.
   python-version: '3.13'
   SHELLOPTS: ${{inputs.debug && 'xtrace'}}
   PIP_PROGRESS_BAR: 'off'
+  # Global flag determining whether lint errors are fatal.
+  # TODO(mhucka): uncomment next line & delete 2nd after formatting PRs merged.
+  # soft-linting: ${{inputs.soft-linting}}
+  soft-linting: true
 
 concurrency:
   cancel-in-progress: true
@@ -75,14 +83,16 @@ jobs:
         run: pip install -r requirements.txt -r dev-requirements.txt
 
       - name: Check format
+        continue-on-error: ${{env.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/black.json'
-          check/format-incremental --all
+          check/format-incremental
 
       - name: Check lint
+        continue-on-error: ${{env.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/pylint.json'
-          pylint -j 0 -v .
+          pylint ${{env.soft-linting && '--exit-zero'}} -j 0 .
 
   docker-lint:
     name: Dockerfile lint checks
@@ -102,7 +112,8 @@ jobs:
           find . -name Dockerfile | while IFS= read -r file; do
             echo "Checking ${file} ..."
             docker run --rm -i -v "${PWD}"/.hadolint.yaml:/.config/hadolint.yaml \
-              ghcr.io/hadolint/hadolint@${{env.hadolint_version}} < "${file}"
+              ghcr.io/hadolint/hadolint@${{env.hadolint_version}} \
+              ${{env.soft-linting && '--no-fail'}} < "${file}"
           done
           echo 'Done ...'
 
@@ -120,6 +131,7 @@ jobs:
         run: echo '::add-matcher::.github/problem-matchers/shellcheck.json'
 
       - name: Run ShellCheck
+        continue-on-error: ${{env.soft-linting == 'true'}}
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38
         with:
           severity: error
@@ -143,6 +155,7 @@ jobs:
           sudo apt-get install --no-install-recommends -y yamllint
 
       - name: Lint the YAML files
+        continue-on-error: ${{env.soft-linting == 'true'}}
         run: |
           echo "::add-matcher::.github/problem-matchers/yamllint.json"
           find . -name '*.yaml' -o -name '*.yml' | \
@@ -165,6 +178,7 @@ jobs:
           buildifier-version: '8.2.1'
 
       - name: Run Buildifier in lint mode
+        continue-on-error: ${{env.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/buildifier.json'
           # shellcheck disable=SC2038
@@ -187,6 +201,7 @@ jobs:
           flags: ${{inputs.debug && '-verbose'}}
           files: '.github/workflows/*.{yaml,yml}'
           pyflakes: false
+          fail-on-error: ${{!env.soft-linting}}
 
   library-tests:
     name: Library tests
