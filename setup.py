@@ -149,7 +149,7 @@ setup(
     # "pip install" from sources needs to build Pybind, which needs CMake too.
     setup_requires=[
         "packaging",
-        "setuptools>=75.2.0",
+        "setuptools>=78.1.1",
         "pybind11[global]",
         "cmake~=3.28.1",
     ],
