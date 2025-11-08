@@ -39,26 +39,25 @@ http_archive(
     url = "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.13.0.zip",
 )
 
-load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
+load("@org_tensorflow//tensorflow:workspace3.bzl", "tf_workspace3")
 
-workspace()
+tf_workspace3()
 
-load("@org_tensorflow//tensorflow:workspace2.bzl", "workspace")
+load("@org_tensorflow//tensorflow:workspace2.bzl", "tf_workspace2")
 
-workspace()
+tf_workspace2()
 
-load("@org_tensorflow//tensorflow:workspace1.bzl", "workspace")
+load("@org_tensorflow//tensorflow:workspace1.bzl", "tf_workspace1")
 
-workspace()
+tf_workspace1()
 
-load("@org_tensorflow//tensorflow:workspace0.bzl", "workspace")
+load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
 
-workspace()
+tf_workspace0()
 
+EIGEN_COMMIT = "d71c30c47858effcbd39967097a2d99ee48db464"  # 3.4.1
 
-EIGEN_COMMIT = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
-EIGEN_SHA256 = "eca9847b3fe6249e0234a342b78f73feec07d29f534e914ba5f920f3e09383a3"
-
+EIGEN_SHA256 = "f1d28c2205d015490a685b1e5a171c434da87f757746724de3cb85e69621dec2"
 
 http_archive(
     name = "eigen",
@@ -70,11 +69,10 @@ cc_library(
 )
     """,
     sha256 = EIGEN_SHA256,
-        strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
-            "https://gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
-        ],
+    strip_prefix = "eigen-{commit}".format(commit = EIGEN_COMMIT),
+    urls = [
+        "https://gitlab.com/libeigen/eigen/-/archive/{commit}/eigen-{commit}.tar.gz".format(commit = EIGEN_COMMIT),
+    ],
 )
 
 load("//third_party/cuquantum:cuquantum_configure.bzl", "cuquantum_configure")
