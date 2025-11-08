@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+[build-system]
+requires = [
+  "packaging",
+  "setuptools>=78.1.1",
+  "pybind11[global]",
+  # "pip install" from sources needs to build Pybind, which needs CMake too.
+  "cmake~=3.28.1",
+]
+build-backend = "setuptools.build_meta"
+
 [tool.cibuildwheel]
 test-extras = "dev"
 dependency-versions = "latest"
