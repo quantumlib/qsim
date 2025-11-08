@@ -130,8 +130,6 @@ jobs:
           check_together: 'yes'
           additional_files: >-
             check/format-incremental
-            check/pylint
-            check/pylint-changed-files
 
   yaml-lint:
     name: YAML lint checks
