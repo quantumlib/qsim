@@ -13,15 +13,15 @@
 # limitations under the License.
 
 import os
+import platform
 import re
 import runpy
-import sys
 import shutil
-import platform
 import subprocess
+import sys
 import sysconfig
 
-from setuptools import setup, Extension
+from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
 
