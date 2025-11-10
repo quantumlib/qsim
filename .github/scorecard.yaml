@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2025 The Cirq Developers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Base OS
-# hadolint ignore=DL3006
-FROM qsim-base AS qsim-py-tests
+# Summary: configure OSSF Scorecard for some nuances of this project.
+# For more info about Scorecard options, see https://scorecard.dev/.
 
-# Copy relevant files
-COPY ./pybind_interface/ /qsim/pybind_interface/
-COPY ./qsimcirq/ /qsim/qsimcirq/
-COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
-
-WORKDIR /qsim/
-
-# Build pybind code early to cache the results
-RUN make -j -C /qsim/ pybind
-
-# Compile and run qsim tests
-ENTRYPOINT ["make", "-C", "/qsim/", "run-py-tests"]
+checks:
+  - name: Pinned-Dependencies
+    reason: >-
+      Unpinned dependencies are allowed in test environments for ease of
+      maintenance in this project.
+    ignored-paths:
+      - "**/*test*/**"
+      # TODO: remove after fixing https://github.com/quantumlib/qsim/issues/951
+      - ".github/workflows/**"
