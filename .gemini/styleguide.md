@@ -77,8 +77,8 @@ the top level of this project repository):
 ### Overall code commenting conventions
 
 Every source file must begin with a header comment with the copyright and
-license. We use the Apache 2.0 license, and copyright by Google LLC. Here is an
-example of the required file header for a Python language code file:
+license. We use the Apache 2.0 license. Here is an example of the required file
+header for a Python language code file:
 
 ```python
 # Copyright 2025 Google LLC
