@@ -100,12 +100,11 @@ if (( only_changed == 1 )); then
 
     # Get the modified, added, and moved files.
     IFS=$'\n' read -r -d '' -a format_files < \
-        <(git diff --name-only --diff-filter=MAR "${rev}" -- \
-        '*.py' ':(exclude)*_pb2.py') || true
+        <(git diff --name-only --diff-filter=MAR "${rev}" -- '*.py') || true
 else
     echo -e "Formatting all Python files." >&2
     IFS=$'\n' read -r -d '' -a format_files < \
-        <(git ls-files '*.py' ':(exclude)*_pb2.py')
+        <(git ls-files '*.py')
 fi
 
 if (( ${#format_files[@]} == 0 )); then
