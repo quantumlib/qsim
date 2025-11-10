@@ -157,8 +157,8 @@ jobs:
         continue-on-error: ${{env.soft-linting == 'true'}}
         run: |
           echo "::add-matcher::.github/problem-matchers/yamllint.json"
-          find . -name '*.yaml' -o -name '*.yml' | \
-            grep -vE '\\.github/workflows' | \
+          find . -not -path '*.github/workflows/*' \
+            '(' -name '*.yaml' -o -name '*.yml' ')' | \
             xargs yamllint -f github
 
   bazel-lint:
