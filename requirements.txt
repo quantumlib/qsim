@@ -1,7 +1,4 @@
 absl-py
 cirq-core~=1.0
 numpy>=1.26.0
-# The global option to pybind11 makes it include CMake files in a location where
-# CMake will find them. It makes a crucial difference in some environments.
-pybind11[global]
 typing_extensions
