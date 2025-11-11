@@ -4,10 +4,12 @@
       "owner": "hadolint",
       "pattern": [
         {
-          "regexp": "^(.+?):(\\d+)\\s+(.*)$",
+          "regexp": "^(.*?):(\\d+) (DL\\d+|SC\\d+) (warning|error|info|style): (.*)$",
           "file": 1,
           "line": 2,
-          "message": 3
+          "code": 3,
+          "severity": 4,
+          "message": 5
         }
       ]
     }

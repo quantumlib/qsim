@@ -16,9 +16,13 @@ cmake_minimum_required(VERSION 3.28)
 project(qsim LANGUAGES CXX CUDA)
 
 if(WIN32)
-    set(CMAKE_CXX_FLAGS "/O2 /openmp")
+    # Always apply AVX2 and openmp on Windows
+    add_compile_options(/openmp)
+    # Add /O2 to any configuration that is NOT Debug.
+    # This prevents a conflict with /RTC1 in DEBUG builds.
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    set(CMAKE_CXX_FLAGS "-O3 -flto=auto")
+    add_compile_options(-O3 -flto=auto)
 endif()
 
 if(APPLE)

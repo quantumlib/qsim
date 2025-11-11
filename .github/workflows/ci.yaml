@@ -1,0 +1,492 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# yamllint disable rule:line-length
+
+name: Continuous integration
+run-name: >-
+  Run CI checks for ${{github.event_name}} on ${{github.ref_name}}
+  by @${{github.actor}}
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  merge_group:
+    types:
+      - checks_requested
+
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
+      soft-linting:
+        description: 'Do not quit for linting errors'
+        type: boolean
+        default: true
+
+env:
+  # Python version to use for actions/setup-python.
+  python-version: '3.13'
+  SHELLOPTS: ${{inputs.debug && 'xtrace'}}
+  PIP_PROGRESS_BAR: 'off'
+  # Global flag determining whether lint errors are fatal.
+  # TODO(mhucka): uncomment next line & delete 2nd after formatting PRs merged.
+  # soft-linting: ${{inputs.soft-linting}}
+  soft-linting: true
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
+
+permissions: read-all
+
+jobs:
+  python-checks:
+    name: 'Python format & lint checks'
+    runs-on: ubuntu-slim
+    timeout-minutes: 20
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r dev-requirements.txt
+
+      - name: Check format
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        run: |
+          echo '::add-matcher::.github/problem-matchers/black.json'
+          check/format-incremental
+
+      - name: Check lint
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        run: |
+          echo '::add-matcher::.github/problem-matchers/pylint.json'
+          pylint ${{env.soft-linting && '--exit-zero'}} -j 0 .
+
+  docker-lint:
+    name: Dockerfile lint checks
+    # ubuntu-slim runners don't have docker installed.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Run hadolint on Dockerfiles
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        env:
+          hadolint_version: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
+        run: |
+          echo '::add-matcher::.github/problem-matchers/hadolint.json'
+          find . -name Dockerfile -print0 | \
+            xargs -0 -r docker run --rm -i -v "${PWD}:/app" -w /app \
+            --entrypoint /bin/hadolint \
+            ghcr.io/hadolint/hadolint@${{env.hadolint_version}}
+
+  shell-lint:
+    name: Shell script lint checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Install problem matcher
+        run: echo '::add-matcher::.github/problem-matchers/shellcheck.json'
+
+      - name: Run ShellCheck
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38
+        with:
+          severity: error
+          check_together: 'yes'
+          additional_files: >-
+            check/format-incremental
+
+  yaml-lint:
+    name: YAML lint checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Install yamllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y yamllint
+
+      - name: Lint the YAML files
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        run: |
+          echo "::add-matcher::.github/problem-matchers/yamllint.json"
+          # shellcheck disable=SC2038
+          find . -not -path '*.github/workflows/*' \
+            '(' -name '*.yaml' -o -name '*.yml' ')' | \
+            xargs yamllint -f github
+
+  bazel-lint:
+    name: Bazel build lint checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Install Buildifier
+        uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
+        with:
+          buildifier-version: '8.2.1'
+
+      - name: Run Buildifier in lint mode
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        run: |
+          echo '::add-matcher::.github/problem-matchers/buildifier.json'
+          # shellcheck disable=SC2038
+          find . -name 'BUILD' -o -name '*.bzl' -o -name 'WORKSPACE' | \
+            xargs buildifier -mode=diff -lint=warn
+
+  action-lint:
+    name: GitHub Actions lint checks
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Run actionlint
+        continue-on-error: ${{env.soft-linting == 'true'}}
+        uses: raven-actions/actionlint@3a24062651993d40fed1019b58ac6fbdfbf276cc # v2
+        with:
+          flags: ${{inputs.debug && '-verbose'}}
+          files: '.github/workflows/*.{yaml,yml}'
+          pyflakes: false
+
+  library-tests:
+    name: Library tests
+    needs:
+      - action-lint
+      - bazel-lint
+      - python-checks
+      - shell-lint
+      - yaml-lint
+    runs-on: ${{matrix.os}}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # It's not worth testing every possible combination here, so this only
+        # tests the endpoints of the supported range. The wheel build process
+        # (in a separate workflow) *does* use all the versions.
+        os:
+          - ubuntu-24.04
+          - macos-14
+          - macos-15
+          - windows-2025
+        python_version:
+          - '3.10'
+          - '3.13'
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        id: setup
+        with:
+          python-version: ${{matrix.python_version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r dev-requirements.txt
+
+      - name: Set up Bazel
+        uses: './.github/actions/set-up-bazel'
+        with:
+          debug: ${{inputs.debug}}
+
+      - if: matrix.os != 'windows-2025'
+        name: Build the qsim C++ library and run tests (non-Windows case)
+        run: |
+          alias bazel=bazelisk
+          dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
+
+      - if: matrix.os == 'windows-2025'
+        name: Build the qsim C++ library and run tests (Windows case)
+        # On GitHub Windows runners, Bazel ends up finding a different "python3"
+        # binary than what's installed by setup-python unless we tell Bazel what
+        # to use. Here we do that by setting PYTHON_BIN_PATH.
+        env:
+          root: 'C:\\hostedtoolcache\\windows\\Python'
+          exe: '${{steps.setup.outputs.python-version}}\\x64\\python3.exe'
+        shell: cmd
+        run: bash -x dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.root}}\\${{env.exe}}
+
+      - name: Install LLVM and OpenMP on macOS
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install -q libomp llvm@19
+          brew unlink libomp
+          brew unlink llvm@19
+          brew link --force libomp
+          brew link --force llvm@19
+
+          brew_prefix="$(brew --prefix)"
+          xcode_prefix="$(xcrun --sdk macosx --show-sdk-path)"
+
+          export PATH="${brew_prefix}/bin:$PATH"
+          echo "PATH=${PATH}" >> "$GITHUB_ENV"
+
+          export LDFLAGS="-L${brew_prefix}/lib -Wl,-rpath,${brew_prefix}/lib"
+          echo "LDFLAGS=${LDFLAGS}" >> "$GITHUB_ENV"
+
+          export CXXFLAGS="-I${xcode_prefix}/usr/include -I${brew_prefix}/include -O3 -std=c++17 -flto=auto -Xpreprocessor -fopenmp"
+          echo "CXXFLAGS=${CXXFLAGS}" >> "$GITHUB_ENV"
+
+      - name: Build the Python bindings
+        shell: bash
+        run: |
+          mkdir build
+          cd build
+          cmake ${{inputs.debug && '--debug-output' || ''}} ..
+          cmake --build . -j ${{inputs.debug && '--verbose' || ''}}
+
+  options-tests:
+    name: Options tests
+    needs:
+      - action-lint
+      - bazel-lint
+      - python-checks
+      - shell-lint
+      - yaml-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        # Hardware optimizers.
+        hardware_opt: [avx, sse, basic]
+        # Optimizers for parallelism.
+        parallel_opt: [openmp, nopenmp]
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r dev-requirements.txt
+
+      - name: Set up Bazel
+        uses: './.github/actions/set-up-bazel'
+        with:
+          debug: ${{inputs.debug}}
+
+      - name: Run C++ tests
+        run: |
+          bazel test \
+              --config=${{matrix.hardware_opt}} \
+              --config=${{matrix.parallel_opt}} \
+              ${{inputs.debug && '--config=verbose'}} \
+              tests:all
+
+      - name: Run sample simulation
+        run: |
+          bazel run \
+              --config=${{matrix.hardware_opt}} \
+              --config=${{matrix.parallel_opt}} \
+              ${{inputs.debug && '--config=verbose'}} \
+              apps:qsim_base -- -c circuits/circuit_q24
+
+  memory-tests:
+    name: Malloc/asan/msan tests
+    needs:
+      - action-lint
+      - bazel-lint
+      - python-checks
+      - shell-lint
+      - yaml-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      common_args: >-
+        --config=avx
+        --config=openmp
+        ${{inputs.debug && '--config=verbose'}}
+        tests:all
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v5
+        with:
+          python-version: ${{env.python-version}}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r dev-requirements.txt
+
+      - name: Set up Bazel
+        uses: './.github/actions/set-up-bazel'
+        with:
+          debug: ${{inputs.debug}}
+
+      - name: Install google-perftools for tcmalloc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgoogle-perftools-dev
+
+      - name: Run TCMalloc tests
+        env:
+          PERFTOOLS_VERBOSE: ${{inputs.debug && 1}}
+        run: bazel test --config=tcmalloc ${{env.common_args}}
+
+      - name: Run memory sanitizer tests
+        run: bazel test --config=msan ${{env.common_args}}
+
+      - name: Run address sanitizer tests
+        run: bazel test --config=asan ${{env.common_args}}
+
+  docker-tests:
+    name: Docker build tests
+    needs:
+      - action-lint
+      - docker-lint
+      - python-checks
+      - shell-lint
+      - yaml-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # The next environment variable is used by Docker.
+      BUILDKIT_PROGRESS: ${{inputs.debug && 'plain'}}
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Build Docker images
+        run: |
+          # Running locally, a plain "docker compose build" works as expected.
+          # On GitHub, buildx tries to build all 3 images in parallel even if
+          # you set COMPOSE_PARALLEL_LIMIT or use --parallel 1. That fails b/c
+          # the qsim-base image is not available to the other two build jobs.
+          docker compose build qsim-base-image
+          docker compose build --parallel qsim-cxx-tests-image qsim-py-tests-image
+
+      - name: Run C++ tests
+        run: docker run --rm qsim-cxx-tests:latest
+
+      - name: Run Python tests
+        run: docker run --rm qsim-py-tests:latest
+
+      - name: Run a sample simulation
+        run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
+
+      - name: Test installation process
+        run: |
+          cd install/tests
+          docker compose build
+
+  report-results:
+    name: CI
+    if: always()
+    needs:
+      - action-lint
+      - bazel-lint
+      - docker-lint
+      - docker-tests
+      - library-tests
+      - memory-tests
+      - options-tests
+      - python-checks
+      - shell-lint
+      - yaml-lint
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Report failure
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          {
+          echo ":x: CI checks failed"
+          echo "One or more CI jobs failed. Please check the logs for details."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report success
+        run: |
+          echo ":white_check_mark: All CI checks passed" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Point out if soft-linting is in effect
+        if: env.soft-linting
+        run: |
+          {
+          echo "> [!CAUTION]:"
+          echo "> **Soft linting is in effect**."
+          echo "> Format and lint errors have been ignored."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Exit with error (if appropriate)
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

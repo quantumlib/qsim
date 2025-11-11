@@ -2,12 +2,12 @@
   "problemMatcher": [
     {
       "owner": "black",
-      "severity": "error",
+      "severity": "warning",
       "pattern": [
         {
-          "regexp": "^would reformat (.+)$",
-          "file": 1,
-          "message": "File needs reformatting."
+          "regexp": "^(would reformat\\s(.*))$",
+          "message": 1,
+          "file": 2
         }
       ]
     }

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import cirq, qsimcirq
+import cirq
+
+import qsimcirq
 
 # Create a Bell state, |00) + |11)
 q0, q1 = cirq.LineQubit.range(2)

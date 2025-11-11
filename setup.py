@@ -13,15 +13,15 @@
 # limitations under the License.
 
 import os
+import platform
 import re
 import runpy
-import sys
 import shutil
-import platform
 import subprocess
+import sys
 import sysconfig
 
-from setuptools import setup, Extension
+from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
 
@@ -153,13 +153,6 @@ setup(
     maintainer_email="quantum-oss-maintainers@google.com",
     python_requires=">=3.10.0",
     install_requires=requirements,
-    # "pip install" from sources needs to build Pybind, which needs CMake too.
-    setup_requires=[
-        "packaging",
-        "setuptools>=75.2.0",
-        "pybind11[global]",
-        "cmake~=3.28.1",
-    ],
     extras_require={
         "dev": dev_requirements,
     },
