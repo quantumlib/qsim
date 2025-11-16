@@ -1,4 +1,4 @@
-# Copyright 2018 The Cirq Developers
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -124,13 +124,20 @@ class CMakeBuild(build_ext):
         )
 
 
-requirements = open("requirements.txt").readlines()
-dev_requirements = open("dev-requirements.txt").readlines()
+with open("requirements.txt") as f:
+    requirements = [
+        line.strip() for line in f if line.strip() and not line.strip().startswith("#")
+    ]
+with open("dev-requirements.txt") as f:
+    dev_requirements = [
+        line.strip() for line in f if line.strip() and not line.strip().startswith("#")
+    ]
 
 description = "Schrödinger and Schrödinger-Feynman simulators for quantum circuits."
 
 # README file as long_description.
-long_description = open("README.md", encoding="utf-8").read()
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 __version__ = runpy.run_path("qsimcirq/_version.py")["__version__"]
 if not __version__:
