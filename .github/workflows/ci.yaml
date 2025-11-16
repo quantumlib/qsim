@@ -48,10 +48,6 @@ env:
   python-version: '3.13'
   SHELLOPTS: ${{inputs.debug && 'xtrace'}}
   PIP_PROGRESS_BAR: 'off'
-  # Global flag determining whether lint errors are fatal.
-  # TODO(mhucka): uncomment next line & delete 2nd after formatting PRs merged.
-  # soft-linting: ${{inputs.soft-linting}}
-  soft-linting: true
 
 concurrency:
   cancel-in-progress: true
@@ -83,16 +79,16 @@ jobs:
         run: pip install -r requirements.txt -r dev-requirements.txt
 
       - name: Check format
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/black.json'
           check/format-incremental
 
       - name: Check lint
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/pylint.json'
-          pylint ${{env.soft-linting && '--exit-zero'}} -j 0 .
+          pylint ${{inputs.soft-linting && '--exit-zero'}} -j 0 .
 
   docker-lint:
     name: Dockerfile lint checks
@@ -106,7 +102,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run hadolint on Dockerfiles
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         env:
           hadolint_version: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
         run: |
@@ -130,7 +126,7 @@ jobs:
         run: echo '::add-matcher::.github/problem-matchers/shellcheck.json'
 
       - name: Run ShellCheck
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38
         with:
           severity: error
@@ -154,7 +150,7 @@ jobs:
           sudo apt-get install --no-install-recommends -y yamllint
 
       - name: Lint the YAML files
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo "::add-matcher::.github/problem-matchers/yamllint.json"
           # shellcheck disable=SC2038
@@ -178,7 +174,7 @@ jobs:
           buildifier-version: '8.2.1'
 
       - name: Run Buildifier in lint mode
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/buildifier.json'
           # shellcheck disable=SC2038
@@ -196,7 +192,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run actionlint
-        continue-on-error: ${{env.soft-linting == 'true'}}
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
         uses: raven-actions/actionlint@3a24062651993d40fed1019b58ac6fbdfbf276cc # v2
         with:
           flags: ${{inputs.debug && '-verbose'}}
@@ -474,12 +470,8 @@ jobs:
           echo "One or more CI jobs failed. Please check the logs for details."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Report success
-        run: |
-          echo ":white_check_mark: All CI checks passed" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Point out if soft-linting is in effect
-        if: env.soft-linting
+        if: inputs.soft-linting
         run: |
           {
           echo "> [!CAUTION]:"
