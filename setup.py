@@ -149,7 +149,7 @@ setup(
     url="https://github.com/quantumlib/qsim",
     author="The qsim/qsimh Developers",
     author_email="qsim-qsimh-dev@googlegroups.com",
-    maintainer="Google Quantum AI open-source maintainers",
+    maintainer="Google Quantum AI",
     maintainer_email="quantum-oss-maintainers@google.com",
     python_requires=">=3.10.0",
     install_requires=requirements,
