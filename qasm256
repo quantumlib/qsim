@@ -1,0 +1,96 @@
+qubit q[8];             // Declare an 8-qubit register
+qudit d[4][3];          // Declare a 4-dimensional, 3-qudit system
+bit[16] results;        // Classical register for results
+float[32] amplitudes;   // Floating-point array for QAM encoding
+
+include "qam_encoding.q256";      // QAM-like modulation gates
+include "error_correction.q256"; // Error correction protocols
+include "noise_modeling.q256";   // Noise mitigation tools
+
+qam_gate(amp=0.707, phase=3.14159/4) q[0];  // Apply QAM-like encoding to q[0]
+rz(phase=pi/3) q[1];                       // Phase rotation gate
+qudit_gate(dimension=4, op="superposition") d[0]; // Apply a qudit-specific gate
+
+entangle q[0], q[1];          // Entangle q[0] and q[1]
+send_entangled q[2], "node_1"; // Transmit q[2] to a remote node
+receive_entangled q[3], "node_1"; // Receive an entangled qubit from node_1
+
+measure q -> results;        // Measure all qubits in q
+measure_phase q[0] -> phase; // Measure the phase of q[0]
+
+float amplitude = 0.8;
+float phase = pi/4;
+
+// Apply amplitude-phase encoding
+qam_gate(amplitude, phase) q[0];
+
+shor_encode q[0:8];         // Apply Shor encoding
+surface_correct d[0];       // Apply surface code error correction
+
+apply_noise(depolarizing=0.01) q[0:7];  // Add depolarizing noise
+simulate_noise_channel(channel="amplitude_damping", strength=0.05) q;
+
+initialize_qudit(dimension=5) d[0];  // Initialize a 5-dimensional qudit
+apply_gate(d[0], "rotation", angle=pi/6); // Apply a rotation gate on d[0]
+
+
+initialize_qudit(dimension=5) d[0];  // Initialize a 5-dimensional qudit
+apply_gate(d[0], "rotation", angle=pi/6); // Apply a rotation gate on d[0]
+
+
+entangle_network q[0], q[1], "node_2";  // Create a distributed entangled state
+transmit_entangled q[2], "node_2";      // Transmit q[2] to node_2
+receive_entangled q[3], "node_2";       // Receive an entangled state
+
+
+qubit q[8];
+float[256] amplitudes, phases;
+
+// Initialize amplitude and phase arrays
+for int i in [0:255] {
+    amplitudes[i] = random_uniform(0.0, 1.0);
+    phases[i] = random_uniform(0.0, 2*pi);
+}
+
+
+library error_correction {
+    function shor_encode(qubit[9] q) {
+        // Apply Shor encoding for fault tolerance
+        h q[0];
+        cx q[0], q[1];
+        cx q[0], q[2];
+    }
+}
+
+
+library qam_encoding {
+    function qam_gate(float amplitude, float phase, qubit q) {
+        // Apply amplitude and phase modulation
+        u3(2 * acos(amplitude), 0, 0) q;
+        rz(phase) q;
+    }
+}
+
+// At node_1
+receive_entangled q[0], "node_1";
+receive_entangled q[2], "node_1";
+
+// Measure received qubits
+measure q -> results;
+
+// Entangle qubits
+entangle q[0], q[1];
+entangle q[2], q[3];
+
+// Transmit entangled qubits
+send_entangled q[0], "node_1";
+send_entangled q[2], "node_1";
+
+// Encode data into qubits
+for int i in [0:255] {
+    let amp = amplitudes[i];
+    let phase = phases[i];
+    qam_gate(amp, phase) q[i % 8];
+}
+
+
