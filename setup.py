@@ -15,7 +15,6 @@
 import os
 import platform
 import re
-import runpy
 import shutil
 import subprocess
 import sys
@@ -23,6 +22,8 @@ import sysconfig
 
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
+
+__version__ = "0.23.0.dev0"
 
 
 class CMakeExtension(Extension):
@@ -67,6 +68,8 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CUDA_COMPILER=nvcc",
             ]
 
+        # Append additional CMake arguments from the environment variable.
+        # This is e.g. used by cibuildwheel to force a certain C++ standard.
         additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
         if additional_cmake_args:
             cmake_args += additional_cmake_args.split()
@@ -110,9 +113,7 @@ class CMakeBuild(build_ext):
 
         env = os.environ.copy()
         cxxflags = env.get("CXXFLAGS", "")
-        env["CXXFLAGS"] = (
-            f'{cxxflags} -DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
-        )
+        env["CXXFLAGS"] = f'{cxxflags} -DVERSION_INFO=\\"{__version__}\\"'
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(
@@ -124,42 +125,7 @@ class CMakeBuild(build_ext):
         )
 
 
-with open("requirements.txt") as f:
-    requirements = [
-        line.strip() for line in f if line.strip() and not line.strip().startswith("#")
-    ]
-with open("dev-requirements.txt") as f:
-    dev_requirements = [
-        line.strip() for line in f if line.strip() and not line.strip().startswith("#")
-    ]
-
-description = "Schrödinger and Schrödinger-Feynman simulators for quantum circuits."
-
-# README file as long_description.
-with open("README.md", encoding="utf-8") as f:
-    long_description = f.read()
-
-__version__ = runpy.run_path("qsimcirq/_version.py")["__version__"]
-if not __version__:
-    raise ValueError("Version string cannot be empty")
-
 setup(
-    name="qsimcirq",
-    version=__version__,
-    url="https://github.com/quantumlib/qsim",
-    author="The qsim/qsimh Developers",
-    author_email="qsim-qsimh-dev@googlegroups.com",
-    maintainer="Google Quantum AI",
-    maintainer_email="quantum-oss-maintainers@google.com",
-    python_requires=">=3.10.0",
-    install_requires=requirements,
-    extras_require={
-        "dev": dev_requirements,
-    },
-    license="Apache-2.0",
-    description=description,
-    long_description=long_description,
-    long_description_content_type="text/markdown",
     ext_modules=[
         CMakeExtension("qsimcirq/qsim_avx512"),
         CMakeExtension("qsimcirq/qsim_avx2"),
@@ -170,49 +136,5 @@ setup(
         CMakeExtension("qsimcirq/qsim_decide"),
         CMakeExtension("qsimcirq/qsim_hip"),
     ],
-    cmdclass=dict(build_ext=CMakeBuild),
-    zip_safe=False,
-    packages=["qsimcirq"],
-    package_data={"qsimcirq": ["py.typed"]},
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: GPU :: NVIDIA CUDA",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: POSIX :: Linux",
-        "Programming Language :: C++",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.13",
-        "Topic :: Scientific/Engineering :: Quantum Computing",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Typing :: Typed",
-    ],
-    keywords=[
-        "algorithms",
-        "api",
-        "application programming interface",
-        "cirq",
-        "google quantum",
-        "google",
-        "nisq",
-        "python",
-        "quantum algorithm development",
-        "quantum circuit simulator",
-        "quantum computer simulator",
-        "quantum computing",
-        "quantum computing research",
-        "quantum programming",
-        "quantum simulation",
-        "quantum",
-        "schrödinger-feynman simulation",
-        "sdk",
-        "simulation",
-        "state vector simulator",
-        "software development kit",
-    ],
+    cmdclass={"build_ext": CMakeBuild},
 )
