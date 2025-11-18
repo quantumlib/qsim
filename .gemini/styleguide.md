@@ -28,7 +28,9 @@ separate subsections for Python, C++, and other file types below.
 
 *   Tests must be independent and must not rely on the state of other tests.
     Setup and teardown functions should be used to create a clean environment
-    for each test run.
+    for each test run. External dependencies (e.g., databases, network
+    services, file system) must be mocked to ensure the test is isolated to the
+    unit under test.
 
 *   Make sure to cover edge cases: write tests for invalid inputs, null values,
     empty arrays, zero values, and off-by-one errors.
@@ -39,8 +41,8 @@ separate subsections for Python, C++, and other file types below.
 
 ### Overall code format conventions
 
-This project generally follows Google coding conventions, with a few changes.
-The following Google style guides are the starting points:
+Quantum AI projects generally follows Google coding conventions, with a few
+changes. The following Google style guides are the starting points:
 
 *   [Google C++ Style Guide](
     https://google.github.io/styleguide/cppguide.html)
@@ -54,12 +56,13 @@ The following Google style guides are the starting points:
 *   [Google Shell Style Guide](
     https://google.github.io/styleguide/shellguide.html)
 
-To learn the conventions for line length, indentation, and other style
-characteristics, please inspect the following configuration files (if present at
-the top level of this project repository):
+To learn this project's conventions for line length, indentation, and other
+details of coding style, please inspect the following configuration files (if
+present at the top level of this project repository):
 
-*   [`.editorconfig`](../.editorconfig) for basic code editor configuration for
-    indentation and line length.
+*   [`.editorconfig`](../.editorconfig) for basic code editor configuration
+    (e.g., indentation and line length) specified using the
+    [EditorConfig](https://editorconfig.org/) format.
 
 *   [`.clang-format`](../.clang-format) for C++ code and also protobuf (Protocol
     Buffers) data structure definitions.
@@ -160,7 +163,7 @@ naming, we can reduce cognitive load on human users and developers.
 
 ###  Docstrings and documentation
 
-This project uses [Google style doc strings](
+For Python code, this project uses [Google style doc strings](
 http://google.github.io/styleguide/pyguide.html#381-docstrings) with a Markdown
 flavor and support for LaTeX. Docstrings use tripe double quotes, and the first
 line should be a concise one-line summary of the function or object.

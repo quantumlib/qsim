@@ -14,10 +14,10 @@
 
 # yamllint disable rule:line-length
 
-name: Continuous integration
+name: CI
 run-name: >-
-  Run CI checks for ${{github.event_name}} on ${{github.ref_name}}
-  by @${{github.actor}}
+  Run continuous integration checks for ${{github.event_name}} on
+  ${{github.ref_name}} by @${{github.actor}}
 
 on:
   push:
