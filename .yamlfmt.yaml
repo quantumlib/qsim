@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: configure yamlfmt for this project.
-# See https://github.com/google/yamlfmt for info about options.
+# See https://github.com/google/yamlfmt/ for info about configuration options.
+# IMPORTANT: if you change values here, update .editorconfig to match.
 
 # Read .gitignore for paths to exclude.
 gitignore_excludes: true

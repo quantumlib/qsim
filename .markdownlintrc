@@ -13,15 +13,15 @@
   // See the License for the specific language governing permissions and
   // limitations under the License.
 
-  // Summary: configure markdownlint for this project.
-  //
-  // Note: there are multiple programs programs named "markdownlint". We use
-  // https://github.com/igorshubovych/markdownlint-cli/, which is the one you
-  // get with "brew install markdownlint" on MacOS.
-  //
+  // IMPORTANT: if you change values here, update .editorconfig to match.
+
   // These settings try to stay close to the Google Markdown Style as
   // described at https://google.github.io/styleguide/docguide/style.html
   // with very few differences.
+
+  // Note: there are multiple programs programs named "markdownlint". We use
+  // https://github.com/igorshubovych/markdownlint-cli/, which is the one you
+  // get with "brew install markdownlint" on MacOS.
   //
   // For a list of possible configuration options, see the following page:
   // https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
