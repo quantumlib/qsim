@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: configure https://github.com/prantlf/jsonlint for this project.
+# The variant of `jsonlint` we use is (https://github.com/prantlf/jsonlint).
+# IMPORTANT: if you change values here, update .editorconfig to match.
 
 comments: false
 compact: true
