@@ -27,7 +27,6 @@ inputs:
     default: true
   bazel-version:
     description: 'Version of Bazel to use:'
-    type: string
     required: false
     default: ''
 
