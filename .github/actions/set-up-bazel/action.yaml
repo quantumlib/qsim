@@ -22,12 +22,10 @@ description: Installs Bazel and sets up multiple caches
 inputs:
   debug:
     description: 'Run with debugging options'
-    type: boolean
     required: false
     default: true
   bazel-version:
     description: 'Version of Bazel to use:'
-    type: string
     required: false
     default: ''
 
