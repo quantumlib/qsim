@@ -21,6 +21,7 @@ QSIMLIB_AVX2 = ../qsimcirq/qsim_avx2$(SUFFIX)
 QSIMLIB_AVX512 = ../qsimcirq/qsim_avx512$(SUFFIX)
 QSIMLIB_CUDA = ../qsimcirq/qsim_cuda$(SUFFIX)
 QSIMLIB_CUSTATEVEC = ../qsimcirq/qsim_custatevec$(SUFFIX)
+QSIMLIB_CUSTATEVECEX = ../qsimcirq/qsim_custatevecex$(SUFFIX)
 QSIMLIB_HIP = ../qsimcirq/qsim_hip$(SUFFIX)
 QSIMLIB_DECIDE = ../qsimcirq/qsim_decide$(SUFFIX)
 
@@ -66,7 +67,7 @@ else
 ifeq ($(CUQUANTUM_ROOT),)
 pybind: pybind-cpu pybind-cuda decide-cuda
 else
-pybind: pybind-cpu pybind-cuda pybind-custatevec decide-custatevec
+pybind: pybind-cpu pybind-cuda pybind-custatevec pybind-custatevecex decide-custatevec
 endif
 endif
 
@@ -94,9 +95,13 @@ decide-cuda:
 pybind-custatevec:
 	$(NVCC) custatevec/pybind_main_custatevec.cpp -o $(QSIMLIB_CUSTATEVEC) $(NVCCFLAGS) $(PYBINDFLAGS_CUSTATEVEC)
 
+.PHONY: pybind-custatevecex
+pybind-custatevecex:
+	$(NVCC) custatevecex/pybind_main_custatevecex.cpp -o $(QSIMLIB_CUSTATEVECEX) $(NVCCFLAGS) $(PYBINDFLAGS_CUSTATEVEC)
+
 .PHONY: decide-custatevec
 decide-custatevec:
-	$(NVCC) decide/decide.cpp -D__CUSTATEVEC__ -o $(QSIMLIB_DECIDE) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA)
+	$(NVCC) decide/decide.cpp -D__CUSTATEVEC__ -D__CUSTATEVECEX__ -o $(QSIMLIB_DECIDE) $(NVCCFLAGS) $(PYBINDFLAGS_CUDA)
 
 .PHONY: pybind-hip
 pybind-hip:
@@ -119,4 +124,5 @@ clean:
 	-rm -f ./cuda/*.x ./cuda/*.a ./cuda/*.so ./cuda/*.mod $(QSIMLIB_CUDA)
 	-rm -f ./hip/*.x ./hip/*.a ./hip/*.so ./hip/*.mod $(QSIMLIB_HIP)
 	-rm -f ./custatevec/*.x ./custatevec/*.a ./custatevec/*.so ./custatevec/*.mod $(QSIMLIB_CUSTATEVEC)
+	-rm -f ./custatevecex/*.x ./custatevecex/*.a ./custatevecex/*.so ./custatevecex/*.mod $(QSIMLIB_CUSTATEVECEX)
 	-rm -f ./decide/*.x ./decide/*.a ./decide/*.so ./decide/*.mod $(QSIMLIB_DECIDE)

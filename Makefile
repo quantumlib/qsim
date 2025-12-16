@@ -94,7 +94,10 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
         CUSVFLAGS += -lcustatevec -lcublas
         CUSTATEVECFLAGS ?= $(CUSVFLAGS)
         TARGETS += qsim-custatevec
+        TARGETS += qsim-custatevecex
         TESTS += run-custatevec-tests
+        TESTS += run-custatevecex-tests
+	TESTS += run-custatevecex-mpi-tests
     else
         $(warning $$CUQUANTUM_ROOT is set, but the path does not seem to exist)
     endif
@@ -140,6 +143,10 @@ cuda-tests:
 custatevec-tests: | check-cuquantum-root-set
 	$(MAKE) -C tests/ custatevec-tests
 
+.PHONY: custatevecex-tests
+custatevecex-tests: | check-cuquantum-root-set
+	$(MAKE) -C tests/ custatevecex-tests
+
 .PHONY: hip-tests
 hip-tests:
 	$(MAKE) -C tests/ hip-tests
@@ -155,6 +162,14 @@ run-cuda-tests: cuda-tests
 .PHONY: run-custatevec-tests
 run-custatevec-tests: custatevec-tests
 	$(MAKE) -C tests/ run-custatevec-tests
+
+.PHONY: run-custatevecex-tests
+run-custatevecex-tests: custatevecex-tests
+	$(MAKE) -C tests/ run-custatevecex-tests
+
+.PHONY: run-custatevecex-mpi-tests
+run-custatevecex-mpi-tests: custatevecex-tests
+	$(MAKE) -C tests/ run-custatevecex-mpi-tests
 
 .PHONY: run-hip-tests
 run-hip-tests: hip-tests
