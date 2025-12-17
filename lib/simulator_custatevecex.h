@@ -72,7 +72,8 @@ class SimulatorCuStateVecEx final {
 
       ErrorCheck(custatevecExApplyMatrix(
           state.get(), matrix, kMatrixDataType, kExMatrixType, kMatrixLayout,
-          0, (int32_t*) qs.data(), qs.size(), nullptr, nullptr, 0));
+          0, reinterpret_cast<const int32_t*>(qs.data()), qs.size(),
+          nullptr, nullptr, 0));
     }
   }
 
@@ -112,8 +113,9 @@ class SimulatorCuStateVecEx final {
 
       ErrorCheck(custatevecExApplyMatrix(
           state.get(), matrix, kMatrixDataType, kExMatrixType, kMatrixLayout,
-          0, (int32_t*) qs.data(), qs.size(), (int32_t*) cqs.data(),
-          control_bits.data(), cqs.size()));
+          0, reinterpret_cast<const int32_t*>(qs.data()), qs.size(),
+          reinterpret_cast<const int32_t*>(cqs.data()), control_bits.data(),
+          cqs.size()));
     }
   }
 
@@ -189,14 +191,16 @@ class SimulatorCuStateVecEx final {
 
     if (l > 0) {
       ErrorCheck(custatevecExStateVectorPermuteIndexBits(
-          state.get(), (int32_t*) perm.data(), num_qubits,
-          CUSTATEVEC_EX_PERMUTATION_SCATTER));
+          state.get(), reinterpret_cast<const int32_t*>(perm.data()),
+          num_qubits, CUSTATEVEC_EX_PERMUTATION_SCATTER));
     }
 
     auto f = [&matrix, &state, &num_local_qubits, &qs2](
         unsigned i, const auto& r) {
       void* workspace;
       size_t workspace_size;
+
+      ErrorCheck(cudaSetDevice(r.device_id));
 
       ErrorCheck(custatevecComputeExpectationGetWorkspaceSize(
           r.custatevec_handle, kStateDataType, num_local_qubits, matrix,
@@ -211,9 +215,11 @@ class SimulatorCuStateVecEx final {
       ErrorCheck(custatevecComputeExpectation(
           r.custatevec_handle, r.device_ptr, kStateDataType, num_local_qubits,
           &eval, kExpectDataType, nullptr, matrix, kMatrixDataType,
-          kMatrixLayout, (int32_t*) qs2.data(), qs2.size(), kComputeType,
-          workspace, workspace_size));
+          kMatrixLayout, reinterpret_cast<const int32_t*>(qs2.data()),
+          qs2.size(), kComputeType, workspace, workspace_size));
 
+      // TODO: make it faster.
+      ErrorCheck(custatevecExStateVectorSynchronize(state.get()));
       ErrorCheck(cudaFree(workspace));
 
       return std::complex<double>{cuCreal(eval), cuCimag(eval)};

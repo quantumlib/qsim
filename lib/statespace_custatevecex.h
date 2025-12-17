@@ -402,8 +402,8 @@ class StateSpaceCuStateVecEx :
     custatevecIndex_t bits;
 
     ErrorCheck(custatevecExMeasure(
-        state.get(), &bits, (int32_t*) qubits.data(), qubits.size(),
-        r, collapse, nullptr));
+        state.get(), &bits, reinterpret_cast<const int32_t*>(qubits.data()),
+        qubits.size(), r, collapse, nullptr));
     ErrorCheck(custatevecExStateVectorSynchronize(state.get()));
 
     for (std::size_t i = 0; i < qubits.size(); ++i) {

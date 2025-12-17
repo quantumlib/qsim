@@ -163,8 +163,7 @@ class VectorSpaceCuStateVecEx {
     const auto& get_wire_ordering() const {
       ErrorCheck(custatevecExStateVectorGetProperty(
           ptr_, CUSTATEVEC_EX_SV_PROP_WIRE_ORDERING,
-          const_cast<int32_t*>(wire_ordering_.data()),
-          sizeof(int32_t) * num_qubits_));
+          wire_ordering_.data(), sizeof(int32_t) * num_qubits_));
 
       return wire_ordering_;
     }
@@ -373,7 +372,7 @@ class VectorSpaceCuStateVecEx {
    private:
     const MultiProcessCuStateVecEx* mp_;
     custatevecExStateVectorDescriptor_t ptr_;
-    std::vector<int32_t> wire_ordering_;
+    mutable std::vector<int32_t> wire_ordering_;
     unsigned num_qubits_;
     unsigned num_substates_;
     DistributionType distr_type_;

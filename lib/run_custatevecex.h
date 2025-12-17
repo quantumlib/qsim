@@ -260,7 +260,8 @@ struct CuStateVecExRunner final {
           ErrorCheck(custatevecExSVUpdaterEnqueueMatrix(
               sv_updater, gate.matrix.data(), StateSpace::kMatrixDataType,
               StateSpace::kExMatrixType, StateSpace::kMatrixLayout, 0,
-              (int32_t*) gate.qubits.data(), num_qubits, nullptr, nullptr, 0));
+              reinterpret_cast<const int32_t*>(gate.qubits.data()),
+              num_qubits, nullptr, nullptr, 0));
         }
       } else {
         std::vector<int32_t> control_bits;
@@ -273,9 +274,9 @@ struct CuStateVecExRunner final {
         ErrorCheck(custatevecExSVUpdaterEnqueueMatrix(
             sv_updater, gate.matrix.data(), StateSpace::kMatrixDataType,
             StateSpace::kExMatrixType, StateSpace::kMatrixLayout, 0,
-            (int32_t*) gate.qubits.data(), num_qubits,
-            (int32_t*) gate.controlled_by.data(), control_bits.data(),
-            num_cqubits));
+            reinterpret_cast<const int32_t*>(gate.qubits.data()), num_qubits,
+            reinterpret_cast<const int32_t*>(gate.controlled_by.data()),
+            control_bits.data(), num_cqubits));
       }
 
       if (times_to_measure_at.size() > 0) {

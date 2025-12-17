@@ -162,8 +162,8 @@ struct MultiProcessCuStateVecEx {
     ErrorCheck(custatevecExConfigureStateVectorMultiProcess(
         &sv_config, data_type, num_qubits, num_local_qubits, -1,
         memory_sharing_method_, global_index_bit_classes_.data(),
-        (int32_t*) num_global_qubits_per_layer_.data(),
-        (int32_t) global_index_bit_classes_.size(),
+        reinterpret_cast<const int32_t*>(num_global_qubits_per_layer_.data()),
+        static_cast<int32_t>(global_index_bit_classes_.size()),
         param_.transfer_buffer_size, nullptr, 0));
 
     return sv_config;

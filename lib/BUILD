@@ -561,7 +561,6 @@ cuda_library(
         ":util_cuda",
         ":util_custatevec",
         ":util_custatevecex",
-        ":vectorspace_custatevecex",
     ],
 )
 

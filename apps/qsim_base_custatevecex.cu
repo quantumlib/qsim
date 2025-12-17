@@ -54,7 +54,6 @@ Options GetOptions(int argc, char* argv[]) {
       case 's':
         opt.seed = std::atoi(optarg);
         break;
-        break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
         break;
