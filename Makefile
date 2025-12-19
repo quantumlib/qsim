@@ -123,6 +123,10 @@ qsim-cuda:
 qsim-custatevec: | check-cuquantum-root-set
 	$(MAKE) -C apps/ qsim-custatevec
 
+.PHONY: qsim-custatevecex
+qsim-custatevecex: | check-cuquantum-root-set
+	$(MAKE) -C apps/ qsim-custatevecex
+
 .PHONY: qsim-hip
 qsim-hip:
 	$(MAKE) -C apps/ qsim-hip

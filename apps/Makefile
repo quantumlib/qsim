@@ -8,7 +8,7 @@ CUSTATEVEC_TARGETS = $(shell find . -maxdepth 1 -name "*custatevec.cu")
 CUSTATEVEC_TARGETS := $(CUSTATEVEC_TARGETS:%custatevec.cu=%custatevec.x)
 
 CUSTATEVECEX_TARGETS = $(shell find . -maxdepth 1 -name "*custatevecex.cu")
-CUSTATEVECEX_TARGETS := $(CUSTATEVEC_TARGETS:%custatevecex.cu=%custatevecex.x)
+CUSTATEVECEX_TARGETS := $(CUSTATEVECEX_TARGETS:%custatevecex.cu=%custatevecex.x)
 
 HIP_TARGETS = $(shell find . -maxdepth 1 -name '*cuda.cu')
 HIP_TARGETS := $(HIP_TARGETS:%cuda.cu=%hip.x)
