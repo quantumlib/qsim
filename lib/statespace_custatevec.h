@@ -306,8 +306,10 @@ class StateSpaceCuStateVec :
 
     ErrorCheck(custatevecBatchMeasure(
                    custatevec_handle_, state.get(), kStateType,
-                   state.num_qubits(), (int*) result.bitstring.data(),
-                   (int*) qubits.data(), qubits.size(), r, collapse));
+                   state.num_qubits(),
+                   reinterpret_cast<int*>(result.bitstring.data()),
+                   reinterpret_cast<const int*>(qubits.data()), qubits.size(),
+                   r, collapse));
 
     for (std::size_t i = 0; i < result.bitstring.size(); ++i) {
       result.bits |= result.bitstring[i] << qubits[i];

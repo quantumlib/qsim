@@ -22,6 +22,7 @@
 #endif
 
 #include <cstdlib>
+#include <type_traits>
 
 #include "io.h"
 
@@ -31,9 +32,25 @@ namespace qsim {
 
 inline void ErrorAssert(cudaError_t code, const char* file, unsigned line) {
   if (code != cudaSuccess) {
-    IO::errorf("CUDA error: %s %s %d\n", cudaGetErrorString(code), file, line);
+    IO::errorf(
+        "CUDA error: %s at %s %d\n", cudaGetErrorString(code), file, line);
     exit(code);
   }
+}
+
+template <typename T>
+inline auto GetCudaType() {
+  if (std::is_same_v<T, float>) {
+    return CUDA_R_32F;
+  } else if (std::is_same_v<T, double>) {
+    return CUDA_R_64F;
+  } else if (std::is_same_v<T, std::complex<float>>) {
+    return CUDA_C_32F;
+  } else if (std::is_same_v<T, std::complex<double>>) {
+    return CUDA_C_64F;
+  }
+
+  return CUDA_C_64F;
 }
 
 template <typename T>

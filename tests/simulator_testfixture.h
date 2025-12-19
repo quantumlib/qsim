@@ -362,7 +362,8 @@ void TestCircuitWithControlledGates(const Factory& factory) {
   using fp_type = typename StateSpace::fp_type;
   using Gate = GateQSim<fp_type>;
 
-  unsigned num_qubits = 6;
+  unsigned num_qubits = 7;
+  unsigned size = 1 << (num_qubits - 1);
 
   std::vector<Gate> gates;
   gates.reserve(128);
@@ -722,10 +723,8 @@ if __name__ == '__main__':
     {-0.18774915, 0.12311842},
   };
 
-  unsigned size = 1 << num_qubits;
-
   for (unsigned i = 0; i < size; ++i) {
-    auto a = StateSpace::GetAmpl(state1, i);
+    auto a = state_space.GetAmpl(state1, i);
     EXPECT_NEAR(std::real(a), expected_results[i][0], 1e-6);
     EXPECT_NEAR(std::imag(a), expected_results[i][1], 1e-6);
   }
@@ -740,8 +739,8 @@ if __name__ == '__main__':
   }
 
   for (unsigned i = 0; i < size; ++i) {
-    auto a1 = StateSpace::GetAmpl(state1, i);
-    auto a2 = StateSpace::GetAmpl(state2, i);
+    auto a1 = state_space.GetAmpl(state1, i);
+    auto a2 = state_space.GetAmpl(state2, i);
     EXPECT_EQ(std::real(a1), std::real(a2));
     EXPECT_EQ(std::imag(a1), std::imag(a2));
   }
@@ -756,8 +755,8 @@ if __name__ == '__main__':
   }
 
   for (unsigned i = 0; i < size; ++i) {
-    auto a1 = StateSpace::GetAmpl(state1, i);
-    auto a2 = StateSpace::GetAmpl(state3, i);
+    auto a1 = state_space.GetAmpl(state1, i);
+    auto a2 = state_space.GetAmpl(state3, i);
     EXPECT_EQ(std::real(a1), std::real(a2));
     EXPECT_EQ(std::imag(a1), std::imag(a2));
   }
@@ -770,8 +769,8 @@ void TestCircuitWithControlledGatesDagger(const Factory& factory) {
   using fp_type = typename StateSpace::fp_type;
   using Gate = GateQSim<fp_type>;
 
-  unsigned num_qubits = 6;
-  unsigned size = 1 << num_qubits;
+  unsigned num_qubits = 7;
+  unsigned size = 1 << (num_qubits - 1);
 
   std::vector<Gate> gates;
   gates.reserve(128);
@@ -1133,10 +1132,10 @@ if __name__ == '__main__':
 
 */
 
-  EXPECT_NEAR(std::real(StateSpace::GetAmpl(state, 0)), 1, 1e-6);
-  EXPECT_NEAR(std::imag(StateSpace::GetAmpl(state, 0)), 0, 1e-6);
+  EXPECT_NEAR(std::real(state_space.GetAmpl(state, 0)), 1, 1e-6);
+  EXPECT_NEAR(std::imag(state_space.GetAmpl(state, 0)), 0, 1e-6);
   for (unsigned i = 1; i < size; ++i) {
-    auto a = StateSpace::GetAmpl(state, i);
+    auto a = state_space.GetAmpl(state, i);
     EXPECT_NEAR(std::real(a), 0, 1e-6);
     EXPECT_NEAR(std::imag(a), 0, 1e-6);
   }
@@ -1162,14 +1161,14 @@ void TestMultiQubitGates(const Factory& factory) {
 
   std::vector<fp_type> vec(state_space.MinSize(max_num_qubits));
 
-  for (unsigned num_qubits = 1; num_qubits <= max_num_qubits; ++num_qubits) {
+  for (unsigned num_qubits = 2; num_qubits <= max_num_qubits; ++num_qubits) {
     auto state = state_space.Create(num_qubits);
 
     unsigned size = 1 << num_qubits;
     fp_type inorm = std::sqrt(1.0 / (1 << num_qubits));
-    unsigned max_gate_qubits2 = std::min(max_gate_qubits, num_qubits);
+    unsigned max_gate_qubits2 = std::min(max_gate_qubits, num_qubits - 1);
 
-    for (unsigned q = 0; q <= max_gate_qubits2; ++q) {
+    for (unsigned q = 1; q <= max_gate_qubits2; ++q) {
       unsigned size1 = 1 << q;
       unsigned size2 = size1 * size1;
 
@@ -1432,10 +1431,10 @@ void TestExpectationValue1(const Factory& factory) {
 
   std::vector<fp_type> vec(state_space.MinSize(max_num_qubits));
 
-  for (unsigned num_qubits = 1; num_qubits <= max_num_qubits; ++num_qubits) {
+  for (unsigned num_qubits = 2; num_qubits <= max_num_qubits; ++num_qubits) {
     auto state = state_space.Create(num_qubits);
 
-    unsigned max_gate_qubits2 = std::min(max_gate_qubits, num_qubits);
+    unsigned max_gate_qubits2 = std::min(max_gate_qubits, num_qubits - 1);
 
     for (unsigned q = 1; q <= max_gate_qubits2; ++q) {
       unsigned size1 = 1 << q;

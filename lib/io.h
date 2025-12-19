@@ -20,11 +20,19 @@
 
 namespace qsim {
 
+namespace output {
+  static bool enabled = true;
+}
+
 /**
  * Controller for output logs.
  */
 struct IO {
   static void errorf(const char* format, ...) {
+    if (!output::enabled) {
+      return;
+    }
+
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
@@ -32,6 +40,10 @@ struct IO {
   }
 
   static void messagef(const char* format, ...) {
+    if (!output::enabled) {
+      return;
+    }
+
     va_list args;
     va_start(args, format);
     vprintf(format, args);

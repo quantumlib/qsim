@@ -47,6 +47,10 @@ struct IOFile : public IO {
 
   static bool WriteToFile(
       const std::string& file, const void* data, uint64_t size) {
+    if (!output::enabled) {
+      return true;
+    }
+
     auto fs = std::fstream(file, std::ios::out | std::ios::binary);
 
     if (!fs) {
