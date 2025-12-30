@@ -216,7 +216,7 @@ jobs:
         # tests the endpoints of the supported range. The wheel build process
         # (in a separate workflow) *does* use all the versions.
         os:
-          - ubuntu-24.04
+          - ubuntu-24.04-x64-8-core
           - macos-14
           - macos-15
           - windows-2025
@@ -301,7 +301,7 @@ jobs:
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     strategy:
       matrix:
@@ -356,7 +356,7 @@ jobs:
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     env:
       common_args: >-
@@ -411,7 +411,7 @@ jobs:
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     env:
       # The next environment variable is used by Docker.
