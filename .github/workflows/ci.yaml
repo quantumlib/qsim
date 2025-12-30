@@ -247,13 +247,13 @@ jobs:
         with:
           debug: ${{inputs.debug}}
 
-      - if: matrix.os != 'windows-2025'
+      - if: ${{! startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
           dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
 
-      - if: matrix.os == 'windows-2025'
+      - if: ${{startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (Windows case)
         # On GitHub Windows runners, Bazel ends up finding a different "python3"
         # binary than what's installed by setup-python unless we tell Bazel what
