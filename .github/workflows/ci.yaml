@@ -219,7 +219,7 @@ jobs:
           - ubuntu-24.04-x64-8-core
           - macos-14
           - macos-15
-          - windows-2025-x64-8-core
+          - windows-2025-x64-16-core
         python_version:
           - '3.10'
           - '3.13'
