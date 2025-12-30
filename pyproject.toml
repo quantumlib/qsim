@@ -43,3 +43,7 @@ skip = "*musllinux*"
 [tool.black]
 target-version = ['py310', 'py311', 'py312', 'py313']
 extend-exclude = 'third_party'
+
+[tool.check-wheel-contents]
+# Ignore false positives due to how cibuildwheel adds object files to the wheel.
+ignore = ["W009", "W010"]
