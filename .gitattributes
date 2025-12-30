@@ -22,6 +22,7 @@
 .editorconfig          linguist-documentation
 .gemini/**             linguist-documentation
 .git-blame-ignore-revs linguist-documentation
+.gitattributes         linguist-documentation
 .gitignore             linguist-documentation
 .gitmodules            linguist-documentation
 .markdownlintrc        linguist-documentation
