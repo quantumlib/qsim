@@ -16,16 +16,25 @@
 set -eo pipefail -o errtrace
 
 declare -r usage="Usage: ${0##*/} [-h | --help | help] [bazel options ...]
-Run the programs in tests/, and on Linux, also build the programs in apps/.
+
+Invokes Bazel to run the programs in tests/, and on Linux, also build the
+sample programs in apps/.
 
 If the first option on the command line is -h, --help, or help, this help text
 will be printed and the program will exit. Any other options on the command
-line are passed directly to Bazel."
+line are passed directly to Bazel.
+
+This script makes use of the Python package 'py-cpuinfo'."
 
 # Exit early if the user requested help.
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     echo "$usage"
     exit 0
+fi
+
+if ! pip show -qq py-cpuinfo; then
+    echo "Error: missing 'py-cpuinfo'. Please install dev-requirements.txt."
+    exit 1
 fi
 
 # Look for AVX and SSE in the processor's feature flags.
