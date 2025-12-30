@@ -266,6 +266,8 @@ jobs:
 
       - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           brew install -q libomp llvm@19
           brew unlink libomp
