@@ -32,8 +32,8 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-if ! pip show -qq py-cpuinfo; then
-    echo "Error: missing 'py-cpuinfo'. Please install dev-requirements.txt."
+if ! python -m pip show -qq py-cpuinfo 2>/dev/null; then
+    echo "Error: missing 'py-cpuinfo'. Please install dev-requirements.txt." >&2
     exit 1
 fi
 
