@@ -12,13 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: config actionlint (https://github.com/rhysd/actionlint) for certain
-# things we use.
+# Summary: configure actionlint (https://github.com/rhysd/actionlint) to
+# recognize action runner names/labels that we use.
 
 self-hosted-runner:
-  # We don't have self-hosted runners, but we do use some of the "partner"
-  # runner images from https://github.com/actions/partner-runner-images
-  # and some runners that actionlint doesn't currently recognize.
   labels:
+    # Defined in Quantumlib org.
+    - ubuntu-22.04-arm64-2-core
+    - ubuntu-22.04-arm64-8-core
+    - ubuntu-22.04-arm64-16-core
+
+    - ubuntu-22.04-x64-2-core
+    - ubuntu-22.04-x64-8-core
+    - ubuntu-22.04-x64-16-core
+
+    - ubuntu-24.04-arm64-2-core
+    - ubuntu-24.04-arm64-8-core
+    - ubuntu-24.04-arm64-16-core
+
+    - ubuntu-24.04-x64-2-core
+    - ubuntu-24.04-x64-8-core
+    - ubuntu-24.04-x64-16-core
+
+    # From https://github.com/actions/partner-runner-images
     - ubuntu-24.04-arm
+
+    # New from GitHub (late 2025) but currently not known by actionlint.
+    # https://docs.github.com/en/actions/reference/runners/github-hosted-runners
     - ubuntu-slim
