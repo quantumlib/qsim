@@ -15,15 +15,8 @@
 # Include Markdown files in GitHub's file statistics for this repo.
 *.md linguist-detectable
 
-# Exclude config files from GitHub's file statistics. YAML files are already
-# treated as data, so only add some exceptions that lack file extensions.
-.clang-format          linguist-documentation
-.dockerignore          linguist-documentation
-.editorconfig          linguist-documentation
+# Exclude config files from GitHub's file statistics. GitHub's Linguist already
+# recognizes most config files as data; this adds some it doesn't.
 .gemini/**             linguist-documentation
 .git-blame-ignore-revs linguist-documentation
-.gitattributes         linguist-documentation
-.gitignore             linguist-documentation
-.gitmodules            linguist-documentation
 .markdownlintrc        linguist-documentation
-.pylintrc              linguist-documentation
