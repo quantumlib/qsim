@@ -34,6 +34,10 @@ self-hosted-runner:
     - ubuntu-24.04-x64-8-core
     - ubuntu-24.04-x64-16-core
 
+    - windows-2022-x64-8-core
+    - windows-2025-x64-8-core
+    - windows-2025-x64-16-core
+
     # From https://github.com/actions/partner-runner-images
     - ubuntu-24.04-arm
 
