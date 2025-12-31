@@ -36,4 +36,4 @@ thisdir=$(dirname "${BASH_SOURCE[0]:?}")
 repo_dir=$(git -C "${thisdir}" rev-parse --show-toplevel)
 cd "${repo_dir}"
 
-pylint --jobs=0 --recursive=y --ignore-paths=tests/googletest "$@" .
+pylint --jobs=0 --ignore-paths=tests/googletest "$@" .
