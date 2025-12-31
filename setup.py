@@ -108,15 +108,10 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_COMPILER=hipcc",
             ]
 
-        env = os.environ.copy()
-        cxxflags = env.get("CXXFLAGS", "")
-        env["CXXFLAGS"] = (
-            f'{cxxflags} -DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
-        )
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(
-            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env
+            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp,
         )
         subprocess.check_call(
             ["cmake", "--build", ".", "--verbose"] + build_args,
