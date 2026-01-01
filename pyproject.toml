@@ -18,7 +18,7 @@ requires = [
   "setuptools>=78.1.1",
   "pybind11[global]",
   # "pip install" from sources needs to build Pybind, which needs CMake too.
-  "cmake~=3.28.1",
+  "cmake~=4.2.1",
 ]
 build-backend = "setuptools.build_meta"
 
