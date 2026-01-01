@@ -13,15 +13,15 @@ directly in C++ code without building and installing the qsimcirq interface.
 Prior to installation, consider opening a
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 
-Prerequisites are included in the
-[`requirements.txt`](https://github.com/quantumlib/qsim/blob/main/requirements.txt)
+Prerequisites are defined in the
+[`pyproject.toml`](https://github.com/quantumlib/qsim/blob/main/pyproject.toml)
 file, and will be automatically installed along with qsimcirq.
 
-If you'd like to develop qsimcirq, a separate set of dependencies are includes
-in the
-[`dev-requirements.txt`](https://github.com/quantumlib/qsim/blob/main/dev-requirements.txt)
-file. You can install them with `pip3 install -r dev-requirements.txt` or
-`pip3 install qsimcirq[dev]`.
+If you'd like to develop qsimcirq, a separate set of dependencies for
+development are includes in the
+[`pyproject.toml`](https://github.com/quantumlib/qsim/blob/main/pyproject.toml)
+file. You can install them with `pip3 install --group dev`. (You will need
+pip version 25.1 or higher.)
 
 ## Linux installation
 

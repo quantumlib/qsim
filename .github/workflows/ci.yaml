@@ -71,12 +71,13 @@ jobs:
         with:
           python-version: ${{env.python-version}}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            dev-requirements.txt
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install --group dev
 
       - name: Check format
         continue-on-error: ${{inputs.soft-linting == 'true'}}
@@ -235,12 +236,13 @@ jobs:
         with:
           python-version: ${{matrix.python_version}}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            dev-requirements.txt
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -320,12 +322,13 @@ jobs:
         with:
           python-version: ${{env.python-version}}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            dev-requirements.txt
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -375,12 +378,13 @@ jobs:
         with:
           python-version: ${{env.python-version}}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            dev-requirements.txt
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
