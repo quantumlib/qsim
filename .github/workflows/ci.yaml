@@ -76,7 +76,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install --group dev
+        run: |
+          pip install -r requirements.txt
+          pip install --group dev
 
       - name: Check format
         continue-on-error: ${{inputs.soft-linting == 'true'}}
@@ -240,7 +242,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install --group dev
+        run: |
+          pip install -r requirements.txt
+          pip install --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -325,7 +329,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install --group dev
+        run: |
+          pip install -r requirements.txt
+          pip install --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -380,7 +386,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install --group dev
+        run: |
+          pip install -r requirements.txt
+          pip install --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'

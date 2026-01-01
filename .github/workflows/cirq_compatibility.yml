@@ -58,7 +58,9 @@ jobs:
         run: pip install --upgrade cirq~=1.0.dev
 
       - name: Install dependencies
-        run: pip install --group dev
+        run: |
+          pip install -r requirements.txt
+          pip install --group dev
 
       - name: Run Python tests
         env:
