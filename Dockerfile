@@ -20,11 +20,10 @@ ARG CUDA_PATH
 ENV PATH="$CUDA_PATH/bin:$PATH"
 
 # Update package list & install some basic tools we'll need.
-# hadolint ignore=DL3009,DL3008,DL3013
+# hadolint ignore=DL3008,DL3009
 RUN apt-get update && \
     apt-get install -y make g++ wget git --no-install-recommends && \
-    apt-get install -y python3-dev python3-pip python3-venv --no-install-recommends && \
-    python3 -m pip install --no-cache-dir --upgrade pip
+    apt-get install -y python3-dev python3-pip python3-venv --no-install-recommends
 
 # Ubuntu 24's version of CMake is 3.28. We need a newer version.
 RUN apt-get remove --purge --auto-remove cmake
@@ -38,6 +37,7 @@ COPY ./circuits/ /qsim/circuits/
 COPY ./lib/ /qsim/lib/
 COPY ./pybind_interface/ /qsim/lib/
 COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
+COPY ./requirements.txt /qsim/requirements.txt
 COPY ./pyproject.toml /qsim/pyproject.toml
 
 # Create venv to avoid collision between system packages and what we install.
@@ -46,12 +46,15 @@ RUN python3 -m venv --upgrade-deps test_env
 # Activate venv.
 ENV PATH="/test_env/bin:$PATH"
 
+WORKDIR /qsim
+
 # Install qsim development requirements.
 # hadolint ignore=DL3013
-RUN python3 -m pip install --no-cache-dir --group dev
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir -r requirements.txt && \
+    python3 -m pip install --no-cache-dir --group dev
 
 # Compile qsim.
-WORKDIR /qsim/
 RUN make -j qsim
 
 ENTRYPOINT ["/qsim/apps/qsim_base.x"]
