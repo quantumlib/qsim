@@ -15,10 +15,11 @@ Prior to installation, consider opening a
 
 Prerequisites are defined in the
 [`pyproject.toml`](https://github.com/quantumlib/qsim/blob/main/pyproject.toml)
-file, and will be automatically installed along with qsimcirq.
+file, and will be automatically installed along with qsimcirq when you install
+it with pip.
 
 If you'd like to develop qsimcirq, a separate set of dependencies for
-development are includes in the
+development are included in the
 [`pyproject.toml`](https://github.com/quantumlib/qsim/blob/main/pyproject.toml)
 file. You can install them with `pip3 install --group dev`. (You will need
 pip version 25.1 or higher.)
