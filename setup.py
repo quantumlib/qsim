@@ -15,6 +15,7 @@
 import os
 import platform
 import re
+import runpy
 import shutil
 import subprocess
 import sys
@@ -23,7 +24,9 @@ import sysconfig
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
-__version__ = "0.23.0.dev0"
+# qsimcirq/_version.py contains the source of truth for the version nhumber.
+__version__ = runpy.run_path("qsimcirq/_version.py")["__version__"]
+assert __version__, "The version string must not be empty"
 
 
 class CMakeExtension(Extension):
