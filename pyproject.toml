@@ -70,6 +70,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black~=25.9.0",
+    "cibuildwheel",
     "cmake~=3.28.1",
     "flynt~=1.0",
     "isort[colors]~=6.0.1",
