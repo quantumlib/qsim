@@ -12,20 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[build-system]
-build-backend = "setuptools.build_meta"
-requires = [
-  "packaging",
-  "setuptools>=78.1.1",
-  "wheel",
-  "pybind11[global]",
-  # "pip install" from sources needs to build Pybind, which needs CMake too.
-  "cmake~=3.28.1",
-]
+# Note: developement dependencies are in group "dev" under [dependency-groups].
+# Install them using "pip install --group dev".
 
 [project]
 name = "qsimcirq"
-version = "0.23.0.dev0"
+dynamic = ["version"]
 description = "High-performance quantum circuit simulator for C++ and Python."
 authors = [
     { name = "The qsim/qsimh Developers", email = "qsim-qsimh-dev@googlegroups.com" }
@@ -56,26 +48,18 @@ classifiers = [
 ]
 keywords = [
     "algorithms",
-    "api",
-    "application programming interface",
     "cirq",
-    "google quantum",
-    "google",
     "nisq",
-    "python",
     "quantum algorithm development",
     "quantum circuit simulator",
     "quantum computer simulator",
     "quantum computing",
-    "quantum computing research",
     "quantum programming",
     "quantum simulation",
     "quantum",
     "schrödinger-feynman simulation",
-    "sdk",
     "simulation",
     "state vector simulator",
-    "software development kit",
 ]
 dependencies = [
     "absl-py",
@@ -83,17 +67,17 @@ dependencies = [
     "numpy>=1.26.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "cmake~=3.28.1",
     "black~=25.9.0",
+    "cmake~=3.28.1",
     "flynt~=1.0",
     "isort[colors]~=6.0.1",
+    "py-cpuinfo",
     "pybind11[global]",
     "pylint~=4.0.2",
     "pytest",
     "pytest-xdist",
-    "py-cpuinfo",
     "setuptools>=78.1.1",
 ]
 
@@ -104,22 +88,49 @@ source = "https://github.com/quantumlib/qsim"
 download = "https://pypi.org/project/qsimcirq/#files"
 tracker = "https://github.com/quantumlib/qsim/issues"
 
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    # "pip install" from sources needs to build Pybind, which needs CMake.
+    "cmake~=3.28.1",
+    "packaging",
+    "pybind11[global]",
+    "setuptools>=78.1.1",
+    "setuptools-scm[toml]>=6.2",
+    "wheel",
+]
+
 [tool.setuptools]
 packages = ["qsimcirq"]
 package-data = {"qsimcirq" = ["py.typed"]}
 
+[tool.setuptools.dynamic]
+version = {attr = "qsimcirq._version.__version__"}
+
 [tool.cibuildwheel]
-test-extras = "dev"
+build = "cp310-* cp311-* cp312-* cp313-*"
 dependency-versions = "latest"
 enable = ["cpython-prerelease"]
 environment.PIP_PREFER_BINARY = "1"
 # Due to package & module name conflict, temporarily move it away to run tests:
-before-test = "mv {package}/qsimcirq /tmp"
-test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+before-test = "pip install --group dev && mv {package}/qsimcirq /tmp"
+test-command = """
+pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py &&
+mv /tmp/qsimcirq {package}
+"""
 
 [tool.cibuildwheel.macos]
-before-build = "brew install -q libomp llvm@19 && brew unlink libomp && brew unlink llvm@19 && brew link --force libomp && brew link --force llvm@19"
-repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"
+before-build = """
+brew install -q libomp llvm@19 &&
+brew unlink libomp &&
+brew unlink llvm@19 &&
+brew link --force libomp &&
+brew link --force llvm@19
+"""
+repair-wheel-command = """
+delocate-listdeps {wheel} &&
+delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}
+"""
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
