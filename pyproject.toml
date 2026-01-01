@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Note: developement dependencies are in group "dev" under [dependency-groups].
+# Note: development dependencies are in group "dev" under [dependency-groups].
 # Install them using "pip install --group dev".
 
 [project]
 name = "qsimcirq"
-dynamic = ["version"]
+dynamic = ["version", "dependencies"]
 description = "High-performance quantum circuit simulator for C++ and Python."
 authors = [
     { name = "The qsim/qsimh Developers", email = "qsim-qsimh-dev@googlegroups.com" }
@@ -61,26 +61,6 @@ keywords = [
     "simulation",
     "state vector simulator",
 ]
-dependencies = [
-    "absl-py",
-    "cirq-core~=1.0",
-    "numpy>=1.26.0",
-]
-
-[dependency-groups]
-dev = [
-    "black~=25.9.0",
-    "cibuildwheel",
-    "cmake~=3.28.1",
-    "flynt~=1.0",
-    "isort[colors]~=6.0.1",
-    "py-cpuinfo",
-    "pybind11[global]",
-    "pylint~=4.0.2",
-    "pytest",
-    "pytest-xdist",
-    "setuptools>=78.1.1",
-]
 
 [project.urls]
 homepage = "https://quantumai.google/qsim"
@@ -89,13 +69,22 @@ source = "https://github.com/quantumlib/qsim"
 download = "https://pypi.org/project/qsimcirq/#files"
 tracker = "https://github.com/quantumlib/qsim/issues"
 
+[dependency-groups]
+# Development dependencies. Install these with "pip install --group dev".
+dev = [
+    "black~=25.9.0",
+    "cibuildwheel",
+    "flynt~=1.0",
+    "isort[colors]~=6.0.1",
+    "py-cpuinfo",
+    "pylint~=4.0.2",
+    "pytest",
+    "pytest-xdist",
+]
+
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-    # "pip install" from sources needs to build Pybind, which needs CMake.
-    "cmake~=3.28.1",
-    "packaging",
-    "pybind11[global]",
     "setuptools>=78.1.1",
     "setuptools-scm[toml]>=6.2",
     "wheel",
@@ -107,6 +96,8 @@ package-data = {"qsimcirq" = ["py.typed"]}
 
 [tool.setuptools.dynamic]
 version = {attr = "qsimcirq._version.__version__"}
+# Install/runtime dependencies. "pip install qsim" installs these automatically.
+dependencies = {file = ["requirements.txt"] }
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-*"
