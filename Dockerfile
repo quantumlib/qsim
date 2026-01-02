@@ -20,7 +20,7 @@ ARG CUDA_PATH
 ENV PATH="$CUDA_PATH/bin:$PATH"
 
 # Update package list & install some basic tools we'll need.
-# hadolint ignore=DL3008,DL3009
+# hadolint ignore=DL3009,DL3008
 RUN apt-get update && \
     apt-get install -y make g++ wget git --no-install-recommends && \
     apt-get install -y python3-dev python3-pip python3-venv --no-install-recommends
@@ -37,8 +37,8 @@ COPY ./circuits/ /qsim/circuits/
 COPY ./lib/ /qsim/lib/
 COPY ./pybind_interface/ /qsim/lib/
 COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
-COPY ./pyproject.toml /qsim/pyproject.toml
 COPY ./requirements.txt /qsim/requirements.txt
+COPY ./pyproject.toml /qsim/pyproject.toml
 
 # Create venv to avoid collision between system packages and what we install.
 RUN python3 -m venv --upgrade-deps test_env && \
