@@ -52,7 +52,7 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
 
       - name: Install latest dev version of Cirq
         run: pip install --upgrade cirq~=1.0.dev
@@ -60,7 +60,7 @@ jobs:
       - name: Install qsim dev requirements
         run: |
           pip install -r requirements.txt
-          pip install -r dev-requirements.txt
+          pip install --group dev
 
       - name: Run Python tests
         env:

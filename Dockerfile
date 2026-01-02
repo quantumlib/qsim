@@ -38,21 +38,23 @@ COPY ./lib/ /qsim/lib/
 COPY ./pybind_interface/ /qsim/lib/
 COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
 COPY ./requirements.txt /qsim/requirements.txt
-COPY ./dev-requirements.txt /qsim/dev-requirements.txt
+COPY ./pyproject.toml /qsim/pyproject.toml
 
 # Create venv to avoid collision between system packages and what we install.
-RUN python3 -m venv --upgrade-deps test_env
+RUN python3 -m venv --upgrade-deps test_env && \
+    . test_env/bin/activate
+
+WORKDIR /qsim/
 
 # Activate venv.
 ENV PATH="/test_env/bin:$PATH"
 
 # Install qsim requirements.
-# hadolint ignore=DL3042
-RUN python3 -m pip install -r /qsim/requirements.txt && \
-    python3 -m pip install -r /qsim/dev-requirements.txt
+# hadolint ignore=DL3013
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Compile qsim.
-WORKDIR /qsim/
 RUN make -j qsim
 
 ENTRYPOINT ["/qsim/apps/qsim_base.x"]
