@@ -441,9 +441,8 @@ jobs:
         run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
 
       - name: Test installation process
-        run: |
-          cd install/tests
-          docker compose build
+        working-directory: install/tests
+        run: docker compose build
 
   report-results:
     name: CI
