@@ -123,7 +123,7 @@ environment.PIP_PREFER_BINARY = "1"
 # Due to package & module name conflict, temporarily move it away to run tests:
 before-test = "pip install --group dev && mv {package}/qsimcirq /tmp"
 test-command = """
-pytest -n auto -s -v {package}/qsimcirq_tests/qsimcirq_test.py &&
+pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py &&
 mv /tmp/qsimcirq {package}
 """
 
@@ -148,11 +148,3 @@ skip = "*musllinux*"
 [tool.black]
 target-version = ['py310', 'py311', 'py312', 'py313']
 extend-exclude = 'third_party'
-
-[tool.isort]
-profile = 'black'
-order_by_type = false  # Sort alphabetically, irrespective of case.
-skip_gitignore = true
-combine_as_imports = true
-known_first_party = ["cirq*"]
-extend_skip = ["__init__.py"]
