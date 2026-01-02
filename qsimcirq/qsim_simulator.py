@@ -21,7 +21,7 @@ import numpy as np
 
 import qsimcirq.qsim_circuit as qsimc
 
-from . import qsim, qsim_custatevec, qsim_gpu
+from . import qsim, qsim_custatevec, qsim_custatevecex, qsim_gpu
 
 
 # This should probably live in Cirq...
@@ -60,9 +60,10 @@ class QSimOptions:
             simulation modes.
         use_gpu: whether to use GPU instead of CPU for simulation. The "gpu_*"
             arguments below are only considered if this is set to True.
-        gpu_mode: use CUDA if set to 0 (default value) or use the NVIDIA
-            cuStateVec library if set to any other value. The "gpu_*"
-            arguments below are only considered if this is set to 0.
+        gpu_mode: use CUDA if set to 0 (default value), use the NVIDIA
+            cuStateVec library if set to 1 or use the NVIDIA cuStateVecEx
+            library if set to any other value. The "gpu_*" arguments below are
+            only considered if this is set to 0.
         gpu_state_threads: number of threads per CUDA block to use for the GPU
             StateSpace. This must be a power of 2 in the range [32, 1024].
         gpu_data_blocks: number of data blocks to use for the GPU StateSpace.
@@ -180,16 +181,26 @@ class QSimSimulator(
                     )
                 else:
                     self._sim_module = qsim_gpu
-            else:
+            elif self.qsim_options["gmode"] == 1:
                 if qsim_custatevec is None:
                     raise ValueError(
                         "cuStateVec GPU execution requested, but not "
                         "supported. If your device has GPU support and the "
-                        "NVIDIA cuStateVec library is installed, you may need "
-                        "to compile qsim locally."
+                        "NVIDIA cuStateVec library is installed, you may "
+                        "need to compile qsim locally."
                     )
                 else:
                     self._sim_module = qsim_custatevec
+            else:
+                if qsim_custatevecex is None:
+                    raise ValueError(
+                        "cuStateVecEx GPU execution requested, but not "
+                        "supported. If your device has GPU support and the "
+                        "NVIDIA cuStateVecEx library is installed, you may "
+                        "need to compile qsim locally."
+                    )
+                else:
+                    self._sim_module = qsim_custatevecex
         else:
             self._sim_module = qsim
 

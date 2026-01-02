@@ -61,7 +61,8 @@ int detect_instructions() {
 }
 
 enum GPUCapabilities {
-    CUDA = 0, CUSTATEVEC = 1, HIP = 2, NO_GPU = 10, NO_CUSTATEVEC = 11 };
+    CUDA = 0, CUSTATEVEC = 1, CUSTATEVECEX = 2, HIP = 3, NO_GPU = 10,
+    NO_CUSTATEVEC = 11, NO_CUSTATEVECEX = 12 };
 
 // For now, GPU detection is performed at compile time, as our wheels are
 // generated on Github Actions runners which do not have GPU support.
@@ -93,6 +94,20 @@ int detect_custatevec() {
   return gpu;
 }
 
+// For now, cuStateVecEx detection is performed at compile time, as our wheels
+// are generated on Github Actions runners which do not have GPU support.
+//
+// Users wishing to use qsim with cuStateVecEx will need to compile locally on
+// a device which has the necessary CUDA toolkit and cuStateVecEx library.
+int detect_custatevecex() {
+  #if defined(__NVCC__) && defined(__CUSTATEVECEX__)
+  GPUCapabilities gpu = CUSTATEVECEX;
+  #else
+  GPUCapabilities gpu = NO_CUSTATEVECEX;
+  #endif
+  return gpu;
+}
+
 PYBIND11_MODULE(qsim_decide, m) {
   m.doc() = "pybind11 plugin";  // optional module docstring
 
@@ -104,4 +119,7 @@ PYBIND11_MODULE(qsim_decide, m) {
 
   // Detect cuStateVec.
   m.def("detect_custatevec", &detect_custatevec, "Detect cuStateVec");
+
+  // Detect cuStateVecEx.
+  m.def("detect_custatevecex", &detect_custatevecex, "Detect cuStateVecEx");
 }
