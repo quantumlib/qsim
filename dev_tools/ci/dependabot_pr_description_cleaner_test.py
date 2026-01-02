@@ -315,14 +315,20 @@ def test_idempotency():
     assert "Dependabot commands and options" not in cleaned_again
 
     # Check that links are preserved (and not escaped).
-    assert "[raven-actions/actionlint](https://github.com/raven-actions/actionlint)" in cleaned_again
+    assert (
+        "[raven-actions/actionlint](https://github.com/raven-actions/actionlint)"
+        in cleaned_again
+    )
     assert "\\[raven-actions/actionlint\\]" not in cleaned_again
 
 
 def test_markdown_preservation():
     # Ensure links are not escaped (basic check)
     cleaned = cleaner.process_text(SAMPLE_1)
-    assert "[raven-actions/actionlint](https://github.com/raven-actions/actionlint)" in cleaned
+    assert (
+        "[raven-actions/actionlint](https://github.com/raven-actions/actionlint)"
+        in cleaned
+    )
 
 
 def test_custom_separator_removal():
