@@ -96,6 +96,8 @@ source = "https://github.com/quantumlib/qsim"
 dev = [
     "black~=25.9.0",
     "cibuildwheel",
+    # Distutils was removed from Python in 3.12.
+    "setuptools; python_version >= 3.12",
     "flynt~=1.0",
     "isort[colors]~=6.0.1",
     "py-cpuinfo",
