@@ -26,5 +26,9 @@ WORKDIR /qsim/
 # Build pybind code early to cache the results
 RUN make -j -C /qsim/ pybind
 
+# Install Python development dependencies.
+# hadolint ignore=DL3013
+RUN pip install --no-cache-dir --group dev
+
 # Compile and run qsim tests
 ENTRYPOINT ["make", "-C", "/qsim/", "run-py-tests"]
