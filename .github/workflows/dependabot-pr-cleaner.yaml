@@ -68,6 +68,7 @@ jobs:
           GH_REPO: ${{github.repository}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
           PR_NUMBER: ${{inputs.pr-number || github.event.pull_request.number}}
+          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
         run: |
           gh pr view ${{env.PR_NUMBER}} --json body --jq .body > body.txt
           python3 dev_tools/ci/dependabot_pr_description_cleaner.py body.txt
