@@ -109,7 +109,7 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
     ifneq (,$(strip $(wildcard $(CUQUANTUM_ROOT)/.)))
         CUSVFLAGS =  -I$(CUQUANTUM_ROOT)/include
         CUSVFLAGS += -L${CUQUANTUM_ROOT}/lib -L$(CUQUANTUM_ROOT)/lib64
-	    CUSVFLAGS += -Xcompiler \"-Wl,-rpath=${CUQUANTUM_ROOT}/lib\"
+        CUSVFLAGS += -lcustatevec -lcublas
         CUSTATEVECFLAGS ?= $(CUSVFLAGS)
         TARGETS += qsim-custatevec
         TARGETS += qsim-custatevecex
