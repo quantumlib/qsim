@@ -150,3 +150,11 @@ skip = "*musllinux*"
 [tool.black]
 target-version = ['py310', 'py311', 'py312', 'py313']
 extend-exclude = 'third_party'
+
+[tool.isort]
+profile = 'black'
+order_by_type = false  # Sort alphabetically, irrespective of case.
+skip_gitignore = true
+combine_as_imports = true
+known_first_party = ["qsimcirq*"]
+extend_skip = ["__init__.py"]
