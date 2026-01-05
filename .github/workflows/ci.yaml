@@ -58,7 +58,7 @@ permissions: read-all
 jobs:
   python-checks:
     name: 'Python format & lint checks'
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out a copy of the git repository
