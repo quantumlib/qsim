@@ -82,8 +82,9 @@ class SimulatorCuStateVec final {
       ErrorCheck(custatevecApplyMatrix(
                      custatevec_handle_, state.get(), kStateType,
                      state.num_qubits(), matrix, kMatrixType, kMatrixLayout, 0,
-                     (int32_t*) qs.data(), qs.size(), nullptr, nullptr, 0,
-                     kComputeType, workspace_, workspace_size));
+                     reinterpret_cast<const int32_t*>(qs.data()), qs.size(),
+                     nullptr, nullptr, 0, kComputeType, workspace_,
+                     workspace_size));
     }
   }
 
@@ -118,9 +119,10 @@ class SimulatorCuStateVec final {
       ErrorCheck(custatevecApplyMatrix(
                      custatevec_handle_, state.get(), kStateType,
                      state.num_qubits(), matrix, kMatrixType, kMatrixLayout, 0,
-                     (int32_t*) qs.data(), qs.size(),
-                     (int32_t*) cqs.data(), control_bits.data(), cqs.size(),
-                     kComputeType, workspace_, workspace_size));
+                     reinterpret_cast<const int32_t*>(qs.data()), qs.size(),
+                     reinterpret_cast<const int32_t*>(cqs.data()),
+                     control_bits.data(), cqs.size(), kComputeType,
+                     workspace_, workspace_size));
     }
   }
 
@@ -144,8 +146,11 @@ class SimulatorCuStateVec final {
     ErrorCheck(custatevecComputeExpectation(
                    custatevec_handle_, state.get(), kStateType,
                    state.num_qubits(), &eval, kExpectType, nullptr, matrix,
-                   kMatrixType, kMatrixLayout, (int32_t*) qs.data(), qs.size(),
+                   kMatrixType, kMatrixLayout,
+                   reinterpret_cast<const int32_t*>(qs.data()), qs.size(),
                    kComputeType, workspace_, workspace_size));
+
+    ErrorCheck(cudaDeviceSynchronize());
 
     return {cuCreal(eval), cuCimag(eval)};
   }

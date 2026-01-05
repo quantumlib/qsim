@@ -186,8 +186,10 @@ cuda_library(
         "matrix.h",
         "mps_simulator.h",
         "mps_statespace.h",
+        "multiprocess_custatevecex.h",
         "parfor.h",
         "qtrajectory.h",
+        "run_custatevecex.h",
         "run_qsim.h",
         "run_qsimh.h",
         "seqfor.h",
@@ -198,12 +200,14 @@ cuda_library(
         "simulator_avx512.h",
         "simulator_basic.h",
         "simulator_custatevec.h",
+        "simulator_custatevecex.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
         "statespace_custatevec.h",
+        "statespace_custatevecex.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -219,8 +223,10 @@ cuda_library(
         "util_cpu.h",
         "util_cuda.h",
         "util_custatevec.h",
+        "util_custatevecex.h",
         "vectorspace.h",
         "vectorspace_cuda.h",
+        "vectorspace_custatevecex.h",
     ],
     copts = ["-D__CUSTATEVEC__"],
     deps = [
@@ -355,6 +361,11 @@ cuda_library(
 cuda_library(
     name = "util_custatevec",
     hdrs = ["util_custatevec.h"],
+)
+
+cuda_library(
+    name = "util_custatevecex",
+    hdrs = ["util_custatevecex.h"],
 )
 
 ### Input/output libraries ###
@@ -506,6 +517,29 @@ cc_library(
     ],
 )
 
+cuda_library(
+    name = "run_custatevecex",
+    hdrs = ["run_custatevecex.h"],
+    deps = [
+        ":circuit",
+        ":util",
+        ":util_custatevec",
+        ":util_custatevecex",
+    ],
+)
+
+### Multi-process library ###
+
+cuda_library(
+    name = "multiprocess_custatevecex",
+    hdrs = ["multiprocess_custatevecex.h"],
+    deps = [
+        ":io",
+        ":util_custatevec",
+        ":util_custatevecex",
+    ],
+)
+
 ### Vectorspace libraries ###
 
 cc_library(
@@ -516,6 +550,18 @@ cc_library(
 cuda_library(
     name = "vectorspace_cuda",
     hdrs = ["vectorspace_cuda.h"],
+)
+
+cuda_library(
+    name = "vectorspace_custatevecex",
+    hdrs = ["vectorspace_custatevecex.h"],
+    deps = [
+        "io",
+        ":multiprocess_custatevecex",
+        ":util_cuda",
+        ":util_custatevec",
+        ":util_custatevecex",
+    ],
 )
 
 ### Statespace libraries ###
@@ -591,6 +637,20 @@ cuda_library(
     ],
 )
 
+cuda_library(
+    name = "statespace_custatevecex",
+    hdrs = [
+        "statespace_custatevecex.h",
+    ],
+    deps = [
+        ":multiprocess_custatevecex",
+        ":statespace",
+        ":util_custatevec",
+        ":util_custatevecex",
+        ":vectorspace_custatevecex",
+    ],
+)
+
 ### Simulator libraries ###
 
 cc_library(
@@ -657,6 +717,19 @@ cuda_library(
         ":bits",
         ":statespace_custatevec",
         ":util_custatevec",
+    ],
+)
+
+cuda_library(
+    name = "simulator_custatevecex",
+    hdrs = [
+        "simulator_custatevecex.h",
+    ],
+    deps = [
+        ":io",
+        ":statespace_custatevecex",
+        ":util_custatevec",
+        ":util_custatevecex",
     ],
 )
 

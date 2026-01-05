@@ -136,6 +136,7 @@ setup(
         CMakeExtension("qsimcirq/qsim_basic"),
         CMakeExtension("qsimcirq/qsim_cuda"),
         CMakeExtension("qsimcirq/qsim_custatevec"),
+        CMakeExtension("qsimcirq/qsim_custatevecex"),
         CMakeExtension("qsimcirq/qsim_decide"),
         CMakeExtension("qsimcirq/qsim_hip"),
     ],
