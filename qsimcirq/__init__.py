@@ -35,7 +35,7 @@ def _load_qsim_gpu():
     instr = qsim_decide.detect_gpu()
     if instr == 0:
         qsim_gpu = importlib.import_module("qsimcirq.qsim_cuda")
-    elif instr == 2:
+    elif instr == 3:
         qsim_gpu = importlib.import_module("qsimcirq.qsim_hip")
     else:
         qsim_gpu = None
@@ -51,9 +51,19 @@ def _load_qsim_custatevec():
     return qsim_custatevec
 
 
+def _load_qsim_custatevecex():
+    instr = qsim_decide.detect_custatevecex()
+    if instr == 2:
+        qsim_custatevecex = importlib.import_module("qsimcirq.qsim_custatevecex")
+    else:
+        qsim_custatevecex = None
+    return qsim_custatevecex
+
+
 qsim = _load_simd_qsim()
 qsim_gpu = _load_qsim_gpu()
 qsim_custatevec = _load_qsim_custatevec()
+qsim_custatevecex = _load_qsim_custatevecex()
 
 # Note: the following imports must remain at the bottom of this file.
 

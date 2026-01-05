@@ -186,8 +186,11 @@ library.
 `QSimOptions` provides five parameters to configure GPU execution. `use_gpu`
 is required to enable GPU execution:
 * `use_gpu`: if True, use GPU instead of CPU for simulation.
-* `gpu_mode`: use CUDA if set to 0 (default value) or use the NVIDIA cuStateVec
-library if set to any other value.
+* `gpu_mode`: use CUDA if set to 0 (default value), use the NVIDIA cuStateVec
+if set to 1 or use the NVIDIA cuStateVecEx library if set to any other value.
+
+In the case of the NVIDIA cuStateVecEx library, simulations can be performed
+in multi-device / multi-node environments.
 
 If `use_gpu` is set and `gpu_mode` is set to 0, the remaining parameters can
 optionally be set to fine-tune StateSpace performance for a specific device.
@@ -196,3 +199,4 @@ In most cases, the default values provide good performance.
 StateSpace. This must be a power of 2 in the range [32, 1024].
 * `gpu_data_blocks`: number of data blocks to use for the GPU StateSpace.
 Below 16 data blocks, performance is noticeably reduced.
+
