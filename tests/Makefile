@@ -29,7 +29,7 @@ ifneq (,$(HAVE_SSE))
     SSE_FILES := $(wildcard *_sse_test.cc)
 endif
 ifneq (,$(HAVE_AVX2))
-    AVX2_FLAGS ?= -mavx2 -mfma
+    AVX2_FLAGS ?= -mavx2 -mfma -mbmi2
     AVX2_FILES := $(wildcard *_avx_test.cc)
 endif
 ifneq (,$(HAVE_AVX512))
