@@ -97,6 +97,7 @@ jobs:
 
   docker-lint:
     name: Dockerfile lint checks
+    if: github.repository_owner == 'quantumlib'
     # ubuntu-slim runners don't have docker installed.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -119,6 +120,7 @@ jobs:
 
   shell-lint:
     name: Shell script lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -141,6 +143,7 @@ jobs:
 
   yaml-lint:
     name: YAML lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -165,6 +168,7 @@ jobs:
 
   bazel-lint:
     name: Bazel build lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -188,6 +192,7 @@ jobs:
 
   action-lint:
     name: GitHub Actions lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -206,6 +211,7 @@ jobs:
 
   library-tests:
     name: Library tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
@@ -307,6 +313,7 @@ jobs:
 
   options-tests:
     name: Options tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
@@ -367,6 +374,7 @@ jobs:
 
   memory-tests:
     name: Malloc/asan/msan tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
@@ -427,6 +435,7 @@ jobs:
 
   docker-tests:
     name: Docker build tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - docker-lint
@@ -468,7 +477,7 @@ jobs:
 
   report-results:
     name: CI
-    if: always()
+    if: always() && github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
