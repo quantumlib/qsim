@@ -35,6 +35,7 @@ concurrency:
 
 jobs:
   test-compatibility:
+    if: github.repository_owner == 'quantumlib'
     name: Test Cirq compatibility
     runs-on: ubuntu-24.04
     timeout-minutes: 30
