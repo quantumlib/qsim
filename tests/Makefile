@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # Determine the hardware features available in this CPU.
-HAVE_SSE := $(shell grep -q sse /proc/cpuinfo && echo "true")
-HAVE_AVX2 := $(shell grep -q avx2 /proc/cpuinfo && echo "true")
-HAVE_AVX512 := $(shell grep -q avx512f /proc/cpuinfo && echo "true")
+HAVE_SSE := $(shell grep -qs sse /proc/cpuinfo && echo "true")
+HAVE_AVX2 := $(shell grep -qs avx2 /proc/cpuinfo && echo "true")
+HAVE_AVX512 := $(shell grep -qs avx512f /proc/cpuinfo && echo "true")
 
 # Default targets. Always built.
 BASIC_FILES := $(shell ls *.cc | egrep -v '_avx|_sse')
@@ -47,6 +47,9 @@ CUDA_TARGETS := $(CUDA_FILES:%cuda_test.cu=%cuda_test.x)
 CUSTATEVEC_FILES := $(wildcard *custatevec_test.cu)
 CUSTATEVEC_TARGETS := $(CUSTATEVEC_FILES:%custatevec_test.cu=%custatevec_test.x)
 
+CUSTATEVECEX_FILES := $(wildcard *custatevecex_test.cu)
+CUSTATEVECEX_TARGETS := $(CUSTATEVECEX_FILES:%custatevecex_test.cu=%custatevecex_test.x)
+
 HIP_FILES := $(wildcard *cuda_test.cu)
 HIP_TARGETS := $(HIP_FILES:%cuda_test.cu=%hip_test.x)
 
@@ -66,6 +69,9 @@ cuda-tests: $(CUDA_TARGETS)
 .PHONY: custatevec-tests
 custatevec-tests: $(CUSTATEVEC_TARGETS)
 
+.PHONY: custatevecex-tests
+custatevecex-tests: $(CUSTATEVECEX_TARGETS)
+
 .PHONY: hip-tests
 hip-tests: $(HIP_TARGETS)
 
@@ -80,6 +86,14 @@ run-cuda-tests: | $(GTEST_DIR)/build cuda-tests
 .PHONY: run-custatevec-tests
 run-custatevec-tests: | $(GTEST_DIR)/build custatevec-tests
 	for exe in $(CUSTATEVEC_TARGETS); do if ! ./$$exe; then exit 1; fi; done
+
+.PHONY: run-custatevecex-tests
+run-custatevecex-tests: | $(GTEST_DIR)/build custatevecex-tests
+	for exe in $(CUSTATEVECEX_TARGETS); do if ! ./$$exe; then exit 1; fi; done
+
+.PHONY: run-custatevecex-mpi-tests
+run-custatevecex-mpi-tests: | $(GTEST_DIR)/build custatevecex-tests
+	for exe in $(CUSTATEVECEX_TARGETS); do if ! mpirun -np 2 ./$$exe; then exit 1; fi; done
 
 .PHONY: run-hip-tests
 run-hip-tests: | $(GTEST_DIR)/build hip-tests
@@ -98,6 +112,9 @@ $(GTEST_DIR)/build:
 	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS)
 
 %custatevec_test.x: %custatevec_test.cu $(GTEST_DIR)/build
+	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS) $(CUSTATEVECFLAGS)
+
+%custatevecex_test.x: %custatevecex_test.cu $(GTEST_DIR)/build
 	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS) $(CUSTATEVECFLAGS)
 
 %hip_test.x: %cuda_test.cu $(GTEST_DIR)/build

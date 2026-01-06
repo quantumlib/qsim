@@ -66,8 +66,7 @@ jobs:
 
   python-checks:
     name: 'Python format & lint checks'
-    needs: check-owner
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out a copy of the git repository
@@ -231,10 +230,10 @@ jobs:
         # tests the endpoints of the supported range. The wheel build process
         # (in a separate workflow) *does* use all the versions.
         os:
-          - ubuntu-24.04
+          - ubuntu-24.04-x64-8-core
           - macos-14
           - macos-15
-          - windows-2025
+          - windows-2025-x64-8-core
         python_version:
           - '3.10'
           - '3.13'
@@ -262,13 +261,13 @@ jobs:
         with:
           debug: ${{inputs.debug}}
 
-      - if: matrix.os != 'windows-2025'
+      - if: ${{! startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
           dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
 
-      - if: matrix.os == 'windows-2025'
+      - if: ${{startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (Windows case)
         # On GitHub Windows runners, Bazel ends up finding a different "python3"
         # binary than what's installed by setup-python unless we tell Bazel what
@@ -281,6 +280,8 @@ jobs:
 
       - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           brew install -q libomp llvm@19
           brew unlink libomp
@@ -317,7 +318,7 @@ jobs:
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     strategy:
       matrix:
@@ -373,7 +374,7 @@ jobs:
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     env:
       common_args: >-
@@ -429,7 +430,7 @@ jobs:
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     env:
       # The next environment variable is used by Docker.
@@ -459,9 +460,8 @@ jobs:
         run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
 
       - name: Test installation process
-        run: |
-          cd install/tests
-          docker compose build
+        working-directory: install/tests
+        run: docker compose build
 
   report-results:
     name: CI
