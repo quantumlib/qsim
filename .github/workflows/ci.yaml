@@ -56,14 +56,6 @@ concurrency:
 permissions: read-all
 
 jobs:
-  check-owner:
-    if: github.repository_owner == 'quantumlib'
-    name: 'Check that the repository owner is Quantumlib'
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - run: true
-
   python-checks:
     name: 'Python format & lint checks'
     runs-on: ubuntu-24.04
@@ -100,7 +92,7 @@ jobs:
 
   docker-lint:
     name: Dockerfile lint checks
-    needs: check-owner
+    if: github.repository_owner == 'quantumlib'
     # ubuntu-slim runners don't have docker installed.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -123,7 +115,7 @@ jobs:
 
   shell-lint:
     name: Shell script lint checks
-    needs: check-owner
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -146,7 +138,7 @@ jobs:
 
   yaml-lint:
     name: YAML lint checks
-    needs: check-owner
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -171,7 +163,7 @@ jobs:
 
   bazel-lint:
     name: Bazel build lint checks
-    needs: check-owner
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -195,7 +187,7 @@ jobs:
 
   action-lint:
     name: GitHub Actions lint checks
-    needs: check-owner
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -214,10 +206,10 @@ jobs:
 
   library-tests:
     name: Library tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
-      - check-owner
       - python-checks
       - shell-lint
       - yaml-lint
@@ -311,10 +303,10 @@ jobs:
 
   options-tests:
     name: Options tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
-      - check-owner
       - python-checks
       - shell-lint
       - yaml-lint
@@ -367,10 +359,10 @@ jobs:
 
   memory-tests:
     name: Malloc/asan/msan tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
-      - check-owner
       - python-checks
       - shell-lint
       - yaml-lint
@@ -423,9 +415,9 @@ jobs:
 
   docker-tests:
     name: Docker build tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
-      - check-owner
       - docker-lint
       - python-checks
       - shell-lint
@@ -465,11 +457,10 @@ jobs:
 
   report-results:
     name: CI
-    if: always()
+    if: always() && github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
-      - check-owner
       - docker-lint
       - docker-tests
       - library-tests
