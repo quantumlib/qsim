@@ -41,7 +41,7 @@ endif
 
 # The flags for the compilation of the simd-specific Pybind11 interfaces
 PYBINDFLAGS_BASIC = $(PYBINDFLAGS)
-PYBINDFLAGS_SSE = -msse4.1 $(PYBINDFLAGS)
+PYBINDFLAGS_SSE = -msse4 $(PYBINDFLAGS)
 PYBINDFLAGS_AVX2 = -mavx2 -mfma $(PYBINDFLAGS)
 PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 $(PYBINDFLAGS)
 
