@@ -46,13 +46,19 @@ CXXFLAGS := $(BASE_CXXFLAGS) $(CXXFLAGS)
 NVCCFLAGS := $(BASE_NVCCFLAGS) $(NVCCFLAGS)
 HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 
+LTO_FLAGS := -flto=auto
+USING_CLANG := $(shell $(CXX) --version | grep -isq clang && echo "true")
+ifeq ($(USING_CLANG),"true")
+	LTO_FLAGS := -flto
+endif
+
 ifdef DEBUG
     DEBUG_FLAGS := -g -O0
     CXXFLAGS += $(DEBUG_FLAGS)
     NVCCFLAGS += $(DEBUG_FLAGS)
     HIPCCFLAGS += $(DEBUG_FLAGS)
 else
-    CXXFLAGS += -O3 -flto=auto
+    CXXFLAGS += -O3 $(LTO_FLAGS)
     NVCCFLAGS += -O3
     HIPCCFLAGS += -O3
 endif
