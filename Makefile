@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Version info for the copy of Eigen we will download and build locally.
-EIGEN_COMMIT = "d71c30c47858effcbd39967097a2d99ee48db464"
+# If this is changed, updated the value in ./WORKSPACE too.
+EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
 # Default build targets. Additional may be added conditionally below.
