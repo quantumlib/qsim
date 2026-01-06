@@ -15,11 +15,14 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim)
 
-IF (WIN32)
-    set(CMAKE_CXX_FLAGS "/arch:AVX2 /O2 /openmp")
-ELSE()
-    set(CMAKE_CXX_FLAGS "-mavx2 -mfma -O3 -flto=auto")
-ENDIF()
+if(WIN32)
+    add_compile_options(/arch:AVX2 /openmp)
+    # Add /O2 to any configuration that is NOT Debug.
+    # This prevents a conflict with /RTC1 in DEBUG builds.
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
+else()
+    add_compile_options(-mavx2 -mfma -O3 -flto=auto)
+endif()
 
 if(APPLE)
     include_directories(
@@ -36,7 +39,7 @@ if(APPLE)
     )
 endif()
 
-INCLUDE(../GetPybind11.cmake)
+include(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx2 pybind_main_avx2.cpp)
 
 target_link_libraries(qsim_avx2 PUBLIC OpenMP::OpenMP_CXX)

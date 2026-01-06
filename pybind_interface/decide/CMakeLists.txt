@@ -19,9 +19,12 @@ include(CheckLanguage)
 check_language(CUDA)
 
 if(WIN32)
-    set(CMAKE_CXX_FLAGS "/O2 /openmp")
+    add_compile_options(/openmp)
+    # Add /O2 to any configuration that is NOT Debug.
+    # This prevents a conflict with /RTC1 in DEBUG builds.
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    set(CMAKE_CXX_FLAGS "-O3 -flto=auto")
+    add_compile_options(-O3 -fno-lto)
 endif()
 
 if(APPLE)
@@ -49,6 +52,9 @@ if(CMAKE_CUDA_COMPILER)
         target_compile_options(qsim_decide PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVEC__>
         )
+	target_compile_options(qsim_decide PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:-D__CUSTATEVECEX__>
+        )
     endif()
     find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${PYTHON_INCLUDE_DIRS} ${pybind11_SOURCE_DIR}/include)
@@ -75,4 +81,3 @@ else()
     pybind11_add_module(qsim_decide decide.cpp)
     target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
 endif()
-

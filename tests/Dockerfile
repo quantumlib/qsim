@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # Base OS
+# hadolint ignore=DL3006
 FROM qsim-base AS qsim-cxx-tests
 
 # Copy relevant files

@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: configure the Dockerfile linter "hadolint" for this project.
-# Info about options can be found at https://github.com/hadolint/hadolint/.
-# Rule/error numbers are described at https://github.com/hadolint/hadolint/wiki
+# See https://github.com/hadolint/hadolint/ for info about config options.
+# IMPORTANT: if you change values here, update .editorconfig to match.
 
 format: tty
 no-color: false
 no-fail: false
 failure-threshold: error
+
+# Rule/error numbers are described at https://github.com/hadolint/hadolint/wiki
 ignored:
   # Multiple consecutive RUN stmts are usually deliberate. Don't flag that.
   - DL3059

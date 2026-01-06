@@ -14,13 +14,15 @@
 
 # TODO: remove reliance on getopt (unistd.h) to allow apps to run on Windows.
 
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
 cc_binary(
     name = "qsim_base",
     srcs = ["qsim_base.cc"],
+    data = ["//circuits:circuit_q24"],
     deps = [
         "//lib:run_qsim_lib",
     ],
-    data = ["//circuits:circuit_q24"],
 )
 
 cc_binary(

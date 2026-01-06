@@ -1,22 +1,28 @@
 # qsim style guide
 
-This style guide outlines the coding conventions for this project. There are
-separate subsections for Python, C++, and other file types below.
+This style guide for Gemini outlines the coding conventions for this project.
 
 ## General guidance
 
 ### Overall principles
 
-*   _Readability_: Code should be easy to understand for all team members.
+*   _Readability_: Code must be easy for humans to understand. Prefer clarity
+    over cleverness. Write elegant, well-structured code.
 
-*   _Maintainability_: Code should be easy to modify and extend.
+*   _Maintainability_: Code must be easy to modify and extend.
 
-*   _Consistency_: Adhering to a consistent style across all projects improves
-    collaboration and reduces errors.
+*   _Consistency_: Be consistent with naming convention, style, and other
+    patterns in the code base.
 
 *   _Performance_: While readability is paramount, code should be efficient.
 
 ### Overall development approach
+
+*   Code should be modular and adhere to language idioms and best practices.
+
+*   Data obtained from the user or read from a file should be validated.
+    Identify and guard against potential vulnerabilities in data handling or
+    input validation.
 
 *   When new functions, classes, and files are introduced, they should also
     have corresponding tests. Existing tests must continue to pass (or be
@@ -28,19 +34,21 @@ separate subsections for Python, C++, and other file types below.
 
 *   Tests must be independent and must not rely on the state of other tests.
     Setup and teardown functions should be used to create a clean environment
-    for each test run.
+    for each test run. External dependencies (e.g., databases, network services,
+    file system) must be mocked to ensure the test is isolated to the unit under
+    test.
 
 *   Make sure to cover edge cases: write tests for invalid inputs, null values,
     empty arrays, zero values, and off-by-one errors.
 
-*   Use asserts intelligently. Test assertions should be specific: instead of
-    just asserting `true`, assert that a specific value equals an expected
-    value. Provide meaningful failure messages.
+*   Use asserts in tests intelligently. Test assertions should be specific:
+    instead of just asserting `true`, assert that a specific value equals an
+    expected value. Provide meaningful failure messages.
 
 ### Overall code format conventions
 
-This project generally follows Google coding conventions, with a few changes.
-The following Google style guides are the starting points:
+Quantum AI projects generally follows Google coding conventions, with a few
+changes. The following Google style guides are the starting points:
 
 *   [Google C++ Style Guide](
     https://google.github.io/styleguide/cppguide.html)
@@ -54,12 +62,13 @@ The following Google style guides are the starting points:
 *   [Google Shell Style Guide](
     https://google.github.io/styleguide/shellguide.html)
 
-To learn the conventions for line length, indentation, and other style
-characteristics, please inspect the following configuration files (if present at
-the top level of this project repository):
+To learn this project's conventions for line length, indentation, and other
+details of coding style, please inspect the following configuration files (if
+present at the top level of this project repository):
 
-*   [`.editorconfig`](../.editorconfig) for basic code editor configuration for
-    indentation and line length.
+*   [`.editorconfig`](../.editorconfig) for basic code editor configuration
+    (e.g., indentation and line length) specified using the
+    [EditorConfig](https://editorconfig.org/) format.
 
 *   [`.clang-format`](../.clang-format) for C++ code and also protobuf (Protocol
     Buffers) data structure definitions.
@@ -74,11 +83,11 @@ the top level of this project repository):
 
 *   [`.yamllint.yaml`](../.yamllint.yaml) for YAML files.
 
-### Overall code commenting conventions
+### Overall code comment conventions
 
 Every source file must begin with a header comment with the copyright and
-license. We use the Apache 2.0 license, and copyright by Google LLC. Here is an
-example of the required file header for a Python language code file:
+license. We use the Apache 2.0 license. Here is an example of the required file
+header for a Python language code file:
 
 ```python
 # Copyright 2025 Google LLC
@@ -96,22 +105,19 @@ example of the required file header for a Python language code file:
 # limitations under the License.
 ```
 
-License headers are necessary on Python, C++, Bash/shell, and other programming
+License headers are necessary in Python, C++, Bash/shell, and other programming
 language files, as well as configuration files in YAML, TOML, ini, and other
 config file formats. They are not necessary in Markdown or plain text files.
 
 For comments in other parts of the files, follow these guidelines:
 
 *   _Write clear and concise comments_: Comments should explain the "why", not
-    the "what". The code itself shows what it's doing. The comments should
-    explain the intent, trade-offs, and reasoning behind the implementation.
+    the "what". The comments should explain the intent, trade-offs, and
+    reasoning behind the implementation.
 
 *   _Comment sparingly_: Well-written code should be self-documenting where
     possible. It's not necessary to add comments for code fragments that can
     reasonably be assumed to be self-explanatory.
-
-*   _Use complete sentences_: Start comments with a capital letter, use
-    proper punctuation, and use proper grammar.
 
 ## Python-specific guidance
 
@@ -158,7 +164,7 @@ naming, we can reduce cognitive load on human users and developers.
         amplitudes. If a function expects a NumPy array of amplitudes, its type
         annotation should be `np.ndarray`.
 
-###  Docstrings and documentation
+###  Python docstrings and documentation
 
 This project uses [Google style doc strings](
 http://google.github.io/styleguide/pyguide.html#381-docstrings) with a Markdown
@@ -224,7 +230,7 @@ The following programs can be used to perform some automated formatting.
 
 ### Python type annotations
 
-This project makes extensive use of type annotations as defined by [PEP 484](
+This project uses type annotations as defined by [PEP 484](
 https://peps.python.org/pep-0484/). All new code should use type annotations
 where possible, especially on public classes and functions to serve as
 documentation, but also on internal code so that the `mypy` type checker can
@@ -295,3 +301,14 @@ To build tests without running them, instead use:
 ```shell
 bzel build tests:all
 ```
+
+## Shell script-specific guidance
+
+Shell scripts should use Bash.
+
+### Shell script formatting
+
+Use the [Google Shell Style Guide](
+https://google.github.io/styleguide/shellguide.html) with the following changes:
+
+*   Use indentation of 4 spaces, not 2.

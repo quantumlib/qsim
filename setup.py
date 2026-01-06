@@ -1,4 +1,4 @@
-# Copyright 2018 The Cirq Developers
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,15 @@
 # limitations under the License.
 
 import os
+import platform
 import re
 import runpy
-import sys
 import shutil
-import platform
 import subprocess
+import sys
 import sysconfig
 
-from setuptools import setup, Extension
+from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
 
@@ -108,15 +108,11 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_COMPILER=hipcc",
             ]
 
-        env = os.environ.copy()
-        cxxflags = env.get("CXXFLAGS", "")
-        env["CXXFLAGS"] = (
-            f'{cxxflags} -DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
-        )
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(
-            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env
+            ["cmake", ext.sourcedir] + cmake_args,
+            cwd=self.build_temp,
         )
         subprocess.check_call(
             ["cmake", "--build", ".", "--verbose"] + build_args,
@@ -124,13 +120,20 @@ class CMakeBuild(build_ext):
         )
 
 
-requirements = open("requirements.txt").readlines()
-dev_requirements = open("dev-requirements.txt").readlines()
+with open("requirements.txt") as f:
+    requirements = [
+        line.strip() for line in f if line.strip() and not line.strip().startswith("#")
+    ]
+with open("dev-requirements.txt") as f:
+    dev_requirements = [
+        line.strip() for line in f if line.strip() and not line.strip().startswith("#")
+    ]
 
 description = "Schrödinger and Schrödinger-Feynman simulators for quantum circuits."
 
 # README file as long_description.
-long_description = open("README.md", encoding="utf-8").read()
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 __version__ = runpy.run_path("qsimcirq/_version.py")["__version__"]
 if not __version__:
@@ -142,17 +145,10 @@ setup(
     url="https://github.com/quantumlib/qsim",
     author="The qsim/qsimh Developers",
     author_email="qsim-qsimh-dev@googlegroups.com",
-    maintainer="Google Quantum AI open-source maintainers",
+    maintainer="Google Quantum AI",
     maintainer_email="quantum-oss-maintainers@google.com",
     python_requires=">=3.10.0",
     install_requires=requirements,
-    # "pip install" from sources needs to build Pybind, which needs CMake too.
-    setup_requires=[
-        "packaging",
-        "setuptools>=75.2.0",
-        "pybind11[global]",
-        "cmake~=3.28.1",
-    ],
     extras_require={
         "dev": dev_requirements,
     },
@@ -167,6 +163,7 @@ setup(
         CMakeExtension("qsimcirq/qsim_basic"),
         CMakeExtension("qsimcirq/qsim_cuda"),
         CMakeExtension("qsimcirq/qsim_custatevec"),
+        CMakeExtension("qsimcirq/qsim_custatevecex"),
         CMakeExtension("qsimcirq/qsim_decide"),
         CMakeExtension("qsimcirq/qsim_hip"),
     ],

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Summary: configure yamllint for this project.
 # See https://yamllint.readthedocs.io/ for info about configuration options.
+# IMPORTANT: if you change values here, update .editorconfig to match.
 
 rules:
   line-length:

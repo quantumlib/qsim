@@ -25,7 +25,7 @@ namespace qsim {
 
 inline void ErrorAssert(cublasStatus_t code, const char* file, unsigned line) {
   if (code != CUBLAS_STATUS_SUCCESS) {
-    IO::errorf("cuBLAS error %i: %s %d\n", code, file, line);
+    IO::errorf("cuBLAS error %d at %s %d\n", code, file, line);
     exit(code);
   }
 }
@@ -33,7 +33,7 @@ inline void ErrorAssert(cublasStatus_t code, const char* file, unsigned line) {
 inline void ErrorAssert(
     custatevecStatus_t code, const char* file, unsigned line) {
   if (code != CUSTATEVEC_STATUS_SUCCESS) {
-    IO::errorf("custatevec error: %s %s %d\n",
+    IO::errorf("cuStateVec error: %s at %s %d\n",
                 custatevecGetErrorString(code), file, line);
     exit(code);
   }

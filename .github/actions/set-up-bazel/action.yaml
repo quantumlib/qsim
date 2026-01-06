@@ -1,0 +1,105 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Set up Bazel with caching
+description: Installs Bazel and sets up multiple caches
+
+# Summary: reusable workflow to install Bazelisk (for Bazel) and set up Bazel
+# caches. It grew out of trouble getting the existing bazel-contrib/setup-bazel
+# action (from the GitHub Marketplace) to work with Netkos' "act".
+
+inputs:
+  debug:
+    description: 'Run with debugging options'
+    required: false
+    default: true
+  bazel-version:
+    description: 'Version of Bazel to use:'
+    required: false
+    default: ''
+
+permissions:
+  actions: write
+  contents: read
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Determine the version of Bazel to use
+      shell: bash
+      env:
+        SHELLOPTS: ${{(inputs.debug || runner.debug) && 'xtrace' || ''}}
+      run: |
+        if [[ -n "${{inputs.bazel-version}}" ]]; then
+          version="${{inputs.bazel-version}}"
+        elif [[ -f ".bazelversion" ]]; then
+          version="$(tr -d ' \n\r' <.bazelversion)"
+        else
+          echo "::error::Bazel version has not been specified."
+          exit 1
+        fi
+        # This variable is read by Bazelisk.
+        echo "USE_BAZEL_VERSION=${version}" >> "$GITHUB_ENV"
+
+    - name: Install Bazelisk
+      env:
+        BAZELISK_SHOW_PROGRESS: ${{inputs.debug || runner.debug}}
+      shell: bash
+      run: npm install @bazel/bazelisk
+
+    # This cache stores copies of Bazel downloaded by Bazelisk. The copies are
+    # stored in subdirs coded by hash numbers, and thus this cache can be
+    # shared between workflows.
+    - name: Set up cache for Bazelisk
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+      with:
+        path: ~/.cache/bazelisk
+        key: bazelisk-cache
+
+    # This cache stores downloaded files (like .zip, .tar.gz) specified by
+    # repository rules like http_archive. This can be shared between workflows.
+    - name: Set up Bazel repository cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+      with:
+        path: ~/.cache/bazel/repository_cache
+        key: bazel-repo-${{env.USE_BAZEL_VERSION}}
+        restore-keys: bazel-repo-
+
+    # This cache stores the compiled outputs of build actions, such as object
+    # files (.o), linked libraries (.so), binaries, & test results.
+    - name: Set up Bazel disk cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+      with:
+        path: ~/.cache/bazel/disk_cache
+        # yamllint disable-line rule:line-length
+        key: bazel-disk-${{runner.os}}-${{runner.arch}}-${{github.ref}}-${{hashFiles('**/WORKSPACE', '**/BUILD', '**/BUILD.tpl', '**/*.bzl')}}
+        restore-keys: bazel-disk-${{runner.os}}-${{runner.arch}}-${{github.ref}}-
+
+    - name: Add configuration settings to .bazelrc
+      shell: bash
+      env:
+        SHELLOPTS: ${{(inputs.debug || runner.debug) && 'xtrace' || ''}}
+      run: |
+        if [[ "${{startsWith(runner.os, 'win')}}" == "true" ]]; then
+          num_cpus=${NUMBER_OF_PROCESSORS}
+        else
+          num_cpus=$(getconf _NPROCESSORS_ONLN)
+        fi
+        {
+        echo "startup --output_base=~/.cache/bazel/output_base"
+        echo "build --disk_cache=~/.cache/bazel/disk_cache"
+        echo "build --repository_cache=~/.cache/bazel/repository_cache"
+        echo "build --jobs=${num_cpus}"
+        echo "test --cache_test_results=no"
+        } >> .bazelrc
