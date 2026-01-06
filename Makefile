@@ -16,11 +16,12 @@
 EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
-# Default build targets. Additional may be added conditionally below.
+# Default build targets. Additional ones are added conditionally below.
 TARGETS = qsim
 TESTS = run-cxx-tests
 
 # By default, we also build the pybind11-based Python interface.
+# Can be overriden via env variables or command-line flags
 PYBIND11 ?= true
 
 ifeq ($(PYBIND11), true)
@@ -31,14 +32,36 @@ endif
 # Default options for Pytest (only used if the pybind interface is built).
 PYTESTFLAGS ?= -v
 
-# Default C++ compilers and compiler flags. Can be overriden via env variables.
+# Default compilers and compiler flags.
+# Can be overriden via env variables or command-line flags.
 CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-CXXFLAGS ?= -O3 -std=c++17 -fopenmp -flto=auto
-NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
-HIPCCFLAGS ?= -O3
+BASE_CXXFLAGS := -std=c++17 -fopenmp
+BASE_NVCCFLAGS := -std c++17 -Wno-deprecated-gpu-targets
+BASE_HIPCCFLAGS :=
+
+CXXFLAGS := $(BASE_CXXFLAGS) $(CXXFLAGS)
+NVCCFLAGS := $(BASE_NVCCFLAGS) $(NVCCFLAGS)
+HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
+
+LTO_FLAGS := -flto=auto
+USING_CLANG := $(shell $(CXX) --version | grep -isq clang && echo "true")
+ifeq ($(USING_CLANG),"true")
+	LTO_FLAGS := -flto
+endif
+
+ifdef DEBUG
+    DEBUG_FLAGS := -g -O0
+    CXXFLAGS += $(DEBUG_FLAGS)
+    NVCCFLAGS += $(DEBUG_FLAGS)
+    HIPCCFLAGS += $(DEBUG_FLAGS)
+else
+    CXXFLAGS += -O3 $(LTO_FLAGS)
+    NVCCFLAGS += -O3
+    HIPCCFLAGS += -O3
+endif
 
 # For compatibility with CMake, if $CUDAARCHS is set, use it to set the
 # architecture options to nvcc. Otherwise, default to the "native" option,
