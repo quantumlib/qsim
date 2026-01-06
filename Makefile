@@ -47,7 +47,6 @@ NVCCFLAGS := $(BASE_NVCCFLAGS) $(NVCCFLAGS)
 HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 
 ifdef DEBUG
-    # Debug build: Add debug symbols & disable optimizations.
     DEBUG_FLAGS := -g -O0
     CXXFLAGS += $(DEBUG_FLAGS)
     NVCCFLAGS += $(DEBUG_FLAGS)
