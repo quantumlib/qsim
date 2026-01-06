@@ -21,7 +21,7 @@ if(WIN32)
     # This prevents a conflict with /RTC1 in DEBUG builds.
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-msse4.1 -O3 -flto=auto)
+    add_compile_options(-msse4 -O3 -flto=auto)
 endif()
 
 if(APPLE)

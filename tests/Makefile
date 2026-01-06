@@ -25,7 +25,7 @@ SSE_FILES =
 AVX2_FILES =
 AVX512_FILES =
 ifneq (,$(HAVE_SSE))
-    SSE_FLAGS ?= -msse4.1
+    SSE_FLAGS ?= -msse4
     SSE_FILES := $(wildcard *_sse_test.cc)
 endif
 ifneq (,$(HAVE_AVX2))
