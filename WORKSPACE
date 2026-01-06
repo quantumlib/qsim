@@ -58,7 +58,7 @@ tf_workspace0()
 # https://gitlab.com/libeigen/eigen/-/releases/3.4.1
 EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 
-EIGEN_SHA256 = "eca9847b3fe6249e0234a342b78f73feec07d29f534e914ba5f920f3e09383a3"
+EIGEN_SHA256 = "2c167ff09e88a5261111bc2aa7f18ae2e78d73fd42339387532937b0c2629829"
 
 http_archive(
     name = "eigen",
