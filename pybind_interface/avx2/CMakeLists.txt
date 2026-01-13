@@ -21,7 +21,14 @@ if(WIN32)
     # This prevents a conflict with /RTC1 in DEBUG builds.
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-mavx2 -mfma -mbmi2 -O3 -flto=auto)
+    include(CheckCCompilerFlag)
+    check_c_compiler_flag("-mbmi2" COMPILER_HAS_BMI2)
+    if(COMPILER_HAS_BMI2)
+        add_compile_options("-mbmi2")
+        add_compile_definitions(HAVE_BMI2)
+    endif()
+
+    add_compile_options(-mavx2 -mfma -O3 -flto=auto)
 endif()
 
 if(APPLE)
