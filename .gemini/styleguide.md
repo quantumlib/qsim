@@ -2,9 +2,9 @@
 
 This style guide for Gemini outlines the coding conventions for this project.
 
-## General guidance
+## Introduction and goals
 
-### Overall principles
+### Overall goals
 
 *   _Readability_: Code must be easy for humans to understand. Prefer clarity
     over cleverness. Write elegant, well-structured code.
@@ -16,39 +16,62 @@ This style guide for Gemini outlines the coding conventions for this project.
 
 *   _Performance_: While readability is paramount, code should be efficient.
 
-### Overall development approach
+### Overall software engineering principles
 
-*   Code should be modular and adhere to language idioms and best practices.
+*   Write modular code that follows language idioms and best practices.
 
-*   Data obtained from the user or read from a file should be validated.
-    Identify and guard against potential vulnerabilities in data handling or
-    input validation.
+*   Prioritize numerical stability and accuracy. Keep in mind the limitations of
+    floating-point arithmetic (e.g., float, double).
 
-*   When new functions, classes, and files are introduced, they should also
-    have corresponding tests. Existing tests must continue to pass (or be
-    updated) when changes are introduced, and code should be covered by tests.
+*   Strive for performance through memory efficiency. Watch out for bottlenecks
+    due to memory access. Design data structures and algorithms to promote data
+    locality. Access memory sequentially (e.g., iterating through a
+    `std::vector`) to maximize cache hits.
 
-*   Test coverage must be high. We don't require 100% coverage, but any
-    uncovered code must be annotated appropriate directives (for example,
-    `# pragma: no cover` in Python).
+*   Design for vectorization and parallelism. Structure loops and data access
+    patterns to be friendly to compiler vectorization (SIMD). Avoid complex
+    control flow (if/else) inside tight loops where possible.
 
-*   Tests must be independent and must not rely on the state of other tests.
-    Setup and teardown functions should be used to create a clean environment
-    for each test run. External dependencies (e.g., databases, network services,
-    file system) must be mocked to ensure the test is isolated to the unit under
-    test.
+*   Validate all user and file-based data to guard against security
+    vulnerabilities.
 
-*   Make sure to cover edge cases: write tests for invalid inputs, null values,
-    empty arrays, zero values, and off-by-one errors.
+*   New code requires new tests. Ensure existing tests continue to pass or are
+    updated when making changes.
 
-*   Use asserts in tests intelligently. Test assertions should be specific:
-    instead of just asserting `true`, assert that a specific value equals an
-    expected value. Provide meaningful failure messages.
+*   Thoroughly test for edge cases, including invalid inputs, null values, empty
+    arrays, and off-by-one errors.
 
-### Overall code format conventions
+*   Keep tests independent. Use setup and teardown functions for clean
+    environments and mock all external dependencies.
 
-Quantum AI projects generally follows Google coding conventions, with a few
-changes. The following Google style guides are the starting points:
+## Development workflow
+
+### Before you start
+
+*   **CRITICAL**: before changing any file, create a new git branch for your
+    work. Use `git commit` to commit changes to files as you work. Each commit
+    should encompass a subportion of your work that is conceptually related.
+
+### File naming conventions
+
+*   Regular file names should be in all lower case, using underscores as word
+    separators as needed. The names should indicate the purpose of the code in
+    the file, while also be kept as short as possible without compromising
+    understandability.
+
+*   Test files are usually named after the file they test but with a name
+    ending in `_test.py` or `_test.cc`. For example, `something.py` would have
+    tests in a file named `something_test.py`.
+
+### File structure conventions
+
+*   Files must end with a final newline, unless they are special files that do
+    not normally have ending newlines.
+
+### Code style conventions
+
+Follow these Google coding conventions, with some project-specific conventions
+noted below.
 
 *   [Google C++ Style Guide](
     https://google.github.io/styleguide/cppguide.html)
@@ -63,8 +86,7 @@ changes. The following Google style guides are the starting points:
     https://google.github.io/styleguide/shellguide.html)
 
 To learn this project's conventions for line length, indentation, and other
-details of coding style, please inspect the following configuration files (if
-present at the top level of this project repository):
+details of coding style, please inspect the following configuration files:
 
 *   [`.editorconfig`](../.editorconfig) for basic code editor configuration
     (e.g., indentation and line length) specified using the
@@ -83,14 +105,13 @@ present at the top level of this project repository):
 
 *   [`.yamllint.yaml`](../.yamllint.yaml) for YAML files.
 
-### Overall code comment conventions
+### Code comment conventions
 
-Every source file must begin with a header comment with the copyright and
-license. We use the Apache 2.0 license. Here is an example of the required file
-header for a Python language code file:
+Every source code file must begin with a header comment with the copyright and
+license. We use the Apache 2.0 license. Here is an example for Python code:
 
 ```python
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,6 +129,8 @@ header for a Python language code file:
 License headers are necessary in Python, C++, Bash/shell, and other programming
 language files, as well as configuration files in YAML, TOML, ini, and other
 config file formats. They are not necessary in Markdown or plain text files.
+They are not necessary for configuration files that are only 1 or two lines
+long.
 
 For comments in other parts of the files, follow these guidelines:
 
@@ -137,7 +160,7 @@ naming, we can reduce cognitive load on human users and developers.
 
 *   _Functions_: Use lowercase with underscores (snake_case). Examples:
     `calculate_total()`, `process_data()`. Internal functions are prefixed with
-    an understore (`_`).
+    an underscore (`_`).
 
 *   _Classes_: Use CapWords (CamelCase). Examples: `UserManager`,
     `PaymentProcessor`.
@@ -164,7 +187,7 @@ naming, we can reduce cognitive load on human users and developers.
         amplitudes. If a function expects a NumPy array of amplitudes, its type
         annotation should be `np.ndarray`.
 
-###  Python docstrings and documentation
+### Python docstrings and documentation
 
 This project uses [Google style doc strings](
 http://google.github.io/styleguide/pyguide.html#381-docstrings) with a Markdown
@@ -236,7 +259,7 @@ where possible, especially on public classes and functions to serve as
 documentation, but also on internal code so that the `mypy` type checker can
 help catch coding errors.
 
-### Python linting
+### Linting Python code
 
 Python files:
 
@@ -246,7 +269,7 @@ Python files:
 
 *   `pylint -j0 .` will run `pylint` on all Python files.
 
-### Python testing
+### Testing Python code
 
 Unit and integration tests can be run for the Python portions of this project
 using the following command:
@@ -279,7 +302,7 @@ This section outlines coding conventions for C++ code in this project.
     *   A computational basis state (say, $|0000\rangle$) is typically
         referred to as a `bitstring`.
 
-### C++ formatting
+### Formatting C++ code
 
 Note: the C++ code files use 80-column line widths. (The Python files use 88.)
 
@@ -288,7 +311,7 @@ Note: the C++ code files use 80-column line widths. (The Python files use 88.)
 
 *   `clang-format -i PATH/TO/FILE` will reformat the file.
 
-#### C++ testing
+#### Testing C++ code
 
 If you only want to run tests for the core C++ libraries, use this command:
 
@@ -306,7 +329,7 @@ bazel build --config=verbose tests:all
 
 Shell scripts should use Bash.
 
-### Shell script formatting
+### Formatting shell scripts
 
 Use the [Google Shell Style Guide](
 https://google.github.io/styleguide/shellguide.html) with the following changes:
