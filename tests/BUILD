@@ -17,7 +17,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 # Options for testing different simulator types.
 avx_copts = [
     "-mavx2",
-    "-mbmi2",
     "-mfma",
 ]
 
