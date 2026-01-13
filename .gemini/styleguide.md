@@ -299,7 +299,7 @@ bazel test tests:all
 To build tests without running them, instead use:
 
 ```shell
-bzel build tests:all
+bazel build --config=verbose tests:all
 ```
 
 ## Shell script-specific guidance
