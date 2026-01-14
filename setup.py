@@ -41,14 +41,11 @@ class CMakeBuild(build_ext):
                 + ", ".join(e.name for e in self.extensions)
             )
 
-        if platform.system() == "Windows":
-            from packaging.version import parse
+        from packaging.version import parse
 
-            cmake_version = parse(
-                re.search(r"version\s*([\d.]+)", out.decode()).group(1)
-            )
-            if cmake_version < parse("3.28.0"):
-                raise RuntimeError("CMake >= 3.28.0 is required on Windows")
+        cmake_version = parse(re.search(r"version\s*([\d.]+)", out.decode()).group(1))
+        if cmake_version < parse("3.28.0"):
+            raise RuntimeError("CMake >= 3.28.0 is required on Windows")
 
         for ext in self.extensions:
             self.build_extension(ext)
