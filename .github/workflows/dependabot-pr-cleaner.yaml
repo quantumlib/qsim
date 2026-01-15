@@ -1,0 +1,75 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Dependabot PR cleaner
+run-name: >-
+  Clean up description of PR ${{github.event.pull_request.number}} on
+  ${{github.ref_name}} by @${{github.actor}}
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: 'The PR number of the PR to clean:'
+        required: true
+      debug:
+        description: 'Run with debugging options'
+        type: boolean
+        default: true
+
+# Declare default workflow permissions as read only.
+permissions: read-all
+
+jobs:
+  clean-pr-description:
+    if: >-
+      ${{github.actor == 'dependabot[bot]' &&
+        github.repository_owner == 'quantumlib'}}
+    name: Clean PR description
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out a copy of the git repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          sparse-checkout: |
+            ./dev_tools/ci/dependabot_pr_description_cleaner.py
+
+      - name: Set up Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v5
+        with:
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install html2text
+
+      - name: Clean the PR description
+        env:
+          GH_REPO: ${{github.repository}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          PR_NUMBER: ${{inputs.pr-number || github.event.pull_request.number}}
+          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
+        run: |
+          gh pr view ${{env.PR_NUMBER}} --json body --jq .body > body.txt
+          python3 dev_tools/ci/dependabot_pr_description_cleaner.py body.txt
+          gh pr edit ${{env.PR_NUMBER}} --body-file body.txt
