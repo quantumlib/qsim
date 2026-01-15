@@ -57,7 +57,7 @@ class CMakeBuild(build_ext):
         except subprocess.TimeoutExpired as e:
             raise RuntimeError(f"Command timed out: {e}")
         except OSError as e:
-            raise RuntimeError(f"Unable to run command '{e.cmd}': {e}")
+            raise RuntimeError(f"An OS error occurred when trying to run 'cmake --version': {e}")
 
         for ext in self.extensions:
             self.build_extension(ext)
