@@ -34,7 +34,7 @@ class CMakeExtension(Extension):
 class CMakeBuild(build_ext):
     def run(self):
         try:
-            out = subprocess.check_output(["cmake", "--version"], text=True)
+            out = subprocess.check_output(["cmake", "--version"], text=True, timeout=15)
 
             from packaging.version import parse
 
