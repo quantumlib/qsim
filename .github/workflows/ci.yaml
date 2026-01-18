@@ -73,10 +73,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Check format
         continue-on-error: ${{inputs.soft-linting == 'true'}}
@@ -243,10 +246,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -331,10 +337,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -387,10 +396,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
