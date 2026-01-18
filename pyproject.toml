@@ -14,14 +14,13 @@
 
 # Note: there are altogether 3 types of dependencies listed in this file:
 #
-#  [build-system].requires: the packages needed for the build system. This list
-#  is not stored in the package metadata.
+#  [build-system].requires: the packages needed by the build backend to build
+#  the project from source. This list is not stored in the package metadata.
 #
-#  [project].dependencies: other packages are minimally needed to be able to
-#  install and run qsimcirq. These are things like Cirq, NumPy, etc. Equivalent
-#  to "install_requires" in setuptools' setup.py. The list gets stored in the
-#  metadata of the package; when the project is installed by pip, this is the
-#  specification that is used to install its dependencies.
+#  [project].dependencies: core packages needed to be able to run qsimcirq.
+#  Equivalent to "install_requires" in setuptools' setup.py. The list is stored
+#  in the metadata of the package; when the project is installed by pip, this is
+#  the specification that is used to install its dependencies.
 #
 #  [dependency-groups].dev: the development dependencies; i.e., what a
 #  developer needs in order to run unit tests, linters, and formatters. The
@@ -32,8 +31,10 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-    "setuptools>=78.1.1",
+    "cmake~=3.28.1",
+    "pybind11[global]",
     "setuptools-scm[toml]>=6.2",
+    "setuptools>=78.1.1",
     "wheel",
 ]
 
@@ -69,12 +70,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 keywords = [
-    "algorithms",
     "cirq",
     "nisq",
     "quantum algorithm development",
     "quantum circuit simulator",
-    "quantum computer simulator",
     "quantum computing",
     "quantum programming",
     "quantum simulation",
@@ -94,11 +93,17 @@ source = "https://github.com/quantumlib/qsim"
 [dependency-groups]
 # Development dependencies. Install these with "pip install --group dev".
 dev = [
-    "black~=25.9.0",
+    # The following repeats [build-system].requires b/c pyproject.toml has no
+    # mechanism to reference that list. Keep these versions in sync with above.
+    "cmake~=3.28.1",
+    "pybind11[global]",
+    "setuptools>=78.1.1; python_version >= '3.12'",
+
+    # Other build, packaging, and distribution utilities.
     "cibuildwheel",
-    # Distutils was removed from Python in 3.12.
-    "setuptools; python_version >= '3.12'",
-    "flynt~=1.0",
+
+    # Linters, formatters, and test utilities.
+    "black~=25.9.0",
     "isort[colors]~=6.0.1",
     "py-cpuinfo",
     "pylint~=4.0.2",
