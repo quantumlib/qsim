@@ -40,13 +40,13 @@ COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
 COPY ./requirements.txt /qsim/requirements.txt
 COPY ./pyproject.toml /qsim/pyproject.toml
 
+WORKDIR /qsim/
+
 # Create venv to avoid collision between system packages and what we install.
 RUN python3 -m venv --upgrade-deps test_env
 
-WORKDIR /qsim/
-
 # Activate venv.
-ENV PATH="/test_env/bin:$PATH"
+ENV PATH="/qsim/test_env/bin:$PATH"
 
 # Install qsim requirements.
 RUN python3 -m pip install --no-cache-dir -r requirements.txt --group dev
