@@ -41,8 +41,7 @@ COPY ./requirements.txt /qsim/requirements.txt
 COPY ./pyproject.toml /qsim/pyproject.toml
 
 # Create venv to avoid collision between system packages and what we install.
-RUN python3 -m venv --upgrade-deps test_env && \
-    . test_env/bin/activate
+RUN python3 -m venv --upgrade-deps test_env
 
 WORKDIR /qsim/
 
