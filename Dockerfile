@@ -52,7 +52,7 @@ ENV PATH="/test_env/bin:$PATH"
 # Install qsim requirements.
 # hadolint ignore=DL3013
 RUN python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir -r requirements.txt
+    python3 -m pip install --no-cache-dir -r requirements.txt --group dev
 
 # Compile qsim.
 RUN make -j qsim
