@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# If this is changed, updated the value in ./WORKSPACE too.
+# If you change the following values, update the values in ./WORKSPACE too.
 EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
@@ -218,9 +218,18 @@ check-cuquantum-root-set:
 	    exit 1; \
 	fi
 
+# Check whether wget or curl is available on this system.
+ifneq (,$(shell command -v wget))
+    DOWNLOAD_CMD := wget
+else ifneq (,$(shell command -v curl))
+    DOWNLOAD_CMD := curl --fail -L -O
+else
+    $(error Neither wget nor curl found in PATH. Please install curl or wget.)
+endif
+
 eigen:
 	-rm -rf eigen
-	wget $(EIGEN_URL)/$(EIGEN_COMMIT)/eigen-$(EIGEN_COMMIT).tar.gz
+	$(DOWNLOAD_CMD) $(EIGEN_URL)/$(EIGEN_COMMIT)/eigen-$(EIGEN_COMMIT).tar.gz
 	tar -xzf eigen-$(EIGEN_COMMIT).tar.gz && mv eigen-$(EIGEN_COMMIT) eigen
 	rm eigen-$(EIGEN_COMMIT).tar.gz
 
