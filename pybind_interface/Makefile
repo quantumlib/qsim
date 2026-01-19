@@ -14,11 +14,11 @@
 
 PYTHON_CONFIG := $(shell command -v python3-config)
 ifeq (,$(PYTHON_CONFIG))
-	PY_VER := $(shell python3 --version 2>&1 | awk -F'[ .]' '{print $$2"."$$3}')
+    PY_VER := $(shell python3 --version 2>&1 | awk -F'[ .]' '{print $$2"."$$3}')
     PYTHON_CONFIG := $(shell command -v python$(PY_VER)-config)
-	ifeq (,$(PYTHON_CONFIG))
-	    $(error Could not find python3-config or python$(PY_VER)-config.)
-	endif
+    ifeq (,$(PYTHON_CONFIG))
+        $(error Could not find python3-config or python$(PY_VER)-config.)
+    endif
 endif
 
 SUFFIX := $(shell $(PYTHON_CONFIG) --extension-suffix)

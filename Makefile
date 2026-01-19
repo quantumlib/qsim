@@ -94,7 +94,7 @@ else
         ifneq (,$(strip $(wildcard $(CUDA_PATH)/.)))
             # $CUDA_PATH is set, but we know we didn't find nvcc on the user's
             # $PATH or as an absolute path (if $NVCC was set to a full path).
-	    # Try the safest choice for finding nvcc & give up if that fails.
+            # Try the safest choice for finding nvcc & give up if that fails.
             NVCC = $(CUDA_PATH)/bin/nvcc
             ifneq (,$(strip $(wildcard $(NVCC))))
                 CXXFLAGS += -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64
@@ -120,7 +120,7 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
         TARGETS += qsim-custatevecex
         TESTS += run-custatevec-tests
         TESTS += run-custatevecex-tests
-	TESTS += run-custatevecex-mpi-tests
+    TESTS += run-custatevecex-mpi-tests
     else
         $(warning $$CUQUANTUM_ROOT is set, but the path does not seem to exist)
     endif
