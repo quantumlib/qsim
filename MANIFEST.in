@@ -1,9 +1,5 @@
-# This controls the contents of source distributions of qsim. We only need to
-# exclude things that don't make sense to include in the sdist.
+# Thanks to setuptools-scm, the source distribution (sdist) will already include
+# all files tracked by git. Here we exclude some that are unsuitable.
 
 recursive-exclude .github *
 recursive-exclude dev_tools/ci *
-
-global-exclude *.py[cod]
-global-exclude .*_cache
-global-exclude __pycache__
