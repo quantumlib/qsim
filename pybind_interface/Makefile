@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SUFFIX := $(shell python3-config --extension-suffix)
+PYTHON_CONFIG := $(shell command -v python3-config)
+ifeq (,$(PYTHON_CONFIG))
+	PY_VER := $(shell python3 --version 2>&1 | awk -F'[ .]' '{print $$2"."$$3}')
+    PYTHON_CONFIG := $(shell command -v python$(PY_VER)-config)
+	ifeq (,$(PYTHON_CONFIG))
+	    $(error Could not find python3-config or python$(PY_VER)-config.)
+	endif
+endif
+
+SUFFIX := $(shell $(PYTHON_CONFIG) --extension-suffix)
 
 # The names of the shared libraries that result after compiling qsim for Pybind11
 QSIMLIB_BASIC = ../qsimcirq/qsim_basic$(SUFFIX)
