@@ -18,7 +18,7 @@ project(qsim LANGUAGES CXX)
 include(CheckLanguage)
 check_language(CUDA)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/openmp)
 else()
     add_compile_options(-fno-lto)

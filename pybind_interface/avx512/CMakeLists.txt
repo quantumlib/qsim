@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/arch:AVX512 /openmp)
 else()
     add_compile_options(-mavx512f -mbmi2 -flto=auto)

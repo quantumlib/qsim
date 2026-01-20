@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim LANGUAGES CXX CUDA)
 
-if(WIN32)
+if(MSVC)
     # Always apply AVX2 and openmp on Windows
     add_compile_options(/openmp)
 else()
