@@ -38,7 +38,7 @@ CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-BASE_CXXFLAGS := -std=c++17
+BASE_CXXFLAGS := -std=c++17 -fopenmp
 BASE_NVCCFLAGS := -std c++17 -Wno-deprecated-gpu-targets
 BASE_HIPCCFLAGS :=
 
@@ -52,21 +52,13 @@ ifeq ($(USING_CLANG),true)
     LTO_FLAGS := -flto
 endif
 
-# Test if OpenMP header files are available and we can link with the library.
-OMP_CHECK_CMD := echo "int main() { return 0; }" | \
-    $(CXX) -fopenmp -x c++ - -o /dev/null 2>/dev/null
-HAVE_OPENMP := $(shell $(OMP_CHECK_CMD) && echo "true")
-ifeq ($(HAVE_OPENMP),true)
-    OPENMP_FLAGS := -fopenmp
-endif
-
 ifdef DEBUG
     DEBUG_FLAGS := -g -O0
     CXXFLAGS += $(DEBUG_FLAGS)
     NVCCFLAGS += $(DEBUG_FLAGS)
     HIPCCFLAGS += $(DEBUG_FLAGS)
 else
-    CXXFLAGS += -O3 $(OPENMP_FLAGS) $(LTO_FLAGS)
+    CXXFLAGS += -O3 $(LTO_FLAGS)
     NVCCFLAGS += -O3
     HIPCCFLAGS += -O3
 endif
