@@ -52,7 +52,12 @@ else()
     endif()
 endif()
 
-find_package(OpenMP REQUIRED)
+find_package(OpenMP COMPONENTS CXX NO_POLICY_SCOPE)
+if(OpenMP_CXX_FOUND)
+    link_libraries(OpenMP::OpenMP_CXX)
+else()
+    message(STATUS "${MSG_PREFIX} cannot use thread parallelization")
+endif()
 
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
