@@ -52,6 +52,50 @@ else()
     endif()
 endif()
 
+# On Macs, Homebrew's dirs are the likely places to find LLVM & OpenMP.
+if(APPLE)
+    find_program(BREW_COMMAND brew)
+    if(BREW)
+        execute_process(
+            COMMAND ${BREW} --prefix
+            OUTPUT_VARIABLE BREW_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        include_directories("${BREW_PREFIX}/include")
+        link_directories("${BREW_PREFIX}/lib")
+        execute_process(
+            COMMAND ${BREW} --prefix llvm
+            OUTPUT_VARIABLE LLVM_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
+
+    if(NOT LLVM_PREFIX)
+        find_program(LLVM_CONFIG llvm-config-19)
+        if(NOT LLVM_CONFIG)
+            find_program(LLVM_CONFIG llvm-config)
+        endif()
+        if (LLVM_CONFIG)
+            execute_process(
+                COMMAND ${LLVM_CONFIG} --prefix
+                OUTPUT_VARIABLE LLVM_PREFIX
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET
+            )
+        endif()
+    endif()
+    if(LLVM_PREFIX)
+        list(PREPEND CMAKE_PREFIX_PATH "${LLVM_PREFIX}")
+    endif()
+
+    find_package(LLVM CONFIG REQUIRED)
+    include_directories(${LLVM_INCLUDE_DIRS})
+    link_directories(${LLVM_LIBRARY_DIRS})
+    add_definitions(${LLVM_DEFINITIONS})
+endif()
+
 find_package(OpenMP REQUIRED)
 
 # Always build the basic part.
@@ -73,49 +117,6 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     add_subdirectory(pybind_interface/sse)
     add_subdirectory(pybind_interface/avx512)
     add_subdirectory(pybind_interface/avx2)
-endif()
-
-# On Macs, Homebrew's dirs are the likely places to find LLVM & OpenMP.
-if(APPLE)
-    find_program(BREW_COMMAND brew)
-    if(BREW_COMMAND)
-        execute_process(
-            COMMAND ${BREW_COMMAND} --prefix
-            OUTPUT_VARIABLE BREW_PREFIX
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
-        if(BREW_PREFIX)
-            include_directories("${BREW_PREFIX}/include")
-            link_directories("${BREW_PREFIX}/lib")
-        endif()
-
-        execute_process(
-            COMMAND ${BREW_COMMAND} --prefix llvm
-            OUTPUT_VARIABLE LLVM_PREFIX
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
-        if(LLVM_PREFIX)
-            include_directories("${LLVM_PREFIX}/include")
-            link_directories("${LLVM_PREFIX}/lib")
-            list(APPEND CMAKE_PREFIX_PATH "${LLVM_PREFIX}")
-        endif()
-    else()
-        # Hardcoded paths are not ideal, but we need a fallback.
-        include_directories(
-            "/usr/local/include"
-            "/usr/local/opt/llvm/include"
-            "/opt/homebrew/include"
-            "/opt/homebrew/opt/llvm@19/include"
-        )
-        link_directories(
-            "/usr/local/lib"
-            "/usr/local/opt/llvm/lib"
-            "/opt/homebrew/lib"
-            "/opt/homebrew/opt/llvm@19/lib"
-        )
-    endif()
 endif()
 
 # Additional miscellanous settings.
