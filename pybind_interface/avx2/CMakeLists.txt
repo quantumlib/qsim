@@ -51,8 +51,4 @@ pybind11_add_module(qsim_avx2 pybind_main_avx2.cpp)
 
 target_link_libraries(qsim_avx2 PUBLIC OpenMP::OpenMP_CXX)
 
-if(HAVE_IPO)
-    set_property(TARGET qsim_avx2 PROPERTY
-        INTERPROCEDURAL_OPTIMIZATION $<NOT:$<CONFIG:Debug>>
-    )
-endif()
+enable_lto(qsim_avx2)

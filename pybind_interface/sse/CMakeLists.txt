@@ -44,8 +44,4 @@ pybind11_add_module(qsim_sse pybind_main_sse.cpp)
 
 target_link_libraries(qsim_sse PUBLIC OpenMP::OpenMP_CXX)
 
-if(HAVE_IPO)
-    set_property(TARGET qsim_sse PROPERTY
-        INTERPROCEDURAL_OPTIMIZATION $<NOT:$<CONFIG:Debug>>
-    )
-endif()
+enable_lto(qsim_sse)
