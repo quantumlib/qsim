@@ -69,8 +69,6 @@ else()
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:-O3>)
 endif()
 
-find_package(OpenMP REQUIRED)
-
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
 add_subdirectory(pybind_interface/decide)
