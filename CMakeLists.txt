@@ -54,7 +54,7 @@ endif()
 
 # On Macs, Homebrew's dirs are the likely places to find LLVM & OpenMP.
 if(APPLE)
-    find_program(BREW_COMMAND brew)
+    find_program(BREW brew)
     if(BREW)
         execute_process(
             COMMAND ${BREW} --prefix
