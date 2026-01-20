@@ -55,7 +55,7 @@ max_line_length = 88
 indent_size = 4
 
 [*.toml]
-indent_size = 2
+indent_size = 4
 
 [{*.yaml,*.yml,*.cff}]
 indent_size = 2
