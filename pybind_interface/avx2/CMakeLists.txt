@@ -17,7 +17,7 @@ project(qsim)
 
 if(WIN32)
     add_compile_options(/arch:AVX2 /openmp)
-elseif(LINUX)
+else()
     add_compile_options(-mavx2 -mfma -flto=auto)
     execute_process(
         COMMAND bash --noprofile -c "grep -qs bmi2 /proc/cpuinfo"
