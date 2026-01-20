@@ -21,7 +21,7 @@ if(WIN32)
     # This prevents a conflict with /RTC1 in DEBUG builds.
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-mavx512f -mbmi2 -O3 -flto=auto)
+    add_compile_options(-mavx512f -mbmi2 -O3)
 endif()
 
 if(APPLE)
@@ -43,3 +43,9 @@ include(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
 
 target_link_libraries(qsim_avx512 PUBLIC OpenMP::OpenMP_CXX)
+
+if(HAVE_IPO)
+    set_property(TARGET qsim_avx512 PROPERTY
+        INTERPROCEDURAL_OPTIMIZATION $<NOT:$<CONFIG:Debug>>
+    )
+endif()

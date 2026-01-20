@@ -54,6 +54,10 @@ endif()
 
 find_package(OpenMP REQUIRED)
 
+# Check for LTO support (which in CMake is lumped in with IPO).
+include(CheckIPOSupported)
+check_ipo_supported(RESULT HAVE_IPO)
+
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
 add_subdirectory(pybind_interface/decide)
