@@ -15,13 +15,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/arch:AVX2 /openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
-elseif(LINUX)
-    add_compile_options(-mavx2 -mfma -O3 -flto=auto)
+else()
+    add_compile_options(-mavx2 -mfma -flto=auto)
     execute_process(
         COMMAND bash --noprofile -c "grep -qs bmi2 /proc/cpuinfo"
         RESULT_VARIABLE _EXIT_CODE
