@@ -15,11 +15,8 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/arch:AVX512 /openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
     add_compile_options(-mavx512f -mbmi2 -O3)
 endif()

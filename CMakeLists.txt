@@ -52,6 +52,15 @@ else()
     endif()
 endif()
 
+# Add optimization flags to any configuration that is NOT Debug. Note: CMake
+# will automatically use the appropriate debug flags (e.g., /Od and /Zi for
+# MSVC, or -O0 -g for GCC/Clang), so there's no need to do that part.
+if(MSVC)
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
+else()
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:-O3>)
+endif()
+
 find_package(OpenMP REQUIRED)
 
 # Check for LTO support (which in CMake is lumped in with IPO).
