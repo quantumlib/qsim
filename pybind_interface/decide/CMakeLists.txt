@@ -18,13 +18,10 @@ project(qsim LANGUAGES CXX)
 include(CheckLanguage)
 check_language(CUDA)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-O3 -fno-lto)
+    add_compile_options(-fno-lto)
 endif()
 
 if(APPLE)
