@@ -34,21 +34,32 @@ class CMakeExtension(Extension):
 class CMakeBuild(build_ext):
     def run(self):
         try:
-            out = subprocess.check_output(["cmake", "--version"])
-        except OSError:
+            out = subprocess.check_output(["cmake", "--version"], text=True, timeout=15)
+
+            from packaging.version import parse
+
+            cmake_version = parse(re.search(r"version\s*([\d.]+)", out).group(1))
+            if cmake_version < parse("3.28.0"):
+                raise RuntimeError(
+                    f"CMake reports its version is {cmake_version}, but qsim needs "
+                    "version >= 3.28.0."
+                )
+        except FileNotFoundError:
             raise RuntimeError(
                 "CMake must be installed to build the following extensions: "
                 + ", ".join(e.name for e in self.extensions)
             )
-
-        if platform.system() == "Windows":
-            from packaging.version import parse
-
-            cmake_version = parse(
-                re.search(r"version\s*([\d.]+)", out.decode()).group(1)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"Command '{e.cmd}' returned status {e.returncode}. "
+                f"Output: {e.output}"
             )
-            if cmake_version < parse("3.28.0"):
-                raise RuntimeError("CMake >= 3.28.0 is required on Windows")
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(f"Command timed out: {e}")
+        except OSError as e:
+            raise RuntimeError(
+                f"An OS error occurred when trying to run 'cmake --version': {e}"
+            )
 
         for ext in self.extensions:
             self.build_extension(ext)
