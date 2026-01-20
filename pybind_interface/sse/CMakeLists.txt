@@ -41,3 +41,5 @@ endif()
 
 include(../GetPybind11.cmake)
 pybind11_add_module(qsim_sse pybind_main_sse.cpp)
+
+target_link_libraries(qsim_sse PRIVATE qsim_openmp_config)

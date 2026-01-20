@@ -48,3 +48,5 @@ endif()
 
 include(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx2 pybind_main_avx2.cpp)
+
+target_link_libraries(qsim_avx2 PRIVATE qsim_openmp_config)

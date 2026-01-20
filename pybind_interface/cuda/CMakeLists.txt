@@ -59,3 +59,5 @@ set_target_properties(qsim_cuda PROPERTIES
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
+
+target_link_libraries(qsim_cuda PRIVATE qsim_openmp_config)

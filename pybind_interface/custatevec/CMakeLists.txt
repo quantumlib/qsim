@@ -55,3 +55,5 @@ set_target_properties(qsim_custatevec PROPERTIES
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_custatevec.cpp PROPERTIES LANGUAGE CUDA)
+
+target_link_libraries(qsim_custatevec PRIVATE qsim_openmp_config)

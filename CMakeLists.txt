@@ -52,9 +52,11 @@ else()
     endif()
 endif()
 
+# Use OpenMP if it can be found.
 find_package(OpenMP COMPONENTS CXX NO_POLICY_SCOPE)
+add_library(qsim_openmp_config INTERFACE)
 if(OpenMP_CXX_FOUND)
-    link_libraries(OpenMP::OpenMP_CXX)
+    target_link_libraries(qsim_openmp_config INTERFACE OpenMP::OpenMP_CXX)
 else()
     message(STATUS "${MSG_PREFIX} cannot use thread parallelization")
 endif()
@@ -86,5 +88,4 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Print additional useful info.
-message(STATUS "${MSG_PREFIX} OpenMP found = ${OPENMP_FOUND}")
 message(STATUS "${MSG_PREFIX} shell $PATH = $ENV{PATH}")

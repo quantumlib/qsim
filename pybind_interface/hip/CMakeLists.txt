@@ -39,3 +39,5 @@ set_target_properties(qsim_hip PROPERTIES
        SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_hip.cpp PROPERTIES LANGUAGE HIP)
+
+target_link_libraries(qsim_hip PRIVATE qsim_openmp_config)
