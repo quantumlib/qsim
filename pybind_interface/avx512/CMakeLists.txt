@@ -24,21 +24,6 @@ else()
     add_compile_options(-mavx512f -mbmi2 -O3 -flto=auto)
 endif()
 
-if(APPLE)
-    include_directories(
-      "/usr/local/include"
-      "/usr/local/opt/llvm/include"
-      "/opt/homebrew/include"
-      "/opt/homebrew/opt/llvm@19/include"
-    )
-    link_directories(
-      "/usr/local/lib"
-      "/usr/local/opt/llvm/lib"
-      "/opt/homebrew/lib"
-      "/opt/homebrew/opt/llvm@19/lib"
-    )
-endif()
-
 include(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
 
