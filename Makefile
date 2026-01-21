@@ -38,7 +38,7 @@ CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-BASE_CXXFLAGS := -std=c++17 -fopenmp
+BASE_CXXFLAGS := -std=c++17
 BASE_NVCCFLAGS := -std c++17 -Wno-deprecated-gpu-targets
 BASE_HIPCCFLAGS :=
 
@@ -58,7 +58,7 @@ ifdef DEBUG
     NVCCFLAGS += $(DEBUG_FLAGS)
     HIPCCFLAGS += $(DEBUG_FLAGS)
 else
-    CXXFLAGS += -O3 $(LTO_FLAGS)
+    CXXFLAGS += -O3 $(OPENMP_FLAGS) $(LTO_FLAGS)
     NVCCFLAGS += -O3
     HIPCCFLAGS += -O3
 endif

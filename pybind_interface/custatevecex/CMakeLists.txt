@@ -53,4 +53,4 @@ set_target_properties(qsim_custatevecex PROPERTIES
 )
 set_source_files_properties(pybind_main_custatevecex.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_custatevecex OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_custatevecex PRIVATE qsim_openmp_config)
