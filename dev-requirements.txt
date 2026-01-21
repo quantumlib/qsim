@@ -1,7 +1,7 @@
 cmake~=3.28.1
 black~=25.9.0
 flynt~=1.0
-isort[colors]~=6.0.1
+isort[colors]~=7.0.0
 # The global option to pybind11 makes it include CMake files in a location where
 # CMake will find them. It makes a crucial difference in some environments.
 pybind11[global]
