@@ -17,38 +17,5 @@
 # files that shouldn't be committed to git yet should be visible to Gemini. Also
 # used to ignore things usually in people's global .gitignore files.
 
-# Not in .gitignore because it's a submodule. Need to tell Gemini to ignore it.
+# Not in .gitignore because it's a git submodule. Tell Gemini to ignore it.
 /tests/googletest/
-
-# Downloaded by our build files. Not useful for Gemini to work on.
-/eigen/
-
-# Python-specific items.
-*.coverage
-*.coverage.*
-*.egg-info/
-*.py,cover
-*.pyc
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-
-# Jupyter-specific items.
-*/.ipynb_checkpoints/
-ipython_config.py
-
-# Miscellaneous cache files.
-.cache/
-
-# Miscellaneous common editor backup files and temp files.
-*.bak
-*.swp
-*.tmp
-*~
-.\#*
-.idea/
-.vs
-.vscode/
-.~*~
-\#*\#
