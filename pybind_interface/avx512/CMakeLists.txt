@@ -18,7 +18,7 @@ project(qsim)
 if(MSVC)
     add_compile_options(/arch:AVX512 /openmp)
 else()
-    add_compile_options(-mavx512f -mbmi2 -flto=auto)
+    add_compile_options(-mavx512f -mbmi2 -O3)
 endif()
 
 if(APPLE)
@@ -39,4 +39,6 @@ endif()
 include(../GetPybind11.cmake)
 pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
 
-target_link_libraries(qsim_avx512 PRIVATE qsim_openmp_config)
+target_link_libraries(qsim_avx512 PUBLIC OpenMP::OpenMP_CXX)
+
+enable_lto(qsim_avx512)

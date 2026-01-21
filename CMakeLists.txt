@@ -70,6 +70,21 @@ else()
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:-O3>)
 endif()
 
+find_package(OpenMP REQUIRED)
+
+# Check for LTO support (which in CMake is lumped in with IPO).
+include(CheckIPOSupported)
+check_ipo_supported(RESULT HAVE_IPO)
+
+# Helper function for setting LTO flag (but only if the config is not debug).
+function(enable_lto target_name)
+    if(HAVE_IPO)
+        set_property(TARGET ${target_name} PROPERTY
+            INTERPROCEDURAL_OPTIMIZATION $<NOT:$<CONFIG:Debug>>
+        )
+    endif()
+endfunction()
+
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
 add_subdirectory(pybind_interface/decide)

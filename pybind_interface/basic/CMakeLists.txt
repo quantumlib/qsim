@@ -18,7 +18,7 @@ project(qsim)
 if(MSVC)
     add_compile_options(/openmp)
 else()
-    add_compile_options(-flto=auto)
+    add_compile_options(-O3)
 endif()
 
 if(APPLE)
@@ -39,4 +39,6 @@ endif()
 include(../GetPybind11.cmake)
 pybind11_add_module(qsim_basic pybind_main_basic.cpp)
 
-target_link_libraries(qsim_basic PRIVATE qsim_openmp_config)
+target_link_libraries(qsim_basic PUBLIC OpenMP::OpenMP_CXX)
+
+enable_lto(qsim_basic)

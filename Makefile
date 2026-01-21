@@ -48,16 +48,8 @@ HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 
 LTO_FLAGS := -flto=auto
 USING_CLANG := $(shell $(CXX) --version | grep -isq clang && echo "true")
-ifeq ($(USING_CLANG),"true")
+ifeq ($(USING_CLANG),true)
     LTO_FLAGS := -flto
-endif
-
-# Test if OpenMP header files are available and we can link with the library.
-OMP_CHECK_CMD := echo "int main() { return 0; }" | \
-    $(CXX) -fopenmp -x c++ - -o /dev/null 2>/dev/null
-HAVE_OPENMP := $(shell $(OMP_CHECK_CMD) && echo "true")
-ifeq ($(HAVE_OPENMP),true)
-    OPENMP_FLAGS := -fopenmp
 endif
 
 ifdef DEBUG
