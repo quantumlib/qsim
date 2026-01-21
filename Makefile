@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# If this is changed, updated the value in ./WORKSPACE too.
+# If you change the following values, update the values in ./WORKSPACE too.
 EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
@@ -38,7 +38,7 @@ CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-BASE_CXXFLAGS := -std=c++17 -fopenmp
+BASE_CXXFLAGS := -std=c++17
 BASE_NVCCFLAGS := -std c++17 -Wno-deprecated-gpu-targets
 BASE_HIPCCFLAGS :=
 
@@ -48,8 +48,8 @@ HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 
 LTO_FLAGS := -flto=auto
 USING_CLANG := $(shell $(CXX) --version | grep -isq clang && echo "true")
-ifeq ($(USING_CLANG),"true")
-	LTO_FLAGS := -flto
+ifeq ($(USING_CLANG),true)
+    LTO_FLAGS := -flto
 endif
 
 ifdef DEBUG
@@ -58,7 +58,7 @@ ifdef DEBUG
     NVCCFLAGS += $(DEBUG_FLAGS)
     HIPCCFLAGS += $(DEBUG_FLAGS)
 else
-    CXXFLAGS += -O3 $(LTO_FLAGS)
+    CXXFLAGS += -O3 $(OPENMP_FLAGS) $(LTO_FLAGS)
     NVCCFLAGS += -O3
     HIPCCFLAGS += -O3
 endif
@@ -94,7 +94,7 @@ else
         ifneq (,$(strip $(wildcard $(CUDA_PATH)/.)))
             # $CUDA_PATH is set, but we know we didn't find nvcc on the user's
             # $PATH or as an absolute path (if $NVCC was set to a full path).
-	    # Try the safest choice for finding nvcc & give up if that fails.
+            # Try the safest choice for finding nvcc & give up if that fails.
             NVCC = $(CUDA_PATH)/bin/nvcc
             ifneq (,$(strip $(wildcard $(NVCC))))
                 CXXFLAGS += -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64
@@ -120,7 +120,7 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
         TARGETS += qsim-custatevecex
         TESTS += run-custatevec-tests
         TESTS += run-custatevecex-tests
-	TESTS += run-custatevecex-mpi-tests
+    TESTS += run-custatevecex-mpi-tests
     else
         $(warning $$CUQUANTUM_ROOT is set, but the path does not seem to exist)
     endif
@@ -218,9 +218,18 @@ check-cuquantum-root-set:
 	    exit 1; \
 	fi
 
+# Check whether wget or curl is available on this system.
+ifneq (,$(shell command -v wget))
+    DOWNLOAD_CMD := wget
+else ifneq (,$(shell command -v curl))
+    DOWNLOAD_CMD := curl --fail -L -O
+else
+    $(error Neither wget nor curl found in PATH. Please install curl or wget.)
+endif
+
 eigen:
 	-rm -rf eigen
-	wget $(EIGEN_URL)/$(EIGEN_COMMIT)/eigen-$(EIGEN_COMMIT).tar.gz
+	$(DOWNLOAD_CMD) $(EIGEN_URL)/$(EIGEN_COMMIT)/eigen-$(EIGEN_COMMIT).tar.gz
 	tar -xzf eigen-$(EIGEN_COMMIT).tar.gz && mv eigen-$(EIGEN_COMMIT) eigen
 	rm eigen-$(EIGEN_COMMIT).tar.gz
 
