@@ -1,3 +1,6 @@
+# Run-time dependencies for qsimcirq. This file is read from pyproject.toml.
+
+# Core dependencies:
 absl-py
 cirq-core~=1.0
 

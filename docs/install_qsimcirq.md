@@ -10,18 +10,24 @@ directly in C++ code without building and installing the qsimcirq interface.
 
 ## Before installation
 
-Prior to installation, consider opening a
+Prior to installation, consider creating a
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 
-Prerequisites are included in the
+Prerequisites for installing and running qsim are included in the
 [`requirements.txt`](https://github.com/quantumlib/qsim/blob/main/requirements.txt)
-file, and will be automatically installed along with qsimcirq.
+file, and will be automatically installed along with qsimcirq when you install
+it with pip.
 
-If you'd like to develop qsimcirq, a separate set of dependencies are includes
+If you'd like to develop qsimcirq, a separate set of dependencies are defined
 in the
-[`dev-requirements.txt`](https://github.com/quantumlib/qsim/blob/main/dev-requirements.txt)
-file. You can install them with `pip3 install -r dev-requirements.txt` or
-`pip3 install qsimcirq[dev]`.
+[`pyproject.toml`](https://github.com/quantumlib/qsim/blob/main/pyproject.toml)
+file. Using pip version 25.1 or higher, you can install them with the following
+commands:
+
+```shell
+pip install -r requirements.txt
+pip install --group dev
+```
 
 ## Linux installation
 
