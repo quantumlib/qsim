@@ -37,4 +37,4 @@ set_target_properties(qsim_hip PROPERTIES
 )
 set_source_files_properties(pybind_main_hip.cpp PROPERTIES LANGUAGE HIP)
 
-target_link_libraries(qsim_hip PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_hip PRIVATE qsim_openmp_config)

@@ -52,6 +52,15 @@ else()
     endif()
 endif()
 
+# Use OpenMP if it can be found.
+find_package(OpenMP COMPONENTS CXX NO_POLICY_SCOPE)
+add_library(qsim_openmp_config INTERFACE)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(qsim_openmp_config INTERFACE OpenMP::OpenMP_CXX)
+else()
+    message(STATUS "${MSG_PREFIX} cannot use thread parallelization")
+endif()
+
 # Add optimization flags to any configuration that is NOT Debug. Note: CMake
 # will automatically use the appropriate debug flags (e.g., /Od and /Zi for
 # MSVC, or -O0 -g for GCC/Clang), so there's no need to do that part.
@@ -60,8 +69,6 @@ if(MSVC)
 else()
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:-O3>)
 endif()
-
-find_package(OpenMP REQUIRED)
 
 # Always build the basic part.
 add_subdirectory(pybind_interface/basic)
@@ -90,5 +97,4 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Print additional useful info.
-message(STATUS "${MSG_PREFIX} OpenMP found = ${OPENMP_FOUND}")
 message(STATUS "${MSG_PREFIX} shell $PATH = $ENV{PATH}")
