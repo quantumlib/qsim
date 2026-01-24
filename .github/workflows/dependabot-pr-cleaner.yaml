@@ -17,6 +17,9 @@ run-name: >-
   Clean up description of PR ${{github.event.pull_request.number}} on
   ${{github.ref_name}} by @${{github.actor}}
 
+# Dependabot's PR descriptions are written in HTML and contain repeated parts
+# that bloat git histories. This converts them to Markdown & cleans them up.
+
 on:
   pull_request_target:
     types:
@@ -29,12 +32,7 @@ on:
       pr-number:
         description: 'The PR number of the PR to clean:'
         required: true
-      debug:
-        description: 'Run with debugging options'
-        type: boolean
-        default: true
 
-# Declare default workflow permissions as read only.
 permissions: read-all
 
 jobs:
@@ -48,28 +46,42 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      GH_REPO: ${{github.repository}}
+      PR_NUMBER: ${{inputs.pr-number || github.event.pull_request.number}}
     steps:
-      - name: Check out a copy of the git repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          sparse-checkout: |
-            ./dev_tools/ci/dependabot_pr_description_cleaner.py
-
       - name: Set up Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v5
         with:
           cache: pip
 
       - name: Install dependencies
-        run: pip install html2text
+        run: pip install html2text==2025.4.15
 
-      - name: Clean the PR description
+      - name: Get the PR description body
         env:
-          GH_REPO: ${{github.repository}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          PR_NUMBER: ${{inputs.pr-number || github.event.pull_request.number}}
-          SHELLOPTS: ${{inputs.debug && 'xtrace' || '' }}
+        run: gh pr view ${{env.PR_NUMBER}} --json body --jq .body > body.txt
+
+      - name: Clean up the description and convert it to Markdown
+        shell: python
         run: |
-          gh pr view ${{env.PR_NUMBER}} --json body --jq .body > body.txt
-          python3 dev_tools/ci/dependabot_pr_description_cleaner.py body.txt
-          gh pr edit ${{env.PR_NUMBER}} --body-file body.txt
+          import html2text
+
+          with open("body.txt", "r", encoding="utf-8") as f:
+            content = f.read()
+
+          # Look for the commits list and delete it and everything after it.
+          commits_start_re = r"<details>\s*<summary>Commits</summary>"
+          content = re.split(commits_start_re, content, flags=re.IGNORECASE)[0]
+
+          converter = html2text.HTML2Text()
+          markdown_content = converter.handle(content.strip()).strip()
+
+          with open("new-body.txt", "w", encoding="utf-8") as f:
+              f.write(markdown_content)
+
+      - name: Write the description back to the PR
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: gh pr edit ${{env.PR_NUMBER}} --body-file new-body.txt
