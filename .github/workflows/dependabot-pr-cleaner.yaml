@@ -71,7 +71,7 @@ jobs:
           with open("body.txt", "r", encoding="utf-8") as f:
             content = f.read()
 
-          # Look for the commits list and delete it and everything after it.
+          # Delete everything starting with the commits list onward.
           commits_start_re = r"<details>\s*<summary>Commits</summary>"
           content = re.split(commits_start_re, content, flags=re.IGNORECASE)[0]
 
