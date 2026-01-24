@@ -35,6 +35,7 @@ concurrency:
 
 jobs:
   test-compatibility:
+    if: github.repository_owner == 'quantumlib'
     name: Test Cirq compatibility
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -52,15 +53,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
 
       - name: Install latest dev version of Cirq
         run: pip install --upgrade cirq~=1.0.dev
 
       - name: Install qsim dev requirements
-        run: |
-          pip install -r requirements.txt
-          pip install -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Run Python tests
         env:

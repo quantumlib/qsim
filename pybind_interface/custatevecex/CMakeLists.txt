@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,12 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.28)
-project(qsim)
+project(qsim LANGUAGES CXX CUDA)
 
 if(MSVC)
-    add_compile_options(/arch:AVX512 /openmp)
+    add_compile_options(/openmp)
 else()
-    add_compile_options(-mavx512f -mbmi2 -O3)
+    add_compile_options(-fno-lto)
 endif()
 
 if(APPLE)
@@ -37,8 +37,20 @@ if(APPLE)
 endif()
 
 include(../GetPybind11.cmake)
-pybind11_add_module(qsim_avx512 pybind_main_avx512.cpp)
+find_package(Python3 3.10 REQUIRED)
 
-target_link_libraries(qsim_avx512 PUBLIC OpenMP::OpenMP_CXX)
+include_directories(${pybind11_INCLUDE_DIRS})
 
-enable_lto(qsim_avx512)
+include_directories($ENV{CUQUANTUM_ROOT}/include)
+link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
+
+add_library(qsim_custatevecex MODULE pybind_main_custatevecex.cpp)
+target_link_libraries(qsim_custatevecex -lcustatevec -lcublas)
+
+set_target_properties(qsim_custatevecex PROPERTIES
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}"
+)
+set_source_files_properties(pybind_main_custatevecex.cpp PROPERTIES LANGUAGE CUDA)
+
+target_link_libraries(qsim_custatevecex PRIVATE qsim_openmp_config)

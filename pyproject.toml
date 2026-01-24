@@ -12,28 +12,140 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Note: there are altogether 3 types of dependencies listed in this file:
+#
+#  [build-system].requires: the packages needed by the build backend to build
+#  the project from source. This list is not stored in the package metadata.
+#
+#  [project].dependencies: core packages needed to be able to run qsimcirq.
+#  Equivalent to "install_requires" in setuptools' setup.py. The list is stored
+#  in the metadata of the package; when the project is installed by pip, this is
+#  the specification that is used to install its dependencies.
+#
+#  [dependency-groups].dev: the development dependencies; i.e., what a
+#  developer needs in order to run unit tests, linters, and formatters. The
+#  "[dependency-groups]" section is a Python packaging feature introduced in
+#  2025. This list is not stored in the metadata of the package. To install the
+#  development dependencies, use "pip install --group dev".
+
 [build-system]
-requires = [
-  "packaging",
-  "setuptools>=78.1.1",
-  "pybind11[global]",
-  # "pip install" from sources needs to build Pybind, which needs CMake too.
-  "cmake~=3.28.1",
-]
 build-backend = "setuptools.build_meta"
+requires = [
+    "cmake~=3.28.1",
+    "pybind11[global]",
+    "setuptools-scm[toml]>=6.2",
+    "setuptools>=78.1.1",
+    "wheel",
+]
+
+[project]
+name = "qsimcirq"
+description = "High-performance quantum circuit simulator for C++ and Python."
+authors = [
+    { name = "The qsim/qsimh Developers", email = "qsim-qsimh-dev@googlegroups.com" }
+]
+maintainers = [
+    { name = "Google Quantum AI", email = "quantum-oss-maintainers@google.com" }
+]
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "Apache-2.0"
+requires-python = ">=3.10.0"
+dynamic = ["version", "dependencies"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+keywords = [
+    "cirq",
+    "nisq",
+    "quantum algorithm development",
+    "quantum circuit simulator",
+    "quantum computing",
+    "quantum programming",
+    "quantum simulation",
+    "quantum",
+    "schrödinger-feynman simulation",
+    "simulation",
+    "state vector simulator",
+]
+
+[project.urls]
+documentation = "https://quantumai.google/qsim"
+download = "https://pypi.org/project/qsimcirq/#files"
+homepage = "https://quantumai.google/qsim"
+issues = "https://github.com/quantumlib/qsim/issues"
+source = "https://github.com/quantumlib/qsim"
+
+[dependency-groups]
+# Development dependencies. Install these with "pip install --group dev".
+dev = [
+    # The following repeats [build-system].requires b/c pyproject.toml has no
+    # mechanism to reference that list. Keep these versions in sync with above.
+    "cmake~=3.28.1",
+    "pybind11[global]",
+    "setuptools>=78.1.1; python_version >= '3.12'",
+
+    # Other build, packaging, and distribution utilities.
+    "cibuildwheel",
+
+    # Linters, formatters, and test utilities.
+    "black~=25.9.0",
+    "isort[colors]~=6.0.1",
+    "py-cpuinfo",
+    "pylint~=4.0.2",
+    "pytest",
+    "pytest-xdist",
+]
+
+[tool.setuptools]
+packages = ["qsimcirq"]
+package-data = {"qsimcirq" = ["py.typed"]}
+
+[tool.setuptools.dynamic]
+# The next one becomes the value of [project].version.
+version = {attr = "qsimcirq._version.__version__"}
+# The next one becomes [project].dependencies, equivalent to "install_requires"
+# in setuptools' setup.py. "pip install qsim" installs these automatically.
+dependencies = {file = ["requirements.txt"] }
 
 [tool.cibuildwheel]
-test-extras = "dev"
+build = "cp310-* cp311-* cp312-* cp313-*"
 dependency-versions = "latest"
 enable = ["cpython-prerelease"]
 environment.PIP_PREFER_BINARY = "1"
 # Due to package & module name conflict, temporarily move it away to run tests:
-before-test = "mv {package}/qsimcirq /tmp"
-test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+before-test = "pip install --group dev && mv {package}/qsimcirq /tmp"
+test-command = """
+pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py &&
+mv /tmp/qsimcirq {package}
+"""
 
 [tool.cibuildwheel.macos]
-before-build = "brew install -q libomp llvm@19 && brew unlink libomp && brew unlink llvm@19 && brew link --force libomp && brew link --force llvm@19"
-repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}"
+before-build = """
+brew install -q libomp llvm@19 &&
+brew unlink libomp &&
+brew unlink llvm@19 &&
+brew link --force libomp &&
+brew link --force llvm@19
+"""
+repair-wheel-command = """
+delocate-listdeps {wheel} &&
+delocate-wheel --verbose --require-archs {delocate_archs} -w {dest_dir} {wheel}
+"""
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
@@ -43,3 +155,11 @@ skip = "*musllinux*"
 [tool.black]
 target-version = ['py310', 'py311', 'py312', 'py313']
 extend-exclude = 'third_party'
+
+[tool.isort]
+profile = 'black'
+order_by_type = false  # Sort alphabetically, irrespective of case.
+skip_gitignore = true
+combine_as_imports = true
+known_first_party = ["qsimcirq*"]
+extend_skip = ["__init__.py"]

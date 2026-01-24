@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Version info for the copy of Eigen we will download and build locally.
-EIGEN_PREFIX = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
+# If you change the following values, update the values in ./WORKSPACE too.
+EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 EIGEN_URL = "https://gitlab.com/libeigen/eigen/-/archive/"
 
-# Default build targets. Additional may be added conditionally below.
+# Default build targets. Additional ones are added conditionally below.
 TARGETS = qsim
 TESTS = run-cxx-tests
 
 # By default, we also build the pybind11-based Python interface.
+# Can be overriden via env variables or command-line flags
 PYBIND11 ?= true
 
 ifeq ($(PYBIND11), true)
@@ -31,14 +32,36 @@ endif
 # Default options for Pytest (only used if the pybind interface is built).
 PYTESTFLAGS ?= -v
 
-# Default C++ compilers and compiler flags. Can be overriden via env variables.
+# Default compilers and compiler flags.
+# Can be overriden via env variables or command-line flags.
 CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-CXXFLAGS ?= -O3 -std=c++17 -fopenmp -flto=auto
-NVCCFLAGS ?= -O3 --std c++17 -Wno-deprecated-gpu-targets
-HIPCCFLAGS ?= -O3
+BASE_CXXFLAGS := -std=c++17
+BASE_NVCCFLAGS := -std c++17 -Wno-deprecated-gpu-targets
+BASE_HIPCCFLAGS :=
+
+CXXFLAGS := $(BASE_CXXFLAGS) $(CXXFLAGS)
+NVCCFLAGS := $(BASE_NVCCFLAGS) $(NVCCFLAGS)
+HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
+
+LTO_FLAGS := -flto=auto
+USING_CLANG := $(shell $(CXX) --version | grep -isq clang && echo "true")
+ifeq ($(USING_CLANG),true)
+    LTO_FLAGS := -flto
+endif
+
+ifdef DEBUG
+    DEBUG_FLAGS := -g -O0
+    CXXFLAGS += $(DEBUG_FLAGS)
+    NVCCFLAGS += $(DEBUG_FLAGS)
+    HIPCCFLAGS += $(DEBUG_FLAGS)
+else
+    CXXFLAGS += -O3 $(OPENMP_FLAGS) $(LTO_FLAGS)
+    NVCCFLAGS += -O3
+    HIPCCFLAGS += -O3
+endif
 
 # For compatibility with CMake, if $CUDAARCHS is set, use it to set the
 # architecture options to nvcc. Otherwise, default to the "native" option,
@@ -71,7 +94,7 @@ else
         ifneq (,$(strip $(wildcard $(CUDA_PATH)/.)))
             # $CUDA_PATH is set, but we know we didn't find nvcc on the user's
             # $PATH or as an absolute path (if $NVCC was set to a full path).
-	    # Try the safest choice for finding nvcc & give up if that fails.
+            # Try the safest choice for finding nvcc & give up if that fails.
             NVCC = $(CUDA_PATH)/bin/nvcc
             ifneq (,$(strip $(wildcard $(NVCC))))
                 CXXFLAGS += -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64
@@ -94,7 +117,10 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
         CUSVFLAGS += -lcustatevec -lcublas
         CUSTATEVECFLAGS ?= $(CUSVFLAGS)
         TARGETS += qsim-custatevec
+        TARGETS += qsim-custatevecex
         TESTS += run-custatevec-tests
+        TESTS += run-custatevecex-tests
+    TESTS += run-custatevecex-mpi-tests
     else
         $(warning $$CUQUANTUM_ROOT is set, but the path does not seem to exist)
     endif
@@ -120,6 +146,10 @@ qsim-cuda:
 qsim-custatevec: | check-cuquantum-root-set
 	$(MAKE) -C apps/ qsim-custatevec
 
+.PHONY: qsim-custatevecex
+qsim-custatevecex: | check-cuquantum-root-set
+	$(MAKE) -C apps/ qsim-custatevecex
+
 .PHONY: qsim-hip
 qsim-hip:
 	$(MAKE) -C apps/ qsim-hip
@@ -140,6 +170,10 @@ cuda-tests:
 custatevec-tests: | check-cuquantum-root-set
 	$(MAKE) -C tests/ custatevec-tests
 
+.PHONY: custatevecex-tests
+custatevecex-tests: | check-cuquantum-root-set
+	$(MAKE) -C tests/ custatevecex-tests
+
 .PHONY: hip-tests
 hip-tests:
 	$(MAKE) -C tests/ hip-tests
@@ -155,6 +189,14 @@ run-cuda-tests: cuda-tests
 .PHONY: run-custatevec-tests
 run-custatevec-tests: custatevec-tests
 	$(MAKE) -C tests/ run-custatevec-tests
+
+.PHONY: run-custatevecex-tests
+run-custatevecex-tests: custatevecex-tests
+	$(MAKE) -C tests/ run-custatevecex-tests
+
+.PHONY: run-custatevecex-mpi-tests
+run-custatevecex-mpi-tests: custatevecex-tests
+	$(MAKE) -C tests/ run-custatevecex-mpi-tests
 
 .PHONY: run-hip-tests
 run-hip-tests: hip-tests
@@ -176,11 +218,20 @@ check-cuquantum-root-set:
 	    exit 1; \
 	fi
 
+# Check whether wget or curl is available on this system.
+ifneq (,$(shell command -v wget))
+    DOWNLOAD_CMD := wget
+else ifneq (,$(shell command -v curl))
+    DOWNLOAD_CMD := curl --fail -L -O
+else
+    $(error Neither wget nor curl found in PATH. Please install curl or wget.)
+endif
+
 eigen:
 	-rm -rf eigen
-	wget $(EIGEN_URL)/$(EIGEN_PREFIX)/eigen-$(EIGEN_PREFIX).tar.gz
-	tar -xzf eigen-$(EIGEN_PREFIX).tar.gz && mv eigen-$(EIGEN_PREFIX) eigen
-	rm eigen-$(EIGEN_PREFIX).tar.gz
+	$(DOWNLOAD_CMD) $(EIGEN_URL)/$(EIGEN_COMMIT)/eigen-$(EIGEN_COMMIT).tar.gz
+	tar -xzf eigen-$(EIGEN_COMMIT).tar.gz && mv eigen-$(EIGEN_COMMIT) eigen
+	rm eigen-$(EIGEN_COMMIT).tar.gz
 
 .PHONY: clean
 clean:
