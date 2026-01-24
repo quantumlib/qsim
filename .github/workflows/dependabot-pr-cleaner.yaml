@@ -67,6 +67,7 @@ jobs:
         shell: python
         run: |
           import html2text
+          import re
 
           with open("body.txt", "r", encoding="utf-8") as f:
             content = f.read()
