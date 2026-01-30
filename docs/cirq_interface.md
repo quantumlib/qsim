@@ -183,16 +183,17 @@ To compile with the NVIDIA cuStateVec library (v1.0.0 or higher is required),
 set the environmment variable `CUQUANTUM_ROOT` to the path to the cuStateVec
 library.
 
-`QSimOptions` provides five parameters to configure GPU execution. `use_gpu`
+`QSimOptions` provides six parameters to configure GPU execution. `use_gpu`
 is required to enable GPU execution:
 * `use_gpu`: if True, use GPU instead of CPU for simulation.
 * `gpu_mode`: use CUDA if set to 0 (default value), use the NVIDIA cuStateVec
 if set to 1 or use the NVIDIA cuStateVecEx library if set to any other value.
 
 In the case of the NVIDIA cuStateVecEx library, simulations can be performed
-in multi-device / multi-node environments.
+in multi-device / multi-node environments. A CUDA-aware MPI library is required
+for multi-node. Currently, only Open MPI is supported.
 
-If `use_gpu` is set and `gpu_mode` is set to 0, the remaining parameters can
+If `use_gpu` is set and `gpu_mode` is set to 0, two parameters can
 optionally be set to fine-tune StateSpace performance for a specific device.
 In most cases, the default values provide good performance.
 * `gpu_state_threads`: number of threads per CUDA block to use for the GPU
@@ -200,3 +201,11 @@ StateSpace. This must be a power of 2 in the range [32, 1024].
 * `gpu_data_blocks`: number of data blocks to use for the GPU StateSpace.
 Below 16 data blocks, performance is noticeably reduced.
 
+If `use_gpu` is set and `gpu_mode` is set to 2 or greater (cuStateVecEx), two
+parameters can be set to adjust the transfer buffer size for MPI communication
+or network type.
+* `gpu_cusvex_log_buf_size`: log2 of the buffer size. Default value is 30,
+i.e. the buffer size is 2^30 bytes.
+* `gpu_cusvex_network_type`: Device network type for multi-device:
+0=Switch (default), 1=FullMesh. Or layered network type for multi-process:
+0=SuperPOD (default), 1=GB200NVL, 2=SwitchTree, 3=Communicator.

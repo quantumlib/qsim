@@ -480,6 +480,10 @@ class VectorSpaceCuStateVecEx {
     return vector.get() == nullptr;
   }
 
+  static bool ValidDeviceNetworkType(unsigned network_type) {
+    return network_type < 2;
+  }
+
   bool Copy(const Vector& src, Vector& dest) const {
     if (src.num_qubits() != dest.num_qubits()) {
       return false;

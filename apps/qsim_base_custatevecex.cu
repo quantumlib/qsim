@@ -32,18 +32,19 @@ struct Options {
   std::string circuit_file;
   unsigned maxtime = std::numeric_limits<unsigned>::max();
   unsigned seed = 1;
+  unsigned lbuf = 30;
   unsigned verbosity = 0;
 };
 
 Options GetOptions(int argc, char* argv[]) {
-  constexpr char usage[] = "usage:\n  ./qsim_base -c circuit -d maxtime "
-                           "-s seed -v verbosity\n";
+  constexpr char usage[] = "usage:\n  ./qsim_base_custatevecex.x -c circuit "
+                           "-d maxtime -s seed  -l lbuf -v verbosity\n";
 
   Options opt;
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:s:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:l:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -53,6 +54,9 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 's':
         opt.seed = std::atoi(optarg);
+        break;
+      case 'l':
+        opt.lbuf = std::atoi(optarg);
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
@@ -112,8 +116,14 @@ int main(int argc, char* argv[]) {
     using Simulator = qsim::SimulatorCuStateVecEx<fp_type>;
     using StateSpace = Simulator::StateSpace;
 
-    explicit Factory(unsigned verbosity = 0) : verbosity(verbosity) {
-      mp.initialize();
+    explicit Factory(uint64_t transfer_buffer_size, unsigned verbosity = 0)
+        : verbosity(verbosity) {
+      MultiProcessCuStateVecEx::Parameter param = {transfer_buffer_size};
+      mp.initialize(param);
+
+      if (verbosity > 2 && mp.initialized()) {
+        qsim::IO::messagef("# transfer_buf_size=%lu\n", transfer_buffer_size);
+      }
     }
 
     StateSpace CreateStateSpace() const {
@@ -136,7 +146,7 @@ int main(int argc, char* argv[]) {
   using State = StateSpace::State;
   using Runner = CuStateVecExRunner<IO, Factory>;
 
-  Factory factory(opt.verbosity);
+  Factory factory(uint64_t{1} << opt.lbuf, opt.verbosity);
 
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);

@@ -82,7 +82,7 @@ TEST(QTrajectoryCuStateVecExTest, UncomputeFinalState) {
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  qsim::mp.initialize();
+  qsim::mp.initialize(qsim::MultiProcessCuStateVecEx::Parameter{});
 
   return RUN_ALL_TESTS();
 }
