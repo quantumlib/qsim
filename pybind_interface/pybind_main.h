@@ -23,6 +23,7 @@
 namespace py = pybind11;
 
 #include <map>
+#include <stdexcept>
 #include <vector>
 
 #include "../lib/circuit.h"
@@ -179,6 +180,16 @@ qtrajectory_simulate_moment_expectation_values(
 
 // Hybrid simulator.
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
+
+template <typename T>
+T ParseOptions(const py::dict& options, const char* key) {
+  if (!options.contains(key)) {
+    std::string msg = std::string("Argument ") + key + " is not provided.\n";
+    throw std::invalid_argument(msg);
+  }
+  const auto& value = options[key];
+  return value.cast<T>();
+}
 
 #define MODULE_BINDINGS                                                               \
       m.doc() = "pybind11 plugin";  /* optional module docstring */                   \

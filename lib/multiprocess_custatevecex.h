@@ -39,12 +39,11 @@ struct MultiProcessCuStateVecEx {
   };
 
   struct Parameter {
-    uint64_t transfer_buffer_size = 16777216;
+    uint64_t transfer_buffer_size = uint64_t{1} << 30;
     NetworkType network_type = kSuperPod;
   };
 
-  MultiProcessCuStateVecEx(Parameter param = Parameter{16777216, kSuperPod})
-      : param_(param), communicator_(nullptr), initialized_(false) {}
+  MultiProcessCuStateVecEx() : communicator_(nullptr), initialized_(false) {}
 
   ~MultiProcessCuStateVecEx() {
     if (communicator_) {
@@ -67,11 +66,17 @@ struct MultiProcessCuStateVecEx {
     return rank_;
   }
 
+  static bool valid_network_type(unsigned network_type) {
+    return network_type < 4;
+  }
+
   bool initialized() const {
     return initialized_;
   }
 
-  void initialize() {
+  void initialize(Parameter param) {
+    param_ = param;
+
     int argc = 0;
     char** argv = nullptr;
 
