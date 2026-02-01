@@ -119,9 +119,9 @@ int main(int argc, char* argv[]) {
     explicit Factory(uint64_t transfer_buffer_size, unsigned verbosity = 0)
         : verbosity(verbosity) {
       MultiProcessCuStateVecEx::Parameter param = {transfer_buffer_size};
-      mp.initialize(param);
+      mp.Initialize(param);
 
-      if (verbosity > 2 && mp.initialized()) {
+      if (verbosity > 2 && mp.Initialized()) {
         qsim::IO::messagef("# transfer_buf_size=%lu\n", transfer_buffer_size);
       }
     }

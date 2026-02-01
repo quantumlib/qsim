@@ -113,7 +113,7 @@ TYPED_TEST(StateSpaceCuStateVecExTest, BulkSetAmplDefault) {
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  qsim::mp.initialize(qsim::MultiProcessCuStateVecEx::Parameter{});
+  qsim::mp.Initialize(qsim::MultiProcessCuStateVecEx::Parameter{});
 
   return RUN_ALL_TESTS();
 }

@@ -42,10 +42,10 @@ namespace qsim {
       verbosity = ParseOptions<unsigned>(options, "v\0");
       nwt = ParseOptions<unsigned>(options, "gnwt\0");
 
-      if (!mp.initialized()) {
+      if (!mp.Initialized()) {
         using MP = qsim::MultiProcessCuStateVecEx;
 
-        if (!mp.valid_network_type(nwt)) {
+        if (!mp.ValidNetworkType(nwt)) {
           throw std::invalid_argument("Invalid network type.");
         }
 
@@ -58,14 +58,14 @@ namespace qsim {
         param.transfer_buffer_size = buffer_size;
         param.network_type = network_type;
 
-        mp.initialize(param);
+        mp.Initialize(param);
 
-        if (verbosity > 2 && mp.initialized()) {
+        if (verbosity > 2 && mp.Initialized()) {
           qsim::IO::messagef("transfer_buf_size=%lu\n", buffer_size);
         }
       }
 
-      if (!mp.initialized()) {
+      if (!mp.Initialized()) {
         if (!StateSpace::ValidDeviceNetworkType(nwt)) {
           throw std::invalid_argument("Invalid device network type.");
         }

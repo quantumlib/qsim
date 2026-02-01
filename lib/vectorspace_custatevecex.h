@@ -245,7 +245,7 @@ class VectorSpaceCuStateVecEx {
         ResultType local_r = callback(k, res);
 
         auto cuda_type = GetCudaType<ResultType>();
-        auto comm = mp_->communicator();
+        auto comm = mp_->Communicator();
         ErrorCheck(comm->intf->allreduce(comm, &local_r, &r, 1, cuda_type));
 
         return r;
@@ -338,7 +338,7 @@ class VectorSpaceCuStateVecEx {
         ResultType local_r = callback(k, res1, res2);
 
         auto cuda_type = GetCudaType<ResultType>();
-        auto comm = mp_->communicator();
+        auto comm = mp_->Communicator();
         ErrorCheck(comm->intf->allreduce(comm, &local_r, &r, 1, cuda_type));
 
         return r;
@@ -385,16 +385,16 @@ class VectorSpaceCuStateVecEx {
   Vector Create(unsigned num_qubits) const {
     custatevecExStateVectorDescriptor_t state_vec;
     custatevecExDictionaryDescriptor_t sv_config
-        = mp.create_sv_config(num_qubits, kStateDataType);
+        = mp.CreateSVConfig(num_qubits, kStateDataType);
 
     unsigned num_substates = 1;
     DistributionType distr_type = kNoDistr;
 
     if (sv_config != nullptr) {
       ErrorCheck(custatevecExStateVectorCreateMultiProcess(
-          &state_vec, sv_config, nullptr, mp.communicator(), nullptr));
+          &state_vec, sv_config, nullptr, mp.Communicator(), nullptr));
 
-      num_substates = mp.num_processes();
+      num_substates = mp.NumProcesses();
       distr_type = kMultiProcess;
 
       if (param.verbosity > 2) {
@@ -507,7 +507,7 @@ class VectorSpaceCuStateVecEx {
   bool Copy(const Vector& src, fp_type* dest) const {
     if (src.distr_type() == kMultiProcess) {
       uint64_t size = (uint64_t{1} << src.num_qubits()) / src.num_substates();
-      uint64_t offset = size * mp.rank();
+      uint64_t offset = size * mp.Rank();
 
       ErrorCheck(custatevecExStateVectorGetState(
           src.get(), dest + 2 * offset, kStateDataType,
@@ -515,7 +515,7 @@ class VectorSpaceCuStateVecEx {
       ErrorCheck(custatevecExStateVectorSynchronize(src.get()));
 
       auto cuda_type = GetCudaType<std::complex<fp_type>>();
-      auto comm = mp.communicator();
+      auto comm = mp.Communicator();
       ErrorCheck(comm->intf->allgather(
           comm, dest + 2 * offset, dest, size, cuda_type));
     } else {
@@ -533,7 +533,7 @@ class VectorSpaceCuStateVecEx {
   bool Copy(const fp_type* src, Vector& dest) const {
     if (dest.distr_type() == kMultiProcess) {
       uint64_t size = (uint64_t{1} << dest.num_qubits()) / dest.num_substates();
-      uint64_t offset = size * mp.rank();
+      uint64_t offset = size * mp.Rank();
 
       ErrorCheck(custatevecExStateVectorSetState(
           dest.get(), src + 2 * offset, kStateDataType,
@@ -564,7 +564,7 @@ class VectorSpaceCuStateVecEx {
 
     if (dest.distr_type() == kMultiProcess) {
       size /= dest.num_substates();
-      uint64_t offset = size * mp.rank();
+      uint64_t offset = size * mp.Rank();
 
       ErrorCheck(custatevecExStateVectorSetState(
           dest.get(), src + 2 * offset, kStateDataType,
