@@ -31,7 +31,7 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-    "cmake~=3.28.1",
+    "cmake~=3.31.10",
     "pybind11[global]",
     "setuptools-scm[toml]>=6.2",
     "setuptools>=78.1.1",
@@ -95,7 +95,7 @@ source = "https://github.com/quantumlib/qsim"
 dev = [
     # The following repeats [build-system].requires b/c pyproject.toml has no
     # mechanism to reference that list. Keep these versions in sync with above.
-    "cmake~=3.28.1",
+    "cmake~=3.31.10",
     "pybind11[global]",
     "setuptools>=78.1.1; python_version >= '3.12'",
 
