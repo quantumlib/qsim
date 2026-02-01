@@ -28,8 +28,7 @@ namespace qsim {
 template <class T>
 class SimulatorCuStateVecExTest : public testing::Test {};
 
-//using fp_impl = ::testing::Types<float, double>;
-using fp_impl = ::testing::Types<float>;
+using fp_impl = ::testing::Types<float, double>;
 
 TYPED_TEST_SUITE(SimulatorCuStateVecExTest, fp_impl);
 
@@ -41,7 +40,9 @@ struct Factory {
   using StateSpace = typename Simulator::StateSpace;
 
   StateSpace CreateStateSpace() const {
-    return StateSpace{mp};
+    typename StateSpace::Parameter param;
+    param.num_devices = 2;
+    return StateSpace{mp, param};
   }
 
   Simulator CreateSimulator() const {
