@@ -13,6 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 """Tool to generate external api_docs for qsim shameless copy from TFQ."""
+
 import os
 
 from absl import app, flags
@@ -24,7 +25,7 @@ flags.DEFINE_string("output_dir", "/tmp/qsim_api", "Where to output the docs")
 
 flags.DEFINE_string(
     "code_url_prefix",
-    ("https://github.com/quantumlib/qsim/tree/main/" "qsimcirq"),
+    ("https://github.com/quantumlib/qsim/tree/main/qsimcirq"),
     "The url prefix for links to code.",
 )
 
@@ -40,7 +41,6 @@ FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
-
     doc_generator = generate_lib.DocGenerator(
         root_title="qsim",
         py_modules=[("qsimcirq", qs)],
