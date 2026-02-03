@@ -33,10 +33,11 @@
 #define cuCimagf                 hipCimagf
 #define cuCimag                  hipCimag
 #define cuComplex                hipComplex
-#define cuCrealf                 hipCrealf
 #define cuCreal                  hipCreal
-#define CUDA_C_32F               HIPBLAS_C_32F
-#define CUDA_C_64F               HIPBLAS_C_64F
+#define CUDA_R_32F               HIP_R_32F
+#define CUDA_R_64F               HIP_R_64F
+#define CUDA_C_32F               HIP_C_32F
+#define CUDA_C_64F               HIP_C_64F
 #define cudaDeviceSynchronize    hipDeviceSynchronize
 #define cudaError_t              hipError_t
 #define cudaFree                 hipFree

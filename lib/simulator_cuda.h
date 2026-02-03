@@ -267,6 +267,14 @@ class SimulatorCUDA final {
   }
 
  private:
+  static dim3 CreateGrid(unsigned num_blocks) {
+    if (num_blocks > 65535) {
+      return dim3(65535, (num_blocks + 65535 - 1) / 65535, 1);
+    } else {
+      return dim3(num_blocks, 1, 1);
+    }
+  }
+
   // The following indices are used in kernels.
   // xss - indices to access the state vector entries in global memory.
   // ms  - masks to access the state vector entries in global memory.
@@ -350,7 +358,7 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyGateH_Kernel<G><<<blocks, threads>>>(
+    ApplyGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, state.get());
   }
 
@@ -374,7 +382,7 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyGateL_Kernel<G><<<blocks, threads>>>(
+    ApplyGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         1 << num_effective_qs, state.get());
   }
@@ -407,7 +415,7 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyControlledGateH_Kernel<G><<<blocks, threads>>>(
+    ApplyControlledGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, num_aqs + 1, cvalsh, state.get());
   }
 
@@ -432,7 +440,7 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyControlledGateLH_Kernel<G><<<blocks, threads>>>(
+    ApplyControlledGateLH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs, state.get());
   }
@@ -458,7 +466,7 @@ class SimulatorCUDA final {
 
     IndicesLC<G> d_i(d_ws);
 
-    ApplyControlledGateL_Kernel<G><<<blocks, threads>>>(
+    ApplyControlledGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d_i.cis,
         d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs,
         1 << (5 - d.remaining_low_cqs), state.get());
@@ -493,7 +501,7 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ExpectationValueH_Kernel<G><<<blocks, threads>>>(
+    ExpectationValueH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, num_iterations_per_block,
         state.get(), Plus<double>(), d_res1);
 
@@ -531,7 +539,7 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ExpectationValueL_Kernel<G><<<blocks, threads>>>(
+    ExpectationValueL_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         num_iterations_per_block, state.get(), Plus<double>(), d_res1);
 
