@@ -13,39 +13,43 @@
 # limitations under the License.
 
 # Determine the hardware features available in this CPU.
-HAVE_SSE := $(shell grep -q sse /proc/cpuinfo && echo "true")
-HAVE_AVX2 := $(shell grep -q avx2 /proc/cpuinfo && echo "true")
-HAVE_AVX512 := $(shell grep -q avx512f /proc/cpuinfo && echo "true")
+HAVE_AVX2 := $(shell grep -qs avx2 /proc/cpuinfo && echo "true")
+HAVE_AVX512 := $(shell grep -qs avx512f /proc/cpuinfo && echo "true")
+HAVE_BMI2 := $(shell grep -qs bmi2 /proc/cpuinfo && echo "true")
+HAVE_SSE := $(shell grep -qs sse /proc/cpuinfo && echo "true")
 
 # Default targets. Always built.
 BASIC_FILES := $(shell ls *.cc | egrep -v '_avx|_sse')
 
 # Additional flags and targets for non-CUDA cases.
-SSE_FILES =
-AVX2_FILES =
-AVX512_FILES =
-ifneq (,$(HAVE_SSE))
-    SSE_FLAGS ?= -msse4.1
-    SSE_FILES := $(wildcard *_sse_test.cc)
-endif
 ifneq (,$(HAVE_AVX2))
     AVX2_FLAGS ?= -mavx2 -mfma
     AVX2_FILES := $(wildcard *_avx_test.cc)
 endif
 ifneq (,$(HAVE_AVX512))
-    AVX512_FLAGS ?= -mavx512f -mbmi2
+    AVX512_FLAGS ?= -mavx512f
     AVX512_FILES := $(wildcard *_avx512_test.cc)
+endif
+ifneq (,$(HAVE_BMI2))
+    BMI2_FLAGS ?= -mbmi2
+endif
+ifneq (,$(HAVE_SSE))
+    SSE_FLAGS ?= -msse4
+    SSE_FILES := $(wildcard *_sse_test.cc)
 endif
 
 CXX_FILES := $(BASIC_FILES) $(SSE_FILES) $(AVX2_FILES) $(AVX512_FILES)
 CXX_TARGETS := $(CXX_FILES:%.cc=%.x)
-CXXFLAGS := $(CXXFLAGS) $(SSE_FLAGS) $(AVX2_FLAGS) $(AVX512_FLAGS)
+CXXFLAGS := $(CXXFLAGS) $(SSE_FLAGS) $(AVX2_FLAGS) $(AVX512_FLAGS) $(BMI2_FLAGS)
 
 CUDA_FILES := $(wildcard *cuda_test.cu)
 CUDA_TARGETS := $(CUDA_FILES:%cuda_test.cu=%cuda_test.x)
 
 CUSTATEVEC_FILES := $(wildcard *custatevec_test.cu)
 CUSTATEVEC_TARGETS := $(CUSTATEVEC_FILES:%custatevec_test.cu=%custatevec_test.x)
+
+CUSTATEVECEX_FILES := $(wildcard *custatevecex_test.cu)
+CUSTATEVECEX_TARGETS := $(CUSTATEVECEX_FILES:%custatevecex_test.cu=%custatevecex_test.x)
 
 HIP_FILES := $(wildcard *cuda_test.cu)
 HIP_TARGETS := $(HIP_FILES:%cuda_test.cu=%hip_test.x)
@@ -66,6 +70,9 @@ cuda-tests: $(CUDA_TARGETS)
 .PHONY: custatevec-tests
 custatevec-tests: $(CUSTATEVEC_TARGETS)
 
+.PHONY: custatevecex-tests
+custatevecex-tests: $(CUSTATEVECEX_TARGETS)
+
 .PHONY: hip-tests
 hip-tests: $(HIP_TARGETS)
 
@@ -80,6 +87,14 @@ run-cuda-tests: | $(GTEST_DIR)/build cuda-tests
 .PHONY: run-custatevec-tests
 run-custatevec-tests: | $(GTEST_DIR)/build custatevec-tests
 	for exe in $(CUSTATEVEC_TARGETS); do if ! ./$$exe; then exit 1; fi; done
+
+.PHONY: run-custatevecex-tests
+run-custatevecex-tests: | $(GTEST_DIR)/build custatevecex-tests
+	for exe in $(CUSTATEVECEX_TARGETS); do if ! ./$$exe; then exit 1; fi; done
+
+.PHONY: run-custatevecex-mpi-tests
+run-custatevecex-mpi-tests: | $(GTEST_DIR)/build custatevecex-tests
+	for exe in $(CUSTATEVECEX_TARGETS); do if ! mpirun -np 2 ./$$exe; then exit 1; fi; done
 
 .PHONY: run-hip-tests
 run-hip-tests: | $(GTEST_DIR)/build hip-tests
@@ -100,6 +115,9 @@ $(GTEST_DIR)/build:
 %custatevec_test.x: %custatevec_test.cu $(GTEST_DIR)/build
 	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS) $(CUSTATEVECFLAGS)
 
+%custatevecex_test.x: %custatevecex_test.cu $(GTEST_DIR)/build
+	$(NVCC) -o ./$@ $< $(TESTFLAGS) $(NVCCFLAGS) $(CUSTATEVECFLAGS)
+
 %hip_test.x: %cuda_test.cu $(GTEST_DIR)/build
 	$(HIPCC) -o ./$@ $< $(TESTFLAGS) $(HIPCCFLAGS)
 
@@ -108,8 +126,17 @@ clean:
 	-rm -f ./*.x ./*.a ./*.so ./*.mod
 	rm -rf $(GTEST_DIR)/build
 
-LOCAL_VARS = HAVE_SSE HAVE_AVX2 HAVE_AVX512 SSE_FLAGS AVX2_FLAGS $\
-	AVX512_FLAGS CXXFLAGS CXX_TARGETS TEST_FLAGS
+LOCAL_VARS = BASIC_FILES CXX_FILES CXX_TARGETS CXXFLAGS $\
+    CUDA_FILES CUDA_TARGETS $\
+    CUSTATEVEC_FILES CUSTATEVEC_FLAGS $\
+    CUSTATEVECEX_FILES CUSTATEVECEX_FLAGS $\
+	HAVE_AVX2 AVX2_FILES AVX2_FLAGS $\
+	HAVE_AVX512 AVX512_FILES AVX512_FLAGS $\
+    HAVE_BMI2 BMI2_FLAGS $\
+    HAVE_SSE SSE_FILES SSE_FLAGS $\
+	HIP_FILES HIP_TARGETS $\
+    GMOCK_DIR GTEST_DIR $\
+    TESTFLAGS
 
 .PHONY: print-vars
 print-vars: ; @$(foreach n,$(sort $(LOCAL_VARS)),echo $n=$($n);)

@@ -15,13 +15,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-msse4.1 -O3 -flto=auto)
+    add_compile_options(-msse4 -O3)
 endif()
 
 if(APPLE)
@@ -43,3 +40,5 @@ include(../GetPybind11.cmake)
 pybind11_add_module(qsim_sse pybind_main_sse.cpp)
 
 target_link_libraries(qsim_sse PUBLIC OpenMP::OpenMP_CXX)
+
+enable_lto(qsim_sse)

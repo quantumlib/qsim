@@ -55,9 +55,10 @@ load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
 
 tf_workspace0()
 
-EIGEN_COMMIT = "d71c30c47858effcbd39967097a2d99ee48db464"  # 3.4.1
+# https://gitlab.com/libeigen/eigen/-/releases/3.4.1
+EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 
-EIGEN_SHA256 = "f1d28c2205d015490a685b1e5a171c434da87f757746724de3cb85e69621dec2"
+EIGEN_SHA256 = "2c167ff09e88a5261111bc2aa7f18ae2e78d73fd42339387532937b0c2629829"
 
 http_archive(
     name = "eigen",

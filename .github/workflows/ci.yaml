@@ -58,7 +58,7 @@ permissions: read-all
 jobs:
   python-checks:
     name: 'Python format & lint checks'
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out a copy of the git repository
@@ -73,10 +73,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Check format
         continue-on-error: ${{inputs.soft-linting == 'true'}}
@@ -92,6 +95,7 @@ jobs:
 
   docker-lint:
     name: Dockerfile lint checks
+    if: github.repository_owner == 'quantumlib'
     # ubuntu-slim runners don't have docker installed.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -114,6 +118,7 @@ jobs:
 
   shell-lint:
     name: Shell script lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -136,6 +141,7 @@ jobs:
 
   yaml-lint:
     name: YAML lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -160,6 +166,7 @@ jobs:
 
   bazel-lint:
     name: Bazel build lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -183,6 +190,7 @@ jobs:
 
   action-lint:
     name: GitHub Actions lint checks
+    if: github.repository_owner == 'quantumlib'
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
@@ -201,6 +209,7 @@ jobs:
 
   library-tests:
     name: Library tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
@@ -216,10 +225,10 @@ jobs:
         # tests the endpoints of the supported range. The wheel build process
         # (in a separate workflow) *does* use all the versions.
         os:
-          - ubuntu-24.04
+          - ubuntu-24.04-x64-8-core
           - macos-14
           - macos-15
-          - windows-2025
+          - windows-2025-x64-8-core
         python_version:
           - '3.10'
           - '3.13'
@@ -237,23 +246,26 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
         with:
           debug: ${{inputs.debug}}
 
-      - if: matrix.os != 'windows-2025'
+      - if: ${{! startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
           dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
 
-      - if: matrix.os == 'windows-2025'
+      - if: ${{startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (Windows case)
         # On GitHub Windows runners, Bazel ends up finding a different "python3"
         # binary than what's installed by setup-python unless we tell Bazel what
@@ -266,6 +278,8 @@ jobs:
 
       - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           brew install -q libomp llvm@19
           brew unlink libomp
@@ -295,13 +309,14 @@ jobs:
 
   options-tests:
     name: Options tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     strategy:
       matrix:
@@ -322,10 +337,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -350,13 +368,14 @@ jobs:
 
   memory-tests:
     name: Malloc/asan/msan tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     env:
       common_args: >-
@@ -377,10 +396,13 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            dev-requirements.txt
+            pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r dev-requirements.txt
+        run: pip install -r requirements.txt --group dev
 
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
@@ -405,13 +427,14 @@ jobs:
 
   docker-tests:
     name: Docker build tests
+    if: github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - docker-lint
       - python-checks
       - shell-lint
       - yaml-lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
     env:
       # The next environment variable is used by Docker.
@@ -441,13 +464,12 @@ jobs:
         run: docker run --rm qsim-base:latest -c /qsim/circuits/circuit_q24
 
       - name: Test installation process
-        run: |
-          cd install/tests
-          docker compose build
+        working-directory: install/tests
+        run: docker compose build
 
   report-results:
     name: CI
-    if: always()
+    if: always() && github.repository_owner == 'quantumlib'
     needs:
       - action-lint
       - bazel-lint
