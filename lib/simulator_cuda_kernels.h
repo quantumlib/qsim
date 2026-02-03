@@ -33,7 +33,8 @@ __global__ void ApplyGateH_Kernel(
     const idx_type* __restrict__ mss, fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 64.
 
-  unsigned blockId = blockIdx.y * gridDim.x + blockIdx.x;
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
 
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
@@ -118,7 +119,8 @@ __global__ void ApplyGateL_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
-  unsigned blockId = blockIdx.y * gridDim.x + blockIdx.x;
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
 
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
@@ -210,7 +212,8 @@ __global__ void ApplyControlledGateH_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 64.
 
-  unsigned blockId = blockIdx.y * gridDim.x + blockIdx.x;
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
 
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");

@@ -28,8 +28,9 @@ namespace qsim {
 
 namespace cuda_detail {
 
-__device__ __forceinline__ unsigned GetBlockId() {
-  return blockIdx.y * gridDim.x + blockIdx.x;
+__device__ __forceinline__ uint64_t GetBlockId() {
+  return uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+         uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
 }
 
 

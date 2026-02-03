@@ -268,7 +268,11 @@ class SimulatorCUDA final {
 
  private:
   static dim3 CreateGrid(unsigned num_blocks) {
-    if (num_blocks > 65535) {
+    uint64_t max_2d_blocks = uint64_t{65535} * 65535;
+    if (num_blocks > max_2d_blocks) {
+        unsigned rem = (num_blocks + max_2d_blocks - 1) / max_2d_blocks;
+        return dim3(65535, 65535, rem);
+    } else if (num_blocks > 65535) {
       return dim3(65535, (num_blocks + 65535 - 1) / 65535, 1);
     } else {
       return dim3(num_blocks, 1, 1);
