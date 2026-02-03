@@ -63,11 +63,19 @@ class QSimOptions:
         gpu_mode: use CUDA if set to 0 (default value), use the NVIDIA
             cuStateVec library if set to 1 or use the NVIDIA cuStateVecEx
             library if set to any other value. The "gpu_*" arguments below are
-            only considered if this is set to 0.
+            only considered if this is set to 0. The "gpu_cusvex_*" arguments
+            below are only considered if this is set to 2 or greater.
         gpu_state_threads: number of threads per CUDA block to use for the GPU
             StateSpace. This must be a power of 2 in the range [32, 1024].
         gpu_data_blocks: number of data blocks to use for the GPU StateSpace.
             Below 16 data blocks, performance is noticeably reduced.
+        gpu_cusvex_log_buf_size: log2 of the transfer buffer size that is used
+            for MPI communication. Default value is 30, i.e. the buffer size is
+            2^30 bytes.
+        gpu_cusvex_network_type: Device network type for multi-device:
+            0=Switch (default), 1=FullMesh. Or layered network type for
+            multi-process: 0=SuperPOD (default), 1=GB200NVL, 2=SwitchTree,
+            3=Communicator.
         verbosity: Logging verbosity.
         denormals_are_zeros: if true, set flush-to-zero and denormals-are-zeros
             MXCSR control flags. This prevents rare cases of performance
@@ -81,6 +89,8 @@ class QSimOptions:
     gpu_mode: int = 0
     gpu_state_threads: int = 512
     gpu_data_blocks: int = 16
+    gpu_cusvex_log_buf_size: int = 30
+    gpu_cusvex_network_type: int = 0
     verbosity: int = 0
     denormals_are_zeros: bool = False
 
@@ -97,6 +107,8 @@ class QSimOptions:
             "gmode": self.gpu_mode,
             "gsst": self.gpu_state_threads,
             "gdb": self.gpu_data_blocks,
+            "glbuf": self.gpu_cusvex_log_buf_size,
+            "gnwt": self.gpu_cusvex_network_type,
             "v": self.verbosity,
             "z": self.denormals_are_zeros,
         }

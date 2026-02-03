@@ -39,12 +39,11 @@ struct MultiProcessCuStateVecEx {
   };
 
   struct Parameter {
-    uint64_t transfer_buffer_size = 16777216;
+    uint64_t transfer_buffer_size = uint64_t{1} << 30;
     NetworkType network_type = kSuperPod;
   };
 
-  MultiProcessCuStateVecEx(Parameter param = Parameter{16777216, kSuperPod})
-      : param_(param), communicator_(nullptr), initialized_(false) {}
+  MultiProcessCuStateVecEx() : communicator_(nullptr), initialized_(false) {}
 
   ~MultiProcessCuStateVecEx() {
     if (communicator_) {
@@ -55,23 +54,29 @@ struct MultiProcessCuStateVecEx {
     custatevecExCommunicatorFinalize(&status);
   }
 
-  custatevecExCommunicatorDescriptor_t communicator() const {
+  custatevecExCommunicatorDescriptor_t Communicator() const {
     return communicator_;
   }
 
-  unsigned num_processes() const {
+  unsigned NumProcesses() const {
     return num_processes_;
   }
 
-  unsigned rank() const {
+  unsigned Rank() const {
     return rank_;
   }
 
-  bool initialized() const {
+  static bool ValidNetworkType(unsigned network_type) {
+    return network_type < 4;
+  }
+
+  bool Initialized() const {
     return initialized_;
   }
 
-  void initialize() {
+  void Initialize(Parameter param) {
+    param_ = param;
+
     int argc = 0;
     char** argv = nullptr;
 
@@ -109,7 +114,7 @@ struct MultiProcessCuStateVecEx {
     num_global_qubits_ = get_num_global_qubits(num_processes);
 
     unsigned num_acc_global_qubits = 0;
-    auto network_layers = get_network_layers(param_.network_type);
+    auto network_layers = GetNetworkLayers(param_.network_type);
 
     num_global_qubits_per_layer_.reserve(2);
     global_index_bit_classes_.reserve(2);
@@ -149,7 +154,7 @@ struct MultiProcessCuStateVecEx {
     initialized_ = true;
   }
 
-  auto create_sv_config(unsigned num_qubits, cudaDataType_t data_type) const {
+  auto CreateSVConfig(unsigned num_qubits, cudaDataType_t data_type) const {
     custatevecExDictionaryDescriptor_t sv_config = nullptr;
 
     if (!initialized_ ||
@@ -187,7 +192,7 @@ struct MultiProcessCuStateVecEx {
 
   using NetworkLayers = std::vector<NetworkLayer>;
 
-  static NetworkLayers get_network_layers(NetworkType id) {
+  static NetworkLayers GetNetworkLayers(NetworkType id) {
     switch (id) {
     case kSuperPod:
       return {{CUSTATEVEC_EX_GLOBAL_INDEX_BIT_CLASS_INTERPROC_P2P, 3},
