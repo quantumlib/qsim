@@ -39,6 +39,7 @@ COPY ./pybind_interface/ /qsim/lib/
 COPY ./qsimcirq_tests/ /qsim/qsimcirq_tests/
 COPY ./requirements.txt /qsim/requirements.txt
 COPY ./pyproject.toml /qsim/pyproject.toml
+COPY ./setup.py /qsim/setup.py
 
 WORKDIR /qsim/
 
