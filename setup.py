@@ -85,14 +85,13 @@ class CMakeBuild(build_ext):
         # Append additional CMake arguments from the environment variable.
         # This is e.g. used by cibuildwheel to force a certain C++ standard.
         additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
-        if additional_cmake_args:
-            for arg in additional_cmake_args.split():
-                if not arg.startswith("-"):
-                    raise RuntimeError(
-                        f"The value '{arg}' in the environment variable CMAKE_ARGS "
-                        "is invalid; all arguments must begin with a dash (-)."
-                    )
-                cmake_args.append(arg)
+        for arg in additional_cmake_args.split():
+            if not arg.startswith("-"):
+                raise RuntimeError(
+                    f"The value '{arg}' in the environment variable CMAKE_ARGS "
+                    "is invalid; all arguments must begin with a dash (-)."
+                )
+            cmake_args.append(arg)
 
         cfg = "Debug" if self.debug else "Release"
         build_args = ["--config", cfg]
