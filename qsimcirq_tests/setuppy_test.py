@@ -40,12 +40,14 @@ def run_setup(cmake_args, root_dir):
 
         return Dummy()
     except PermissionError as e:
+
         class Dummy:
             stderr = f"Permission denied: {e}"
             returncode = 1
 
         return Dummy()
     except OSError as e:
+
         class Dummy:
             stderr = f"OS error occurred: {e}"
             returncode = 1
