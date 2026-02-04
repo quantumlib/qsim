@@ -86,10 +86,10 @@ class CMakeBuild(build_ext):
         # This is e.g. used by cibuildwheel to force a certain C++ standard.
         additional_cmake_args = os.environ.get("CMAKE_ARGS", "")
         for arg in additional_cmake_args.split():
-            if not arg.startswith("-"):
+            if not arg.startswith("-D"):
                 raise RuntimeError(
                     f"The value '{arg}' in the environment variable CMAKE_ARGS "
-                    "is invalid; all arguments must begin with a dash (-)."
+                    "is invalid; only definition arguments starting with '-D' are allowed."
                 )
             cmake_args.append(arg)
 
