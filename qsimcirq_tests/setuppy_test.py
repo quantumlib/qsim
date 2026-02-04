@@ -23,9 +23,6 @@ def run_setup(cmake_args, root_dir):
     env = os.environ.copy()
     env["CMAKE_ARGS"] = cmake_args
 
-    # We use 'build_ext' but it might fail if CMake is not installed or other
-    # reasons. We just want to see if it raises the RuntimeError we added in
-    # build_extension.
     try:
         # Using sys.executable to run setup.py with the same Python executable.
         return subprocess.run(
@@ -43,14 +40,12 @@ def run_setup(cmake_args, root_dir):
 
         return Dummy()
     except PermissionError as e:
-
         class Dummy:
             stderr = f"Permission denied: {e}"
             returncode = 1
 
         return Dummy()
     except OSError as e:
-
         class Dummy:
             stderr = f"OS error occurred: {e}"
             returncode = 1
@@ -68,14 +63,14 @@ def run_setup(cmake_args, root_dir):
 def test_valid_cmake_args(pytestconfig):
     res = run_setup("-DCMAKE_CXX_STANDARD=17", pytestconfig.rootpath)
     # If it fails, it shouldn't be because of our validation.
-    assert "is invalid; all arguments must begin with a dash (-)." not in res.stderr
+    assert "arguments must begin with a dash" not in res.stderr
 
 
 def test_invalid_cmake_args_no_dash(pytestconfig):
     res = run_setup("NOT_A_FLAG", pytestconfig.rootpath)
-    assert "is invalid; all arguments must begin with a dash (-)." in res.stderr
+    assert "arguments must begin with a dash" in res.stderr
 
 
 def test_invalid_cmake_args_malicious(pytestconfig):
     res = run_setup("-DVAR=VAL ; rm -rf /", pytestconfig.rootpath)
-    assert "is invalid; all arguments must begin with a dash (-)." in res.stderr
+    assert "arguments must begin with a dash" in res.stderr
