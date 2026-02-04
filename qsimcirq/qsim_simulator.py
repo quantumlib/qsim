@@ -360,12 +360,23 @@ class QSimSimulator(
             )
             options["s"] = self.get_seed()
             raw_results = self._sim_module.qsim_sample_final(options, repetitions)
-            full_results = np.array(
-                [
-                    [bool(result & (1 << q)) for q in reversed(range(num_qubits))]
-                    for result in raw_results
-                ]
-            )
+            if not isinstance(raw_results, np.ndarray):
+                raw_results = np.array(raw_results)
+
+            if raw_results.size == 0:
+                full_results = np.zeros((0, num_qubits), dtype=bool)
+            else:
+                if raw_results.dtype == object:
+                    dtype = object
+                elif raw_results.dtype == np.uint64:
+                    dtype = np.uint64
+                elif num_qubits > 63:
+                    dtype = object
+                else:
+                    dtype = np.int64
+
+                masks = 1 << np.arange(num_qubits - 1, -1, -1, dtype=dtype)
+                full_results = (raw_results[:, None] & masks).astype(bool)
 
             for key, oplist in meas_ops.items():
                 for i, op in enumerate(oplist):
