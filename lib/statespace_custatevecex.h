@@ -130,7 +130,7 @@ class StateSpaceCuStateVecEx :
     unsigned required_rank = k / size;
 
     if (state.distr_type() != Base::kMultiProcess
-        || Base::mp.rank() == required_rank) {
+        || Base::mp.Rank() == required_rank) {
       ErrorCheck(custatevecExStateVectorGetState(
           state.get(), buf, kStateDataType, k, k + 1, 1));
     }
@@ -139,7 +139,7 @@ class StateSpaceCuStateVecEx :
 
     if (state.distr_type() == Base::kMultiProcess) {
       auto cuda_type = GetCudaType<std::complex<fp_type>>();
-      auto comm = Base::mp.communicator();
+      auto comm = Base::mp.Communicator();
       ErrorCheck(comm->intf->bcast(comm, buf, 1, cuda_type, required_rank));
     }
 
@@ -161,7 +161,7 @@ class StateSpaceCuStateVecEx :
     unsigned required_rank = k / size;
 
     if (state.distr_type() != Base::kMultiProcess
-        || Base::mp.rank() == required_rank) {
+        || Base::mp.Rank() == required_rank) {
       ErrorCheck(custatevecExStateVectorSetState(
           state.get(), buf, kStateDataType, k, k + 1, 1));
     }
@@ -183,7 +183,7 @@ class StateSpaceCuStateVecEx :
     unsigned required_rank = k / size;
 
     if (state.distr_type() != Base::kMultiProcess
-        || Base::mp.rank() == required_rank) {
+        || Base::mp.Rank() == required_rank) {
       ErrorCheck(custatevecExStateVectorSetState(
           state.get(), buf, kStateDataType, k, k + 1, 1));
     }
