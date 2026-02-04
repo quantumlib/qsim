@@ -112,48 +112,49 @@ if (( ${#format_files[@]} == 0 )); then
     exit 0
 fi
 
-# Apply isort only on Python files with the exception of __init__.py files.
-declare -a isort_files=()
-for f in "${format_files[@]}"; do
-    if [[ "${f}" == *.py && "${f##*/}" != __init__.py ]]; then
-        isort_files+=("${f}")
-    fi
-done
-
 # Color the output if it goes to a terminal or GitHub Actions log.
 arg_color=()
 if [[ -t 1 || "${CI}" == true ]]; then
-    arg_color=("--color")
+    # Check if ruff supports --color (it might be missing in older/some versions).
+    if ruff --help 2>&1 | grep -q -- '--color'; then
+        arg_color=("--color" "always")
+    fi
 fi
 
-ISORTVERSION=$(isort --version-number)
+# Run ruff for import sorting.
+# We do this first so that if it changes files, the formatting step will pick them up.
+echo "Running ruff check (isort)..."
+check_args=("check" "--select" "I" "${arg_color[@]}")
+if (( only_print == 0 )); then
+    check_args+=("--fix")
+else
+      # In check mode, we want to see diffs if possible, but ruff check usually just prints violations.
+      # To match previous behavior of "checking" without modifying, we don't add --fix.
+      # If we want diffs for imports, --diff can be used.
+      check_args+=("--diff")
+fi
 
-echo "Sorting imports with isort... (version: $ISORTVERSION)"
+RUFF_CHECK_STATUS=0
+if (( "${#format_files[@]}" )); then
+    # We pass all files to ruff; it handles excluding those that shouldn't be touched if configured,
+    # but here we are passing a specific list of files.
+    ruff "${check_args[@]}" "${format_files[@]}"
+    RUFF_CHECK_STATUS=$?
+fi
 
-args=("${arg_color[@]}")
+echo "Running ruff format..."
+format_args=("format" "${arg_color[@]}")
 if (( only_print == 1 )); then
-    args+=("--check" "--diff")
+    format_args+=("--check" "--diff")
 fi
 
-ISORTSTATUS=0
-if (( "${#isort_files[@]}" )); then
-    isort "${args[@]}" "${isort_files[@]}"
-    ISORTSTATUS=$?
+RUFF_FORMAT_STATUS=0
+if (( "${#format_files[@]}" )); then
+    ruff "${format_args[@]}" "${format_files[@]}"
+    RUFF_FORMAT_STATUS=$?
 fi
 
-BLACKVERSION=$(black --version | head -1)
-
-echo "Running the black formatter... (version: $BLACKVERSION)"
-
-args=("${arg_color[@]}")
-if (( only_print == 1 )); then
-    args+=("--check" "--diff")
-fi
-
-black "${args[@]}" "${format_files[@]}"
-BLACKSTATUS=$?
-
-if (( BLACKSTATUS || ISORTSTATUS )); then
+if (( RUFF_CHECK_STATUS || RUFF_FORMAT_STATUS )); then
   exit 1
 fi
 exit 0

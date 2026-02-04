@@ -55,8 +55,7 @@ class CMakeBuild(build_ext):
             )
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
-                f"Command '{e.cmd}' returned status {e.returncode}. "
-                f"Output: {e.output}"
+                f"Command '{e.cmd}' returned status {e.returncode}. Output: {e.output}"
             )
         except subprocess.TimeoutExpired as e:
             raise RuntimeError(f"Command timed out: {e}")

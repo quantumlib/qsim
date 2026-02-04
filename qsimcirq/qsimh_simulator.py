@@ -49,7 +49,6 @@ class QSimhSimulator(cirq.SimulatesAmplitudes):
         params: cirq.Sweepable,
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
     ) -> Sequence[Sequence[complex]]:
-
         if not isinstance(program, qsimc.QSimCircuit):
             program = qsimc.QSimCircuit(program)
 
@@ -65,7 +64,6 @@ class QSimhSimulator(cirq.SimulatesAmplitudes):
 
         trials_results = []
         for prs in param_resolvers:
-
             solved_circuit = cirq.resolve_parameters(program, prs)
 
             options["c"], _ = solved_circuit.translate_cirq_to_qsim(qubit_order)

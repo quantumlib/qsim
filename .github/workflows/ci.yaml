@@ -84,7 +84,7 @@ jobs:
       - name: Check format
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
-          echo '::add-matcher::.github/problem-matchers/black.json'
+          echo '::add-matcher::.github/problem-matchers/ruff.json'
           check/format-incremental
 
       - name: Check lint

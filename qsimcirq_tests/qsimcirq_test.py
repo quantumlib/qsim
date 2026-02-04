@@ -1036,7 +1036,7 @@ class NoiseChannel(cirq.Gate):
         return self._num_qubits
 
     def _kraus_(self):
-        return [cirq.unitary(op) for _, op, in self._prob_op_pairs]
+        return [cirq.unitary(op) for _, op in self._prob_op_pairs]
 
     def steps(self):
         return [m for _, m in self._prob_op_pairs]
@@ -1064,7 +1064,7 @@ class NoiseMixture(NoiseChannel):
         # unitary() on those NoiseStep objects, the values unitary() returns
         # will not actually be unitary. This is done knowingly. The nonunitary
         # values are eventually normalized in test_multi_qubit_noise().
-        return [(prob, op) for prob, op, in self._prob_op_pairs]
+        return [(prob, op) for prob, op in self._prob_op_pairs]
 
 
 @pytest.mark.parametrize(
@@ -2144,7 +2144,9 @@ def test_qsimcirq_identity_expectation_value():
             (
                 cirq.I(cirq.LineQubit(i))
                 if p == "I"
-                else cirq.Z(cirq.LineQubit(i)) if p == "Z" else None
+                else cirq.Z(cirq.LineQubit(i))
+                if p == "Z"
+                else None
             )
             for i, p in enumerate(pauli)
         )

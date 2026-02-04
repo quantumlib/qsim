@@ -103,8 +103,7 @@ dev = [
     "cibuildwheel",
 
     # Linters, formatters, and test utilities.
-    "black~=25.9.0",
-    "isort[colors]~=6.0.1",
+    "ruff~=0.9.4",
     "py-cpuinfo",
     "pylint~=4.0.2",
     "pytest",
@@ -152,14 +151,18 @@ manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = "*musllinux*"
 
-[tool.black]
-target-version = ['py310', 'py311', 'py312', 'py313']
-extend-exclude = 'third_party'
+[tool.ruff]
+target-version = "py310"
+extend-exclude = ["third_party"]
 
-[tool.isort]
-profile = 'black'
-order_by_type = false  # Sort alphabetically, irrespective of case.
-skip_gitignore = true
-combine_as_imports = true
-known_first_party = ["qsimcirq*"]
-extend_skip = ["__init__.py"]
+[tool.ruff.lint]
+select = [
+    "I", # isort
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["I"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["qsimcirq", "qsimcirq_tests"]
