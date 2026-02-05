@@ -28,6 +28,7 @@
 #include "../lib/io.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
+#include "../lib/simulator_basic.h"
 
 namespace qsim {
 
@@ -101,9 +102,9 @@ R"(4
 )";
 
 struct Factory {
-  using Simulator = qsim::Simulator<For>;
+  using fp_type = double;
+  using Simulator = qsim::SimulatorBasic<For, fp_type>;
   using StateSpace = Simulator::StateSpace;
-  using fp_type = Simulator::fp_type;
 
   static StateSpace CreateStateSpace() {
     return StateSpace(1);
@@ -116,14 +117,14 @@ struct Factory {
 
 TEST(RunQSimHTest, QSimHRunner) {
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<GateQSim<Factory::fp_type>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.gates.size(), 63);
 
-  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          For>;
+  using HybridSimulator =
+      HybridSimulator<IO, GateQSim<Factory::fp_type>, BasicGateFuser, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
@@ -180,10 +181,10 @@ TEST(RunQSimHTest, QSimHRunner) {
 }
 
 TEST(RunQSimHTest, CirqGates) {
-  auto circuit = CirqCircuit1::GetCircuit<float>(false);
+  auto circuit = CirqCircuit1::GetCircuit<Factory::fp_type>(false);
   const auto& expected_results = CirqCircuit1::expected_results0;
 
-  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<float>,
+  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<Factory::fp_type>,
                                           BasicGateFuser, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
