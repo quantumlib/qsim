@@ -32,13 +32,13 @@ namespace qsim {
 namespace cuda_detail {
 
 inline void do_not_free(void*) {}
-
 inline void free(void* ptr) {
   if (ptr != nullptr) {
     #ifdef __NVCC__
-      cudaFree(ptr);
+      ErrorCheck(cudaFree(ptr));
     #elif __HIP__
-      hipFree(ptr);
+      // Using the qsim ErrorCheck wrapper for HIP
+      ErrorCheck(hipFree(ptr));
     #endif
   }
 }
@@ -53,6 +53,7 @@ class VectorSpaceCUDA {
   // Define Pointer with a clear function pointer type for the deleter
   using Pointer = std::unique_ptr<fp_type, void (*)(void*)>;
 
+ public:
   class Vector {
    public:
     Vector() = delete;
@@ -97,6 +98,8 @@ class VectorSpaceCUDA {
     }
   }
 
+  // It is the client's responsibility to make sure that p has at least
+  // Impl::MinSize(num_qubits) elements.
   static Vector Create(fp_type* p, unsigned num_qubits) {
     return Vector{Pointer{p, &cuda_detail::do_not_free}, num_qubits};
   }
