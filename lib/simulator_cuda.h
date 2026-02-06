@@ -15,8 +15,6 @@
 #ifndef SIMULATOR_CUDA_H_
 #define SIMULATOR_CUDA_H_
 
-#include "simulator_cuda_kernels.h"
-
 #include <algorithm>
 #include <complex>
 #include <cstdint>
@@ -24,6 +22,7 @@
 #include <vector>
 
 #include "bits.h"
+#include "simulator_cuda_kernels.h"
 #include "statespace_cuda.h"
 
 namespace qsim {
@@ -41,8 +40,8 @@ class SimulatorCUDA final {
   // The maximum gate matrix size (for 6-qubit gates) is
   // 2 * 2^6 * 2^6 * sizeof(FP) = 8192 * sizeof(FP). The maximum index size is
   // 128 * sizeof(idx_type) + 96 * sizeof(unsigned).
-  static constexpr unsigned max_buf_size = 8192 * sizeof(FP)
-      + 128 * sizeof(idx_type) + 96 * sizeof(unsigned);
+  static constexpr unsigned max_buf_size =
+      8192 * sizeof(FP) + 128 * sizeof(idx_type) + 96 * sizeof(unsigned);
 
  public:
   using StateSpace = StateSpaceCUDA<FP>;
@@ -67,59 +66,60 @@ class SimulatorCUDA final {
    * @param matrix Matrix representation of the gate to be applied.
    * @param state The state of the system, to be updated by this method.
    */
-  void ApplyGate(const std::vector<unsigned>& qs,
-                 const fp_type* matrix, State& state) const {
+  void ApplyGate(
+      const std::vector<unsigned>& qs, const fp_type* matrix,
+      State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     if (qs.size() == 0) {
       ApplyGateH<0>(qs, matrix, state);
     } else if (qs[0] > 4) {
       switch (qs.size()) {
-      case 1:
-        ApplyGateH<1>(qs, matrix, state);
-        break;
-      case 2:
-        ApplyGateH<2>(qs, matrix, state);
-        break;
-      case 3:
-        ApplyGateH<3>(qs, matrix, state);
-        break;
-      case 4:
-        ApplyGateH<4>(qs, matrix, state);
-        break;
-      case 5:
-        ApplyGateH<5>(qs, matrix, state);
-        break;
-      case 6:
-        ApplyGateH<6>(qs, matrix, state);
-        break;
-      default:
-        // Not implemented.
-        break;
+        case 1:
+          ApplyGateH<1>(qs, matrix, state);
+          break;
+        case 2:
+          ApplyGateH<2>(qs, matrix, state);
+          break;
+        case 3:
+          ApplyGateH<3>(qs, matrix, state);
+          break;
+        case 4:
+          ApplyGateH<4>(qs, matrix, state);
+          break;
+        case 5:
+          ApplyGateH<5>(qs, matrix, state);
+          break;
+        case 6:
+          ApplyGateH<6>(qs, matrix, state);
+          break;
+        default:
+          // Not implemented.
+          break;
       }
     } else {
       switch (qs.size()) {
-      case 1:
-        ApplyGateL<1>(qs, matrix, state);
-        break;
-      case 2:
-        ApplyGateL<2>(qs, matrix, state);
-        break;
-      case 3:
-        ApplyGateL<3>(qs, matrix, state);
-        break;
-      case 4:
-        ApplyGateL<4>(qs, matrix, state);
-        break;
-      case 5:
-        ApplyGateL<5>(qs, matrix, state);
-        break;
-      case 6:
-        ApplyGateL<6>(qs, matrix, state);
-        break;
-      default:
-        // Not implemented.
-        break;
+        case 1:
+          ApplyGateL<1>(qs, matrix, state);
+          break;
+        case 2:
+          ApplyGateL<2>(qs, matrix, state);
+          break;
+        case 3:
+          ApplyGateL<3>(qs, matrix, state);
+          break;
+        case 4:
+          ApplyGateL<4>(qs, matrix, state);
+          break;
+        case 5:
+          ApplyGateL<5>(qs, matrix, state);
+          break;
+        case 6:
+          ApplyGateL<6>(qs, matrix, state);
+          break;
+        default:
+          // Not implemented.
+          break;
       }
     }
   }
@@ -132,9 +132,9 @@ class SimulatorCUDA final {
    * @param matrix Matrix representation of the gate to be applied.
    * @param state The state of the system, to be updated by this method.
    */
-  void ApplyControlledGate(const std::vector<unsigned>& qs,
-                           const std::vector<unsigned>& cqs, uint64_t cvals,
-                           const fp_type* matrix, State& state) const {
+  void ApplyControlledGate(
+      const std::vector<unsigned>& qs, const std::vector<unsigned>& cqs,
+      uint64_t cvals, const fp_type* matrix, State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     if (cqs.size() == 0) {
@@ -144,63 +144,63 @@ class SimulatorCUDA final {
 
     if (cqs[0] < 5) {
       switch (qs.size()) {
-      case 0:
-        ApplyControlledGateL<0>(qs, cqs, cvals, matrix, state);
-        break;
-      case 1:
-        ApplyControlledGateL<1>(qs, cqs, cvals, matrix, state);
-        break;
-      case 2:
-        ApplyControlledGateL<2>(qs, cqs, cvals, matrix, state);
-        break;
-      case 3:
-        ApplyControlledGateL<3>(qs, cqs, cvals, matrix, state);
-        break;
-      case 4:
-        ApplyControlledGateL<4>(qs, cqs, cvals, matrix, state);
-        break;
-      default:
-        // Not implemented.
-        break;
+        case 0:
+          ApplyControlledGateL<0>(qs, cqs, cvals, matrix, state);
+          break;
+        case 1:
+          ApplyControlledGateL<1>(qs, cqs, cvals, matrix, state);
+          break;
+        case 2:
+          ApplyControlledGateL<2>(qs, cqs, cvals, matrix, state);
+          break;
+        case 3:
+          ApplyControlledGateL<3>(qs, cqs, cvals, matrix, state);
+          break;
+        case 4:
+          ApplyControlledGateL<4>(qs, cqs, cvals, matrix, state);
+          break;
+        default:
+          // Not implemented.
+          break;
       }
     } else {
       if (qs.size() == 0) {
         ApplyControlledGateHH<0>(qs, cqs, cvals, matrix, state);
       } else if (qs[0] > 4) {
         switch (qs.size()) {
-        case 1:
-          ApplyControlledGateHH<1>(qs, cqs, cvals, matrix, state);
-          break;
-        case 2:
-          ApplyControlledGateHH<2>(qs, cqs, cvals, matrix, state);
-          break;
-        case 3:
-          ApplyControlledGateHH<3>(qs, cqs, cvals, matrix, state);
-          break;
-        case 4:
-          ApplyControlledGateHH<4>(qs, cqs, cvals, matrix, state);
-          break;
-        default:
-          // Not implemented.
-          break;
+          case 1:
+            ApplyControlledGateHH<1>(qs, cqs, cvals, matrix, state);
+            break;
+          case 2:
+            ApplyControlledGateHH<2>(qs, cqs, cvals, matrix, state);
+            break;
+          case 3:
+            ApplyControlledGateHH<3>(qs, cqs, cvals, matrix, state);
+            break;
+          case 4:
+            ApplyControlledGateHH<4>(qs, cqs, cvals, matrix, state);
+            break;
+          default:
+            // Not implemented.
+            break;
         }
       } else {
         switch (qs.size()) {
-        case 1:
-          ApplyControlledGateLH<1>(qs, cqs, cvals, matrix, state);
-          break;
-        case 2:
-          ApplyControlledGateLH<2>(qs, cqs, cvals, matrix, state);
-          break;
-        case 3:
-          ApplyControlledGateLH<3>(qs, cqs, cvals, matrix, state);
-          break;
-        case 4:
-          ApplyControlledGateLH<4>(qs, cqs, cvals, matrix, state);
-          break;
-        default:
-          // Not implemented.
-          break;
+          case 1:
+            ApplyControlledGateLH<1>(qs, cqs, cvals, matrix, state);
+            break;
+          case 2:
+            ApplyControlledGateLH<2>(qs, cqs, cvals, matrix, state);
+            break;
+          case 3:
+            ApplyControlledGateLH<3>(qs, cqs, cvals, matrix, state);
+            break;
+          case 4:
+            ApplyControlledGateLH<4>(qs, cqs, cvals, matrix, state);
+            break;
+          default:
+            // Not implemented.
+            break;
         }
       }
     }
@@ -213,46 +213,46 @@ class SimulatorCUDA final {
    * @param state The state of the system.
    * @return The computed expectation value.
    */
-  std::complex<double> ExpectationValue(const std::vector<unsigned>& qs,
-                                        const fp_type* matrix,
-                                        const State& state) const {
+  std::complex<double> ExpectationValue(
+      const std::vector<unsigned>& qs, const fp_type* matrix,
+      const State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     if (qs[0] > 4) {
       switch (qs.size()) {
-      case 1:
-        return ExpectationValueH<1>(qs, matrix, state);
-      case 2:
-        return ExpectationValueH<2>(qs, matrix, state);
-      case 3:
-        return ExpectationValueH<3>(qs, matrix, state);
-      case 4:
-        return ExpectationValueH<4>(qs, matrix, state);
-      case 5:
-        return ExpectationValueH<5>(qs, matrix, state);
-      case 6:
-        return ExpectationValueH<6>(qs, matrix, state);
-      default:
-        // Not implemented.
-        break;
+        case 1:
+          return ExpectationValueH<1>(qs, matrix, state);
+        case 2:
+          return ExpectationValueH<2>(qs, matrix, state);
+        case 3:
+          return ExpectationValueH<3>(qs, matrix, state);
+        case 4:
+          return ExpectationValueH<4>(qs, matrix, state);
+        case 5:
+          return ExpectationValueH<5>(qs, matrix, state);
+        case 6:
+          return ExpectationValueH<6>(qs, matrix, state);
+        default:
+          // Not implemented.
+          break;
       }
     } else {
       switch (qs.size()) {
-      case 1:
-        return ExpectationValueL<1>(qs, matrix, state);
-      case 2:
-        return ExpectationValueL<2>(qs, matrix, state);
-      case 3:
-        return ExpectationValueL<3>(qs, matrix, state);
-      case 4:
-        return ExpectationValueL<4>(qs, matrix, state);
-      case 5:
-        return ExpectationValueL<5>(qs, matrix, state);
-      case 6:
-        return ExpectationValueL<6>(qs, matrix, state);
-      default:
-        // Not implemented.
-        break;
+        case 1:
+          return ExpectationValueL<1>(qs, matrix, state);
+        case 2:
+          return ExpectationValueL<2>(qs, matrix, state);
+        case 3:
+          return ExpectationValueL<3>(qs, matrix, state);
+        case 4:
+          return ExpectationValueL<4>(qs, matrix, state);
+        case 5:
+          return ExpectationValueL<5>(qs, matrix, state);
+        case 6:
+          return ExpectationValueL<6>(qs, matrix, state);
+        default:
+          // Not implemented.
+          break;
       }
     }
 
@@ -262,9 +262,7 @@ class SimulatorCUDA final {
   /**
    * @return The size of SIMD register if applicable.
    */
-  static unsigned SIMDRegisterSize() {
-    return 32;
-  }
+  static unsigned SIMDRegisterSize() { return 32; }
 
  private:
   // The following indices are used in kernels.
@@ -288,7 +286,7 @@ class SimulatorCUDA final {
     static constexpr unsigned buf_size = ms_offs + ms_size;
 
     IndicesH(char* p)
-        : xss((idx_type*) (p + xss_offs)), ms((idx_type*) (p + ms_offs)) {}
+        : xss((idx_type*)(p + xss_offs)), ms((idx_type*)(p + ms_offs)) {}
 
     idx_type* xss;
     idx_type* ms;
@@ -304,8 +302,9 @@ class SimulatorCUDA final {
     static constexpr unsigned buf_size = tis_offs + tis_size;
 
     IndicesL(char* p)
-        : Base(p), qis((unsigned*) (p + qis_offs)),
-          tis((unsigned*) (p + tis_offs)) {}
+        : Base(p),
+          qis((unsigned*)(p + qis_offs)),
+          tis((unsigned*)(p + tis_offs)) {}
 
     unsigned* qis;
     unsigned* tis;
@@ -318,7 +317,7 @@ class SimulatorCUDA final {
     static constexpr unsigned cis_offs = Base::buf_size;
     static constexpr unsigned buf_size = cis_offs + cis_size;
 
-    IndicesLC(char* p) : Base(p), cis((idx_type*) (p + cis_offs)) {}
+    IndicesLC(char* p) : Base(p), cis((idx_type*)(p + cis_offs)) {}
 
     idx_type* cis;
   };
@@ -331,14 +330,15 @@ class SimulatorCUDA final {
   };
 
   template <unsigned G>
-  void ApplyGateH(const std::vector<unsigned>& qs,
-                  const fp_type* matrix, State& state) const {
+  void ApplyGateH(
+      const std::vector<unsigned>& qs, const fp_type* matrix,
+      State& state) const {
     unsigned num_qubits = state.num_qubits();
 
     IndicesH<G> h_i(h_ws);
     GetIndicesH(num_qubits, qs, qs.size(), h_i);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -350,19 +350,20 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyGateH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, state.get());
+    ApplyGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, state.get());
   }
 
   template <unsigned G>
-  void ApplyGateL(const std::vector<unsigned>& qs,
-                  const fp_type* matrix, State& state) const {
+  void ApplyGateL(
+      const std::vector<unsigned>& qs, const fp_type* matrix,
+      State& state) const {
     unsigned num_qubits = state.num_qubits();
 
     IndicesL<G> h_i(h_ws);
     auto num_effective_qs = GetIndicesL(num_qubits, qs, h_i);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -374,15 +375,15 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyGateL_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
+    ApplyGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         1 << num_effective_qs, state.get());
   }
 
   template <unsigned G>
-  void ApplyControlledGateHH(const std::vector<unsigned>& qs,
-                             const std::vector<unsigned>& cqs, idx_type cvals,
-                             const fp_type* matrix, State& state) const {
+  void ApplyControlledGateHH(
+      const std::vector<unsigned>& qs, const std::vector<unsigned>& cqs,
+      idx_type cvals, const fp_type* matrix, State& state) const {
     unsigned aqs[64];
     idx_type cmaskh = 0;
     unsigned num_qubits = state.num_qubits();
@@ -395,7 +396,7 @@ class SimulatorCUDA final {
 
     idx_type cvalsh = bits::ExpandBits(cvals, num_qubits, cmaskh);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -407,20 +408,20 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyControlledGateH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, num_aqs + 1, cvalsh, state.get());
+    ApplyControlledGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, num_aqs + 1, cvalsh, state.get());
   }
 
   template <unsigned G>
-  void ApplyControlledGateLH(const std::vector<unsigned>& qs,
-                             const std::vector<unsigned>& cqs, uint64_t cvals,
-                             const fp_type* matrix, State& state) const {
+  void ApplyControlledGateLH(
+      const std::vector<unsigned>& qs, const std::vector<unsigned>& cqs,
+      uint64_t cvals, const fp_type* matrix, State& state) const {
     unsigned num_qubits = state.num_qubits();
 
     IndicesL<G> h_i(h_ws);
     auto d = GetIndicesLC(num_qubits, qs, cqs, cvals, h_i);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -432,21 +433,21 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyControlledGateLH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
-        d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs, state.get());
+    ApplyControlledGateLH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d.num_aqs + 1,
+        d.cvalsh, 1 << d.num_effective_qs, state.get());
   }
 
   template <unsigned G>
-  void ApplyControlledGateL(const std::vector<unsigned>& qs,
-                            const std::vector<unsigned>& cqs, uint64_t cvals,
-                            const fp_type* matrix, State& state) const {
+  void ApplyControlledGateL(
+      const std::vector<unsigned>& qs, const std::vector<unsigned>& cqs,
+      uint64_t cvals, const fp_type* matrix, State& state) const {
     unsigned num_qubits = state.num_qubits();
 
     IndicesLC<G> h_i(h_ws);
     auto d = GetIndicesLCL(num_qubits, qs, cqs, cvals, h_i);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -458,22 +459,22 @@ class SimulatorCUDA final {
 
     IndicesLC<G> d_i(d_ws);
 
-    ApplyControlledGateL_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d_i.cis,
+    ApplyControlledGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d_i.cis,
         d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs,
         1 << (5 - d.remaining_low_cqs), state.get());
   }
 
   template <unsigned G>
-  std::complex<double> ExpectationValueH(const std::vector<unsigned>& qs,
-                                         const fp_type* matrix,
-                                         const State& state) const {
+  std::complex<double> ExpectationValueH(
+      const std::vector<unsigned>& qs, const fp_type* matrix,
+      const State& state) const {
     unsigned num_qubits = state.num_qubits();
 
     IndicesH<G> h_i(h_ws);
     GetIndicesH(num_qubits, qs, qs.size(), h_i);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -488,14 +489,14 @@ class SimulatorCUDA final {
 
     constexpr unsigned m = 16;
 
-    Complex* d_res1 = (Complex*) AllocScratch((blocks + m) * sizeof(Complex));
+    Complex* d_res1 = (Complex*)AllocScratch((blocks + m) * sizeof(Complex));
     Complex* d_res2 = d_res1 + blocks;
 
     IndicesH<G> d_i(d_ws);
 
-    ExpectationValueH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, num_iterations_per_block,
-        state.get(), Plus<double>(), d_res1);
+    ExpectationValueH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, num_iterations_per_block, state.get(),
+        Plus<double>(), d_res1);
 
     double mul = size == 1 ? 0.5 : 1.0;
 
@@ -503,15 +504,15 @@ class SimulatorCUDA final {
   }
 
   template <unsigned G>
-  std::complex<double> ExpectationValueL(const std::vector<unsigned>& qs,
-                                         const fp_type* matrix,
-                                         const State& state) const {
+  std::complex<double> ExpectationValueL(
+      const std::vector<unsigned>& qs, const fp_type* matrix,
+      const State& state) const {
     unsigned num_qubits = state.num_qubits();
 
     IndicesL<G> h_i(h_ws);
     auto num_effective_qs = GetIndicesL(num_qubits, qs, h_i);
 
-    std::memcpy((fp_type*) h_ws, matrix, h_i.matrix_size);
+    std::memcpy((fp_type*)h_ws, matrix, h_i.matrix_size);
     ErrorCheck(
         cudaMemcpyAsync(d_ws, h_ws, h_i.buf_size, cudaMemcpyHostToDevice));
 
@@ -526,13 +527,13 @@ class SimulatorCUDA final {
 
     constexpr unsigned m = 16;
 
-    Complex* d_res1 = (Complex*) AllocScratch((blocks + m) * sizeof(Complex));
+    Complex* d_res1 = (Complex*)AllocScratch((blocks + m) * sizeof(Complex));
     Complex* d_res2 = d_res1 + blocks;
 
     IndicesL<G> d_i(d_ws);
 
-    ExpectationValueL_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
+    ExpectationValueL_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         num_iterations_per_block, state.get(), Plus<double>(), d_res1);
 
     double mul = double(1 << (5 + num_effective_qs - G)) / 32;
@@ -542,13 +543,13 @@ class SimulatorCUDA final {
 
   template <unsigned m>
   std::complex<double> ExpectationValueReduceFinal(
-      unsigned blocks, double mul,
-      const Complex* d_res1, Complex* d_res2) const {
+      unsigned blocks, double mul, const Complex* d_res1,
+      Complex* d_res2) const {
     Complex res2[m];
 
     if (blocks <= 16) {
-      ErrorCheck(cudaMemcpy(res2, d_res1, blocks * sizeof(Complex),
-                            cudaMemcpyDeviceToHost));
+      ErrorCheck(cudaMemcpy(
+          res2, d_res1, blocks * sizeof(Complex), cudaMemcpyDeviceToHost));
     } else {
       unsigned threads2 = std::min(1024U, blocks);
       unsigned blocks2 = std::min(m, blocks / threads2);
@@ -559,8 +560,8 @@ class SimulatorCUDA final {
       Reduce2Kernel<Complex><<<blocks2, threads2, bytes>>>(
           dblocks, blocks, Plus<Complex>(), Plus<double>(), d_res1, d_res2);
 
-      ErrorCheck(cudaMemcpy(res2, d_res2, blocks2 * sizeof(Complex),
-                            cudaMemcpyDeviceToHost));
+      ErrorCheck(cudaMemcpy(
+          res2, d_res2, blocks2 * sizeof(Complex), cudaMemcpyDeviceToHost));
 
       blocks = blocks2;
     }
@@ -577,9 +578,10 @@ class SimulatorCUDA final {
   }
 
   template <typename AQ>
-  unsigned GetHighQubits(const std::vector<unsigned>& qs, unsigned qi,
-                         const std::vector<unsigned>& cqs, unsigned ci,
-                         unsigned ai, idx_type& cmaskh, AQ& aqs) const {
+  unsigned GetHighQubits(
+      const std::vector<unsigned>& qs, unsigned qi,
+      const std::vector<unsigned>& cqs, unsigned ci, unsigned ai,
+      idx_type& cmaskh, AQ& aqs) const {
     while (1) {
       if (qi < qs.size() && (ci == cqs.size() || qs[qi] < cqs[ci])) {
         aqs[ai++] = qs[qi++];
@@ -595,8 +597,8 @@ class SimulatorCUDA final {
   }
 
   template <typename QS>
-  void GetMs(unsigned num_qubits, const QS& qs, unsigned qs_size,
-             idx_type* ms) const {
+  void GetMs(
+      unsigned num_qubits, const QS& qs, unsigned qs_size, idx_type* ms) const {
     if (qs_size == 0) {
       ms[0] = idx_type(-1);
     } else {
@@ -611,8 +613,9 @@ class SimulatorCUDA final {
   }
 
   template <typename QS>
-  void GetXss(unsigned num_qubits, const QS& qs, unsigned qs_size,
-              idx_type* xss) const {
+  void GetXss(
+      unsigned num_qubits, const QS& qs, unsigned qs_size,
+      idx_type* xss) const {
     if (qs_size == 0) {
       xss[0] = 0;
     } else {
@@ -637,8 +640,9 @@ class SimulatorCUDA final {
   }
 
   template <unsigned G, typename qs_type>
-  void GetIndicesH(unsigned num_qubits, const qs_type& qs, unsigned qs_size,
-                   IndicesH<G>& indices) const {
+  void GetIndicesH(
+      unsigned num_qubits, const qs_type& qs, unsigned qs_size,
+      IndicesH<G>& indices) const {
     if (qs_size == 0) {
       indices.ms[0] = idx_type(-1);
       indices.xss[0] = 0;
@@ -667,8 +671,8 @@ class SimulatorCUDA final {
   }
 
   template <unsigned G>
-  void GetIndicesL(unsigned num_effective_qs, unsigned qmask,
-                   IndicesL<G>& indices) const {
+  void GetIndicesL(
+      unsigned num_effective_qs, unsigned qmask, IndicesL<G>& indices) const {
     for (unsigned i = num_effective_qs + 1; i < (G + 1); ++i) {
       indices.ms[i] = 0;
     }
@@ -688,8 +692,9 @@ class SimulatorCUDA final {
   }
 
   template <unsigned G>
-  unsigned GetIndicesL(unsigned num_qubits, const std::vector<unsigned>& qs,
-                       IndicesL<G>& indices) const {
+  unsigned GetIndicesL(
+      unsigned num_qubits, const std::vector<unsigned>& qs,
+      IndicesL<G>& indices) const {
     unsigned eqs[32];
 
     unsigned qmaskh = 0;
@@ -740,9 +745,10 @@ class SimulatorCUDA final {
   }
 
   template <unsigned G>
-  DataC GetIndicesLC(unsigned num_qubits, const std::vector<unsigned>& qs,
-                     const std::vector<unsigned>& cqs, uint64_t cvals,
-                     IndicesL<G>& indices) const {
+  DataC GetIndicesLC(
+      unsigned num_qubits, const std::vector<unsigned>& qs,
+      const std::vector<unsigned>& cqs, uint64_t cvals,
+      IndicesL<G>& indices) const {
     unsigned aqs[64];
     unsigned eqs[32];
 
@@ -800,9 +806,10 @@ class SimulatorCUDA final {
   }
 
   template <unsigned G>
-  DataC GetIndicesLCL(unsigned num_qubits, const std::vector<unsigned>& qs,
-                      const std::vector<unsigned>& cqs, uint64_t cvals,
-                      IndicesLC<G>& indices) const {
+  DataC GetIndicesLCL(
+      unsigned num_qubits, const std::vector<unsigned>& qs,
+      const std::vector<unsigned>& cqs, uint64_t cvals,
+      IndicesLC<G>& indices) const {
     unsigned aqs[64];
     unsigned eqs[32];
 
@@ -895,7 +902,6 @@ class SimulatorCUDA final {
     return {cvalsh, num_aqs, num_effective_qs, remaining_low_cqs};
   }
 
-
   void* AllocScratch(uint64_t size) const {
     if (size > scratch_size_) {
       if (scratch_ != nullptr) {
@@ -912,7 +918,7 @@ class SimulatorCUDA final {
 
   char* d_ws;
   char h_ws0[max_buf_size];
-  char* h_ws = (char*) h_ws0;
+  char* h_ws = (char*)h_ws0;
 
   void* scratch_;
   uint64_t scratch_size_;

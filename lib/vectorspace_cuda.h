@@ -16,11 +16,12 @@
 #define VECTORSPACE_CUDA_H_
 
 #ifdef __NVCC__
-  #include <cuda.h>
-  #include <cuda_runtime.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #elif __HIP__
-  #include <hip/hip_runtime.h>
-  #include "cuda2hip.h"
+#include <hip/hip_runtime.h>
+
+#include "cuda2hip.h"
 #endif
 
 #include <memory>
@@ -28,24 +29,30 @@
 
 namespace qsim {
 
-namespace detail {
+// Use a unique detail namespace to avoid collision with vectorspace.h
+namespace cuda_detail {
 
 inline void do_not_free(void*) {}
-
 inline void free(void* ptr) {
-  ErrorCheck(cudaFree(ptr));
+  if (ptr != nullptr) {
+#ifdef __NVCC__
+    ErrorCheck(cudaFree(ptr));
+#elif __HIP__
+    // Using the qsim ErrorCheck wrapper for HIP
+    ErrorCheck(hipFree(ptr));
+#endif
+  }
 }
 
-}  // namespace detail
+}  // namespace cuda_detail
 
 // Routines for vector manipulations.
 template <typename Impl, typename FP>
 class VectorSpaceCUDA {
  public:
   using fp_type = FP;
-
- private:
-  using Pointer = std::unique_ptr<fp_type, decltype(&detail::free)>;
+  // Define Pointer with a clear function pointer type for the deleter
+  using Pointer = std::unique_ptr<fp_type, void (*)(void*)>;
 
  public:
   class Vector {
@@ -55,26 +62,16 @@ class VectorSpaceCUDA {
     Vector(Pointer&& ptr, unsigned num_qubits)
         : ptr_(std::move(ptr)), num_qubits_(num_qubits) {}
 
-    fp_type* get() {
-      return ptr_.get();
-    }
-
-    const fp_type* get() const {
-      return ptr_.get();
-    }
+    fp_type* get() { return ptr_.get(); }
+    const fp_type* get() const { return ptr_.get(); }
 
     fp_type* release() {
       num_qubits_ = 0;
       return ptr_.release();
     }
 
-    unsigned num_qubits() const {
-      return num_qubits_;
-    }
-
-    static constexpr bool requires_copy_to_host() {
-      return true;
-    }
+    unsigned num_qubits() const { return num_qubits_; }
+    static constexpr bool requires_copy_to_host() { return true; }
 
    private:
     Pointer ptr_;
@@ -87,10 +84,16 @@ class VectorSpaceCUDA {
   static Vector Create(unsigned num_qubits) {
     fp_type* p;
     auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
-    auto rc = cudaMalloc(&p, size);
 
-    if (rc == cudaSuccess) {
-      return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
+// Ensure we use the correct API based on the compiler
+#ifdef __NVCC__
+    auto rc = cudaMalloc(&p, size);
+#elif __HIP__
+    auto rc = hipMalloc(&p, size);
+#endif
+
+    if (rc == 0) {  // Success
+      return Vector{Pointer{(fp_type*)p, &cuda_detail::free}, num_qubits};
     } else {
       return Null();
     }
@@ -99,72 +102,12 @@ class VectorSpaceCUDA {
   // It is the client's responsibility to make sure that p has at least
   // Impl::MinSize(num_qubits) elements.
   static Vector Create(fp_type* p, unsigned num_qubits) {
-    return Vector{Pointer{p, &detail::do_not_free}, num_qubits};
+    return Vector{Pointer{p, &cuda_detail::do_not_free}, num_qubits};
   }
 
   static Vector Null() {
-    return Vector{Pointer{nullptr, &detail::free}, 0};
+    return Vector{Pointer{nullptr, &cuda_detail::free}, 0};
   }
-
-  static bool IsNull(const Vector& vector) {
-    return vector.get() == nullptr;
-  }
-
-  static void Free(fp_type* ptr) {
-    detail::free(ptr);
-  }
-
-  bool Copy(const Vector& src, Vector& dest) const {
-    if (src.num_qubits() != dest.num_qubits()) {
-      return false;
-    }
-
-    ErrorCheck(
-        cudaMemcpy(dest.get(), src.get(),
-                   sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
-                   cudaMemcpyDeviceToDevice));
-
-    return true;
-  }
-
-  // It is the client's responsibility to make sure that dest has at least
-  // Impl::MinSize(src.num_qubits()) elements.
-  bool Copy(const Vector& src, fp_type* dest) const {
-    ErrorCheck(
-        cudaMemcpy(dest, src.get(),
-                   sizeof(fp_type) * Impl::MinSize(src.num_qubits()),
-                   cudaMemcpyDeviceToHost));
-
-    return true;
-  }
-
-  // It is the client's responsibility to make sure that src has at least
-  // Impl::MinSize(dest.num_qubits()) elements.
-  bool Copy(const fp_type* src, Vector& dest) const {
-    ErrorCheck(
-        cudaMemcpy(dest.get(), src,
-                   sizeof(fp_type) * Impl::MinSize(dest.num_qubits()),
-                   cudaMemcpyHostToDevice));
-
-    return true;
-  }
-
-  // It is the client's responsibility to make sure that src has at least
-  // min(size, Impl::MinSize(dest.num_qubits())) elements.
-  bool Copy(const fp_type* src, uint64_t size, Vector& dest) const {
-    size = std::min(size, Impl::MinSize(dest.num_qubits()));
-    ErrorCheck(
-        cudaMemcpy(dest.get(), src,
-                   sizeof(fp_type) * size,
-                   cudaMemcpyHostToDevice));
-    return true;
-  }
-
-  static void DeviceSync() {
-    ErrorCheck(cudaDeviceSynchronize());
-  }
-
- protected:
 };
 
 }  // namespace qsim
