@@ -16,11 +16,12 @@
 #define VECTORSPACE_CUDA_H_
 
 #ifdef __NVCC__
-  #include <cuda.h>
-  #include <cuda_runtime.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #elif __HIP__
-  #include <hip/hip_runtime.h>
-  #include "cuda2hip.h"
+#include <hip/hip_runtime.h>
+
+#include "cuda2hip.h"
 #endif
 
 #include <memory>
@@ -34,12 +35,12 @@ namespace cuda_detail {
 inline void do_not_free(void*) {}
 inline void free(void* ptr) {
   if (ptr != nullptr) {
-    #ifdef __NVCC__
-      ErrorCheck(cudaFree(ptr));
-    #elif __HIP__
-      // Using the qsim ErrorCheck wrapper for HIP
-      ErrorCheck(hipFree(ptr));
-    #endif
+#ifdef __NVCC__
+    ErrorCheck(cudaFree(ptr));
+#elif __HIP__
+    // Using the qsim ErrorCheck wrapper for HIP
+    ErrorCheck(hipFree(ptr));
+#endif
   }
 }
 
@@ -63,7 +64,7 @@ class VectorSpaceCUDA {
 
     fp_type* get() { return ptr_.get(); }
     const fp_type* get() const { return ptr_.get(); }
-    
+
     fp_type* release() {
       num_qubits_ = 0;
       return ptr_.release();
@@ -83,16 +84,16 @@ class VectorSpaceCUDA {
   static Vector Create(unsigned num_qubits) {
     fp_type* p;
     auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
-    
-    // Ensure we use the correct API based on the compiler
-    #ifdef __NVCC__
-      auto rc = cudaMalloc(&p, size);
-    #elif __HIP__
-      auto rc = hipMalloc(&p, size);
-    #endif
 
-    if (rc == 0) { // Success
-      return Vector{Pointer{(fp_type*) p, &cuda_detail::free}, num_qubits};
+// Ensure we use the correct API based on the compiler
+#ifdef __NVCC__
+    auto rc = cudaMalloc(&p, size);
+#elif __HIP__
+    auto rc = hipMalloc(&p, size);
+#endif
+
+    if (rc == 0) {  // Success
+      return Vector{Pointer{(fp_type*)p, &cuda_detail::free}, num_qubits};
     } else {
       return Null();
     }
@@ -107,7 +108,6 @@ class VectorSpaceCUDA {
   static Vector Null() {
     return Vector{Pointer{nullptr, &cuda_detail::free}, 0};
   }
-  
 };
 
 }  // namespace qsim

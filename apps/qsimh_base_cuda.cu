@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <unistd.h>
-
 #include <complex>
 #include <iomanip>
 #include <limits>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 #include "../lib/bitstring.h"
@@ -33,10 +32,11 @@
 #include "../lib/util.h"
 #include "../lib/util_cpu.h"
 
-constexpr char usage[] = "usage:\n  ./qsimh_base_hip.x -c circuit_file "
-                         "-d maximum_time -k part1_qubits "
-                         "-w prefix -p num_prefix_gates -r num_root_gates "
-                         "-t num_threads -n num_dblocks -v verbosity -z\n";
+constexpr char usage[] =
+    "usage:\n  ./qsimh_base_hip.x -c circuit_file "
+    "-d maximum_time -k part1_qubits "
+    "-w prefix -p num_prefix_gates -r num_root_gates "
+    "-t num_threads -n num_dblocks -v verbosity -z\n";
 
 struct Options {
   std::string circuit_file;
@@ -57,7 +57,7 @@ Options GetOptions(int argc, char* argv[]) {
   int k;
 
   auto to_int = [](const std::string& word) -> unsigned {
-    return std::atoi(word.c_str());
+    return std::stoul(word);
   };
 
   while ((k = getopt(argc, argv, "c:d:k:w:p:r:t:n:v:z")) != -1) {
@@ -66,28 +66,28 @@ Options GetOptions(int argc, char* argv[]) {
         opt.circuit_file = optarg;
         break;
       case 'd':
-        opt.maxtime = std::atoi(optarg);
+        opt.maxtime = std::stoul(optarg);
         break;
       case 'k':
         qsim::SplitString(optarg, ',', to_int, opt.part1);
         break;
       case 'w':
-        opt.prefix = std::atol(optarg);
+        opt.prefix = std::stoull(optarg);
         break;
       case 'p':
-        opt.num_prefix_gatexs = std::atoi(optarg);
+        opt.num_prefix_gatexs = std::stoul(optarg);
         break;
       case 'r':
-        opt.num_root_gatexs = std::atoi(optarg);
+        opt.num_root_gatexs = std::stoul(optarg);
         break;
       case 't':
-        opt.num_threads = std::atoi(optarg);
+        opt.num_threads = std::stoul(optarg);
         break;
       case 'n':
-        opt.num_dblocks = std::atoi(optarg);
+        opt.num_dblocks = std::stoul(optarg);
         break;
       case 'v':
-        opt.verbosity = std::atoi(optarg);
+        opt.verbosity = std::stoul(optarg);
         break;
       case 'z':
         opt.denormals_are_zeros = true;
@@ -142,8 +142,8 @@ int main(int argc, char* argv[]) {
   }
 
   Circuit<GateQSim<float>> circuit;
-  if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
-                                           circuit)) {
+  if (!CircuitQsimParser<IOFile>::FromFile(
+          opt.maxtime, opt.circuit_file, circuit)) {
     return 1;
   }
 
@@ -172,26 +172,24 @@ int main(int argc, char* argv[]) {
 
     Factory(const StateSpace::Parameter& param) : param(param) {}
 
-    StateSpace CreateStateSpace() const {
-      return StateSpace(param);
-    }
+    StateSpace CreateStateSpace() const { return StateSpace(param); }
 
-    Simulator CreateSimulator() const {
-      return Simulator();
-    }
+    Simulator CreateSimulator() const { return Simulator(); }
 
     const StateSpace::Parameter& param;
   };
 
-  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          For>;
+  using HybridSimulator =
+      HybridSimulator<IO, GateQSim<float>, BasicGateFuser, For>;
   using Runner = QSimHRunner<IO, HybridSimulator>;
 
   Runner::Parameter param;
   param.prefix = opt.prefix;
   param.num_prefix_gatexs = opt.num_prefix_gatexs;
   param.num_root_gatexs = opt.num_root_gatexs;
-  param.num_threads = opt.num_threads; // This is reused for StateSpaceCUDA params implicitly if not careful, but here we separate.
+  param.num_threads =
+      opt.num_threads;  // This is reused for StateSpaceCUDA params implicitly
+                        // if not careful, but here we separate.
   param.verbosity = opt.verbosity;
 
   std::vector<std::complex<Factory::fp_type>> results(num_bitstrings, 0);
@@ -205,15 +203,16 @@ int main(int argc, char* argv[]) {
 
   if (Runner::Run(param, factory, circuit, parts, bitstrings, results)) {
     static constexpr char const* bits[8] = {
-      "000", "001", "010", "011", "100", "101", "110", "111",
+        "000", "001", "010", "011", "100", "101", "110", "111",
     };
 
     unsigned s = 3 - std::min(unsigned{3}, circuit.num_qubits);
 
     for (std::size_t i = 0; i < num_bitstrings; ++i) {
       const auto& a = results[i];
-      qsim::IO::messagef("%s:%16.8g%16.8g%16.8g\n", bits[i] + s,
-                         std::real(a), std::imag(a), std::norm(a));
+      qsim::IO::messagef(
+          "%s:%16.8g%16.8g%16.8g\n", bits[i] + s, std::real(a), std::imag(a),
+          std::norm(a));
     }
   }
 

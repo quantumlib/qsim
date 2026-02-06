@@ -16,10 +16,11 @@
 #define STATESPACE_CUDA_KERNELS_H_
 
 #ifdef __NVCC__
-  #include <cuda.h>
+#include <cuda.h>
 #elif __HIP__
-  #include <hip/hip_runtime.h>
-  #include "cuda2hip.h"
+#include <hip/hip_runtime.h>
+
+#include "cuda2hip.h"
 #endif
 
 #include "util_cuda.h"
@@ -28,24 +29,19 @@ namespace qsim {
 
 namespace cuda_detail {
 
-__device__ __forceinline__ uint64_t GetBlockId() {
-  return uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-         uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
-}
-
-
-template <typename FP1, typename FP2,
-          typename Op1, typename Op2, typename Op3, unsigned warp_size = 32>
+template <
+    typename FP1, typename FP2, typename Op1, typename Op2, typename Op3,
+    unsigned warp_size = 32>
 __device__ __forceinline__ FP1 BlockReduce1(
     uint64_t n, Op1 op1, Op2 op2, Op3 op3, const FP2* s1, const FP2* s2) {
   extern __shared__ float shared[];
-  FP1* partial1 = (FP1*) shared;
+  FP1* partial1 = (FP1*)shared;
 
   unsigned tid = threadIdx.x;
   unsigned warp = threadIdx.x / warp_size;
   unsigned lane = threadIdx.x % warp_size;
 
-  uint64_t k0 = 2 * n * cuda_detail::GetBlockId() * blockDim.x + 2 * tid - lane;
+  uint64_t k0 = 2 * n * qsim::GetBlockId() * blockDim.x + 2 * tid - lane;
   uint64_t k1 = k0 + 2 * n * blockDim.x;
 
   FP1 r;
@@ -82,19 +78,20 @@ __device__ __forceinline__ FP1 BlockReduce1(
   return result;
 }
 
-template <typename FP1, typename FP2,
-          typename Op1, typename Op2, typename Op3, unsigned warp_size = 32>
+template <
+    typename FP1, typename FP2, typename Op1, typename Op2, typename Op3,
+    unsigned warp_size = 32>
 __device__ __forceinline__ FP1 BlockReduce1Masked(
     uint64_t n, uint64_t mask, uint64_t bits, Op1 op1, Op2 op2, Op3 op3,
     const FP2* s1, const FP2* s2) {
   extern __shared__ float shared[];
-  FP1* partial1 = (FP1*) shared;
+  FP1* partial1 = (FP1*)shared;
 
   unsigned tid = threadIdx.x;
   unsigned warp = threadIdx.x / warp_size;
   unsigned lane = threadIdx.x % warp_size;
 
-  uint64_t k0 = 2 * n * cuda_detail::GetBlockId() * blockDim.x + 2 * tid - lane;
+  uint64_t k0 = 2 * n * qsim::GetBlockId() * blockDim.x + 2 * tid - lane;
   uint64_t k1 = k0 + 2 * n * blockDim.x;
 
   FP1 r = 0;
@@ -135,15 +132,16 @@ __device__ __forceinline__ FP1 BlockReduce1Masked(
   return result;
 }
 
-template <typename FP1, typename FP2,
-          typename Op2, typename Op3, unsigned warp_size = 32>
-__device__ __forceinline__ FP1 BlockReduce2(
-    uint64_t n, uint64_t size, Op2 op2, Op3 op3, const FP2* s) {
+template <
+    typename FP1, typename FP2, typename Op2, typename Op3,
+    unsigned warp_size = 32>
+__device__ __forceinline__ FP1
+BlockReduce2(uint64_t n, uint64_t size, Op2 op2, Op3 op3, const FP2* s) {
   extern __shared__ float shared[];
-  FP1* partial1 = (FP1*) shared;
+  FP1* partial1 = (FP1*)shared;
 
   unsigned tid = threadIdx.x;
-  uint64_t k0 = n * cuda_detail::GetBlockId() * blockDim.x + tid;
+  uint64_t k0 = n * qsim::GetBlockId() * blockDim.x + tid;
   uint64_t k1 = k0 + n * blockDim.x;
 
   FP1 r = 0;
@@ -184,38 +182,42 @@ __device__ __forceinline__ FP1 BlockReduce2(
 
 }  // namespace cuda_detail
 
-template <typename FP1, typename FP2, typename FP3,
-          typename Op1, typename Op2, typename Op3, unsigned warp_size = 32>
-__global__ void Reduce1Kernel(uint64_t n, Op1 op1, Op2 op2, Op3 op3,
-                              const FP2* s1, const FP2* s2, FP3* result) {
+template <
+    typename FP1, typename FP2, typename FP3, typename Op1, typename Op2,
+    typename Op3, unsigned warp_size = 32>
+__global__ void Reduce1Kernel(
+    uint64_t n, Op1 op1, Op2 op2, Op3 op3, const FP2* s1, const FP2* s2,
+    FP3* result) {
   FP1 sum = cuda_detail::BlockReduce1<FP1>(n, op1, op2, op3, s1, s2);
 
   if (threadIdx.x == 0) {
-    result[cuda_detail::GetBlockId()] = sum;
+    result[qsim::GetBlockId()] = sum;
   }
 }
 
-template <typename FP1, typename FP2, typename FP3,
-          typename Op1, typename Op2, typename Op3, unsigned warp_size = 32>
-__global__ void Reduce1MaskedKernel(uint64_t n, uint64_t mask, uint64_t bits,
-                                    Op1 op1, Op2 op2, Op3 op3,
-                                    const FP2* s1, const FP2* s2, FP3* result) {
-  FP1 sum =
-      cuda_detail::BlockReduce1Masked<FP1>(n, mask, bits, op1, op2, op3, s1, s2);
+template <
+    typename FP1, typename FP2, typename FP3, typename Op1, typename Op2,
+    typename Op3, unsigned warp_size = 32>
+__global__ void Reduce1MaskedKernel(
+    uint64_t n, uint64_t mask, uint64_t bits, Op1 op1, Op2 op2, Op3 op3,
+    const FP2* s1, const FP2* s2, FP3* result) {
+  FP1 sum = cuda_detail::BlockReduce1Masked<FP1>(
+      n, mask, bits, op1, op2, op3, s1, s2);
 
   if (threadIdx.x == 0) {
-    result[cuda_detail::GetBlockId()] = sum;
+    result[qsim::GetBlockId()] = sum;
   }
 }
 
-template <typename FP1, typename FP2, typename FP3,
-          typename Op2, typename Op3, unsigned warp_size = 32>
+template <
+    typename FP1, typename FP2, typename FP3, typename Op2, typename Op3,
+    unsigned warp_size = 32>
 __global__ void Reduce2Kernel(
     uint64_t n, uint64_t size, Op2 op2, Op3 op3, const FP2* s, FP3* result) {
   FP1 sum = cuda_detail::BlockReduce2<FP1>(n, size, op2, op3, s);
 
   if (threadIdx.x == 0) {
-    result[cuda_detail::GetBlockId()] = sum;
+    result[qsim::GetBlockId()] = sum;
   }
 }
 
@@ -223,10 +225,10 @@ template <typename FP, unsigned warp_size = 32>
 __global__ void InternalToNormalOrderKernel(FP* state) {
   unsigned lane = threadIdx.x % warp_size;
   unsigned l = 2 * threadIdx.x - lane;
-  uint64_t k = 2 * uint64_t{cuda_detail::GetBlockId()} * blockDim.x + l;
+  uint64_t k = 2 * uint64_t{qsim::GetBlockId()} * blockDim.x + l;
 
   extern __shared__ float shared[];
-  FP* buf = (FP*) shared;
+  FP* buf = (FP*)shared;
 
   buf[l] = state[k];
   buf[l + warp_size] = state[k + warp_size];
@@ -241,10 +243,10 @@ template <typename FP, unsigned warp_size = 32>
 __global__ void NormalToInternalOrderKernel(FP* state) {
   unsigned lane = threadIdx.x % warp_size;
   unsigned l = 2 * threadIdx.x - lane;
-  uint64_t k = 2 * uint64_t{cuda_detail::GetBlockId()} * blockDim.x + l;
+  uint64_t k = 2 * uint64_t{qsim::GetBlockId()} * blockDim.x + l;
 
   extern __shared__ float shared[];
-  FP* buf = (FP*) shared;
+  FP* buf = (FP*)shared;
 
   buf[l] = state[k];
   buf[l + warp_size] = state[k + warp_size];
@@ -258,7 +260,8 @@ __global__ void NormalToInternalOrderKernel(FP* state) {
 template <typename FP, unsigned warp_size = 32>
 __global__ void SetStateUniformKernel(FP v, uint64_t size, FP* state) {
   unsigned lane = threadIdx.x % warp_size;
-  uint64_t k = 2 * (uint64_t{cuda_detail::GetBlockId()} * blockDim.x + threadIdx.x) - lane;
+  uint64_t k =
+      2 * (uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x) - lane;
 
   state[k] = lane < size ? v : 0;
   state[k + warp_size] = 0;
@@ -266,19 +269,19 @@ __global__ void SetStateUniformKernel(FP v, uint64_t size, FP* state) {
 
 template <typename FP, unsigned warp_size = 32>
 __global__ void AddKernel(const FP* state1, FP* state2) {
-  uint64_t k = uint64_t{cuda_detail::GetBlockId()} * blockDim.x + threadIdx.x;
+  uint64_t k = uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x;
   state2[k] += state1[k];
 }
 
 template <typename FP, unsigned warp_size = 32>
 __global__ void MultiplyKernel(FP a, FP* state) {
-  uint64_t k = uint64_t{cuda_detail::GetBlockId()} * blockDim.x + threadIdx.x;
+  uint64_t k = uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x;
   state[k] *= a;
 }
 
 template <typename FP, unsigned warp_size = 32>
 __global__ void CollapseKernel(uint64_t mask, uint64_t bits, FP r, FP* state) {
-  uint64_t k1 = uint64_t{cuda_detail::GetBlockId()} * blockDim.x + threadIdx.x;
+  uint64_t k1 = uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x;
   uint64_t k2 = 2 * k1 - threadIdx.x % warp_size;
 
   if ((k1 & mask) == bits) {
@@ -293,7 +296,7 @@ __global__ void CollapseKernel(uint64_t mask, uint64_t bits, FP r, FP* state) {
 template <typename FP, unsigned warp_size = 32>
 __global__ void BulkSetAmplKernel(
     uint64_t mask, uint64_t bits, FP re, FP im, bool exclude, FP* state) {
-  uint64_t k1 = uint64_t{cuda_detail::GetBlockId()} * blockDim.x + threadIdx.x;
+  uint64_t k1 = uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x;
   uint64_t k2 = 2 * k1 - threadIdx.x % warp_size;
 
   bool set = ((k1 & mask) == bits) ^ exclude;
@@ -305,10 +308,9 @@ __global__ void BulkSetAmplKernel(
 }
 
 template <typename FP1, typename FP2, typename FP3, unsigned warp_size = 32>
-__global__ void SampleKernel(unsigned num_blocks,
-                             uint64_t n, uint64_t num_samples,
-                             const FP1* rs, const FP2* ps, const FP3* state,
-                             uint64_t *bitstrings) {
+__global__ void SampleKernel(
+    unsigned num_blocks, uint64_t n, uint64_t num_samples, const FP1* rs,
+    const FP2* ps, const FP3* state, uint64_t* bitstrings) {
   // Use just one thread. This can be somewhat slow.
   if (threadIdx.x == 0) {
     uint64_t m = 0;
