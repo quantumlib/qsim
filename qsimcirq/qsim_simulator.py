@@ -133,6 +133,27 @@ class MeasInfo:
     end: int
 
 
+def _unpack_results(raw_results: Union[np.ndarray, List[int]], num_qubits: int) -> np.ndarray:
+    """Unpacks bit-packed integer results into a boolean array."""
+    if not isinstance(raw_results, np.ndarray):
+        raw_results = np.array(raw_results)
+
+    if raw_results.size == 0:
+        return np.zeros((0, num_qubits), dtype=bool)
+
+    if raw_results.dtype == object:
+        dtype = object
+    elif raw_results.dtype == np.uint64:
+        dtype = np.uint64
+    elif num_qubits > 63:
+        dtype = object
+    else:
+        dtype = np.int64
+
+    masks = 1 << np.arange(num_qubits - 1, -1, -1, dtype=dtype)
+    return (raw_results[:, None] & masks).astype(bool)
+
+
 class QSimSimulator(
     cirq.SimulatesSamples,
     cirq.SimulatesAmplitudes,
@@ -360,23 +381,7 @@ class QSimSimulator(
             )
             options["s"] = self.get_seed()
             raw_results = self._sim_module.qsim_sample_final(options, repetitions)
-            if not isinstance(raw_results, np.ndarray):
-                raw_results = np.array(raw_results)
-
-            if raw_results.size == 0:
-                full_results = np.zeros((0, num_qubits), dtype=bool)
-            else:
-                if raw_results.dtype == object:
-                    dtype = object
-                elif raw_results.dtype == np.uint64:
-                    dtype = np.uint64
-                elif num_qubits > 63:
-                    dtype = object
-                else:
-                    dtype = np.int64
-
-                masks = 1 << np.arange(num_qubits - 1, -1, -1, dtype=dtype)
-                full_results = (raw_results[:, None] & masks).astype(bool)
+            full_results = _unpack_results(raw_results, num_qubits)
 
             for key, oplist in meas_ops.items():
                 for i, op in enumerate(oplist):
