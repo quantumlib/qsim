@@ -33,6 +33,9 @@ __global__ void ApplyGateH_Kernel(
     const idx_type* __restrict__ mss, fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 64.
 
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
   constexpr unsigned gsize = 1 << G;
@@ -61,7 +64,7 @@ __global__ void ApplyGateH_Kernel(
 
   __syncthreads();
 
-  idx_type i = (64 * idx_type{blockIdx.x} + threadIdx.x) & 0xffffffffffe0;
+  idx_type i = (64 * idx_type{blockId} + threadIdx.x) & 0xffffffffffe0;
   idx_type ii = i & mss[0];
   for (unsigned j = 1; j <= G; ++j) {
     i *= 2;
@@ -115,6 +118,9 @@ __global__ void ApplyGateL_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
   constexpr unsigned gsize = 1 << G;
@@ -137,7 +143,7 @@ __global__ void ApplyGateL_Kernel(
     }
   }
 
-  idx_type i = 32 * idx_type{blockIdx.x};
+  idx_type i = 32 * idx_type{blockId};
   idx_type ii = i & mss[0];
   for (unsigned j = 1; j <= G; ++j) {
     i *= 2;
@@ -204,6 +210,9 @@ __global__ void ApplyControlledGateH_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 64.
 
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
   constexpr unsigned gsize = 1 << G;
@@ -232,7 +241,7 @@ __global__ void ApplyControlledGateH_Kernel(
 
   __syncthreads();
 
-  idx_type i = (64 * idx_type{blockIdx.x} + threadIdx.x) & 0xffffffffffe0;
+  idx_type i = (64 * idx_type{blockId} + threadIdx.x) & 0xffffffffffe0;
   idx_type ii = i & mss[0];
   for (unsigned j = 1; j < num_mss; ++j) {
     i *= 2;
@@ -288,6 +297,9 @@ __global__ void ApplyControlledGateLH_Kernel(
     unsigned esize, fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
   constexpr unsigned gsize = 1 << G;
@@ -300,7 +312,7 @@ __global__ void ApplyControlledGateLH_Kernel(
   __shared__ fp_type rs0[32][gsize + 1], is0[32][gsize + 1];
   __shared__ fp_type v[2 * gsize * rows];
 
-  idx_type i = 32 * idx_type{blockIdx.x};
+  idx_type i = 32 * idx_type{blockId};
   idx_type ii = i & mss[0];
   for (unsigned j = 1; j < num_mss; ++j) {
     i *= 2;
@@ -381,6 +393,9 @@ __global__ void ApplyControlledGateL_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
   constexpr unsigned gsize = 1 << G;
@@ -393,7 +408,7 @@ __global__ void ApplyControlledGateL_Kernel(
   __shared__ fp_type rs0[32][gsize + 1], is0[32][gsize + 1];
   __shared__ fp_type v[2 * gsize * rows];
 
-  idx_type i = 32 * idx_type{blockIdx.x};
+  idx_type i = 32 * idx_type{blockId};
   idx_type ii = i & mss[0];
   for (unsigned j = 1; j < num_mss; ++j) {
     i *= 2;
@@ -477,6 +492,9 @@ __global__ void ExpectationValueH_Kernel(
     const fp_type* __restrict__ rstate, Op op, cfp_type* __restrict__ result) {
   // blockDim.x must be equal to 64.
 
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
   constexpr unsigned gsize = 1 << G;
@@ -508,7 +526,7 @@ __global__ void ExpectationValueH_Kernel(
   double im = 0;
 
   for (unsigned iter = 0; iter < num_iterations_per_block; ++iter) {
-    idx_type b = num_iterations_per_block * idx_type{blockIdx.x} + iter;
+    idx_type b = num_iterations_per_block * idx_type{blockId} + iter;
 
     idx_type i = (64 * b + threadIdx.x) & 0xffffffffffe0;
     idx_type ii = i & mss[0];
@@ -573,8 +591,8 @@ __global__ void ExpectationValueH_Kernel(
   __syncthreads();
 
   if (threadIdx.x == 0) {
-    result[blockIdx.x].re = partial2[0].re + partial2[1].re;
-    result[blockIdx.x].im = partial2[0].im + partial2[1].im;
+    result[blockId].re = partial2[0].re + partial2[1].re;
+    result[blockId].im = partial2[0].im + partial2[1].im;
   }
 }
 
@@ -586,6 +604,9 @@ __global__ void ExpectationValueL_Kernel(
     const unsigned* __restrict__ tis, unsigned num_iterations_per_block,
     const fp_type* __restrict__ rstate, Op op, cfp_type* __restrict__ result) {
   // blockDim.x must be equal to 32.
+
+  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
+                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -612,7 +633,7 @@ __global__ void ExpectationValueL_Kernel(
   double im = 0;
 
   for (idx_type iter = 0; iter < num_iterations_per_block; ++iter) {
-    idx_type i = 32 * (num_iterations_per_block * idx_type{blockIdx.x} + iter);
+    idx_type i = 32 * (num_iterations_per_block * idx_type{blockId} + iter);
     idx_type ii = i & mss[0];
     for (unsigned j = 1; j <= G; ++j) {
       i *= 2;
@@ -673,8 +694,8 @@ __global__ void ExpectationValueL_Kernel(
   auto val = WarpReduce(partial[threadIdx.x], op);
 
   if (threadIdx.x == 0) {
-    result[blockIdx.x].re = val.re;
-    result[blockIdx.x].im = val.im;
+    result[blockId].re = val.re;
+    result[blockId].im = val.im;
   }
 }
 

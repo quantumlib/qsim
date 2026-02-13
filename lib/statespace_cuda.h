@@ -50,6 +50,7 @@ class StateSpaceCUDA :
     unsigned threads;
     unsigned dblocks;
     unsigned blocks;
+    dim3 device_grid;
   };
 
  public:
@@ -82,6 +83,16 @@ class StateSpaceCUDA :
     return std::max(uint64_t{64}, 2 * (uint64_t{1} << num_qubits));
   };
 
+  bool IsNull(const State& state) const { return state.get() == nullptr; }
+
+  void DeviceSync() const { ErrorCheck(cudaDeviceSynchronize()); }
+
+  void Copy(const State& src, State& dest) const {
+    ErrorCheck(cudaMemcpy(
+        dest.get(), src.get(), MinSize(src.num_qubits()) * sizeof(fp_type),
+        cudaMemcpyDeviceToDevice));
+  }
+
   void InternalToNormalOrder(State& state) const {
     uint64_t size = MinSize(state.num_qubits()) / 2;
 
@@ -89,7 +100,8 @@ class StateSpaceCUDA :
     unsigned blocks = size / threads;
     unsigned bytes = 2 * threads * sizeof(fp_type);
 
-    InternalToNormalOrderKernel<<<blocks, threads, bytes>>>(state.get());
+    InternalToNormalOrderKernel<<<CreateGrid(blocks), threads, bytes>>>(
+        state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -101,7 +113,8 @@ class StateSpaceCUDA :
     unsigned blocks = size / threads;
     unsigned bytes = 2 * threads * sizeof(fp_type);
 
-    NormalToInternalOrderKernel<<<blocks, threads, bytes>>>(state.get());
+    NormalToInternalOrderKernel<<<CreateGrid(blocks), threads, bytes>>>(
+        state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -121,7 +134,8 @@ class StateSpaceCUDA :
 
     fp_type v = double{1} / std::sqrt(hsize);
 
-    SetStateUniformKernel<<<blocks, threads>>>(v, hsize, state.get());
+    SetStateUniformKernel<<<CreateGrid(blocks), threads>>>(
+        v, hsize, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -180,7 +194,7 @@ class StateSpaceCUDA :
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
     unsigned blocks = size / threads;
 
-    BulkSetAmplKernel<<<blocks, threads>>>(
+    BulkSetAmplKernel<<<CreateGrid(blocks), threads>>>(
         mask, bits, re, im, exclude, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
@@ -197,7 +211,7 @@ class StateSpaceCUDA :
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
     unsigned blocks = size / threads;
 
-    AddKernel<<<blocks, threads>>>(src.get(), dest.get());
+    AddKernel<<<CreateGrid(blocks), threads>>>(src.get(), dest.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
 
@@ -211,7 +225,7 @@ class StateSpaceCUDA :
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
     unsigned blocks = size / threads;
 
-    MultiplyKernel<<<blocks, threads>>>(a, state.get());
+    MultiplyKernel<<<CreateGrid(blocks), threads>>>(a, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -262,7 +276,7 @@ class StateSpaceCUDA :
       auto op1 = RealProduct<fp_type>();
       auto op2 = Plus<double>();
 
-      Reduce1Kernel<double><<<g1.blocks, g1.threads, bytes>>>(
+      Reduce1Kernel<double><<<g1.device_grid, g1.threads, bytes>>>(
           g1.dblocks, op1, op2, op2, state.get(), state.get(), d_res1);
       ErrorCheck(cudaPeekAtLastError());
       ErrorCheck(cudaDeviceSynchronize());
@@ -278,7 +292,7 @@ class StateSpaceCUDA :
 
         auto op3 = Plus<double>();
 
-        Reduce2Kernel<double><<<g2.blocks, g2.threads, bytes>>>(
+        Reduce2Kernel<double><<<g2.device_grid, g2.threads, bytes>>>(
             g2.dblocks, g1.blocks, op3, op3, d_res1, d_res2);
         ErrorCheck(cudaPeekAtLastError());
         ErrorCheck(cudaDeviceSynchronize());
@@ -321,7 +335,8 @@ class StateSpaceCUDA :
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
     unsigned blocks = size / threads;
 
-    CollapseKernel<<<blocks, threads>>>(mr.mask, mr.bits, renorm, state.get());
+    CollapseKernel<<<CreateGrid(blocks), threads>>>(
+        mr.mask, mr.bits, renorm, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -337,7 +352,7 @@ class StateSpaceCUDA :
     auto op1 = RealProduct<fp_type>();
     auto op2 = Plus<double>();
 
-    Reduce1Kernel<double><<<g.blocks, g.threads, bytes>>>(
+    Reduce1Kernel<double><<<g.device_grid, g.threads, bytes>>>(
         g.dblocks, op1, op2, op2, state.get(), state.get(), d_res);
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
@@ -391,6 +406,7 @@ class StateSpaceCUDA :
     grid.threads = std::min(size, uint64_t{param_.num_threads});
     grid.dblocks = std::min(size / grid.threads, uint64_t{param_.num_dblocks});
     grid.blocks = size / (grid.threads * grid.dblocks);
+    grid.device_grid = CreateGrid(grid.blocks);
 
     return grid;
   }
@@ -401,6 +417,7 @@ class StateSpaceCUDA :
     grid.threads = std::min(param_.num_threads, std::max(32U, size));
     grid.dblocks = std::max(1U, size / grid.threads);
     grid.blocks = 1;
+    grid.device_grid = dim3(1, 1, 1);
 
     return grid;
   }
@@ -426,10 +443,10 @@ class StateSpaceCUDA :
     auto op3 = Plus<typename Scalar<FP1>::type>();
 
     if (mask == 0) {
-      Reduce1Kernel<FP1><<<g1.blocks, g1.threads, bytes>>>(
+      Reduce1Kernel<FP1><<<g1.device_grid, g1.threads, bytes>>>(
           g1.dblocks, op1, op2, op3, state1.get(), state2.get(), d_res1);
     } else {
-      Reduce1MaskedKernel<FP1><<<g1.blocks, g1.threads, bytes>>>(
+      Reduce1MaskedKernel<FP1><<<g1.device_grid, g1.threads, bytes>>>(
           g1.dblocks, mask, bits, op1, op2, op3, state1.get(), state2.get(),
           d_res1);
     }
@@ -448,7 +465,7 @@ class StateSpaceCUDA :
       auto op2 = Plus<FP2>();
       auto op3 = Plus<typename Scalar<FP2>::type>();
 
-      Reduce2Kernel<FP2><<<g2.blocks, g2.threads, bytes>>>(
+      Reduce2Kernel<FP2><<<g2.device_grid, g2.threads, bytes>>>(
           g2.dblocks, g1.blocks, op2, op3, d_res1, d_res2);
       ErrorCheck(cudaPeekAtLastError());
       ErrorCheck(cudaDeviceSynchronize());
