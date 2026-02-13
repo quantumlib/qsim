@@ -28,24 +28,30 @@
 
 namespace qsim {
 
-namespace detail {
+// Use a unique detail namespace to avoid collision with vectorspace.h
+namespace cuda_detail {
 
 inline void do_not_free(void*) {}
-
 inline void free(void* ptr) {
-  ErrorCheck(cudaFree(ptr));
+  if (ptr != nullptr) {
+#ifdef __NVCC__
+    ErrorCheck(cudaFree(ptr));
+#elif __HIP__
+    // Using the qsim ErrorCheck wrapper for HIP
+    ErrorCheck(hipFree(ptr));
+#endif
+  }
 }
 
-}  // namespace detail
+}  // namespace cuda_detail
 
 // Routines for vector manipulations.
 template <typename Impl, typename FP>
 class VectorSpaceCUDA {
  public:
   using fp_type = FP;
-
- private:
-  using Pointer = std::unique_ptr<fp_type, decltype(&detail::free)>;
+  // Define Pointer with a clear function pointer type for the deleter
+  using Pointer = std::unique_ptr<fp_type, void (*)(void*)>;
 
  public:
   class Vector {
@@ -86,11 +92,24 @@ class VectorSpaceCUDA {
 
   static Vector Create(unsigned num_qubits) {
     fp_type* p;
-    auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
-    auto rc = cudaMalloc(&p, size);
+    // Use explicit 64-bit calculation for large simulations (>30 qubits) to prevent overflow.
+    // Otherwise, keep original behavior to minimize impact.
+    uint64_t size;
+    if (num_qubits > 30) {
+      size = uint64_t{sizeof(fp_type)} * Impl::MinSize(num_qubits);
+    } else {
+      size = sizeof(fp_type) * Impl::MinSize(num_qubits);
+    }
 
-    if (rc == cudaSuccess) {
-      return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
+// Ensure we use the correct API based on the compiler
+#ifdef __NVCC__
+    auto rc = cudaMalloc(&p, size);
+#elif __HIP__
+    auto rc = hipMalloc(&p, size);
+#endif
+
+    if (rc == 0) {  // Success
+      return Vector{Pointer{(fp_type*)p, &cuda_detail::free}, num_qubits};
     } else {
       return Null();
     }
@@ -99,15 +118,11 @@ class VectorSpaceCUDA {
   // It is the client's responsibility to make sure that p has at least
   // Impl::MinSize(num_qubits) elements.
   static Vector Create(fp_type* p, unsigned num_qubits) {
-    return Vector{Pointer{p, &detail::do_not_free}, num_qubits};
+    return Vector{Pointer{p, &cuda_detail::do_not_free}, num_qubits};
   }
 
   static Vector Null() {
-    return Vector{Pointer{nullptr, &detail::free}, 0};
-  }
-
-  static bool IsNull(const Vector& vector) {
-    return vector.get() == nullptr;
+    return Vector{Pointer{nullptr, &cuda_detail::free}, 0};
   }
 
   static void Free(fp_type* ptr) {

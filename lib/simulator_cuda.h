@@ -350,8 +350,8 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyGateH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, state.get());
+    ApplyGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, state.get());
   }
 
   template <unsigned G>
@@ -374,8 +374,8 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyGateL_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
+    ApplyGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         1 << num_effective_qs, state.get());
   }
 
@@ -407,8 +407,8 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyControlledGateH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, num_aqs + 1, cvalsh, state.get());
+    ApplyControlledGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, num_aqs + 1, cvalsh, state.get());
   }
 
   template <unsigned G>
@@ -432,9 +432,9 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyControlledGateLH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
-        d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs, state.get());
+    ApplyControlledGateLH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d.num_aqs + 1,
+        d.cvalsh, 1 << d.num_effective_qs, state.get());
   }
 
   template <unsigned G>
@@ -458,8 +458,8 @@ class SimulatorCUDA final {
 
     IndicesLC<G> d_i(d_ws);
 
-    ApplyControlledGateL_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d_i.cis,
+    ApplyControlledGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d_i.cis,
         d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs,
         1 << (5 - d.remaining_low_cqs), state.get());
   }
@@ -493,9 +493,9 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ExpectationValueH_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, num_iterations_per_block,
-        state.get(), Plus<double>(), d_res1);
+    ExpectationValueH_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, num_iterations_per_block, state.get(),
+        Plus<double>(), d_res1);
 
     double mul = size == 1 ? 0.5 : 1.0;
 
@@ -531,8 +531,8 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ExpectationValueL_Kernel<G><<<blocks, threads>>>(
-        (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
+    ExpectationValueL_Kernel<G><<<CreateGrid(blocks), threads>>>(
+        (fp_type*)d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         num_iterations_per_block, state.get(), Plus<double>(), d_res1);
 
     double mul = double(1 << (5 + num_effective_qs - G)) / 32;
@@ -895,6 +895,12 @@ class SimulatorCUDA final {
     return {cvalsh, num_aqs, num_effective_qs, remaining_low_cqs};
   }
 
+  static dim3 CreateGrid(uint64_t blocks) {
+    if (blocks <= 65535) return dim3(blocks);
+    uint32_t x = 65535;
+    uint32_t y = (blocks + x - 1) / x;
+    return dim3(x, y);
+  }
 
   void* AllocScratch(uint64_t size) const {
     if (size > scratch_size_) {
