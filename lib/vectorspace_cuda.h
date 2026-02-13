@@ -105,6 +105,10 @@ class VectorSpaceCUDA {
     return Vector{Pointer{nullptr, &detail::free}, 0};
   }
 
+  static bool IsNull(const Vector& vector) {
+    return vector.get() == nullptr;
+  }
+
   static void Free(fp_type* ptr) {
     detail::free(ptr);
   }
