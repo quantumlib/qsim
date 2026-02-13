@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC. All Rights Reserved.
+// Copyright 2026 Google LLC. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@
 #include "../lib/util_cpu.h"
 
 constexpr char usage[] =
-    "usage:\n  ./qsimh_base_hip.x -c circuit_file "
+    "usage:\n  ./qsimh_base_cuda.x -c circuit_file "
     "-d maximum_time -k part1_qubits "
     "-w prefix -p num_prefix_gates -r num_root_gates "
     "-t num_threads -n num_dblocks -v verbosity -z\n";
