@@ -252,8 +252,7 @@ __global__ void NormalToInternalOrderKernel(FP* state) {
 template <typename FP, unsigned warp_size = 32>
 __global__ void SetStateUniformKernel(FP v, uint64_t size, FP* state) {
   unsigned lane = threadIdx.x % warp_size;
-  uint64_t k =
-      2 * (uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x) - lane;
+  uint64_t k = 2 * (uint64_t{qsim::GetBlockId()} * blockDim.x + threadIdx.x) - lane;
 
   state[k] = lane < size ? v : 0;
   state[k + warp_size] = 0;
