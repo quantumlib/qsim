@@ -88,8 +88,9 @@ class VectorSpaceCUDA {
     fp_type* p;
     uint64_t size = uint64_t{sizeof(fp_type)} * Impl::MinSize(num_qubits);
     auto rc = cudaMalloc(&p, size);
+    
     if (rc == cudaSuccess) {
-      return Vector{Pointer{(fp_type*)p, &detail::free}, num_qubits};
+      return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
     } else {
       return Null();
     }
