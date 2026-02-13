@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdexcept>
+
 #include <custatevecEx.h>
 
 #include "pybind_main_custatevecex.h"
@@ -33,18 +35,42 @@ namespace qsim {
   using Simulator = SimulatorCuStateVecEx<float>;
 
   struct Factory {
-    // num_sim_threads, num_state_threads and num_dblocks are unused, but kept
-    // for consistency with other factories.
-    Factory(unsigned num_sim_threads,
-            unsigned num_state_threads,
-            unsigned num_dblocks) {
-      if (!mp.initialized()) {
-        mp.initialize();
-      }
-    }
-
     using Simulator = qsim::Simulator;
     using StateSpace = Simulator::StateSpace;
+
+    explicit Factory(const py::dict& options) {
+      verbosity = ParseOptions<unsigned>(options, "v\0");
+      nwt = ParseOptions<unsigned>(options, "gnwt\0");
+
+      if (!mp.Initialized()) {
+        using MP = qsim::MultiProcessCuStateVecEx;
+
+        if (!mp.ValidNetworkType(nwt)) {
+          throw std::invalid_argument("Invalid network type.");
+        }
+
+        unsigned l = ParseOptions<unsigned>(options, "glbuf\0");
+        uint64_t buffer_size = uint64_t{1} << l;
+
+        MP::NetworkType network_type = static_cast<MP::NetworkType>(nwt);
+
+        MP::Parameter param;
+        param.transfer_buffer_size = buffer_size;
+        param.network_type = network_type;
+
+        mp.Initialize(param);
+
+        if (verbosity > 2 && mp.Initialized()) {
+          qsim::IO::messagef("transfer_buf_size=%lu\n", buffer_size);
+        }
+      }
+
+      if (!mp.Initialized()) {
+        if (!StateSpace::ValidDeviceNetworkType(nwt)) {
+          throw std::invalid_argument("Invalid device network type.");
+        }
+      }
+    }
 
     using Gate = Cirq::GateCirq<float>;
     using Runner = CuStateVecExRunner<IO, Factory>;
@@ -59,12 +85,21 @@ namespace qsim {
     };
 
     StateSpace CreateStateSpace() const {
-      return StateSpace{mp};
+      using NetworkType = StateSpace::DeviceNetworkType;
+
+      StateSpace::Parameter param;
+      param.device_network_type = static_cast<NetworkType>(nwt);
+      param.verbosity = verbosity;
+
+      return StateSpace{mp, param};
     }
 
     Simulator CreateSimulator() const {
       return Simulator{};
     }
+
+    unsigned verbosity = 0;
+    unsigned nwt = 0;
   };
 
   inline void SetFlushToZeroAndDenormalsAreZeros() {}
