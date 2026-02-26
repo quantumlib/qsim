@@ -30,7 +30,7 @@ ifeq ($(PYBIND11), true)
 endif
 
 # Default options for Pytest (only used if the pybind interface is built).
-PYTESTFLAGS ?= -v
+PYTESTFLAGS ?= -n auto -v
 
 # Default compilers and compiler flags.
 # Can be overriden via env variables or command-line flags.
