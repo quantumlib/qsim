@@ -26,39 +26,62 @@ eigen/
 ipython_config.py
 
 # Python-related items.
+*$py.class
+*.cover
 *.coverage
 *.coverage.*
 *.egg
 *.egg-info/
 *.py,cover
 *.py[cod]
+*.whl
 .cache/
 .dmypy.json
 .mypy_cache/
+.nox/
 .pytest_cache/
+.python-version
 .pytype/
 .ruff_cache/
+.tox/
 __pycache__/
 build/
+coverage.xml
 dist/
 dmypy.json
+sdist/
 wheelhouse/
 
 # Python virtual environments (from instructions given to people).
-CirqDevEnv
-venv
+CirqDevEnv/
+venv/
 
-# Generated files.
-*.o
+# Don't commit local PyPI config files.
+.pypirc
+
+# From pytest-benchmark.
+*.benchmarks/
+
+# Default pycharm virtual env.
+.venv/
+
+# Generated C/C++ files and libraries.
 *.a
+*.mod
+*.o
 *.so
 *.x
-*.mod
+
+# Executables
+*.exe
+*.out
 
 # Miscellaneous common editor backup files and temp files.
 *.bak
+*.log
 *.swp
 *.tmp
+*.~*~
 *~
 .\#*
 .idea/
