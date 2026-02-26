@@ -87,4 +87,5 @@ venv/
 .idea/
 .vs
 .vscode/
+.~*~
 \#*\#
