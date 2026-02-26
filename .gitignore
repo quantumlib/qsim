@@ -50,6 +50,7 @@ coverage.xml
 dist/
 dmypy.json
 sdist/
+wheelhouse/
 
 # Python virtual environments (from instructions given to people).
 CirqDevEnv/
@@ -70,7 +71,6 @@ venv/
 *.o
 *.so
 *.x
-a.out
 
 # Executables
 *.exe
