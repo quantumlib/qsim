@@ -27,12 +27,9 @@ namespace qsim {
   using Simulator = SimulatorBasic<For>;
 
   struct Factory {
-    // num_state_threads and num_dblocks are unused, but kept for consistency
-    // with the GPU Factory.
-    Factory(
-      unsigned num_sim_threads,
-      unsigned num_state_threads,
-      unsigned num_dblocks) : num_threads(num_sim_threads) {}
+    explicit Factory(const py::dict& options) {
+      num_threads = ParseOptions<unsigned>(options, "t\0");
+    }
 
     using Simulator = qsim::Simulator<For>;
     using StateSpace = Simulator::StateSpace;

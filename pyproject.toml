@@ -97,7 +97,7 @@ dev = [
     # mechanism to reference that list. Keep these versions in sync with above.
     "cmake~=3.28.1",
     "pybind11[global]",
-    "setuptools>=78.1.1; python_version >= '3.12'",
+    "setuptools>=78.1.1",
 
     # Other build, packaging, and distribution utilities.
     "cibuildwheel",
