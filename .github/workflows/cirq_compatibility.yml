@@ -63,5 +63,5 @@ jobs:
 
       - name: Run Python tests
         env:
-          PYTEST_ADDOPTS: ${{inputs.debug && '-v' || '' }}
+          PYTEST_ADDOPTS: ${{inputs.debug && '-n auto -v' || '-n auto' }}
         run: make -j run-py-tests
