@@ -128,12 +128,9 @@ build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
 dependency-versions = "latest"
 enable = ["cpython-prerelease"]
 environment.PIP_PREFER_BINARY = "1"
-# Due to package & module name conflict, temporarily move it away to run tests:
-before-test = "pip install --group dev && mv {package}/qsimcirq /tmp"
-test-command = """
-pytest -n auto -s -v {package}/qsimcirq_tests/qsimcirq_test.py &&
-mv /tmp/qsimcirq {package}
-"""
+before-test = "pip install --group dev"
+# import-mode=importlib prevents local source shadowing when importing qsimcirq.
+test-command = "pytest --import-mode=importlib -n auto -s -v {package}/qsimcirq_tests/qsimcirq_test.py"
 
 [[tool.cibuildwheel.overrides]]
 # Help increase the chances that pip will find binary wheels for NumPy.
