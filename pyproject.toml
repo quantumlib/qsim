@@ -135,6 +135,14 @@ pytest -n auto -s -v {package}/qsimcirq_tests/qsimcirq_test.py &&
 mv /tmp/qsimcirq {package}
 """
 
+[[tool.cibuildwheel.overrides]]
+# Help increase the chances that pip will find binary wheels for NumPy.
+# See https://cibuildwheel.pypa.io/en/stable/faq/#building-with-numpy
+select = ["cp314*"]
+inherit.environment = "append"
+environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/"
+environment.PIP_PRERELEASE = "allow"
+
 [tool.cibuildwheel.macos]
 before-build = """
 brew install -q libomp llvm@19 &&
