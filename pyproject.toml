@@ -104,7 +104,7 @@ dev = [
     "cibuildwheel",
 
     # Linters, formatters, and test utilities.
-    "black~=25.9.0",
+    "black~=26.1.0",
     "isort[colors]~=6.0.1",
     "py-cpuinfo",
     "pylint~=4.0.2",
