@@ -105,7 +105,7 @@ dev = [
 
     # Linters, formatters, and test utilities.
     "black~=25.9.0",
-    "isort[colors]~=6.0.1",
+    "isort[colors]~=8.0.1",
     "py-cpuinfo",
     "pylint~=4.0.2",
     "pytest",
