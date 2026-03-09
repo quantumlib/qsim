@@ -34,16 +34,6 @@ using namespace qsim;
 
 namespace {
 
-template <typename T>
-T parseOptions(const py::dict &options, const char *key) {
-  if (!options.contains(key)) {
-    std::string msg = std::string("Argument ") + key + " is not provided.\n";
-    throw std::invalid_argument(msg);
-  }
-  const auto &value = options[key];
-  return value.cast<T>();
-}
-
 Circuit<Factory::Gate> getCircuit(const py::dict &options) {
   try {
     return options["c\0"].cast<Circuit<Factory::Gate>>();
@@ -63,7 +53,7 @@ NoisyCircuit<Factory::Gate> getNoisyCircuit(const py::dict &options) {
 std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
   std::string bitstrings_str;
   try {
-    bitstrings_str = parseOptions<std::string>(options, "i\0");
+    bitstrings_str = ParseOptions<std::string>(options, "i\0");
   } catch (const std::invalid_argument &exp) {
     throw;
   }
@@ -389,40 +379,28 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     }
   };
 
-  bool use_gpu;
   bool denormals_are_zeros;
-  unsigned gpu_mode;
-  unsigned num_sim_threads = 0;
-  unsigned num_state_threads = 0;
-  unsigned num_dblocks = 0;
   RunnerParameter param;
+
   try {
-    use_gpu = parseOptions<unsigned>(options, "g\0");
-    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
-    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
-    if (use_gpu == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "t\0");
-    } else if (gpu_mode == 0) {
-      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
-      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    denormals_are_zeros = ParseOptions<unsigned>(options, "z\0");
+    param.max_fused_size = ParseOptions<unsigned>(options, "f\0");
+    param.verbosity = ParseOptions<unsigned>(options, "v\0");
+    param.seed = ParseOptions<unsigned>(options, "s\0");
+
+    if (denormals_are_zeros) {
+      SetFlushToZeroAndDenormalsAreZeros();
+    } else {
+      ClearFlushToZeroAndDenormalsAreZeros();
     }
-    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
-    param.verbosity = parseOptions<unsigned>(options, "v\0");
-    param.seed = parseOptions<unsigned>(options, "s\0");
+
+    Factory factory(options);
+    Runner::Run(param, factory, circuit, measure);
   } catch (const std::invalid_argument &exp) {
     IO::errorf("%s", exp.what());
     return {};
   }
 
-  if (denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  } else {
-    ClearFlushToZeroAndDenormalsAreZeros();
-  }
-
-  Runner::Run(
-    param, Factory(num_sim_threads, num_state_threads, num_dblocks), circuit,
-    measure);
   return amplitudes;
 }
 
@@ -450,54 +428,42 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
   amplitudes.reserve(bitstrings.size());
 
   NoisyRunnerParameter param;
-  bool use_gpu;
   bool denormals_are_zeros;
-  unsigned gpu_mode;
-  unsigned num_sim_threads = 0;
-  unsigned num_state_threads = 0;
-  unsigned num_dblocks = 0;
   uint64_t seed;
 
   try {
-    use_gpu = parseOptions<unsigned>(options, "g\0");
-    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
-    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
-    if (use_gpu == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "t\0");
-    } else if (gpu_mode == 0) {
-      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
-      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    denormals_are_zeros = ParseOptions<unsigned>(options, "z\0");
+    param.max_fused_size = ParseOptions<unsigned>(options, "f\0");
+    param.verbosity = ParseOptions<unsigned>(options, "v\0");
+    seed = ParseOptions<unsigned>(options, "s\0");
+
+    Factory factory(options);
+    Simulator simulator = factory.CreateSimulator();
+    StateSpace state_space = factory.CreateStateSpace();
+
+    auto measure = [&bitstrings, &amplitudes, &state_space](
+                    unsigned k, const State &state, NoisyRunner::Stat& stat) {
+      for (const auto &b : bitstrings) {
+        amplitudes.push_back(state_space.GetAmpl(state, b));
+      }
+    };
+
+    if (denormals_are_zeros) {
+      SetFlushToZeroAndDenormalsAreZeros();
+    } else {
+      ClearFlushToZeroAndDenormalsAreZeros();
     }
-    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
-    param.verbosity = parseOptions<unsigned>(options, "v\0");
-    seed = parseOptions<unsigned>(options, "s\0");
+
+    if (!NoisyRunner::RunBatch(param, ncircuit, seed, seed + 1, state_space,
+                               simulator, measure)) {
+      IO::errorf("qtrajectory simulation of the circuit errored out.\n");
+      return {};
+    }
   } catch (const std::invalid_argument &exp) {
     IO::errorf("%s", exp.what());
     return {};
   }
 
-  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
-  Simulator simulator = factory.CreateSimulator();
-  StateSpace state_space = factory.CreateStateSpace();
-
-  auto measure = [&bitstrings, &amplitudes, &state_space](
-                  unsigned k, const State &state, NoisyRunner::Stat& stat) {
-    for (const auto &b : bitstrings) {
-      amplitudes.push_back(state_space.GetAmpl(state, b));
-    }
-  };
-
-  if (denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  } else {
-    ClearFlushToZeroAndDenormalsAreZeros();
-  }
-
-  if (!NoisyRunner::RunBatch(param, ncircuit, seed, seed + 1, state_space,
-                             simulator, measure)) {
-    IO::errorf("qtrajectory simulation of the circuit errored out.\n");
-    return {};
-  }
   return amplitudes;
 }
 
@@ -665,48 +631,38 @@ class SimulatorHelper {
 
  private:
   SimulatorHelper(const py::dict &options, bool noisy)
-      : factory(Factory(1, 1, 1)),
+      : factory(Factory(options)),
         state(StateSpace::Null()),
         scratch(StateSpace::Null()) {
     bool denormals_are_zeros;
     is_valid = false;
     is_noisy = noisy;
+
     try {
       if (is_noisy) {
         ncircuit = getNoisyCircuit(options);
         num_qubits = ncircuit.num_qubits;
-        noisy_reps = parseOptions<unsigned>(options, "r\0");
+        noisy_reps = ParseOptions<unsigned>(options, "r\0");
       } else {
         circuit = getCircuit(options);
         num_qubits = circuit.num_qubits;
       }
 
-      use_gpu = parseOptions<unsigned>(options, "g\0");
-      gpu_mode = parseOptions<unsigned>(options, "gmode\0");
-      denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
-      if (use_gpu == 0) {
-        num_sim_threads = parseOptions<unsigned>(options, "t\0");
-      } else if (gpu_mode == 0) {
-        num_state_threads = parseOptions<unsigned>(options, "gsst\0");
-        num_dblocks = parseOptions<unsigned>(options, "gdb\0");
-      }
-      max_fused_size = parseOptions<unsigned>(options, "f\0");
-      verbosity = parseOptions<unsigned>(options, "v\0");
-      seed = parseOptions<unsigned>(options, "s\0");
-
-      if (use_gpu == 0 || gpu_mode == 0) {
-        factory = Factory(num_sim_threads, num_state_threads, num_dblocks);
-      }
+      denormals_are_zeros = ParseOptions<unsigned>(options, "z\0");
+      max_fused_size = ParseOptions<unsigned>(options, "f\0");
+      verbosity = ParseOptions<unsigned>(options, "v\0");
+      seed = ParseOptions<unsigned>(options, "s\0");
 
       StateSpace state_space = factory.CreateStateSpace();
       state = state_space.Create(num_qubits);
-      is_valid = true;
 
       if (denormals_are_zeros) {
         SetFlushToZeroAndDenormalsAreZeros();
       } else {
         ClearFlushToZeroAndDenormalsAreZeros();
       }
+
+      is_valid = true;
     } catch (const std::invalid_argument &exp) {
       // If this triggers, is_valid is false.
       IO::errorf("%s", exp.what());
@@ -848,12 +804,7 @@ class SimulatorHelper {
   State state;
   State scratch;
 
-  bool use_gpu;
-  unsigned gpu_mode;
   unsigned num_qubits;
-  unsigned num_sim_threads;
-  unsigned num_state_threads;
-  unsigned num_dblocks;
   unsigned noisy_reps;
   unsigned max_fused_size;
   unsigned verbosity;
@@ -999,53 +950,43 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
   using State = StateSpace::State;
   using MeasurementResult = StateSpace::MeasurementResult;
 
-  bool use_gpu;
   bool denormals_are_zeros;
-  unsigned gpu_mode;
-  unsigned num_sim_threads = 0;
-  unsigned num_state_threads = 0;
-  unsigned num_dblocks = 0;
   RunnerParameter param;
+
+  std::vector<unsigned> result_bits;
+
   try {
-    use_gpu = parseOptions<unsigned>(options, "g\0");
-    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
-    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
-    if (use_gpu == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "t\0");
-    } else if (gpu_mode == 0) {
-      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
-      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
+    denormals_are_zeros = ParseOptions<unsigned>(options, "z\0");
+    param.max_fused_size = ParseOptions<unsigned>(options, "f\0");
+    param.verbosity = ParseOptions<unsigned>(options, "v\0");
+    param.seed = ParseOptions<unsigned>(options, "s\0");
+
+    std::vector<MeasurementResult> results;
+    Factory factory(options);
+    StateSpace state_space = factory.CreateStateSpace();
+    State state = state_space.Create(circuit.num_qubits);
+    state_space.SetStateZero(state);
+
+    if (denormals_are_zeros) {
+      SetFlushToZeroAndDenormalsAreZeros();
+    } else {
+      ClearFlushToZeroAndDenormalsAreZeros();
     }
-    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
-    param.verbosity = parseOptions<unsigned>(options, "v\0");
-    param.seed = parseOptions<unsigned>(options, "s\0");
+
+    if (!Runner::Run(param, factory, circuit, state, results)) {
+      IO::errorf("qsim sampling of the circuit errored out.\n");
+      return {};
+    }
+
+    for (const auto& result : results) {
+      result_bits.insert(result_bits.end(), result.bitstring.begin(),
+                         result.bitstring.end());
+    }
   } catch (const std::invalid_argument &exp) {
     IO::errorf("%s", exp.what());
     return {};
   }
 
-  std::vector<MeasurementResult> results;
-  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
-  StateSpace state_space = factory.CreateStateSpace();
-  State state = state_space.Create(circuit.num_qubits);
-  state_space.SetStateZero(state);
-
-  if (denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  } else {
-    ClearFlushToZeroAndDenormalsAreZeros();
-  }
-
-  if (!Runner::Run(param, factory, circuit, state, results)) {
-    IO::errorf("qsim sampling of the circuit errored out.\n");
-    return {};
-  }
-
-  std::vector<unsigned> result_bits;
-  for (const auto& result : results) {
-    result_bits.insert(result_bits.end(), result.bitstring.begin(),
-                       result.bitstring.end());
-  }
   return result_bits;
 }
 
@@ -1064,79 +1005,68 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
 
-  NoisyRunnerParameter param;
-  bool use_gpu;
   bool denormals_are_zeros;
-  unsigned gpu_mode;
-  unsigned num_sim_threads = 0;
-  unsigned num_state_threads = 0;
-  unsigned num_dblocks = 0;
+  NoisyRunnerParameter param;
   uint64_t seed;
 
+  std::vector<unsigned> result_bits;
+
   try {
-    use_gpu = parseOptions<unsigned>(options, "g\0");
-    gpu_mode = parseOptions<unsigned>(options, "gmode\0");
-    denormals_are_zeros = parseOptions<unsigned>(options, "z\0");
-    if (use_gpu == 0) {
-      num_sim_threads = parseOptions<unsigned>(options, "t\0");
-    } else if (gpu_mode == 0) {
-      num_state_threads = parseOptions<unsigned>(options, "gsst\0");
-      num_dblocks = parseOptions<unsigned>(options, "gdb\0");
-    }
-    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
-    param.verbosity = parseOptions<unsigned>(options, "v\0");
-    seed = parseOptions<unsigned>(options, "s\0");
+    denormals_are_zeros = ParseOptions<unsigned>(options, "z\0");
+    param.max_fused_size = ParseOptions<unsigned>(options, "f\0");
+    param.verbosity = ParseOptions<unsigned>(options, "v\0");
+    seed = ParseOptions<unsigned>(options, "s\0");
     param.collect_mea_stat = true;
+
+    Factory factory(options);
+    Simulator simulator = factory.CreateSimulator();
+    StateSpace state_space = factory.CreateStateSpace();
+
+    std::vector<std::vector<unsigned>> results;
+
+    auto measure = [&results, &ncircuit](
+                    unsigned k, const State& state, NoisyRunner::Stat& stat) {
+      // Converts stat (which matches the MeasurementResult 'bits' field) into
+      // bitstrings matching the MeasurementResult 'bitstring' field.
+      unsigned idx = 0;
+      for (const auto& channel : ncircuit.channels) {
+        if (channel[0].kind != gate::kMeasurement)
+          continue;
+        for (const auto& op : channel[0].ops) {
+          std::vector<unsigned> bitstring;
+          uint64_t val = stat.samples[idx];
+          for (const auto& q : op.qubits) {
+            bitstring.push_back((val >> q) & 1);
+          }
+          results.push_back(bitstring);
+
+          idx += 1;
+          if (idx >= stat.samples.size())
+            return;
+        }
+      }
+    };
+
+    if (denormals_are_zeros) {
+      SetFlushToZeroAndDenormalsAreZeros();
+    } else {
+      ClearFlushToZeroAndDenormalsAreZeros();
+    }
+
+    if (!NoisyRunner::RunBatch(param, ncircuit, seed, seed + 1,
+                               state_space, simulator, measure)) {
+      IO::errorf("qtrajectory sampling of the circuit errored out.\n");
+      return {};
+    }
+
+    for (const auto& bitstring : results) {
+      result_bits.insert(result_bits.end(), bitstring.begin(), bitstring.end());
+    }
   } catch (const std::invalid_argument &exp) {
     IO::errorf("%s", exp.what());
     return {};
   }
 
-  Factory factory(num_sim_threads, num_state_threads, num_dblocks);
-  Simulator simulator = factory.CreateSimulator();
-  StateSpace state_space = factory.CreateStateSpace();
-
-  std::vector<std::vector<unsigned>> results;
-
-  auto measure = [&results, &ncircuit](
-                  unsigned k, const State& state, NoisyRunner::Stat& stat) {
-    // Converts stat (which matches the MeasurementResult 'bits' field) into
-    // bitstrings matching the MeasurementResult 'bitstring' field.
-    unsigned idx = 0;
-    for (const auto& channel : ncircuit.channels) {
-      if (channel[0].kind != gate::kMeasurement)
-        continue;
-      for (const auto& op : channel[0].ops) {
-        std::vector<unsigned> bitstring;
-        uint64_t val = stat.samples[idx];
-        for (const auto& q : op.qubits) {
-          bitstring.push_back((val >> q) & 1);
-        }
-        results.push_back(bitstring);
-
-        idx += 1;
-        if (idx >= stat.samples.size())
-          return;
-      }
-    }
-  };
-
-  if (denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  } else {
-    ClearFlushToZeroAndDenormalsAreZeros();
-  }
-
-  if (!NoisyRunner::RunBatch(param, ncircuit, seed, seed + 1,
-                             state_space, simulator, measure)) {
-    IO::errorf("qtrajectory sampling of the circuit errored out.\n");
-    return {};
-  }
-
-  std::vector<unsigned> result_bits;
-  for (const auto& bitstring : results) {
-    result_bits.insert(result_bits.end(), bitstring.begin(), bitstring.end());
-  }
   return result_bits;
 }
 
@@ -1155,36 +1085,37 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
   try {
     circuit = getCircuit(options);
     bitstrings = getBitstrings(options, circuit.num_qubits);
-    dense_parts = parseOptions<py::list>(options, "k\0");
-    param.prefix = parseOptions<uint64_t>(options, "w\0");
-    param.num_prefix_gatexs = parseOptions<unsigned>(options, "p\0");
-    param.num_root_gatexs = parseOptions<unsigned>(options, "r\0");
-    param.num_threads = parseOptions<unsigned>(options, "t\0");
-    param.max_fused_size = parseOptions<unsigned>(options, "f\0");
-    param.verbosity = parseOptions<unsigned>(options, "v\0");
+    dense_parts = ParseOptions<py::list>(options, "k\0");
+    param.prefix = ParseOptions<uint64_t>(options, "w\0");
+    param.num_prefix_gatexs = ParseOptions<unsigned>(options, "p\0");
+    param.num_root_gatexs = ParseOptions<unsigned>(options, "r\0");
+    param.num_threads = ParseOptions<unsigned>(options, "t\0");
+    param.max_fused_size = ParseOptions<unsigned>(options, "f\0");
+    param.verbosity = ParseOptions<unsigned>(options, "v\0");
+
+    std::vector<unsigned> parts(circuit.num_qubits, 0);
+    for (auto i : dense_parts) {
+      unsigned idx = i.cast<unsigned>();
+      if (idx >= circuit.num_qubits) {
+        IO::errorf("Invalid arguments are provided for arg k.\n");
+        return {};
+      }
+      parts[i.cast<unsigned>()] = 1;
+    }
+
+    // Define container for amplitudes
+    std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
+
+    Factory factory(options);
+
+    if (Runner::Run(param, factory, circuit, parts, bitstrings, amplitudes)) {
+      return amplitudes;
+    }
   } catch (const std::invalid_argument &exp) {
     IO::errorf("%s", exp.what());
     return {};
   }
 
-  std::vector<unsigned> parts(circuit.num_qubits, 0);
-  for (auto i : dense_parts) {
-    unsigned idx = i.cast<unsigned>();
-    if (idx >= circuit.num_qubits) {
-      IO::errorf("Invalid arguments are provided for arg k.\n");
-      return {};
-    }
-    parts[i.cast<unsigned>()] = 1;
-  }
-
-  // Define container for amplitudes
-  std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
-
-  Factory factory(param.num_threads, 0, 0);
-
-  if (Runner::Run(param, factory, circuit, parts, bitstrings, amplitudes)) {
-    return amplitudes;
-  }
   IO::errorf("qsimh simulation of the circuit errored out.\n");
   return {};
 }
