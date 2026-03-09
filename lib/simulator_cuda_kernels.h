@@ -18,12 +18,12 @@
 #ifdef __NVCC__
   #include <cuda.h>
   #include <cuda_runtime.h>
-
-  #include "util_cuda.h"
 #elif __HIP__
   #include <hip/hip_runtime.h>
   #include "cuda2hip.h"
 #endif
+
+#include "util_cuda.h"
 
 namespace qsim {
 
@@ -33,8 +33,7 @@ __global__ void ApplyGateH_Kernel(
     const idx_type* __restrict__ mss, fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 64.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -118,8 +117,7 @@ __global__ void ApplyGateL_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -210,8 +208,7 @@ __global__ void ApplyControlledGateH_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 64.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -297,8 +294,7 @@ __global__ void ApplyControlledGateLH_Kernel(
     unsigned esize, fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -393,8 +389,7 @@ __global__ void ApplyControlledGateL_Kernel(
     fp_type* __restrict__ rstate) {
   // blockDim.x must be equal to 32.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -492,8 +487,7 @@ __global__ void ExpectationValueH_Kernel(
     const fp_type* __restrict__ rstate, Op op, cfp_type* __restrict__ result) {
   // blockDim.x must be equal to 64.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
@@ -605,8 +599,7 @@ __global__ void ExpectationValueL_Kernel(
     const fp_type* __restrict__ rstate, Op op, cfp_type* __restrict__ result) {
   // blockDim.x must be equal to 32.
 
-  uint64_t blockId = uint64_t{blockIdx.z} * gridDim.x * gridDim.y +
-                     uint64_t{blockIdx.y} * gridDim.x + blockIdx.x;
+  uint64_t blockId = GetBlockId();
 
   static_assert(G < 7, "gates acting on more than 6 qubits are not supported.");
 
