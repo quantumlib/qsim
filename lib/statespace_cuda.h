@@ -52,7 +52,6 @@ class StateSpaceCUDA :
     dim3 blocks;
   };
 
-
  public:
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
