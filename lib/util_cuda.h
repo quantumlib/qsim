@@ -136,16 +136,16 @@ __device__ __forceinline__ uint64_t GetBlockId() {
 }
 
 inline dim3 CreateGrid(uint64_t blocks) {
-  if (blocks <= 65535) {
-    return dim3((uint32_t)blocks);
+  if (blocks <= 65536) {
+    return dim3((uint32_t) blocks);
   }
-  uint32_t x = 65535;
-  uint64_t rem = (blocks + x - 1) / x;
-  if (rem <= 65535) {
-    return dim3(x, (uint32_t)rem);
+  uint32_t x = 65536;
+  uint64_t rem = blocks / x;
+  if (rem <= 65536) {
+    return dim3(x, (uint32_t) rem);
   }
-  uint32_t y = 65535;
-  uint32_t z = (uint32_t)((rem + y - 1) / y);
+  uint32_t y = 65536;
+  uint32_t z = (uint32_t) (rem / y);
   return dim3(x, y, z);
 }
 
