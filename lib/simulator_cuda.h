@@ -479,11 +479,11 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + G;
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
 
     unsigned s = std::min(n >= 14 ? n - 14 : 0, 4U);
     unsigned threads = 64U;
-    uint64_t blocks = std::max(uint64_t{1}, (uint64_t{size} / 2) >> s);
+    uint64_t blocks = std::max(uint64_t{1}, (size / 2) >> s);
     unsigned num_iterations_per_block = 1 << s;
 
     constexpr unsigned m = 16;
@@ -517,11 +517,11 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + num_effective_qs;
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
 
     unsigned s = std::min(n >= 13 ? n - 13 : 0, 5U);
     unsigned threads = 32;
-    uint64_t blocks = uint64_t{size} >> s;
+    uint64_t blocks = size >> s;
     unsigned num_iterations_per_block = 1 << s;
 
     constexpr unsigned m = 16;
