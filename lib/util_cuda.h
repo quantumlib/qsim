@@ -141,10 +141,10 @@ inline dim3 CreateGrid(uint64_t blocks) {
   }
   uint32_t x = 65536;
   uint64_t rem = blocks / x;
-  if (rem <= 65536) {
+  if (rem <= 32768) {
     return dim3(x, (uint32_t) rem);
   }
-  uint32_t y = 65536;
+  uint32_t y = 32768;
   uint32_t z = (uint32_t) (rem / y);
   return dim3(x, y, z);
 }
