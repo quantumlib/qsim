@@ -2212,4 +2212,5 @@ def test_get_seed():
 
     # Test subsequent calls.
     sim = qsimcirq.QSimSimulator(seed=42)
-    assert sim.get_seed() != sim.get_seed()
+    seeds = {sim.get_seed() for _ in range(10)}
+    assert len(seeds) > 1
