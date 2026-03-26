@@ -2196,3 +2196,23 @@ def test_1d_representation():
     want = np.array([0.0 - 0.5j, 0.0 + 0.5j, 0.0 - 0.5j, 0.0 + 0.5j])
     _, res, _ = qsim_sim.simulate_into_1d_array(c)
     np.testing.assert_allclose(res, np.array(want, dtype=np.complex64))
+
+
+def test_add_op_to_circuit_unsupported_gate():
+    class UnsupportedGate(cirq.Gate):
+        def _num_qubits_(self) -> int:
+            return 1
+
+        def _unitary_(self):
+            return np.eye(2)
+
+        def __repr__(self):
+            return "UnsupportedGate()"
+
+    q0 = cirq.LineQubit(0)
+    op = UnsupportedGate().on(q0)
+    circuit = qsimcirq.qsim.Circuit()
+    qubit_to_index = {q0: 0}
+
+    with pytest.raises(ValueError, match="UnsupportedGate\(\) is not a supported gate."):
+        qsimcirq.add_op_to_circuit(op, 0, qubit_to_index, circuit)
