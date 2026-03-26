@@ -130,25 +130,6 @@ __device__ __forceinline__ FP1 WarpReduce(FP1 val, Op op) {
   return val;
 }
 
-__device__ __forceinline__ uint64_t GetBlockId() {
-  return (uint64_t{blockIdx.z} * gridDim.y + uint64_t{blockIdx.y})
-         * gridDim.x + blockIdx.x;
-}
-
-inline dim3 CreateGrid(uint64_t blocks) {
-  if (blocks <= 65536) {
-    return dim3((uint32_t) blocks);
-  }
-  uint32_t x = 65536;
-  uint64_t rem = blocks / x;
-  if (rem <= 32768) {
-    return dim3(x, (uint32_t) rem);
-  }
-  uint32_t y = 32768;
-  uint32_t z = (uint32_t) (rem / y);
-  return dim3(x, y, z);
-}
-
 template <typename FP1, typename Op, unsigned warp_size = 32>
 __device__ __forceinline__ Complex<FP1> WarpReduce(Complex<FP1> val, Op op) {
   for (unsigned i = warp_size / 2; i > 0; i /= 2) {

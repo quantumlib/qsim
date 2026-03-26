@@ -2214,5 +2214,7 @@ def test_add_op_to_circuit_unsupported_gate():
     circuit = qsimcirq.qsim.Circuit()
     qubit_to_index = {q0: 0}
 
-    with pytest.raises(ValueError, match="UnsupportedGate\(\) is not a supported gate."):
+    with pytest.raises(
+        ValueError, match="UnsupportedGate\(\) is not a supported gate."
+    ):
         qsimcirq.add_op_to_circuit(op, 0, qubit_to_index, circuit)

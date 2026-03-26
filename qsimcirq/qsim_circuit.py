@@ -272,7 +272,7 @@ def add_op_to_circuit(
     qsim_gate = qsim_op.gate
     gate_kind = _cirq_gate_kind(qsim_gate)
     if gate_kind is None:
-        raise ValueError("{!r} is not a supported gate.".format(qsim_gate))
+        raise ValueError(f"{qsim_gate!r} is not a supported gate.")
     qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
 
     qsim_qubits = qubits
