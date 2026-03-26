@@ -2196,3 +2196,20 @@ def test_1d_representation():
     want = np.array([0.0 - 0.5j, 0.0 + 0.5j, 0.0 - 0.5j, 0.0 + 0.5j])
     _, res, _ = qsim_sim.simulate_into_1d_array(c)
     np.testing.assert_allclose(res, np.array(want, dtype=np.complex64))
+
+
+def test_get_seed():
+    # Test range.
+    qsim_sim = qsimcirq.QSimSimulator(seed=42)
+    for _ in range(100):
+        seed = qsim_sim.get_seed()
+        assert 0 <= seed < 2**31 - 1
+
+    # Test determinism.
+    sim1 = qsimcirq.QSimSimulator(seed=42)
+    sim2 = qsimcirq.QSimSimulator(seed=42)
+    assert sim1.get_seed() == sim2.get_seed()
+
+    # Test subsequent calls.
+    sim = qsimcirq.QSimSimulator(seed=42)
+    assert sim.get_seed() != sim.get_seed()
