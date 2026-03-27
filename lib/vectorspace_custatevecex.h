@@ -546,9 +546,6 @@ class VectorSpaceCuStateVecEx {
 
     ErrorCheck(custatevecExStateVectorSynchronize(dest.get()));
 
-    // TODO: do we need that?
-    dest.to_normal_order();
-
     return true;
   }
 
@@ -575,9 +572,6 @@ class VectorSpaceCuStateVecEx {
     }
 
     ErrorCheck(custatevecExStateVectorSynchronize(dest.get()));
-
-    // TODO: do we need that?
-    dest.to_normal_order();
 
     return true;
   }
