@@ -306,9 +306,10 @@ def add_op_to_circuit(
                 time, qsim_qubits, qsim_gate._diag_angles_radians, circuit
             )
     elif gate_kind == qsim.kMatrixGate:
-        m = [
-            val for i in list(cirq.unitary(qsim_gate).flat) for val in [i.real, i.imag]
-        ]
+        m = []
+        for i in cirq.unitary(qsim_gate).flat:
+            m.append(i.real)
+            m.append(i.imag)
         if isinstance(circuit, qsim.Circuit):
             qsim.add_matrix_gate(time, qsim_qubits, m, circuit)
         else:
