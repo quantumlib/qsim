@@ -45,12 +45,10 @@ include_directories($ENV{CUQUANTUM_ROOT}/include)
 link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
 
 add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
-target_link_libraries(qsim_custatevec -lcustatevec -lcublas)
-
 set_target_properties(qsim_custatevec PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_custatevec.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_custatevec PRIVATE qsim_openmp_config)
+target_link_libraries(qsim_custatevec PRIVATE qsim_openmp_config -lcustatevec -lcublas)

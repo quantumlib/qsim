@@ -24,13 +24,9 @@ namespace qsim {
   using Simulator = SimulatorCUDA<float>;
 
   struct Factory {
-    Factory(
-      unsigned num_sim_threads,
-      unsigned num_state_threads,
-      unsigned num_dblocks
-    ) {
-      ss_params.num_threads = num_state_threads;
-      ss_params.num_dblocks = num_dblocks;
+    explicit Factory(const py::dict& options) {
+      ss_params.num_threads = ParseOptions<unsigned>(options, "gsst\0");
+      ss_params.num_dblocks = ParseOptions<unsigned>(options, "gdb\0");
     }
 
     using Simulator = qsim::Simulator;
