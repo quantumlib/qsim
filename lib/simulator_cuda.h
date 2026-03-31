@@ -344,13 +344,13 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + G;
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
     unsigned threads = 64U;
-    unsigned blocks = std::max(1U, size / 2);
+    uint64_t blocks = std::max(uint64_t{1}, size / 2);
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyGateH_Kernel<G><<<blocks, threads>>>(
+    ApplyGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, state.get());
   }
 
@@ -368,13 +368,13 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + num_effective_qs;
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
     unsigned threads = 32;
-    unsigned blocks = size;
+    uint64_t blocks = size;
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyGateL_Kernel<G><<<blocks, threads>>>(
+    ApplyGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         1 << num_effective_qs, state.get());
   }
@@ -401,13 +401,13 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + G + cqs.size();
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
     unsigned threads = 64U;
-    unsigned blocks = std::max(1U, size / 2);
+    uint64_t blocks = std::max(uint64_t{1}, size / 2);
 
     IndicesH<G> d_i(d_ws);
 
-    ApplyControlledGateH_Kernel<G><<<blocks, threads>>>(
+    ApplyControlledGateH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, num_aqs + 1, cvalsh, state.get());
   }
 
@@ -426,13 +426,13 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + G + cqs.size();
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
     unsigned threads = 32;
-    unsigned blocks = size;
+    uint64_t blocks = size;
 
     IndicesL<G> d_i(d_ws);
 
-    ApplyControlledGateLH_Kernel<G><<<blocks, threads>>>(
+    ApplyControlledGateLH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs, state.get());
   }
@@ -452,13 +452,13 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + G + cqs.size();
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
     unsigned threads = 32;
-    unsigned blocks = size;
+    uint64_t blocks = size;
 
     IndicesLC<G> d_i(d_ws);
 
-    ApplyControlledGateL_Kernel<G><<<blocks, threads>>>(
+    ApplyControlledGateL_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis, d_i.cis,
         d.num_aqs + 1, d.cvalsh, 1 << d.num_effective_qs,
         1 << (5 - d.remaining_low_cqs), state.get());
@@ -479,11 +479,11 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + G;
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
 
     unsigned s = std::min(n >= 14 ? n - 14 : 0, 4U);
     unsigned threads = 64U;
-    unsigned blocks = std::max(1U, (size / 2) >> s);
+    uint64_t blocks = std::max(uint64_t{1}, (size / 2) >> s);
     unsigned num_iterations_per_block = 1 << s;
 
     constexpr unsigned m = 16;
@@ -493,7 +493,7 @@ class SimulatorCUDA final {
 
     IndicesH<G> d_i(d_ws);
 
-    ExpectationValueH_Kernel<G><<<blocks, threads>>>(
+    ExpectationValueH_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, num_iterations_per_block,
         state.get(), Plus<double>(), d_res1);
 
@@ -517,11 +517,11 @@ class SimulatorCUDA final {
 
     unsigned k = 5 + num_effective_qs;
     unsigned n = num_qubits > k ? num_qubits - k : 0;
-    unsigned size = unsigned{1} << n;
+    uint64_t size = uint64_t{1} << n;
 
     unsigned s = std::min(n >= 13 ? n - 13 : 0, 5U);
     unsigned threads = 32;
-    unsigned blocks = size >> s;
+    uint64_t blocks = size >> s;
     unsigned num_iterations_per_block = 1 << s;
 
     constexpr unsigned m = 16;
@@ -531,7 +531,7 @@ class SimulatorCUDA final {
 
     IndicesL<G> d_i(d_ws);
 
-    ExpectationValueL_Kernel<G><<<blocks, threads>>>(
+    ExpectationValueL_Kernel<G><<<CreateGrid(blocks), threads>>>(
         (fp_type*) d_ws, d_i.xss, d_i.ms, d_i.qis, d_i.tis,
         num_iterations_per_block, state.get(), Plus<double>(), d_res1);
 
@@ -542,7 +542,7 @@ class SimulatorCUDA final {
 
   template <unsigned m>
   std::complex<double> ExpectationValueReduceFinal(
-      unsigned blocks, double mul,
+      uint64_t blocks, double mul,
       const Complex* d_res1, Complex* d_res2) const {
     Complex res2[m];
 
@@ -550,10 +550,10 @@ class SimulatorCUDA final {
       ErrorCheck(cudaMemcpy(res2, d_res1, blocks * sizeof(Complex),
                             cudaMemcpyDeviceToHost));
     } else {
-      unsigned threads2 = std::min(1024U, blocks);
-      unsigned blocks2 = std::min(m, blocks / threads2);
+      unsigned threads2 = std::min(uint64_t{1024}, blocks);
+      uint64_t blocks2 = std::min(uint64_t{m}, blocks / threads2);
 
-      unsigned dblocks = std::max(1U, blocks / (blocks2 * threads2));
+      unsigned dblocks = std::max(uint64_t{1}, blocks / (blocks2 * threads2));
       unsigned bytes = threads2 * sizeof(Complex);
 
       Reduce2Kernel<Complex><<<blocks2, threads2, bytes>>>(
@@ -568,7 +568,7 @@ class SimulatorCUDA final {
     double re = 0;
     double im = 0;
 
-    for (unsigned i = 0; i < blocks; ++i) {
+    for (uint64_t i = 0; i < blocks; ++i) {
       re += res2[i].re;
       im += res2[i].im;
     }
