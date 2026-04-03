@@ -72,12 +72,15 @@ mock_version.__version__ = "0.0.1"
 sys.modules["qsimcirq._version"] = mock_version
 
 # Now we can import the function to test
+# pylint: disable=wrong-import-position
 import qsimcirq.qsim_circuit as qsim_circuit
 
 # Manually override qsim in the module to use our mock types for isinstance
 qsim_circuit.qsim = mock_qsim
 
 from qsimcirq.qsim_circuit import add_op_to_circuit
+
+# pylint: enable=wrong-import-position
 
 
 class TestAddOpToCircuit(unittest.TestCase):
@@ -169,7 +172,7 @@ class TestAddOpToCircuit(unittest.TestCase):
             "qsimcirq.qsim_circuit._cirq_gate_kind", return_value=mock_qsim.kMatrixGate
         ):
             add_op_to_circuit(mock_op, 0, qubit_to_index_dict, mock_circuit)
-            # Expected flattened real/imag parts: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+            # Expect flattened real/imag parts: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
             expected_m = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
             mock_qsim.add_matrix_gate.assert_called_with(
                 0, [0], expected_m, mock_circuit
