@@ -46,6 +46,16 @@ CXXFLAGS := $(BASE_CXXFLAGS) $(CXXFLAGS)
 NVCCFLAGS := $(BASE_NVCCFLAGS) $(NVCCFLAGS)
 HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 
+# GCC 15 and Binutils 2.45+ generate SFrame stack unwinding info. The current
+# SFrame only supports a subset of x86_64 registers. When GCC optimizes AVX*
+# instructions, it uses additional registers, and that causes the assembler to
+# produce (many) warnings. They are harmless for qsim because it does not rely
+# on SFrame. Silence those warnings if the assembler supports it.
+SUPPORTS_GSFRAME := $(shell as --help 2>&1 | grep -isq "\-\-gsframe" && echo "true")
+ifeq ($(SUPPORTS_GSFRAME),true)
+    CXXFLAGS += -Wa,--gsframe=no
+endif
+
 LTO_FLAGS := -flto=auto
 USING_CLANG := $(shell $(CXX) --version | grep -isq clang && echo "true")
 ifeq ($(USING_CLANG),true)
@@ -241,7 +251,7 @@ clean:
 	-$(MAKE) -C pybind_interface/ clean
 
 LOCAL_VARS = TARGETS TESTS PYTESTS PYTESTFLAGS CXX CXXFLAGS NVCC NVCCFLAGS $\
-	HIPCC HIPCCFLAGS CUDA_PATH CUQUANTUM_ROOT CUSTATEVECFLAGS
+	HIPCC HIPCCFLAGS CUDA_PATH CUQUANTUM_ROOT CUSTATEVECFLAGS SUPPORTS_GSFRAME
 
 .PHONY: print-vars
 print-vars: ; @$(foreach n,$(sort $(LOCAL_VARS)),echo $n=$($n);)
