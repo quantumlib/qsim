@@ -51,7 +51,7 @@ HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 # instructions, it uses additional registers, and that causes the assembler to
 # produce (many) warnings. They are harmless for qsim because it does not rely
 # on SFrame. Silence those warnings if the assembler supports it.
-SUPPORTS_GSFRAME := $(shell as --help 2>&1 | grep -isq "\-\-gsframe" && echo "true")
+SUPPORTS_GSFRAME := $(shell $(CXX) -Wa,--gsframe=no -c -x c++ /dev/null -o /dev/null 2>/dev/null && echo "true")
 ifeq ($(SUPPORTS_GSFRAME),true)
     CXXFLAGS += -Wa,--gsframe=no
 endif
