@@ -24,7 +24,7 @@ PR_NUMBER, GITHUB_REPOSITORY, GITHUB_TOKEN.  The script is intended
 for automated execution from GitHub Actions workflow."
 
 declare -ar LABELS=(
-    "Size: XS"
+    "size: XS"
     "size: S"
     "size: M"
     "size: L"
@@ -110,30 +110,31 @@ function api_call() {
 
 function compute_changes() {
     local -r pr="$1"
+    local page=1
+    local total_changes=0
+    while true; do
+        local response
+        response="$(api_call "pulls/${pr}/files?per_page=100&page=${page}")"
 
-    local response
-    local change_info
-    local -r keys_filter='with_entries(select([.key] | inside(["changes", "filename"])))'
-    response="$(api_call "pulls/${pr}/files")"
-    change_info="$(jq_stdin "map(${keys_filter})" <<<"${response}")"
+        if [[ "$(jq_stdin '. | length' <<<"${response}")" -eq 0 ]]; then
+            break
+        fi
 
-    local files total_changes
-    readarray -t files < <(jq_stdin -c '.[]' <<<"${change_info}")
-    total_changes=0
-    for file in "${files[@]}"; do
         local name changes
-        name="$(jq_stdin -r '.filename' <<<"${file}")"
-        for pattern in "${IGNORED[@]}"; do
-            if [[ "$name" =~ ${pattern} ]]; then
-                info "File $name ignored"
-                continue 2
-            fi
-        done
-        changes="$(jq_stdin -r '.changes' <<<"${file}")"
-        info "File $name +-$changes"
-        total_changes="$((total_changes + changes))"
+        while IFS= read -r name && IFS= read -r changes; do
+            for pattern in "${IGNORED[@]}"; do
+                # shellcheck disable=SC2053  # Need leave the pattern unquoted.
+                if [[ "${name}" == ${pattern} ]]; then
+                    info "File ${name} ignored"
+                    continue 2
+                fi
+            done
+            info "File ${name} +-${changes}"
+            total_changes="$((total_changes + changes))"
+        done < <(jq_stdin -r '.[] | .filename, .changes' <<<"${response}")
+        ((page++))
     done
-    echo "$total_changes"
+    echo "${total_changes}"
 }
 
 function get_size_label() {
