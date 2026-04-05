@@ -51,7 +51,8 @@ HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 # instructions, it uses additional registers, and that causes the assembler to
 # produce (many) warnings. They are harmless for qsim because it does not rely
 # on SFrame. Silence those warnings if the assembler supports it.
-SUPPORTS_GSFRAME := $(shell $(CXX) -Wa,--gsframe=no -c -x c++ /dev/null -o /dev/null 2>/dev/null && echo "true")
+SUPPORTS_GSFRAME := $(shell $(CXX) -Wa,--gsframe=no -c -x c++ /dev/null \
+    -o /dev/null 2>/dev/null && echo "true")
 ifeq ($(SUPPORTS_GSFRAME),true)
     CXXFLAGS += -Wa,--gsframe=no
     NVCCFLAGS += -Xcompiler -Wa,--gsframe=no
@@ -138,7 +139,7 @@ ifneq (,$(strip $(CUQUANTUM_ROOT)))
     endif
 endif
 
-# Export all variables to subprocesses without having to export them individually.
+# Export all vars to subprocesses without having to export them individually.
 .EXPORT_ALL_VARIABLES:
 
 # The rest is build rules and make targets.
@@ -226,7 +227,7 @@ run-tests tests: $(TESTS)
 .PHONY: check-cuquantum-root-set
 check-cuquantum-root-set:
 	@if test -z "$(CUQUANTUM_ROOT)"; then \
-	    echo Error: '$$CUQUANTUM_ROOT must be set in order to use cuStateVec.'; \
+	    echo Error: 'Must set $$CUQUANTUM_ROOT to use cuStateVec.'; \
 	    exit 1; \
 	fi
 
