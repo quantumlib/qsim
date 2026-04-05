@@ -27,7 +27,6 @@
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/run_qsimh.h"
-#include "../lib/simmux.h"
 #include "../lib/simulator_basic.h"
 
 namespace qsim {
