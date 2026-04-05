@@ -311,7 +311,7 @@ depth beyond 20 qubits.
     *   The total small circuits runtime overhead for an N qubit circuit
         depends on the circuit depth and on N. The overhead can be large enough to
         conceal the  $2^N$ growth in runtime.
-*   NumPy version matters for large simulations:
+*   The NumPy version matters for large simulations:
     *   Some users have reported being unable to simulate circuits with more than
         ~32 qubits when using NumPy 1.26.
     *   Updating NumPy to version 2.x resolved the issue in these cases.
