@@ -879,6 +879,23 @@ def test_control_limits():
         _ = qsimSim.simulate(cirq.Circuit(CHHHHH), qubit_order=qubits)
 
 
+def test_add_op_to_circuit_too_many_targets():
+    # qsim supports up to 4 target qubits for controlled gates.
+    qubits = cirq.LineQubit.range(6)
+    # A gate with 5 targets and 1 control.
+    big_gate = (
+        cirq.MatrixGate(np.eye(32)).on(*qubits[1:]).controlled_by(qubits[0])
+    )
+
+    qsim_circuit = qsimcirq.qsim.Circuit()
+    qubit_to_index = {q: i for i, q in enumerate(qubits)}
+
+    with pytest.raises(
+        NotImplementedError, match="Received control gate on 5 target qubits"
+    ):
+        qsimcirq.add_op_to_circuit(big_gate, 0, qubit_to_index, qsim_circuit)
+
+
 def test_decomposable_gate():
     qubits = cirq.LineQubit.range(4)
 
