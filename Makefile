@@ -54,6 +54,8 @@ HIPCCFLAGS := $(BASE_HIPCCFLAGS) $(HIPCCFLAGS)
 SUPPORTS_GSFRAME := $(shell $(CXX) -Wa,--gsframe=no -c -x c++ /dev/null -o /dev/null 2>/dev/null && echo "true")
 ifeq ($(SUPPORTS_GSFRAME),true)
     CXXFLAGS += -Wa,--gsframe=no
+    NVCCFLAGS += -Xcompiler -Wa,--gsframe=no
+    HIPCCFLAGS += -Wa,--gsframe=no
 endif
 
 LTO_FLAGS := -flto=auto
