@@ -27,11 +27,7 @@ namespace qsim {
   using Simulator = SimulatorCuStateVec<float>;
 
   struct Factory {
-    // num_sim_threads, num_state_threads and num_dblocks are unused, but kept
-    // for consistency with other factories.
-    Factory(unsigned num_sim_threads,
-            unsigned num_state_threads,
-            unsigned num_dblocks) {
+    explicit Factory(const py::dict& options) {
       ErrorCheck(cublasCreate(&cublas_handle));
       ErrorCheck(custatevecCreate(&custatevec_handle));
     }

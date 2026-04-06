@@ -15,13 +15,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim LANGUAGES CXX CUDA)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-O3 -fno-lto)
+    add_compile_options(-fno-lto)
 endif()
 
 if(APPLE)
@@ -48,12 +45,10 @@ include_directories($ENV{CUQUANTUM_ROOT}/include)
 link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
 
 add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
-target_link_libraries(qsim_custatevec -lcustatevec -lcublas)
-
 set_target_properties(qsim_custatevec PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 set_source_files_properties(pybind_main_custatevec.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_custatevec OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_custatevec PRIVATE qsim_openmp_config -lcustatevec -lcublas)

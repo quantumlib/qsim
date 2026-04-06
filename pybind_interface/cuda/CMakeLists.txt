@@ -15,14 +15,11 @@
 cmake_minimum_required(VERSION 3.28)
 project(qsim LANGUAGES CXX CUDA)
 
-if(WIN32)
+if(MSVC)
     # Always apply AVX2 and openmp on Windows
     add_compile_options(/openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-O3 -fno-lto)
+    add_compile_options(-fno-lto)
 endif()
 
 if(APPLE)
@@ -60,4 +57,4 @@ set_target_properties(qsim_cuda PROPERTIES
 )
 set_source_files_properties(pybind_main_cuda.cpp PROPERTIES LANGUAGE CUDA)
 
-target_link_libraries(qsim_cuda OpenMP::OpenMP_CXX)
+target_link_libraries(qsim_cuda PRIVATE qsim_openmp_config)

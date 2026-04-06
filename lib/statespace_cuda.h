@@ -49,7 +49,7 @@ class StateSpaceCUDA :
   struct Grid {
     unsigned threads;
     unsigned dblocks;
-    unsigned blocks;
+    dim3 blocks;
   };
 
  public:
@@ -86,10 +86,10 @@ class StateSpaceCUDA :
     uint64_t size = MinSize(state.num_qubits()) / 2;
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
     unsigned bytes = 2 * threads * sizeof(fp_type);
 
-    InternalToNormalOrderKernel<<<blocks, threads, bytes>>>(state.get());
+    InternalToNormalOrderKernel<<<CreateGrid(blocks), threads, bytes>>>(state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -98,10 +98,10 @@ class StateSpaceCUDA :
     uint64_t size = MinSize(state.num_qubits()) / 2;
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
     unsigned bytes = 2 * threads * sizeof(fp_type);
 
-    NormalToInternalOrderKernel<<<blocks, threads, bytes>>>(state.get());
+    NormalToInternalOrderKernel<<<CreateGrid(blocks), threads, bytes>>>(state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -117,11 +117,11 @@ class StateSpaceCUDA :
     uint64_t hsize = uint64_t{1} << state.num_qubits();
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
 
     fp_type v = double{1} / std::sqrt(hsize);
 
-    SetStateUniformKernel<<<blocks, threads>>>(v, hsize, state.get());
+    SetStateUniformKernel<<<CreateGrid(blocks), threads>>>(v, hsize, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -178,9 +178,9 @@ class StateSpaceCUDA :
     uint64_t size = MinSize(state.num_qubits()) / 2;
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
 
-    BulkSetAmplKernel<<<blocks, threads>>>(
+    BulkSetAmplKernel<<<CreateGrid(blocks), threads>>>(
         mask, bits, re, im, exclude, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
@@ -195,9 +195,9 @@ class StateSpaceCUDA :
     uint64_t size = MinSize(src.num_qubits());
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
 
-    AddKernel<<<blocks, threads>>>(src.get(), dest.get());
+    AddKernel<<<CreateGrid(blocks), threads>>>(src.get(), dest.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
 
@@ -209,9 +209,9 @@ class StateSpaceCUDA :
     uint64_t size = MinSize(state.num_qubits());
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
 
-    MultiplyKernel<<<blocks, threads>>>(a, state.get());
+    MultiplyKernel<<<CreateGrid(blocks), threads>>>(a, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
@@ -248,15 +248,17 @@ class StateSpaceCUDA :
     if (num_samples > 0) {
       Grid g1 = GetGrid1(MinSize(state.num_qubits()) / 2);
       unsigned bytes = g1.threads * sizeof(double);
+      uint64_t num_blocks1 =
+          MinSize(state.num_qubits()) / 2 / (g1.threads * g1.dblocks);
 
-      unsigned scratch_size = (g1.blocks + 1) * sizeof(double)
+      unsigned scratch_size = (num_blocks1 + 1) * sizeof(double)
           + num_samples * (sizeof(uint64_t) + sizeof(DistrRealType));
 
       void* scratch = AllocScratch(scratch_size);
 
       double* d_res2 = (double*) scratch;
       double* d_res1 = d_res2 + 1;
-      uint64_t* d_bitstrings = (uint64_t*) (d_res1 + g1.blocks);
+      uint64_t* d_bitstrings = (uint64_t*) (d_res1 + num_blocks1);
       DistrRealType* d_rs = (DistrRealType *) (d_bitstrings + num_samples);
 
       auto op1 = RealProduct<fp_type>();
@@ -269,17 +271,17 @@ class StateSpaceCUDA :
 
       double norm;
 
-      if (g1.blocks == 1) {
+      if (num_blocks1 == 1) {
         ErrorCheck(
             cudaMemcpy(&norm, d_res1, sizeof(double), cudaMemcpyDeviceToHost));
       } else {
-        Grid g2 = GetGrid2(g1.blocks);
+        Grid g2 = GetGrid2(num_blocks1);
         unsigned bytes = g2.threads * sizeof(double);
 
         auto op3 = Plus<double>();
 
         Reduce2Kernel<double><<<g2.blocks, g2.threads, bytes>>>(
-            g2.dblocks, g1.blocks, op3, op3, d_res1, d_res2);
+            g2.dblocks, num_blocks1, op3, op3, d_res1, d_res2);
         ErrorCheck(cudaPeekAtLastError());
         ErrorCheck(cudaDeviceSynchronize());
 
@@ -294,7 +296,7 @@ class StateSpaceCUDA :
                             num_samples * sizeof(DistrRealType),
                             cudaMemcpyHostToDevice));
 
-      SampleKernel<<<1, g1.threads>>>(g1.blocks, g1.dblocks, num_samples,
+      SampleKernel<<<1, g1.threads>>>(num_blocks1, g1.dblocks, num_samples,
                                       d_rs, d_res1, state.get(), d_bitstrings);
       ErrorCheck(cudaPeekAtLastError());
       ErrorCheck(cudaDeviceSynchronize());
@@ -319,17 +321,19 @@ class StateSpaceCUDA :
     uint64_t size = MinSize(state.num_qubits()) / 2;
 
     unsigned threads = std::min(size, uint64_t{param_.num_threads});
-    unsigned blocks = size / threads;
+    uint64_t blocks = size / threads;
 
-    CollapseKernel<<<blocks, threads>>>(mr.mask, mr.bits, renorm, state.get());
+    CollapseKernel<<<CreateGrid(blocks), threads>>>(mr.mask, mr.bits, renorm, state.get());
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
   }
 
   std::vector<double> PartialNorms(const State& state) const {
     Grid g = GetGrid1(MinSize(state.num_qubits()) / 2);
+    uint64_t num_blocks =
+        MinSize(state.num_qubits()) / 2 / (g.threads * g.dblocks);
 
-    unsigned scratch_size = g.blocks * sizeof(double);
+    unsigned scratch_size = num_blocks * sizeof(double);
     unsigned bytes = g.threads * sizeof(double);
 
     double* d_res = (double*) AllocScratch(scratch_size);
@@ -342,7 +346,7 @@ class StateSpaceCUDA :
     ErrorCheck(cudaPeekAtLastError());
     ErrorCheck(cudaDeviceSynchronize());
 
-    std::vector<double> norms(g.blocks);
+    std::vector<double> norms(num_blocks);
 
     ErrorCheck(
         cudaMemcpy(norms.data(), d_res, scratch_size, cudaMemcpyDeviceToHost));
@@ -387,21 +391,18 @@ class StateSpaceCUDA :
 
   Grid GetGrid1(uint64_t size) const {
     Grid grid;
-
     grid.threads = std::min(size, uint64_t{param_.num_threads});
     grid.dblocks = std::min(size / grid.threads, uint64_t{param_.num_dblocks});
-    grid.blocks = size / (grid.threads * grid.dblocks);
-
+    uint64_t num_blocks = size / (grid.threads * grid.dblocks);
+    grid.blocks = CreateGrid(num_blocks);
     return grid;
   }
 
   Grid GetGrid2(unsigned size) const {
     Grid grid;
-
     grid.threads = std::min(param_.num_threads, std::max(32U, size));
     grid.dblocks = std::max(1U, size / grid.threads);
-    grid.blocks = 1;
-
+    grid.blocks = dim3(1, 1, 1);
     return grid;
   }
 
@@ -417,8 +418,9 @@ class StateSpaceCUDA :
 
     Grid g1 = GetGrid1(size);
     unsigned bytes = g1.threads * sizeof(FP1);
+    uint64_t num_blocks1 = size / (g1.threads * g1.dblocks);
 
-    FP2* d_res2 = (FP2*) AllocScratch((g1.blocks + 1) * sizeof(FP2));
+    FP2* d_res2 = (FP2*) AllocScratch((num_blocks1 + 1) * sizeof(FP2));
     FP2* d_res1 = d_res2 + 1;
 
     auto op1 = Op();
@@ -438,18 +440,18 @@ class StateSpaceCUDA :
 
     FP2 result;
 
-    if (g1.blocks == 1) {
+    if (num_blocks1 == 1) {
       ErrorCheck(
           cudaMemcpy(&result, d_res1, sizeof(FP2), cudaMemcpyDeviceToHost));
     } else {
-      Grid g2 = GetGrid2(g1.blocks);
+      Grid g2 = GetGrid2(num_blocks1);
       unsigned bytes = g2.threads * sizeof(FP2);
 
       auto op2 = Plus<FP2>();
       auto op3 = Plus<typename Scalar<FP2>::type>();
 
       Reduce2Kernel<FP2><<<g2.blocks, g2.threads, bytes>>>(
-          g2.dblocks, g1.blocks, op2, op3, d_res1, d_res2);
+          g2.dblocks, num_blocks1, op2, op3, d_res1, d_res2);
       ErrorCheck(cudaPeekAtLastError());
       ErrorCheck(cudaDeviceSynchronize());
 

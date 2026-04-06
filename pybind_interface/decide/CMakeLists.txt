@@ -18,13 +18,10 @@ project(qsim LANGUAGES CXX)
 include(CheckLanguage)
 check_language(CUDA)
 
-if(WIN32)
+if(MSVC)
     add_compile_options(/openmp)
-    # Add /O2 to any configuration that is NOT Debug.
-    # This prevents a conflict with /RTC1 in DEBUG builds.
-    add_compile_options($<$<NOT:$<CONFIG:Debug>>:/O2>)
 else()
-    add_compile_options(-O3 -fno-lto)
+    add_compile_options(-fno-lto)
 endif()
 
 if(APPLE)
@@ -64,7 +61,7 @@ if(CMAKE_CUDA_COMPILER)
         SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
     set_source_files_properties(decide.cpp PROPERTIES LANGUAGE CUDA)
-    target_link_libraries(qsim_decide OpenMP::OpenMP_CXX)
+
 elseif(has_hipcc)
     list(APPEND CMAKE_MODULE_PATH "/opt/rocm/lib/cmake/hip")
     find_package(HIP REQUIRED)
@@ -76,8 +73,9 @@ elseif(has_hipcc)
         PREFIX "${PYTHON_MODULE_PREFIX}"
         SUFFIX "${PYTHON_MODULE_EXTENSION}"
     )
-    target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
+
 else()
     pybind11_add_module(qsim_decide decide.cpp)
-    target_link_libraries(qsim_decide PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(qsim_decide PRIVATE qsim_openmp_config)

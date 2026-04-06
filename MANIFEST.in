@@ -1,6 +1,5 @@
-include requirements.txt
-include dev-requirements.txt
-include CMakeLists.txt
+# Thanks to setuptools-scm, the source distribution (sdist) will already include
+# all files tracked by git. Here we exclude some that are unsuitable.
 
-graft pybind_interface
-graft lib
+recursive-exclude .github *
+recursive-exclude dev_tools/ci *
