@@ -883,9 +883,7 @@ def test_add_op_to_circuit_too_many_targets():
     # qsim supports up to 4 target qubits for controlled gates.
     qubits = cirq.LineQubit.range(6)
     # A gate with 5 targets and 1 control.
-    big_gate = (
-        cirq.MatrixGate(np.eye(32)).on(*qubits[1:]).controlled_by(qubits[0])
-    )
+    big_gate = cirq.MatrixGate(np.eye(32)).on(*qubits[1:]).controlled_by(qubits[0])
 
     qsim_circuit = qsimcirq.qsim.Circuit()
     qubit_to_index = {q: i for i, q in enumerate(qubits)}
