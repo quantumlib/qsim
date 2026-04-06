@@ -180,6 +180,61 @@ def test_noise_alongside_multistep_decompose():
     assert result_hist[1] > 0
 
 
+def test_translate_cirq_to_qtrajectory():
+    q0, q1 = cirq.LineQubit.range(2)
+
+    # General circuit with unitary, mixture, and channel.
+    circuit = cirq.Circuit(
+        cirq.H(q0),
+        cirq.CNOT(q0, q1),
+        cirq.bit_flip(0.1)(q0),
+        cirq.depolarize(0.1)(q1),
+    )
+    qsim_circuit = qsimcirq.QSimCircuit(circuit)
+    qsim_ncircuit, moment_indices = qsim_circuit.translate_cirq_to_qtrajectory()
+
+    assert isinstance(qsim_ncircuit, qsimcirq.qsim.NoisyCircuit)
+    assert qsim_ncircuit.num_qubits == 2
+    # The circuit has 3 moments, and 4 gates are translated in total.
+    assert moment_indices == [1, 2, 4]
+
+    # Edge case: empty circuit.
+    circuit_empty = cirq.Circuit()
+    qsim_circuit_empty = qsimcirq.QSimCircuit(circuit_empty)
+    qsim_ncircuit_empty, moment_indices_empty = (
+        qsim_circuit_empty.translate_cirq_to_qtrajectory()
+    )
+
+    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.NoisyCircuit)
+    assert qsim_ncircuit_empty.num_qubits == 0
+    assert moment_indices_empty == []
+
+    # Edge case: circuit with only unitary gates.
+    circuit_unitary = cirq.Circuit(cirq.X(q0), cirq.H(q1))
+    qsim_circuit_unitary = qsimcirq.QSimCircuit(circuit_unitary)
+    qsim_ncircuit_unitary, moment_indices_unitary = (
+        qsim_circuit_unitary.translate_cirq_to_qtrajectory()
+    )
+
+    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.NoisyCircuit)
+    assert qsim_ncircuit_unitary.num_qubits == 2
+    assert moment_indices_unitary == [2]
+
+    # Edge case: unparseable operation.
+    class UnparseableOp(cirq.Operation):
+        @property
+        def qubits(self):
+            return (q0,)
+
+        def with_qubits(self, *new_qubits):
+            return self
+
+    circuit_unparseable = cirq.Circuit(UnparseableOp())
+    qsim_circuit_unparseable = qsimcirq.QSimCircuit(circuit_unparseable)
+    with pytest.raises(ValueError, match="Encountered unparseable op"):
+        qsim_circuit_unparseable.translate_cirq_to_qtrajectory()
+
+
 @pytest.mark.parametrize("mode", ["noiseless", "noisy"])
 def test_cirq_qsim_simulate(mode: str):
     # Pick qubits.
