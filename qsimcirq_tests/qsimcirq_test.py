@@ -218,7 +218,7 @@ def test_translate_cirq_to_qtrajectory():
 
     assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.NoisyCircuit)
     assert qsim_ncircuit_unitary.num_qubits == 2
-    assert len(moment_indices_unitary) == 1
+    assert moment_indices_unitary == [2]
 
     # Edge case: unparseable operation.
     class UnparseableOp(cirq.Operation):
