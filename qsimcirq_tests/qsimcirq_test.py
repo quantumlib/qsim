@@ -206,7 +206,7 @@ def test_translate_cirq_to_qtrajectory():
         qsim_circuit_empty.translate_cirq_to_qtrajectory()
     )
 
-    assert type(qsim_ncircuit_empty).__name__ == "NoisyCircuit"
+    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.NoisyCircuit)
     assert qsim_ncircuit_empty.num_qubits == 0
     assert len(moment_indices_empty) == 0
     assert moment_indices_empty == []
