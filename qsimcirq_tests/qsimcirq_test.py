@@ -218,7 +218,7 @@ def test_translate_cirq_to_qtrajectory():
         qsim_circuit_unitary.translate_cirq_to_qtrajectory()
     )
 
-    assert type(qsim_ncircuit_unitary).__name__ == "NoisyCircuit"
+    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.NoisyCircuit)
     assert qsim_ncircuit_unitary.num_qubits == 2
     assert len(moment_indices_unitary) == 1
 
