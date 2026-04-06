@@ -183,7 +183,7 @@ def test_noise_alongside_multistep_decompose():
 def test_translate_cirq_to_qtrajectory():
     q0, q1 = cirq.LineQubit.range(2)
 
-    # 1. General circuit with unitary, mixture, and channel
+    # General circuit with unitary, mixture, and channel.
     circuit = cirq.Circuit(
         cirq.H(q0),
         cirq.CNOT(q0, q1),
@@ -195,11 +195,11 @@ def test_translate_cirq_to_qtrajectory():
 
     assert isinstance(qsim_ncircuit, qsimcirq.qsim.NoisyCircuit)
     assert qsim_ncircuit.num_qubits == 2
-    # The circuit has 3 moments, and 4 gates are translated in total
+    # The circuit has 3 moments, and 4 gates are translated in total.
     assert len(moment_indices) == 3
     assert moment_indices == [1, 2, 4]
 
-    # 2. Edge case: Empty circuit
+    # Edge case: empty circuit.
     circuit_empty = cirq.Circuit()
     qsim_circuit_empty = qsimcirq.QSimCircuit(circuit_empty)
     qsim_ncircuit_empty, moment_indices_empty = (
@@ -211,7 +211,7 @@ def test_translate_cirq_to_qtrajectory():
     assert len(moment_indices_empty) == 0
     assert moment_indices_empty == []
 
-    # 3. Edge case: Circuit with only unitary gates
+    # Edge case: circuit with only unitary gates.
     circuit_unitary = cirq.Circuit(cirq.X(q0), cirq.H(q1))
     qsim_circuit_unitary = qsimcirq.QSimCircuit(circuit_unitary)
     qsim_ncircuit_unitary, moment_indices_unitary = (
@@ -222,7 +222,7 @@ def test_translate_cirq_to_qtrajectory():
     assert qsim_ncircuit_unitary.num_qubits == 2
     assert len(moment_indices_unitary) == 1
 
-    # 4. Edge case: Unparseable operation
+    # Edge case: unparseable operation.
     class UnparseableOp(cirq.Operation):
         @property
         def qubits(self):
