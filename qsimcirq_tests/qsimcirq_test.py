@@ -193,7 +193,7 @@ def test_translate_cirq_to_qtrajectory():
     qsim_circuit = qsimcirq.QSimCircuit(circuit)
     qsim_ncircuit, moment_indices = qsim_circuit.translate_cirq_to_qtrajectory()
 
-    assert type(qsim_ncircuit).__name__ == "NoisyCircuit"
+    assert isinstance(qsim_ncircuit, qsimcirq.qsim.NoisyCircuit)
     assert qsim_ncircuit.num_qubits == 2
     # The circuit has 3 moments, and 4 gates are translated in total
     assert len(moment_indices) == 3
