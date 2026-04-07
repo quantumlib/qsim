@@ -141,11 +141,11 @@ def test_simulate_matrix_gate_too_big():
     gate = cirq.MatrixGate(np.eye(128))
     circuit = cirq.Circuit(gate.on(*qubits))
 
-    qsimSim = qsimcirq.QSimSimulator()
+    qsim_sim = qsimcirq.QSimSimulator()
     with pytest.raises(
         NotImplementedError, match="only up to 6-qubit gates are supported"
     ):
-        qsimSim.compute_amplitudes(circuit, bitstrings=[0b0, 0b1])
+        qsim_sim.compute_amplitudes(circuit, bitstrings=[0b0, 0b1])
 
 
 def test_cirq_giant_identity():
