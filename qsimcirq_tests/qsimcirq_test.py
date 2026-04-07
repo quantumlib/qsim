@@ -18,6 +18,7 @@ import pytest
 import sympy
 
 import qsimcirq
+import qsimcirq.qsim_circuit
 
 
 class NoiseTrigger(cirq.Gate):
