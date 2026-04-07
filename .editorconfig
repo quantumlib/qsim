@@ -23,9 +23,10 @@ root = true
 charset = utf-8
 indent_style = space
 insert_final_newline = true
-spelling_language = en-US
-trim_trailing_whitespace = true
 max_line_length = 80
+spelling_language = en-US
+tab_width = 8
+trim_trailing_whitespace = true
 
 [{BUILD,*.BUILD,*.bzl,*.bazel,.bazelrc,WORKSPACE}]
 indent_size = 4
@@ -38,7 +39,6 @@ indent_size = 4
 
 [{Makefile,makefile,*.mk}]
 indent_style = tab
-indent_size = 4
 
 [{*.cc,*.h}]
 indent_size = 2
