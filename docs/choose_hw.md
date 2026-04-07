@@ -311,6 +311,18 @@ depth beyond 20 qubits.
     *   The total small circuits runtime overhead for an N qubit circuit
         depends on the circuit depth and on N. The overhead can be large enough to
         conceal the  $2^N$ growth in runtime.
+*   The NumPy version matters for large simulations:
+    *   NumPy 1.x defines a constant `NPY_MAXDIMS`, which is set to 32 in the
+        NumPy source code. Many internal NumPy structures, such as those for
+        iteration and coordinate tracking, use fixed-size buffers based on this
+        value. Although the C++ core of qsim is not affected by this (since it
+        does not use NumPy), this NumPy limit prevents state vectors from having
+        more than 32 qubits when using Python. Attempting to use 33 or more
+        qubits results in an error.
+    *   NumPy 2.x increased this limit to 64 dimensions, and qsim can work with
+        more than 32 qubit when NumPy 2.x is used. If you encounter unexpected
+        failures, memory errors, or hard limits on the number of qubits, ensure
+        you are running a recent NumPy version before further debugging.
 
 ## Sample benchmarks
 
