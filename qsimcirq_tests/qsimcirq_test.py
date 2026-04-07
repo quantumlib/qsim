@@ -18,6 +18,7 @@ import pytest
 import sympy
 
 import qsimcirq
+import qsimcirq.qsim_circuit
 
 
 class NoiseTrigger(cirq.Gate):
@@ -126,6 +127,26 @@ def test_cirq_too_big_gate():
     qsimSim = qsimcirq.QSimSimulator()
     with pytest.raises(NotImplementedError):
         qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
+
+
+def test_translate_matrix_gate_too_big():
+    gate = cirq.MatrixGate(np.eye(128))
+    with pytest.raises(
+        NotImplementedError, match="only up to 6-qubit gates are supported"
+    ):
+        qsimcirq.qsim_circuit._translate_MatrixGate(gate)
+
+
+def test_simulate_matrix_gate_too_big():
+    qubits = cirq.LineQubit.range(7)
+    gate = cirq.MatrixGate(np.eye(128))
+    circuit = cirq.Circuit(gate.on(*qubits))
+
+    qsim_sim = qsimcirq.QSimSimulator()
+    with pytest.raises(
+        NotImplementedError, match="only up to 6-qubit gates are supported"
+    ):
+        qsim_sim.compute_amplitudes(circuit, bitstrings=[0b0, 0b1])
 
 
 def test_cirq_giant_identity():
