@@ -525,8 +525,10 @@ class QSimSimulator(
                 qsim_state = fullstate_simulator_fn(options, initial_state)
             elif isinstance(initial_state, np.ndarray):
                 qsim_state = fullstate_simulator_fn(options, input_vector)
-            assert qsim_state.dtype == np.float32
-            assert qsim_state.ndim == 1
+            if qsim_state.dtype != np.float32:
+                raise TypeError("qsim_state must have dtype np.float32.")
+            if qsim_state.ndim != 1:
+                raise ValueError("qsim_state must be a 1D array.")
 
             yield prs, qsim_state.view(np.complex64), cirq_order
 
