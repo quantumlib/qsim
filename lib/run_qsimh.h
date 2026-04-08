@@ -28,7 +28,8 @@ namespace qsim {
  */
 template <typename IO, typename Fuser, typename HybridSimulator>
 struct QSimHRunner final {
-  using Parameter = typename HybridSimulator::Parameter<typename Fuser::Parameter>;
+  using Parameter =
+      typename HybridSimulator::template Parameter<typename Fuser::Parameter>;
 
   /**
    * Evaluates the amplitudes for a given circuit and set of output states.
