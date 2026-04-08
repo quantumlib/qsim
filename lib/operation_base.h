@@ -67,6 +67,9 @@ struct is_variant<std::variant<T...>> : std::true_type {};
 template <typename T>
 inline constexpr bool is_variant_v = is_variant<T>::value;
 
+template <typename...>
+inline constexpr bool always_false = false;
+
 }  // namespace detail
 
 /**
@@ -197,7 +200,8 @@ inline unsigned OpTime(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    static_assert(0, "OpQubits encountered an invalid type");
+    static_assert(
+        detail::always_false<O>, "OpQubits encountered an invalid type");
   }
 }
 
@@ -232,7 +236,8 @@ inline const Qubits& OpQubits(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    static_assert(0, "OpQubits encountered an invalid type");
+    static_assert(
+        detail::always_false<O>, "OpQubits encountered an invalid type");
   }
 }
 
@@ -268,7 +273,8 @@ inline BaseOperation& OpBaseOperation(Operation& op) {
 
     return std::visit(f, op);
   } else {
-    static_assert(0, "OpBaseOperation encountered an invalid type");
+    static_assert(
+        detail::always_false<O>, "OpBaseOperation encountered an invalid type");
   }
 }
 
@@ -303,7 +309,8 @@ inline const BaseOperation& OpBaseOperation(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    static_assert(0, "OpBaseOperation encountered an invalid type");
+    static_assert(
+        detail::always_false<O>, "OpBaseOperation encountered an invalid type");
   }
 }
 

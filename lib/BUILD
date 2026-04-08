@@ -251,6 +251,7 @@ cc_library(
     name = "run_qsim_lib",
     hdrs = [
         "bits.h",
+        "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",
@@ -299,6 +300,7 @@ cc_library(
     name = "run_qsimh_lib",
     hdrs = [
         "bits.h",
+        "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",
