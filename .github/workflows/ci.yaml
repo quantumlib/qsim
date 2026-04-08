@@ -173,9 +173,7 @@ jobs:
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/buildifier.json'
-          # shellcheck disable=SC2038
-          find . -name 'BUILD' -o -name '*.bzl' -o -name 'WORKSPACE' | \
-            xargs buildifier -mode=diff -lint=warn
+          buildifier -mode=diff -lint=warn -r .
 
   action-lint:
     name: GitHub Actions lint checks
