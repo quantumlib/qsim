@@ -106,13 +106,15 @@ jobs:
       - name: Run hadolint on Dockerfiles
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         env:
-          hadolint_version: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
+          sha: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
         run: |
           echo '::add-matcher::.github/problem-matchers/hadolint.json'
-          find . -name Dockerfile -print0 | \
-            xargs -0 -r docker run --rm -i -v "${PWD}:/app" -w /app \
-            --entrypoint /bin/hadolint \
-            ghcr.io/hadolint/hadolint@${{env.hadolint_version}}
+          shopt -s globstar
+          files=(**/Dockerfile*)
+          if [[ ${#files[@]} -gt 0 ]]; then
+            docker run --rm -v "${PWD}:/app" -w /app \
+            ghcr.io/hadolint/hadolint@${{env.sha}} /bin/hadolint "${files[@]}"
+          fi
 
   shell-lint:
     name: Shell script lint checks
