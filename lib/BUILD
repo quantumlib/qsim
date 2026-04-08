@@ -798,6 +798,8 @@ cc_library(
     deps = [
         ":gate",
         ":gate_appl",
+        ":gates_cirq",
+        ":gates_qsim",
     ],
 )
 

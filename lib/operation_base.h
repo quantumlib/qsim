@@ -197,7 +197,7 @@ inline unsigned OpTime(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    static_assert(0, "OpBaseOperation encountered an invalid type");
+    static_assert(0, "OpQubits encountered an invalid type");
   }
 }
 
@@ -232,7 +232,7 @@ inline const Qubits& OpQubits(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    static_assert(0, "OpBaseOperation encountered an invalid type");
+    static_assert(0, "OpQubits encountered an invalid type");
   }
 }
 
