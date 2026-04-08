@@ -75,12 +75,10 @@ enum GateKind {
   kMatrixGate2,  // Two-qubit matrix gate.
   kMatrixGate,   // Multi-qubit matrix gate.
   kGlobalPhaseGate,
-  kDecomp = gate::kDecomp,
-  kMeasurement = gate::kMeasurement,
 };
 
 template <typename fp_type>
-using GateCirq = Gate<fp_type, GateKind>;
+using GateCirq = Gate<fp_type>;
 
 constexpr double h_double = 0.5;
 constexpr double pi_double = 3.14159265358979323846264338327950288;
@@ -95,7 +93,7 @@ template <typename fp_type>
 struct GlobalPhaseGate {
   static constexpr GateKind kind = kGlobalPhaseGate;
   static constexpr char name[] = "GlobalPhaseGate";
-  static constexpr unsigned num_qubits = 1;
+  static constexpr unsigned num_qubits = 0;
   static constexpr bool symmetric = true;
 
   static GateCirq<fp_type> Create(unsigned time, fp_type phi) {
@@ -163,11 +161,12 @@ struct I {
   static constexpr char name[] = "I";
   static constexpr bool symmetric = true;
 
-  static GateCirq<fp_type> Create(unsigned time,
-                                  const std::vector<unsigned>& qubits) {
+  template <typename Q = Qubits>
+  static GateCirq<fp_type> Create(unsigned time, Q&& qubits) {
     Matrix<fp_type> matrix;
     MatrixIdentity(1 << qubits.size(), matrix);
-    return CreateGate<GateCirq<fp_type>, I>(time, qubits, std::move(matrix));
+    return CreateGate<GateCirq<fp_type>, I>(
+        time, std::forward<Q>(qubits), std::move(matrix));
   }
 };
 
@@ -1540,11 +1539,10 @@ struct MatrixGate1 {
   static constexpr unsigned num_qubits = 1;
   static constexpr bool symmetric = true;
 
-  static GateCirq<fp_type> Create(unsigned time, unsigned q0,
-                                  const Matrix<fp_type>& m) {
-    auto m2 = m;
-    return
-        CreateGate<GateCirq<fp_type>, MatrixGate1>(time, {q0}, std::move(m2));
+  template <typename M = Matrix<fp_type>>
+  static GateCirq<fp_type> Create(unsigned time, unsigned q0, M&& m) {
+    return CreateGate<GateCirq<fp_type>, MatrixGate1>(
+        time, {q0}, std::forward<M>(m));
   }
 };
 
@@ -1561,8 +1559,8 @@ struct MatrixGate2 {
   template <typename M = Matrix<fp_type>>
   static GateCirq<fp_type> Create(
       unsigned time, unsigned q0, unsigned q1, M&& m) {
-    return CreateGate<GateCirq<fp_type>, MatrixGate2>(time, {q1, q0},
-                                                      std::forward<M>(m));
+    return CreateGate<GateCirq<fp_type>, MatrixGate2>(
+        time, {q1, q0}, std::forward<M>(m));
   }
 };
 
@@ -1579,61 +1577,61 @@ struct MatrixGate {
   static GateCirq<fp_type> Create(unsigned time,
                                   std::vector<unsigned> qubits, M&& m) {
     std::reverse(qubits.begin(), qubits.end());
-    return CreateGate<GateCirq<fp_type>, MatrixGate>(time, std::move(qubits),
-                                                     std::forward<M>(m));
+    return CreateGate<GateCirq<fp_type>, MatrixGate>(
+        time, qubits, std::forward<M>(m));
   }
 };
 
-}  // namesapce Cirq
-
 template <typename fp_type>
 inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
-    Cirq::GateKind kind, const std::vector<fp_type>& params) {
+    unsigned kind, const std::vector<fp_type>& params) {
   switch (kind) {
-  case Cirq::kI2:
-    return Cirq::I2<fp_type>::SchmidtDecomp();
-  case Cirq::kCZPowGate:
-    return Cirq::CZPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kCXPowGate:
-    return Cirq::CXPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kCZ:
-    return Cirq::CZ<fp_type>::SchmidtDecomp();
-  case Cirq::kCX:
-    return Cirq::CX<fp_type>::SchmidtDecomp();
-  case Cirq::kXXPowGate:
-    return Cirq::XXPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kYYPowGate:
-    return Cirq::YYPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kZZPowGate:
-    return Cirq::ZZPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kXX:
-    return Cirq::XX<fp_type>::SchmidtDecomp();
-  case Cirq::kYY:
-    return Cirq::YY<fp_type>::SchmidtDecomp();
-  case Cirq::kZZ:
-    return Cirq::ZZ<fp_type>::SchmidtDecomp();
-  case Cirq::kSwapPowGate:
-    return Cirq::SwapPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kISwapPowGate:
-    return Cirq::ISwapPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
-  case Cirq::kriswap:
-    return Cirq::riswap<fp_type>::SchmidtDecomp(params[0]);
-  case Cirq::kSWAP:
-    return Cirq::SWAP<fp_type>::SchmidtDecomp();
-  case Cirq::kISWAP:
-    return Cirq::ISWAP<fp_type>::SchmidtDecomp();
-  case Cirq::kPhasedISwapPowGate:
-    return Cirq::PhasedISwapPowGate<fp_type>::SchmidtDecomp(
+  case kI2:
+    return I2<fp_type>::SchmidtDecomp();
+  case kCZPowGate:
+    return CZPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kCXPowGate:
+    return CXPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kCZ:
+    return CZ<fp_type>::SchmidtDecomp();
+  case kCX:
+    return CX<fp_type>::SchmidtDecomp();
+  case kXXPowGate:
+    return XXPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kYYPowGate:
+    return YYPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kZZPowGate:
+    return ZZPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kXX:
+    return XX<fp_type>::SchmidtDecomp();
+  case kYY:
+    return YY<fp_type>::SchmidtDecomp();
+  case kZZ:
+    return ZZ<fp_type>::SchmidtDecomp();
+  case kSwapPowGate:
+    return SwapPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kISwapPowGate:
+    return ISwapPowGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kriswap:
+    return riswap<fp_type>::SchmidtDecomp(params[0]);
+  case kSWAP:
+    return SWAP<fp_type>::SchmidtDecomp();
+  case kISWAP:
+    return ISWAP<fp_type>::SchmidtDecomp();
+  case kPhasedISwapPowGate:
+    return PhasedISwapPowGate<fp_type>::SchmidtDecomp(
         params[0], params[1]);
-  case Cirq::kgivens:
-    return Cirq::givens<fp_type>::SchmidtDecomp(params[0]);
-  case Cirq::kFSimGate:
-    return Cirq::FSimGate<fp_type>::SchmidtDecomp(params[0], params[1]);
+  case kgivens:
+    return givens<fp_type>::SchmidtDecomp(params[0]);
+  case kFSimGate:
+    return FSimGate<fp_type>::SchmidtDecomp(params[0], params[1]);
   default:
     // Single qubit gates of gates with unimplemented Schmidt decomposition.
     return schmidt_decomp_type<fp_type>{};
   }
 }
+
+}  // namesapce Cirq
 
 }  // namespace qsim
 

@@ -20,10 +20,12 @@
 #include <cmath>
 #include <vector>
 
+#include "gtest/gtest.h"
+
 #include "../lib/fuser.h"
+#include "../lib/gate.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_cirq.h"
-#include "gtest/gtest.h"
 
 namespace qsim {
 
@@ -425,11 +427,11 @@ void TestApplyFusedGate() {
   std::vector<Gate> gates = {Cirq::H<fp_type>::Create(0, 0),
                              Cirq::H<fp_type>::Create(1, 0)};
 
-  GateFused<Gate> fgate {Cirq::kH, 0, {0}, &gates[0],
-                         {&gates[0], &gates[1]}, {}};
+  FusedGate<fp_type> fgate {Cirq::kH, 0, {0}, &gates[0],
+                            {&gates[0], &gates[1]}, {}};
 
   CalculateFusedMatrix(fgate);
-  ApplyFusedGate(uc, fgate, u);
+  ApplyGate(uc, fgate, u);
 
   unsigned size = 1 << num_qubits;
   for (unsigned i = 0; i < size; ++i) {

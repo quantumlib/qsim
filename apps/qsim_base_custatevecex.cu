@@ -21,9 +21,9 @@
 
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
 #include "../lib/multiprocess_custatevecex.h"
+#include "../lib/operation.h"
 #include "../lib/run_custatevecex.h"
 #include "../lib/simulator_custatevecex.h"
 #include "../lib/util_custatevec.h"
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
 
   using fp_type = float;
 
-  Circuit<GateQSim<fp_type>> circuit;
+  Circuit<Operation<fp_type>> circuit;
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
                                            circuit)) {
     return 1;

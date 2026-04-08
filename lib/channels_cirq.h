@@ -26,9 +26,6 @@ namespace qsim {
 
 namespace Cirq {
 
-template <typename fp_type>
-using Channel = qsim::Channel<GateCirq<fp_type>>;
-
 /**
  * Asymmetric depolarizing channel factory.
  */
@@ -43,12 +40,15 @@ struct AsymmetricDepolarizingChannel {
                                  double p_x, double p_y, double p_z) {
     double p1 = 1 - p_x - p_y - p_z;
 
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
-
-    return {{normal, 1, p1, {}},
-            {normal, 1, p_x, {X<fp_type>::Create(time, q)}},
-            {normal, 1, p_y, {Y<fp_type>::Create(time, q)}},
-            {normal, 1, p_z, {Z<fp_type>::Create(time, q)}}};
+    return {
+      {kChannel, time, {q}},
+      {
+        {true, p1, {}},
+        {true, p_x, {X<fp_type>::Create(time, q)}},
+        {true, p_y, {Y<fp_type>::Create(time, q)}},
+        {true, p_z, {Z<fp_type>::Create(time, q)}},
+      }
+    };
   }
 
   static Channel<fp_type> Create(unsigned time,
@@ -56,16 +56,14 @@ struct AsymmetricDepolarizingChannel {
                                  double p_x, double p_y, double p_z) {
     double p1 = 1 - p_x - p_y - p_z;
 
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
-
     uint64_t size = uint64_t{1} << (2 * qubits.size());
 
-    Channel<fp_type> channel;
-    channel.reserve(size);
+    Channel<fp_type> channel{{kChannel, time, qubits}, {}};
+    channel.kops.reserve(size);
 
     for (uint64_t i = 0; i < size; ++i) {
-      channel.push_back({normal, 1, 0, {}});
-      auto& kop = channel.back();
+      channel.kops.push_back({true, 0, {}});
+      auto& kop = channel.kops.back();
 
       kop.ops.reserve(qubits.size());
 
@@ -135,12 +133,15 @@ struct DepolarizingChannel {
     double p1 = 1 - p;
     double p2 = p / 3;
 
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
-
-    return {{normal, 1, p1, {}},
-            {normal, 1, p2, {X<fp_type>::Create(time, q)}},
-            {normal, 1, p2, {Y<fp_type>::Create(time, q)}},
-            {normal, 1, p2, {Z<fp_type>::Create(time, q)}}};
+    return {
+      {kChannel, time, {q}},
+      {
+        {true, p1, {}},
+        {true, p2, {X<fp_type>::Create(time, q)}},
+        {true, p2, {Y<fp_type>::Create(time, q)}},
+        {true, p2, {Z<fp_type>::Create(time, q)}}
+      }
+    };
   }
 
   static Channel<fp_type> Create(
@@ -148,16 +149,14 @@ struct DepolarizingChannel {
     double p1 = 1 - p;
     double p2 = p / 3;
 
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
-
     uint64_t size = uint64_t{1} << (2 * qubits.size());
 
-    Channel<fp_type> channel;
-    channel.reserve(size);
+    Channel<fp_type> channel{{kChannel, time, qubits}, {}};
+    channel.kops.reserve(size);
 
     for (uint64_t i = 0; i < size; ++i) {
-      channel.push_back({normal, 1, 0, {}});
-      auto& kop = channel.back();
+      channel.kops.push_back({true, 0, {}});
+      auto& kop = channel.kops.back();
 
       kop.ops.reserve(qubits.size());
 
@@ -235,25 +234,20 @@ struct GeneralizedAmplitudeDampingChannel {
     fp_type s2 = std::sqrt((1 - p) * gamma);
 
     using M = Cirq::MatrixGate1<fp_type>;
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, p1,
-             {M::Create(time, q, {t1, 0, 0, 0, 0, 0, r1, 0})},
-             {t1 * t1, 0, 0, 0, 0, 0, r1 * r1, 0}, {q},
-            },
-            {normal, 0, p2,
-             {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})},
-             {r2 * r2, 0, 0, 0, 0, 0, t2 * t2, 0}, {q},
-            },
-            {normal, 0, p3,
-             {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})},
-             {0, 0, 0, 0, 0, 0, s1 * s1, 0}, {q},
-            },
-            {normal, 0, p3,
-             {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})},
-             {s2 * s2, 0, 0, 0, 0, 0, 0, 0}, {q},
-            },
-           };
+    return {
+      {kChannel, time, {q}},
+      {
+        {false, p1, {M::Create(time, q, {t1, 0, 0, 0, 0, 0, r1, 0})},
+            {t1 * t1, 0, 0, 0, 0, 0, r1 * r1, 0}, {q}},
+        {false, p2, {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})},
+            {r2 * r2, 0, 0, 0, 0, 0, t2 * t2, 0}, {q}},
+        {false, p3, {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})},
+            {0, 0, 0, 0, 0, 0, s1 * s1, 0}, {q}},
+        {false, p3, {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})},
+            {s2 * s2, 0, 0, 0, 0, 0, 0, 0}, {q}},
+      }
+    };
   }
 
   Channel<fp_type> Create(unsigned time, unsigned q) const {
@@ -290,17 +284,16 @@ struct AmplitudeDampingChannel {
     fp_type s = std::sqrt(gamma);
 
     using M = Cirq::MatrixGate1<fp_type>;
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, p1,
-             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
-             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
-            },
-            {normal, 0, p2,
-             {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})},
-             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
-            },
-           };
+    return {
+      {kChannel, time, {q}},
+      {
+        {false, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+            {1, 0, 0, 0, 0, 0, r * r, 0}, {q}},
+        {false, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})},
+            {0, 0, 0, 0, 0, 0, s * s, 0}, {q}},
+      }
+    };
   }
 
   Channel<fp_type> Create(unsigned time, unsigned q) const {
@@ -335,17 +328,16 @@ struct PhaseDampingChannel {
     fp_type s = std::sqrt(gamma);
 
     using M = Cirq::MatrixGate1<fp_type>;
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, p1,
-             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
-             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
-            },
-            {normal, 0, p2,
-             {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})},
-             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
-            },
-           };
+    return {
+      {kChannel, time, {q}},
+      {
+        {false, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+            {1, 0, 0, 0, 0, 0, r * r, 0}, {q}},
+        {false, p2, {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})},
+            {0, 0, 0, 0, 0, 0, s * s, 0}, {q}},
+      }
+    };
   }
 
   Channel<fp_type> Create(unsigned time, unsigned q) const {
@@ -372,17 +364,16 @@ struct ResetChannel {
 
   static Channel<fp_type> Create(unsigned time, unsigned q) {
     using M = Cirq::MatrixGate1<fp_type>;
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
 
-    return {{normal, 0, 0,
-             {M::Create(time, q, {1, 0, 0, 0, 0, 0, 0, 0})},
-             {1, 0, 0, 0, 0, 0, 0, 0}, {q},
-            },
-            {normal, 0, 0,
-             {M::Create(time, q, {0, 0, 1, 0, 0, 0, 0, 0})},
-             {0, 0, 0, 0, 0, 0, 1, 0}, {q},
-            },
-           };
+    return {
+      {kChannel, time, {q}},
+      {
+        {false, 0, {M::Create(time, q, {1, 0, 0, 0, 0, 0, 0, 0})},
+            {1, 0, 0, 0, 0, 0, 0, 0}, {q}},
+        {false, 0, {M::Create(time, q, {0, 0, 1, 0, 0, 0, 0, 0})},
+            {0, 0, 0, 0, 0, 0, 1, 0}, {q}},
+      }
+    };
   }
 };
 
@@ -407,11 +398,10 @@ struct PhaseFlipChannel {
     double p1 = 1 - p;
     double p2 = p;
 
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
-
-    return {{normal, 1, p1, {}},
-            {normal, 1, p2, {Z<fp_type>::Create(time, q)}}
-           };
+    return {
+      {kChannel, time, {q}},
+      {{true, p1, {}}, {true, p2, {Z<fp_type>::Create(time, q)}}}
+    };
   }
 
   Channel<fp_type> Create(unsigned time, unsigned q) const {
@@ -442,11 +432,10 @@ struct BitFlipChannel {
     double p1 = 1 - p;
     double p2 = p;
 
-    auto normal = KrausOperator<GateCirq<fp_type>>::kNormal;
-
-    return {{normal, 1, p1, {}},
-            {normal, 1, p2, {X<fp_type>::Create(time, q)}}
-           };
+    return {
+      {kChannel, time, {q}},
+      {{true, p1, {}}, {true, p2, {X<fp_type>::Create(time, q)}}}
+    };
   }
 
   Channel<fp_type> Create(unsigned time, unsigned q) const {

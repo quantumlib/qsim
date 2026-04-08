@@ -21,18 +21,22 @@
 #include <random>
 #include <vector>
 
-#include "circuit_noisy.h"
 #include "gate.h"
 #include "gate_appl.h"
+#include "operation.h"
+#include "operation_base.h"
 
 namespace qsim {
 
 /**
  * Quantum trajectory simulator.
  */
-template <typename IO, typename Gate,
-          typename Runner, typename RGen = std::mt19937>
+template <typename IO, typename Runner, typename RGen = std::mt19937>
 class QuantumTrajectorySimulator {
+ private:
+  template <typename FP, typename Operation>
+  using GateOrOperation = std::variant<const Gate<FP>*, const Operation*>;
+
  public:
   using Simulator = typename Runner::Simulator;
   using StateSpace = typename Simulator::StateSpace;
@@ -105,15 +109,15 @@ class QuantumTrajectorySimulator {
    * @param args Optional arguments for the 'measure' function.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  template <typename MeasurementFunc, typename... Args>
+  template <typename Operation, typename MeasurementFunc, typename... Args>
   static bool RunBatch(const Parameter& param,
-                       const NoisyCircuit<Gate>& circuit,
-                       uint64_t r0, uint64_t r1, const StateSpace& state_space,
+                       const Circuit<Operation>& circuit, uint64_t r0,
+                       uint64_t r1, const StateSpace& state_space,
                        const Simulator& simulator, MeasurementFunc&& measure,
                        Args&&... args) {
-    return RunBatch(param, circuit.num_qubits, circuit.channels.begin(),
-                    circuit.channels.end(), r0, r1, state_space, simulator,
-                    measure, args...);
+    return RunBatch<Operation>(param, circuit.num_qubits, circuit.ops.begin(),
+                               circuit.ops.end(), r0, r1, state_space,
+                               simulator, measure, args...);
   }
 
   /**
@@ -121,7 +125,7 @@ class QuantumTrajectorySimulator {
    * seeded by repetition ID.
    * @param param Options for the quantum trajectory simulator.
    * @param num_qubits The number of qubits acted on by the circuit.
-   * @param cbeg, cend The range of channels [cbeg, cend) to run the circuit.
+   * @param obeg, oend The range of operations [obeg, oend) to run the circuit.
    * @param r0, r1 The range of repetition IDs [r0, r1) to perform repetitions.
    * @param state_space StateSpace object required to manipulate state vector.
    * @param simulator Simulator object. Provides specific implementations for
@@ -134,15 +138,17 @@ class QuantumTrajectorySimulator {
    * @param args Optional arguments for the 'measure' function.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  template <typename MeasurementFunc, typename... Args>
+  template <typename Operation, typename MeasurementFunc, typename... Args>
   static bool RunBatch(const Parameter& param, unsigned num_qubits,
-                       ncircuit_iterator<Gate> cbeg,
-                       ncircuit_iterator<Gate> cend,
+                       typename std::vector<Operation>::const_iterator obeg,
+                       typename std::vector<Operation>::const_iterator oend,
                        uint64_t r0, uint64_t r1, const StateSpace& state_space,
                        const Simulator& simulator, MeasurementFunc&& measure,
                        Args&&... args) {
-    std::vector<const Gate*> gates;
-    gates.reserve(4 * std::size_t(cend - cbeg));
+    using fp_type = OpFpType<Operation>;
+
+    std::vector<GateOrOperation<fp_type, Operation>> deferred_ops;
+    deferred_ops.reserve(4 * std::size_t(oend - obeg));
 
     State state = state_space.Null();
 
@@ -157,8 +163,9 @@ class QuantumTrajectorySimulator {
       bool apply_last_deferred_ops =
           param.apply_last_deferred_ops || !had_primary_realization;
 
-      if (!RunIteration(param, apply_last_deferred_ops, num_qubits, cbeg, cend,
-                        r, state_space, simulator, gates, state, stat)) {
+      if (!RunIteration<Operation>(param, apply_last_deferred_ops,
+                                   num_qubits, obeg, oend, r, state_space,
+                                   simulator, deferred_ops, state, stat)) {
         return false;
       }
 
@@ -185,20 +192,20 @@ class QuantumTrajectorySimulator {
    *   bitstrings, to be populated by this method.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  static bool RunOnce(const Parameter& param,
-                      const NoisyCircuit<Gate>& circuit, uint64_t r,
-                      const StateSpace& state_space, const Simulator& simulator,
-                      State& state, Stat& stat) {
-    return RunOnce(param, circuit.num_qubits, circuit.channels.begin(),
-                   circuit.channels.end(), r, state_space, simulator,
-                   state, stat);
+  template <typename Operation>
+  static bool RunOnce(const Parameter& param, const Circuit<Operation>& circuit,
+                      uint64_t r, const StateSpace& state_space,
+                      const Simulator& simulator,State& state, Stat& stat) {
+    return RunOnce<Operation>(param, circuit.num_qubits, circuit.ops.begin(),
+                              circuit.ops.end(), r, state_space, simulator,
+                              state, stat);
   }
 
   /**
    * Runs the given noisy circuit one time.
    * @param param Options for the quantum trajectory simulator.
    * @param num_qubits The number of qubits acted on by the circuit.
-   * @param cbeg, cend The range of channels [cbeg, cend) to run the circuit.
+   * @param obeg, oend The range of operations [obeg, oend) to run the circuit.
    * @param circuit The noisy circuit to be simulated.
    * @param r The repetition ID. The random number generator is seeded by 'r'.
    * @param state_space StateSpace object required to manipulate state vector.
@@ -209,16 +216,20 @@ class QuantumTrajectorySimulator {
    *   bitstrings, to be populated by this method.
    * @return True if the simulation completed successfully; false otherwise.
    */
+  template <typename Operation>
   static bool RunOnce(const Parameter& param, unsigned num_qubits,
-                      ncircuit_iterator<Gate> cbeg,
-                      ncircuit_iterator<Gate> cend,
+                      typename std::vector<Operation>::const_iterator obeg,
+                      typename std::vector<Operation>::const_iterator oend,
                       uint64_t r, const StateSpace& state_space,
                       const Simulator& simulator, State& state, Stat& stat) {
-    std::vector<const Gate*> gates;
-    gates.reserve(4 * std::size_t(cend - cbeg));
+    using fp_type = OpFpType<Operation>;
 
-    if (!RunIteration(param, param.apply_last_deferred_ops, num_qubits, cbeg,
-                      cend, r, state_space, simulator, gates, state, stat)) {
+    std::vector<GateOrOperation<fp_type, Operation>> deferred_ops;
+    deferred_ops.reserve(4 * std::size_t(oend - obeg));
+
+    if (!RunIteration<Operation>(param, param.apply_last_deferred_ops,
+                                 num_qubits, obeg, oend, r, state_space,
+                                 simulator, deferred_ops, state, stat)) {
       return false;
     }
 
@@ -226,16 +237,20 @@ class QuantumTrajectorySimulator {
   }
 
  private:
+  template <typename Operation, typename Deferred>
   static bool RunIteration(const Parameter& param,
                            bool apply_last_deferred_ops, unsigned num_qubits,
-                           ncircuit_iterator<Gate> cbeg,
-                           ncircuit_iterator<Gate> cend,
+                           typename std::vector<Operation>::const_iterator obeg,
+                           typename std::vector<Operation>::const_iterator oend,
                            uint64_t rep, const StateSpace& state_space,
                            const Simulator& simulator,
-                           std::vector<const Gate*>& gates,
+                           std::vector<Deferred>& deferred_ops,
                            State& state, Stat& stat) {
+    using fp_type = OpFpType<Operation>;
+    using Channel = qsim::Channel<fp_type>;
+
     if (param.collect_kop_stat || param.collect_mea_stat) {
-      stat.samples.reserve(std::size_t(cend - cbeg));
+      stat.samples.reserve(std::size_t(oend - obeg));
       stat.samples.resize(0);
     }
 
@@ -248,7 +263,7 @@ class QuantumTrajectorySimulator {
       state_space.SetStateZero(state);
     }
 
-    gates.resize(0);
+    deferred_ops.resize(0);
 
     RGen rgen(rep);
     std::uniform_real_distribution<double> distr(0.0, 1.0);
@@ -256,24 +271,22 @@ class QuantumTrajectorySimulator {
     bool unitary = true;
     stat.primary = true;
 
-    for (auto it = cbeg; it != cend; ++it) {
-      const auto& channel = *it;
+    for (auto it = obeg; it != oend; ++it) {
+      const auto& op = *it;
 
-      if (channel.size() == 0) continue;
+      if (const auto* pg = OpGetAlternative<Measurement>(op)) {
+        // Measurement gate.
 
-      if (channel[0].kind == gate::kMeasurement) {
-        // Measurement channel.
-
-        if (!ApplyDeferredOps(
-                 param, num_qubits, state_space, simulator, gates, state)) {
+        if (!ApplyDeferredOps(param, num_qubits,
+                              state_space, simulator, deferred_ops, state)) {
           return false;
         }
 
         bool normalize = !unitary && param.normalize_before_mea_gates;
         NormalizeState(normalize, state_space, unitary, state);
 
-        auto mresult = ApplyMeasurementGate(state_space, channel[0].ops[0],
-                                            rgen, state);
+        auto mresult =
+            ApplyMeasurementGate(state_space, pg->qubits, rgen, state);
 
         if (!mresult.valid) {
           return false;
@@ -286,19 +299,29 @@ class QuantumTrajectorySimulator {
         continue;
       }
 
-      // "Normal" channel.
-
       double r = distr(rgen);
       double cp = 0;
 
+      const auto* pg = OpGetAlternative<Channel>(op);
+
+      if (!pg) {
+        DeferOp(op, deferred_ops);
+        CollectStat(param.collect_kop_stat, 0, stat);
+        continue;
+      }
+
+      // Channel.
+
+      const auto& channel = *pg;
+
       // Perform sampling of Kraus operators using probability bounds.
-      for (std::size_t i = 0; i < channel.size(); ++i) {
-        const auto& kop = channel[i];
+      for (std::size_t i = 0; i < channel.kops.size(); ++i) {
+        const auto& kop = channel.kops[i];
 
         cp += kop.prob;
 
         if (r < cp) {
-          DeferOps(kop.ops, gates);
+          DeferOps(kop.ops, deferred_ops);
           CollectStat(param.collect_kop_stat, i, stat);
 
           unitary = unitary && kop.unitary;
@@ -309,8 +332,8 @@ class QuantumTrajectorySimulator {
 
       if (r < cp) continue;
 
-      if (!ApplyDeferredOps(
-               param, num_qubits, state_space, simulator, gates, state)) {
+      if (!ApplyDeferredOps(param, num_qubits,
+                            state_space, simulator, deferred_ops, state)) {
         return false;
       }
 
@@ -320,8 +343,8 @@ class QuantumTrajectorySimulator {
       std::size_t max_prob_index = 0;
 
       // Perform sampling of Kraus operators using norms of updated states.
-      for (std::size_t i = 0; i < channel.size(); ++i) {
-        const auto& kop = channel[i];
+      for (std::size_t i = 0; i < channel.kops.size(); ++i) {
+        const auto& kop = channel.kops[i];
 
         if (kop.unitary) continue;
 
@@ -335,13 +358,13 @@ class QuantumTrajectorySimulator {
 
         cp += prob - kop.prob;
 
-        if (r < cp || i == channel.size() - 1) {
+        if (r < cp || i == channel.kops.size() - 1) {
           // Sample ith Kraus operator if r < cp
           // Sample the highest probability Kraus operator if r is greater
           // than the sum of all probablities due to round-off errors.
           uint64_t k = r < cp ? i : max_prob_index;
 
-          DeferOps(channel[k].ops, gates);
+          DeferOps(channel.kops[k].ops, deferred_ops);
           CollectStat(param.collect_kop_stat, k, stat);
 
           unitary = false;
@@ -352,8 +375,8 @@ class QuantumTrajectorySimulator {
     }
 
     if (apply_last_deferred_ops || !stat.primary) {
-      if (!ApplyDeferredOps(
-               param, num_qubits, state_space, simulator, gates, state)) {
+      if (!ApplyDeferredOps(param, num_qubits,
+                            state_space, simulator, deferred_ops, state)) {
         return false;
       }
 
@@ -373,13 +396,14 @@ class QuantumTrajectorySimulator {
     return state;
   }
 
+  template <typename Deferred>
   static bool ApplyDeferredOps(
       const Parameter& param, unsigned num_qubits,
       const StateSpace& state_space, const Simulator& simulator,
-      std::vector<const Gate*>& gates, State& state) {
-    if (gates.size() > 0) {
-      bool rc = Runner::Run(param, gates, state_space, simulator, state);
-      gates.resize(0);
+      std::vector<Deferred>& deferred_ops, State& state) {
+    if (deferred_ops.size() > 0) {
+      bool rc = Runner::Run(param, deferred_ops, state_space, simulator, state);
+      deferred_ops.resize(0);
       return rc;
     }
 
@@ -387,9 +411,9 @@ class QuantumTrajectorySimulator {
   }
 
   static MeasurementResult ApplyMeasurementGate(
-      const StateSpace& state_space, const Gate& gate,
+      const StateSpace& state_space, const Qubits& qubits,
       RGen& rgen, State& state) {
-    auto result = state_space.Measure(gate.qubits, rgen, state);
+    auto result = state_space.Measure(qubits, rgen, state);
 
     if (!result.valid) {
       IO::errorf("measurement failed.\n");
@@ -398,10 +422,17 @@ class QuantumTrajectorySimulator {
     return result;
   }
 
+  template <typename Operation, typename Deferred>
+  static void DeferOp(
+      const Operation& op, std::vector<Deferred>& deferred_ops) {
+    deferred_ops.push_back(&op);
+  }
+
+  template <typename Gate, typename Deferred>
   static void DeferOps(
-      const std::vector<Gate>& ops, std::vector<const Gate*>& gates) {
-    for (const auto& op : ops) {
-      gates.push_back(&op);
+      const std::vector<Gate>& gates, std::vector<Deferred>& deferred_ops) {
+    for (const auto& gate : gates) {
+      deferred_ops.push_back(&gate);
     }
   }
 

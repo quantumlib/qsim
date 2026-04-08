@@ -20,12 +20,13 @@
 #include <vector>
 
 #include "gate.h"
+#include "matrix.h"
 
 namespace qsim {
 
 // Gate set implemented in qsim contains the following gates.
 enum GateKind {
-  kGateId1 = 0, // one-qubit Id
+  kGateId1 = 1000,  // one-qubit Id
   kGateHd,      // Hadamard
   kGateT,       // T
   kGateX,       // X
@@ -49,13 +50,11 @@ enum GateKind {
   kGateMatrix1, // one-qubit matrix gate
   kGateMatrix2, // two-qubit matrix gate
   kGateGPh,     // global phase gate
-  kDecomp = gate::kDecomp,
-  kMeasurement = gate::kMeasurement,
 };
 
 // Specialization of Gate (defined in gate.h) for the qsim gate set.
 template <typename fp_type>
-using GateQSim = Gate<fp_type, GateKind>;
+using GateQSim = Gate<fp_type>;
 
 constexpr double h_double = 0.5;
 constexpr double is2_double = 0.7071067811865475;
@@ -69,7 +68,7 @@ template <typename fp_type>
 struct GateGPh {
   static constexpr GateKind kind = kGateGPh;
   static constexpr char name[] = "p";
-  static constexpr unsigned num_qubits = 1;
+  static constexpr unsigned num_qubits = 0;
   static constexpr bool symmetric = true;
 
   static GateQSim<fp_type> Create(unsigned time, fp_type phi) {
@@ -634,7 +633,7 @@ struct GateMatrix2 {
 
 template <typename fp_type>
 inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
-    GateKind kind, const std::vector<fp_type>& params) {
+    unsigned kind, const std::vector<fp_type>& params) {
   switch (kind) {
   case kGateId2:
     return GateId2<fp_type>::SchmidtDecomp();

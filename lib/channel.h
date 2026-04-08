@@ -20,25 +20,17 @@
 
 #include "gate.h"
 #include "matrix.h"
+#include "operation_base.h"
 
 namespace qsim {
 
 /**
- * Kraus operator.
+ * A Kraus operator.
  */
-template <typename Gate>
+template <typename FP>
 struct KrausOperator {
-  using fp_type = typename Gate::fp_type;
-
-  enum Kind {
-    kNormal = 0,
-    kMeasurement = gate::kMeasurement,
-  };
-
-  /**
-   * Kraus operator type;
-   */
-  Kind kind;
+  using fp_type = FP;
+  using Gate = qsim::Gate<fp_type>;
 
   /**
    * If true, the Kraus operator is a unitary operator times a constant.
@@ -120,10 +112,29 @@ struct KrausOperator {
 };
 
 /**
- * Quantum channel.
+ * A Quantum channel. Currently `BaseOperation`s fields are not used.
  */
-template <typename Gate>
-using Channel = std::vector<KrausOperator<Gate>>;
+template <typename FP>
+struct Channel : public BaseOperation {
+  Channel() {}
+
+  Channel(BaseOperation&& bop, std::vector<KrausOperator<FP>>&& kops)
+      : BaseOperation(std::move(bop)), kops(std::move(kops)) {}
+
+  std::vector<KrausOperator<FP>> kops;
+};
+
+/**
+ * Makes a channel from the gate.
+ * @param gate The input gate.
+ * @return The output channel.
+ */
+template <typename FP>
+Channel<FP> MakeChannelFromGate(const Gate<FP>& gate) {
+  return Channel<FP>{
+    {kChannel, gate.time, gate.qubits}, {{true, 1.0, {gate}}}
+  };
+}
 
 /**
  * Makes a channel from the gate.
@@ -131,14 +142,11 @@ using Channel = std::vector<KrausOperator<Gate>>;
  * @param gate The input gate.
  * @return The output channel.
  */
-template <typename Gate>
-Channel<Gate> MakeChannelFromGate(unsigned time, const Gate& gate) {
-  auto normal = KrausOperator<Gate>::kNormal;
-  auto measurement = KrausOperator<Gate>::kMeasurement;
-
-  auto kind = gate.kind == gate::kMeasurement ? measurement : normal;
-
-  Channel<Gate> channel = {{kind, true, 1, {gate}}};
+template <typename FP>
+Channel<FP> MakeChannelFromGate(unsigned time, const Gate<FP>& gate) {
+  Channel<FP> channel{
+    {kChannel, gate.time, gate.qubits}, {{true, 1.0, {gate}}}
+  };
   channel[0].ops[0].time = time;
 
   return channel;

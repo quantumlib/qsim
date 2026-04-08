@@ -29,64 +29,46 @@ namespace py = pybind11;
 #include "../lib/circuit.h"
 #include "../lib/expect.h"
 #include "../lib/gates_cirq.h"
+#include "../lib/operation.h"
 #include "../lib/qtrajectory.h"
 
 // Methods for mutating noiseless circuits.
 void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::vector<unsigned>& qubits,
               const std::map<std::string, float>& params,
-              qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+              qsim::Circuit<qsim::Operation<float>>* circuit);
 
 void add_diagonal_gate(const unsigned time, const std::vector<unsigned>& qubits,
                        const std::vector<float>& angles,
-                       qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+                       qsim::Circuit<qsim::Operation<float>>* circuit);
 
 void add_matrix_gate(const unsigned time, const std::vector<unsigned>& qubits,
                      const std::vector<float>& matrix,
-                     qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
+                     qsim::Circuit<qsim::Operation<float>>* circuit);
+
+void add_measurement(const unsigned time, const std::vector<unsigned>& qubits,
+                     qsim::Circuit<qsim::Operation<float>>* circuit);
 
 void control_last_gate(const std::vector<unsigned>& qubits,
                        const std::vector<unsigned>& values,
-                       qsim::Circuit<qsim::Cirq::GateCirq<float>>* circuit);
-
-// Methods for mutating noisy circuits.
-void add_gate_channel(
-    const qsim::Cirq::GateKind gate_kind,
-    const unsigned time,
-    const std::vector<unsigned>& qubits,
-    const std::map<std::string, float>& params,
-    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
-
-void add_diagonal_gate_channel(
-    const unsigned time, const std::vector<unsigned>& qubits,
-    const std::vector<float>& angles,
-    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
-
-void add_matrix_gate_channel(
-    const unsigned time, const std::vector<unsigned>& qubits,
-    const std::vector<float>& matrix,
-    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
-
-void control_last_gate_channel(
-    const std::vector<unsigned>& qubits, const std::vector<unsigned>& values,
-    qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+                       qsim::Circuit<qsim::Operation<float>>* circuit);
 
 void add_channel(const unsigned time,
                  const std::vector<unsigned>& qubits,
                  const std::vector<std::tuple<float, std::vector<float>, bool>>&
                      prob_matrix_unitary_triples,
-                 qsim::NoisyCircuit<qsim::Cirq::GateCirq<float>>* ncircuit);
+                 qsim::Circuit<qsim::Operation<float>>* ncircuit);
 
 // Methods for populating opstrings.
 void add_gate_to_opstring(
     const qsim::Cirq::GateKind gate_kind,
     const std::vector<unsigned>& qubits,
-    qsim::OpString<qsim::Cirq::GateCirq<float>>* opstring);
+    qsim::OpString<float>* opstring);
 
 void add_matrix_gate_to_opstring(
     const std::vector<unsigned>& qubits,
     const std::vector<float>& matrix,
-    qsim::OpString<qsim::Cirq::GateCirq<float>>* opstring);
+    qsim::OpString<float>* opstring);
 
 // Methods for simulating noiseless circuits.
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options);
@@ -116,15 +98,13 @@ std::vector<uint64_t> qtrajectory_sample_final(
 std::vector<std::complex<double>> qsim_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<qsim::OpString<
-                              qsim::Cirq::GateCirq<float>>>,
+                          std::vector<qsim::OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     uint64_t input_state);
 std::vector<std::complex<double>> qsim_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<qsim::OpString<
-                              qsim::Cirq::GateCirq<float>>>,
+                          std::vector<qsim::OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector);
 std::vector<std::vector<std::complex<double>>>
@@ -132,7 +112,7 @@ qsim_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
       std::tuple<
-        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        std::vector<qsim::OpString<float>>,
         unsigned
     >>>>& opsums_and_qubit_counts,
     uint64_t input_state);
@@ -141,22 +121,20 @@ qsim_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
       std::tuple<
-        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        std::vector<qsim::OpString<float>>,
         unsigned
     >>>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector);
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<qsim::OpString<
-                              qsim::Cirq::GateCirq<float>>>,
+                          std::vector<qsim::OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     uint64_t input_state);
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<qsim::OpString<
-                              qsim::Cirq::GateCirq<float>>>,
+                          std::vector<qsim::OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector);
 std::vector<std::vector<std::complex<double>>>
@@ -164,7 +142,7 @@ qtrajectory_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
       std::tuple<
-        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        std::vector<qsim::OpString<float>>,
         unsigned
     >>>>& opsums_and_qubit_counts,
     uint64_t input_state);
@@ -173,7 +151,7 @@ qtrajectory_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
       std::tuple<
-        std::vector<qsim::OpString<qsim::Cirq::GateCirq<float>>>,
+        std::vector<qsim::OpString<float>>,
         unsigned
     >>>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector);
@@ -228,8 +206,7 @@ T ParseOptions(const py::dict& options, const char* key) {
       m.def("qtrajectory_sample_final", &qtrajectory_sample_final,                    \
             "Call the qtrajectory final-state sampler");                              \
                                                                                       \
-      using GateCirq = qsim::Cirq::GateCirq<float>;                                   \
-      using OpString = qsim::OpString<GateCirq>;                                      \
+      using OpString = qsim::OpString<float>;                                         \
                                                                                       \
       /* Methods for returning expectation values */                                  \
       m.def("qsim_simulate_expectation_values",                                       \
@@ -306,23 +283,22 @@ T ParseOptions(const py::dict& options, const char* key) {
       m.def("qsimh_simulate", &qsimh_simulate, "Call the qsimh simulator");           \
                                                                                       \
       using GateKind = qsim::Cirq::GateKind;                                          \
-      using Circuit = qsim::Circuit<GateCirq>;                                        \
-      using NoisyCircuit = qsim::NoisyCircuit<GateCirq>;                              \
+      using OtherGateKind = qsim::OtherGateKind;                                      \
+      using Circuit = qsim::Circuit<qsim::Operation<float>>;                          \
                                                                                       \
       py::class_<Circuit>(m, "Circuit")                                               \
         .def(py::init<>())                                                            \
         .def_readwrite("num_qubits", &Circuit::num_qubits)                            \
-        .def_readwrite("gates", &Circuit::gates);                                     \
-                                                                                      \
-      py::class_<NoisyCircuit>(m, "NoisyCircuit")                                     \
-        .def(py::init<>())                                                            \
-        .def_readwrite("num_qubits", &NoisyCircuit::num_qubits)                       \
-        .def_readwrite("channels", &NoisyCircuit::channels);                          \
+        .def_readwrite("ops", &Circuit::ops);                                         \
                                                                                       \
       py::class_<OpString>(m, "OpString")                                             \
         .def(py::init<>())                                                            \
         .def_readwrite("weight", &OpString::weight)                                   \
         .def_readwrite("ops", &OpString::ops);                                        \
+                                                                                      \
+      py::enum_<OtherGateKind>(m, "OtherGateKind")                                    \
+        .value("kMeasurement", OtherGateKind::kMeasurement)                           \
+        .export_values();                                                             \
                                                                                       \
       py::enum_<GateKind>(m, "GateKind")                                              \
         .value("kI1", GateKind::kI1)                                                  \
@@ -369,7 +345,6 @@ T ParseOptions(const py::dict& options, const char* key) {
         .value("kCCZ", GateKind::kCCZ)                                                \
         .value("kCCX", GateKind::kCCX)                                                \
         .value("kMatrixGate", GateKind::kMatrixGate)                                  \
-        .value("kMeasurement", GateKind::kMeasurement)                                \
         .export_values();                                                             \
                                                                                       \
       m.def("add_gate", &add_gate, "Adds a gate to the given circuit.");              \
@@ -377,17 +352,10 @@ T ParseOptions(const py::dict& options, const char* key) {
             "Adds a two- or three-qubit diagonal gate to the given circuit.");        \
       m.def("add_matrix_gate", &add_matrix_gate,                                      \
             "Adds a matrix-defined gate to the given circuit.");                      \
+      m.def("add_measurement", &add_measurement,                                      \
+            "Adds a measurement gate to the given circuit.");                         \
       m.def("control_last_gate", &control_last_gate,                                  \
             "Applies controls to the final gate of a circuit.");                      \
-                                                                                      \
-      m.def("add_gate_channel", &add_gate_channel,                                    \
-            "Adds a gate to the given noisy circuit.");                               \
-      m.def("add_diagonal_gate_channel", &add_diagonal_gate_channel,                  \
-            "Adds a two- or three-qubit diagonal gate to the given noisy circuit.");  \
-      m.def("add_matrix_gate_channel", &add_matrix_gate_channel,                      \
-            "Adds a matrix-defined gate to the given noisy circuit.");                \
-      m.def("control_last_gate_channel", &control_last_gate_channel,                  \
-            "Applies controls to the final channel of a noisy circuit.");             \
                                                                                       \
       m.def("add_channel", &add_channel,                                              \
             "Adds a channel to the given noisy circuit.");                            \
@@ -397,7 +365,7 @@ T ParseOptions(const py::dict& options, const char* key) {
       m.def("add_matrix_gate_to_opstring", &add_matrix_gate_to_opstring,              \
             "Adds a matrix gate to the given opstring.");
 
-#define GPU_MODULE_BINDINGS                                                                  \
+#define GPU_MODULE_BINDINGS                                                           \
       m.doc() = "pybind11 plugin";  /* optional module docstring */                   \
       /* Methods for returning amplitudes */                                          \
       m.def("qsim_simulate", &qsim_simulate, "Call the qsim simulator");              \
@@ -435,7 +403,7 @@ T ParseOptions(const py::dict& options, const char* key) {
             "Call the qtrajectory final-state sampler");                              \
                                                                                       \
       using GateCirq = qsim::Cirq::GateCirq<float>;                                   \
-      using OpString = qsim::OpString<GateCirq>;                                      \
+      using OpString = qsim::OpString<float>;                                         \
                                                                                       \
       /* Methods for returning expectation values */                                  \
       m.def("qsim_simulate_expectation_values",                                       \

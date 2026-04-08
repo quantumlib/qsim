@@ -26,14 +26,9 @@ namespace qsim {
 /**
  * Helper struct for running qsimh.
  */
-template <typename IO, typename HybridSimulator>
+template <typename IO, typename Fuser, typename HybridSimulator>
 struct QSimHRunner final {
-  using Gate = typename HybridSimulator::Gate;
-  using fp_type = typename HybridSimulator::fp_type;
-
-  using Parameter = typename HybridSimulator::Parameter;
-  using HybridData = typename HybridSimulator::HybridData;
-  using Fuser = typename HybridSimulator::Fuser;
+  using Parameter = typename HybridSimulator::Parameter<typename Fuser::Parameter>;
 
   /**
    * Evaluates the amplitudes for a given circuit and set of output states.
@@ -47,11 +42,11 @@ struct QSimHRunner final {
    *   will be populated with amplitudes for each state in 'bitstrings'.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  template <typename Factory, typename Circuit>
+  template <typename Factory, typename Circuit, typename FP>
   static bool Run(const Parameter& param, const Factory& factory,
                   const Circuit& circuit, const std::vector<unsigned>& parts,
                   const std::vector<uint64_t>& bitstrings,
-                  std::vector<std::complex<fp_type>>& results) {
+                  std::vector<std::complex<FP>>& results) {
     if (circuit.num_qubits != parts.size()) {
       IO::errorf("parts size is not equal to the number of qubits.");
       return false;
@@ -63,8 +58,12 @@ struct QSimHRunner final {
       t0 = GetTime();
     }
 
-    HybridData hd;
-    bool rc = HybridSimulator::SplitLattice(parts, circuit.gates, hd);
+    const auto& ops = Operations<Circuit>::get(circuit);
+
+    using fp_type = OpFpType<decltype(ops[0])>;
+
+    typename HybridSimulator::HybridData<fp_type> hd;
+    bool rc = HybridSimulator::SplitLattice(parts, ops, hd);
 
     if (!rc) {
       return false;
@@ -82,18 +81,18 @@ struct QSimHRunner final {
       PrintInfo(param, hd);
     }
 
-    auto fgates0 = Fuser::FuseGates(param, hd.num_qubits0, hd.gates0);
-    if (fgates0.size() == 0 && hd.gates0.size() > 0) {
+    auto fops0 = Fuser::FuseGates(param, hd.num_qubits0, hd.ops0);
+    if (fops0.size() == 0 && hd.ops0.size() > 0) {
       return false;
     }
 
-    auto fgates1 = Fuser::FuseGates(param, hd.num_qubits1, hd.gates1);
-    if (fgates1.size() == 0 && hd.gates1.size() > 0) {
+    auto fops1 = Fuser::FuseGates(param, hd.num_qubits1, hd.ops1);
+    if (fops1.size() == 0 && hd.ops1.size() > 0) {
       return false;
     }
 
     rc = HybridSimulator(param.num_threads).Run(
-        param, factory, hd, parts, fgates0, fgates1, bitstrings, results);
+        param, factory, hd, parts, fops0, fops1, bitstrings, results);
 
     if (rc && param.verbosity > 0) {
       double t1 = GetTime();
@@ -104,6 +103,7 @@ struct QSimHRunner final {
   }
 
  private:
+  template <typename HybridData>
   static void PrintInfo(const Parameter& param, const HybridData& hd) {
     unsigned num_suffix_gates =
         hd.num_gatexs - param.num_prefix_gatexs - param.num_root_gatexs;

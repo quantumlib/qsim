@@ -266,7 +266,7 @@ def add_op_to_circuit(
     qsim_op: cirq.GateOperation,
     time: int,
     qubit_to_index_dict: Dict[cirq.Qid, int],
-    circuit: Union[qsim.Circuit, qsim.NoisyCircuit],
+    circuit: qsim.Circuit,
 ):
     """Adds an operation to a noisy or noiseless circuit."""
     qsim_gate = qsim_op.gate
@@ -297,22 +297,16 @@ def add_op_to_circuit(
         gate_kind == qsim.kTwoQubitDiagonalGate
         or gate_kind == qsim.kThreeQubitDiagonalGate
     ):
-        if isinstance(circuit, qsim.Circuit):
-            qsim.add_diagonal_gate(
-                time, qsim_qubits, qsim_gate._diag_angles_radians, circuit
-            )
-        else:
-            qsim.add_diagonal_gate_channel(
-                time, qsim_qubits, qsim_gate._diag_angles_radians, circuit
-            )
+        qsim.add_diagonal_gate(
+            time, qsim_qubits, qsim_gate._diag_angles_radians, circuit
+        )
     elif gate_kind == qsim.kMatrixGate:
         m = [
             val for i in list(cirq.unitary(qsim_gate).flat) for val in [i.real, i.imag]
         ]
-        if isinstance(circuit, qsim.Circuit):
-            qsim.add_matrix_gate(time, qsim_qubits, m, circuit)
-        else:
-            qsim.add_matrix_gate_channel(time, qsim_qubits, m, circuit)
+        qsim.add_matrix_gate(time, qsim_qubits, m, circuit)
+    elif gate_kind == qsim.kMeasurement:
+        qsim.add_measurement(time, qsim_qubits, circuit)
     else:
         params = {}
         for p, val in vars(qsim_gate).items():
@@ -323,16 +317,10 @@ def add_op_to_circuit(
                 params[key] = val
             else:
                 raise ValueError("Parameters must be numeric.")
-        if isinstance(circuit, qsim.Circuit):
-            qsim.add_gate(gate_kind, time, qsim_qubits, params, circuit)
-        else:
-            qsim.add_gate_channel(gate_kind, time, qsim_qubits, params, circuit)
+        qsim.add_gate(gate_kind, time, qsim_qubits, params, circuit)
 
     if is_controlled:
-        if isinstance(circuit, qsim.Circuit):
-            qsim.control_last_gate(control_qubits, control_values, circuit)
-        else:
-            qsim.control_last_gate_channel(control_qubits, control_values, circuit)
+        qsim.control_last_gate(control_qubits, control_values, circuit)
 
 
 class QSimCircuit(cirq.Circuit):
@@ -435,13 +423,13 @@ class QSimCircuit(cirq.Circuit):
 
     def translate_cirq_to_qtrajectory(
         self, qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT
-    ) -> qsim.NoisyCircuit:
+    ) -> qsim.Circuit:
         """Translates this noisy Cirq circuit to the qsim representation.
         :qubit_order: Ordering of qubits
-        :return: a tuple of (C++ qsim NoisyCircuit object, moment boundary
+        :return: a tuple of (C++ qsim Circuit object, moment boundary
             gate indices)
         """
-        qsim_ncircuit = qsim.NoisyCircuit()
+        qsim_ncircuit = qsim.Circuit()
         ordered_qubits = cirq.QubitOrder.as_qubit_order(qubit_order).order_for(
             self.all_qubits()
         )
