@@ -153,10 +153,7 @@ jobs:
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo "::add-matcher::.github/problem-matchers/yamllint.json"
-          # shellcheck disable=SC2038
-          find . -not -path '*.github/workflows/*' \
-            '(' -name '*.yaml' -o -name '*.yml' ')' | \
-            xargs yamllint -f github
+          yamllint -f github . CITATION.cff
 
   bazel-lint:
     name: Bazel build lint checks
