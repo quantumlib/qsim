@@ -102,8 +102,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Run hadolint on Dockerfiles
         continue-on-error: ${{inputs.soft-linting == 'true'}}
@@ -124,8 +122,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Install problem matcher
         run: echo '::add-matcher::.github/problem-matchers/shellcheck.json'
@@ -147,8 +143,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Install yamllint
         run: |
@@ -172,8 +166,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Install Buildifier
         uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
@@ -196,8 +188,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Run actionlint
         continue-on-error: ${{inputs.soft-linting == 'true'}}
