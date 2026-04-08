@@ -63,7 +63,7 @@ struct QSimHRunner final {
 
     using fp_type = OpFpType<decltype(ops[0])>;
 
-    typename HybridSimulator::HybridData<fp_type> hd;
+    typename HybridSimulator::template HybridData<fp_type> hd;
     bool rc = HybridSimulator::SplitLattice(parts, ops, hd);
 
     if (!rc) {
