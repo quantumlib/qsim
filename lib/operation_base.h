@@ -175,8 +175,7 @@ const T* OpGetAlternative(const Operation& op) {
  * or `std::variant<A, B*>`) to find the target value.
  *
  * Note: this function assumes that the input contains a type that is
- * derived from `BaseOperation`. If an incompatible type is encountered,
- * the program will terminate.
+ * derived from `BaseOperation`.
  *
  * @tparam Operation A type derived from `BaseOperation`, an `std::variant`,
  *   or a pointer to one of these.
@@ -198,10 +197,7 @@ inline unsigned OpTime(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    // This branch is reached if the input contains a type that is not derived
-    // from BaseOperation.
-    std::fprintf(stderr, "fatal error: OpTime encountered an invalid type.\n");
-    std::terminate();
+    static_assert(0, "OpBaseOperation encountered an invalid type");
   }
 }
 
@@ -214,8 +210,7 @@ inline unsigned OpTime(const Operation& op) {
  * or `std::variant<A, B*>`) to find the target value.
  *
  * Note: this function assumes that the input contains a type that is
- * derived from `BaseOperation`. If an incompatible type is encountered,
- * the program will terminate.
+ * derived from `BaseOperation`.
  *
  * @tparam Operation A type derived from `BaseOperation`, an `std::variant`,
  *   or a pointer to one of these.
@@ -237,11 +232,7 @@ inline const Qubits& OpQubits(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    // This branch is reached if the input contains a type that is not derived
-    // from BaseOperation.
-    std::fprintf(
-        stderr, "fatal error: OpQubits encountered an invalid type.\n");
-    std::terminate();
+    static_assert(0, "OpBaseOperation encountered an invalid type");
   }
 }
 
@@ -255,8 +246,7 @@ inline const Qubits& OpQubits(const Operation& op) {
  * find the target value.
  *
  * Note: this function assumes that the input contains a type that is
- * derived from `BaseOperation`. If an incompatible type is encountered,
- * the program will terminate.
+ * derived from `BaseOperation`.
  *
  * @tparam Operation A type derived from `BaseOperation`, an `std::variant`,
  *   or a pointer to one of these.
@@ -278,11 +268,7 @@ inline BaseOperation& OpBaseOperation(Operation& op) {
 
     return std::visit(f, op);
   } else {
-    // This branch is reached if the input contains a type that is not derived
-    // from BaseOperation.
-    std::fprintf(
-        stderr, "fatal error: OpBaseOperation encountered an invalid type.\n");
-    std::terminate();
+    static_assert(0, "OpBaseOperation encountered an invalid type");
   }
 }
 
@@ -295,8 +281,7 @@ inline BaseOperation& OpBaseOperation(Operation& op) {
  * or `std::variant<A, B*>`) to find the target value.
  *
  * Note: this function assumes that the input contains a type that is
- * derived from `BaseOperation`. If an incompatible type is encountered,
- * the program will terminate.
+ * derived from `BaseOperation`.
  *
  * @tparam Operation A type derived from `BaseOperation`, an `std::variant`,
  *   or a pointer to one of these.
@@ -318,11 +303,7 @@ inline const BaseOperation& OpBaseOperation(const Operation& op) {
 
     return std::visit(f, op);
   } else {
-    // This branch is reached if the input contains a type that is not derived
-    // from BaseOperation.
-    std::fprintf(
-        stderr, "fatal error: OpBaseOperation encountered an invalid type.\n");
-    std::terminate();
+    static_assert(0, "OpBaseOperation encountered an invalid type");
   }
 }
 

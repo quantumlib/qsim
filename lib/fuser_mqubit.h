@@ -1219,7 +1219,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
       }
       if (gates_lat[q] != nullptr
           && bop.time <= OpTime(*gates_lat[q]->val->parent)) {
-        IO::errorf("fuser: gate at time %u is out of time order.\n", time);
+        IO::errorf("fuser: gate at time %u is out of time order.\n", bop.time);
         return false;
       }
     }
@@ -1233,7 +1233,8 @@ class MultiQubitGateFuser final : public Fuser<IO> {
         }
         if (gates_lat[q] != nullptr
             && bop.time <= OpTime(*gates_lat[q]->val->parent)) {
-          IO::errorf("fuser: gate at time %u is out of time order.\n", time);
+          IO::errorf(
+              "fuser: gate at time %u is out of time order.\n", bop.time);
           return false;
         }
       }
