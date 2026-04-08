@@ -547,8 +547,8 @@ cc_library(
         ":circuit",
         ":gate",
         ":gate_appl",
-        ":util",
         ":operation_base",
+        ":util",
     ],
 )
 
