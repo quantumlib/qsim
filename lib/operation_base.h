@@ -201,7 +201,7 @@ inline unsigned OpTime(const Operation& op) {
     return std::visit(f, op);
   } else {
     static_assert(
-        detail::always_false<O>, "OpQubits encountered an invalid type");
+        detail::always_false<O>, "OpTime encountered an invalid type");
   }
 }
 
