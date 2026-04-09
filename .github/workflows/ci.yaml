@@ -102,19 +102,19 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Run hadolint on Dockerfiles
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         env:
-          hadolint_version: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
+          sha: 'sha256:e9dbf5113239ef2bf696d20c8f28d3019a47c26a38c98b89344d3e2846c4d5f8'
         run: |
           echo '::add-matcher::.github/problem-matchers/hadolint.json'
-          find . -name Dockerfile -print0 | \
-            xargs -0 -r docker run --rm -i -v "${PWD}:/app" -w /app \
-            --entrypoint /bin/hadolint \
-            ghcr.io/hadolint/hadolint@${{env.hadolint_version}}
+          shopt -s globstar
+          files=(**/Dockerfile*)
+          if [[ ${#files[@]} -gt 0 ]]; then
+            docker run --rm -v "${PWD}:/app" -w /app \
+            ghcr.io/hadolint/hadolint@${{env.sha}} /bin/hadolint "${files[@]}"
+          fi
 
   shell-lint:
     name: Shell script lint checks
@@ -124,8 +124,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Install problem matcher
         run: echo '::add-matcher::.github/problem-matchers/shellcheck.json'
@@ -147,8 +145,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Install yamllint
         run: |
@@ -159,10 +155,7 @@ jobs:
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo "::add-matcher::.github/problem-matchers/yamllint.json"
-          # shellcheck disable=SC2038
-          find . -not -path '*.github/workflows/*' \
-            '(' -name '*.yaml' -o -name '*.yml' ')' | \
-            xargs yamllint -f github
+          yamllint -f github . CITATION.cff
 
   bazel-lint:
     name: Bazel build lint checks
@@ -172,8 +165,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Install Buildifier
         uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
@@ -184,9 +175,7 @@ jobs:
         continue-on-error: ${{inputs.soft-linting == 'true'}}
         run: |
           echo '::add-matcher::.github/problem-matchers/buildifier.json'
-          # shellcheck disable=SC2038
-          find . -name 'BUILD' -o -name '*.bzl' -o -name 'WORKSPACE' | \
-            xargs buildifier -mode=diff -lint=warn
+          buildifier -mode=diff -lint=warn -r .
 
   action-lint:
     name: GitHub Actions lint checks
@@ -196,8 +185,6 @@ jobs:
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
 
       - name: Run actionlint
         continue-on-error: ${{inputs.soft-linting == 'true'}}
