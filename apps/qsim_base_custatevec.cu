@@ -24,8 +24,8 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
+#include "../lib/operation.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simulator_custatevec.h"
 #include "../lib/util_custatevec.h"
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
 
   using fp_type = float;
 
-  Circuit<GateQSim<fp_type>> circuit;
+  Circuit<Operation<fp_type>> circuit;
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
                                            circuit)) {
     return 1;
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Fuser = MultiQubitGateFuser<IO, GateQSim<fp_type>>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
 
   Factory factory;

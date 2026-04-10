@@ -25,8 +25,8 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
+#include "../lib/operation.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
                                            circuit)) {
     return 1;
@@ -178,9 +178,9 @@ int main(int argc, char* argv[]) {
     unsigned num_threads;
   };
 
-  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          For>;
-  using Runner = QSimHRunner<IO, HybridSimulator>;
+  using Fuser = BasicGateFuser<IO>;
+  using HybridSimulator = HybridSimulator<IO, For>;
+  using Runner = QSimHRunner<IO, Fuser, HybridSimulator>;
 
   Runner::Parameter param;
   param.prefix = opt.prefix;

@@ -56,43 +56,43 @@ struct Factory {
 };
 
 TEST(QTrajectoryCuStateVecTest, BitFlip) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestBitFlip<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, GenDump) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestGenDump<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, ReusingResults) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestReusingResults<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, CollectKopStat) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestCollectKopStat<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, CleanCircuit) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestCleanCircuit<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, InitialState) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestInitialState<Runner>(Factory<float>());
 }
 
 TEST(QTrajectoryCuStateVecTest, UncomputeFinalState) {
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory<float>>;
   TestUncomputeFinalState<Runner>(Factory<float>());
 }

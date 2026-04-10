@@ -29,6 +29,7 @@
 #include "../lib/fuser_basic.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
 #include "../lib/run_qsim.h"
 
 namespace qsim {
@@ -467,14 +468,14 @@ void TestNormAndInnerProduct(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   unsigned depth = 8;
 
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<fp_type>> circuit;
+  Circuit<Operation<fp_type>> circuit;
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
-  circuit.gates.emplace_back(GateT<fp_type>::Create(depth + 1, 0));
+  circuit.ops.push_back(GateT<fp_type>::Create(depth + 1, 0));
 
   StateSpace state_space = factory.CreateStateSpace();
   State state0 = state_space.Create(circuit.num_qubits);
@@ -562,13 +563,13 @@ void TestSamplingCrossEntropyDifference(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   unsigned depth = 30;
   uint64_t num_samples = 2000000;
 
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<fp_type>> circuit;
+  Circuit<Operation<fp_type>> circuit;
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
 
   StateSpace state_space = factory.CreateStateSpace();
@@ -778,12 +779,12 @@ void TestMeasurementLarge(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<fp_type>>, Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   unsigned depth = 20;
 
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<fp_type>> circuit;
+  Circuit<Operation<fp_type>> circuit;
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(depth, provider, ss, circuit));
 
   StateSpace state_space = factory.CreateStateSpace();

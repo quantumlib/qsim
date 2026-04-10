@@ -82,142 +82,111 @@ void TestNonUnitaryKrausOparator(const KrausOperator& kop,
 
 TEST(ChannelTest, UnitaryKdKMatrix) {
   using fp_type = Simulator<For>::fp_type;
-  using Gate = Cirq::GateCirq<fp_type>;
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
-  Channel<Gate> channel = {
+  Channel<fp_type> channel = {
+    {kChannel, 0, {0, 1, 2, 3, 4, 5, 6, 7}},
     {
-      normal, 1, 0.2, {
-                        Cirq::FSimGate<fp_type>::Create(0, 3, 4, 0.1, 1.4),
-                      }
-    },
-    {
-      normal, 1, 0.2, {
-                        Cirq::rx<fp_type>::Create(0, 0, 0.1),
-                        Cirq::ry<fp_type>::Create(0, 1, 0.2),
-                        Cirq::FSimGate<fp_type>::Create(1, 0, 1, 0.2, 1.3),
-                      }
-    },
-    {
-      normal, 1, 0.2, {
-                        Cirq::rz<fp_type>::Create(0, 3, 0.3),
-                        Cirq::rx<fp_type>::Create(0, 1, 0.4),
-                        Cirq::ry<fp_type>::Create(0, 4, 0.5),
-                        Cirq::rz<fp_type>::Create(0, 0, 0.6),
-                      }
-    },
-    {
-      normal, 1, 0.2, {
-                        Cirq::rx<fp_type>::Create(0, 4, 0.7),
-                        Cirq::ry<fp_type>::Create(0, 3, 0.8),
-                        Cirq::rz<fp_type>::Create(0, 1, 0.9),
-                        Cirq::rx<fp_type>::Create(0, 0, 1.0),
-                        Cirq::FSimGate<fp_type>::Create(1, 1, 3, 0.3, 1.2),
-                        Cirq::FSimGate<fp_type>::Create(1, 0, 4, 0.4, 1.1),
-                      }
-    },
-    {
-      normal, 1, 0.2, {
-                        Cirq::ry<fp_type>::Create(0, 7, 1.1),
-                        Cirq::rz<fp_type>::Create(0, 5, 1.2),
-                        Cirq::rx<fp_type>::Create(0, 1, 1.3),
-                        Cirq::ry<fp_type>::Create(0, 3, 1.4),
-                        Cirq::rz<fp_type>::Create(0, 2, 1.5),
-                        Cirq::rx<fp_type>::Create(0, 4, 1.6),
-                        Cirq::FSimGate<fp_type>::Create(1, 4, 5, 0.5, 1.0),
-                        Cirq::FSimGate<fp_type>::Create(1, 1, 3, 0.6, 0.9),
-                        Cirq::FSimGate<fp_type>::Create(1, 2, 7, 0.7, 0.8),
-                      }
-    },
+      {true, 0.2, {Cirq::FSimGate<fp_type>::Create(0, 3, 4, 0.1, 1.4)}},
+      {true, 0.2, {Cirq::rx<fp_type>::Create(0, 0, 0.1),
+                   Cirq::ry<fp_type>::Create(0, 1, 0.2),
+                   Cirq::FSimGate<fp_type>::Create(1, 0, 1, 0.2, 1.3)}},
+      {true, 0.2, {Cirq::rz<fp_type>::Create(0, 3, 0.3),
+                   Cirq::rx<fp_type>::Create(0, 1, 0.4),
+                   Cirq::ry<fp_type>::Create(0, 4, 0.5),
+                   Cirq::rz<fp_type>::Create(0, 0, 0.6)}},
+      {true, 0.2, {Cirq::rx<fp_type>::Create(0, 4, 0.7),
+                   Cirq::ry<fp_type>::Create(0, 3, 0.8),
+                   Cirq::rz<fp_type>::Create(0, 1, 0.9),
+                   Cirq::rx<fp_type>::Create(0, 0, 1.0),
+                   Cirq::FSimGate<fp_type>::Create(1, 1, 3, 0.3, 1.2),
+                   Cirq::FSimGate<fp_type>::Create(1, 0, 4, 0.4, 1.1)}},
+      {true, 0.2, {Cirq::ry<fp_type>::Create(0, 7, 1.1),
+                   Cirq::rz<fp_type>::Create(0, 5, 1.2),
+                   Cirq::rx<fp_type>::Create(0, 1, 1.3),
+                   Cirq::ry<fp_type>::Create(0, 3, 1.4),
+                   Cirq::rz<fp_type>::Create(0, 2, 1.5),
+                   Cirq::rx<fp_type>::Create(0, 4, 1.6),
+                   Cirq::FSimGate<fp_type>::Create(1, 4, 5, 0.5, 1.0),
+                   Cirq::FSimGate<fp_type>::Create(1, 1, 3, 0.6, 0.9),
+                   Cirq::FSimGate<fp_type>::Create(1, 2, 7, 0.7, 0.8)}},
+    }
   };
 
-  channel[0].CalculateKdKMatrix();
-  ASSERT_EQ(channel[0].kd_k.size(), 32);
-  ASSERT_EQ(channel[0].qubits.size(), 2);
-  EXPECT_EQ(channel[0].qubits[0], 3);
-  EXPECT_EQ(channel[0].qubits[1], 4);
-  TestUnitaryKrausOparator(channel[0]);
+  channel.kops[0].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[0].kd_k.size(), 32);
+  ASSERT_EQ(channel.kops[0].qubits.size(), 2);
+  EXPECT_EQ(channel.kops[0].qubits[0], 3);
+  EXPECT_EQ(channel.kops[0].qubits[1], 4);
+  TestUnitaryKrausOparator(channel.kops[0]);
 
-  channel[1].CalculateKdKMatrix();
-  ASSERT_EQ(channel[1].kd_k.size(), 32);
-  ASSERT_EQ(channel[1].qubits.size(), 2);
-  EXPECT_EQ(channel[1].qubits[0], 0);
-  EXPECT_EQ(channel[1].qubits[1], 1);
-  TestUnitaryKrausOparator(channel[1]);
+  channel.kops[1].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[1].kd_k.size(), 32);
+  ASSERT_EQ(channel.kops[1].qubits.size(), 2);
+  EXPECT_EQ(channel.kops[1].qubits[0], 0);
+  EXPECT_EQ(channel.kops[1].qubits[1], 1);
+  TestUnitaryKrausOparator(channel.kops[1]);
 
-  channel[2].CalculateKdKMatrix();
-  ASSERT_EQ(channel[2].kd_k.size(), 512);
-  ASSERT_EQ(channel[2].qubits.size(), 4);
-  EXPECT_EQ(channel[2].qubits[0], 0);
-  EXPECT_EQ(channel[2].qubits[1], 1);
-  EXPECT_EQ(channel[2].qubits[2], 3);
-  EXPECT_EQ(channel[2].qubits[3], 4);
-  TestUnitaryKrausOparator(channel[2]);
+  channel.kops[2].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[2].kd_k.size(), 512);
+  ASSERT_EQ(channel.kops[2].qubits.size(), 4);
+  EXPECT_EQ(channel.kops[2].qubits[0], 0);
+  EXPECT_EQ(channel.kops[2].qubits[1], 1);
+  EXPECT_EQ(channel.kops[2].qubits[2], 3);
+  EXPECT_EQ(channel.kops[2].qubits[3], 4);
+  TestUnitaryKrausOparator(channel.kops[2]);
 
-  channel[3].CalculateKdKMatrix();
-  ASSERT_EQ(channel[3].kd_k.size(), 512);
-  ASSERT_EQ(channel[3].qubits.size(), 4);
-  EXPECT_EQ(channel[3].qubits[0], 0);
-  EXPECT_EQ(channel[3].qubits[1], 1);
-  EXPECT_EQ(channel[3].qubits[2], 3);
-  EXPECT_EQ(channel[3].qubits[3], 4);
-  TestUnitaryKrausOparator(channel[3]);
+  channel.kops[3].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[3].kd_k.size(), 512);
+  ASSERT_EQ(channel.kops[3].qubits.size(), 4);
+  EXPECT_EQ(channel.kops[3].qubits[0], 0);
+  EXPECT_EQ(channel.kops[3].qubits[1], 1);
+  EXPECT_EQ(channel.kops[3].qubits[2], 3);
+  EXPECT_EQ(channel.kops[3].qubits[3], 4);
+  TestUnitaryKrausOparator(channel.kops[3]);
 
-  channel[4].CalculateKdKMatrix();
-  ASSERT_EQ(channel[4].kd_k.size(), 8192);
-  ASSERT_EQ(channel[4].qubits.size(), 6);
-  EXPECT_EQ(channel[4].qubits[0], 1);
-  EXPECT_EQ(channel[4].qubits[1], 2);
-  EXPECT_EQ(channel[4].qubits[2], 3);
-  EXPECT_EQ(channel[4].qubits[3], 4);
-  EXPECT_EQ(channel[4].qubits[4], 5);
-  EXPECT_EQ(channel[4].qubits[5], 7);
-  TestUnitaryKrausOparator(channel[4]);
+  channel.kops[4].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[4].kd_k.size(), 8192);
+  ASSERT_EQ(channel.kops[4].qubits.size(), 6);
+  EXPECT_EQ(channel.kops[4].qubits[0], 1);
+  EXPECT_EQ(channel.kops[4].qubits[1], 2);
+  EXPECT_EQ(channel.kops[4].qubits[2], 3);
+  EXPECT_EQ(channel.kops[4].qubits[3], 4);
+  EXPECT_EQ(channel.kops[4].qubits[4], 5);
+  EXPECT_EQ(channel.kops[4].qubits[5], 7);
+  TestUnitaryKrausOparator(channel.kops[4]);
 }
 
 TEST(ChannelTest, NonUnitaryKdKMatrix) {
   using StateSpace = Simulator<For>::StateSpace;
   using State = StateSpace::State;
   using fp_type = StateSpace::fp_type;
-  using Gate = Cirq::GateCirq<fp_type>;
   using M1 = Cirq::MatrixGate1<fp_type>;
   using M2 = Cirq::MatrixGate2<fp_type>;
 
-  unsigned  num_qubits = 8;
-  auto normal = KrausOperator<Gate>::kNormal;
+  unsigned num_qubits = 8;
 
-  Channel<Gate> channel = {
+  Channel<fp_type> channel = {
+    {kChannel, 0, {0, 1, 3, 4}},
     {
-      normal, 0, 0, {
-                      M1::Create(0, 0,
-                                 {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4}),
-                      M1::Create(0, 1,
-                                 {0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1}),
-                      M2::Create(0, 0, 1,
-                                 {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4,
-                                  0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1,
-                                  0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2,
-                                  0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3}),
-                    }
-    },
-    {
-      normal, 0, 0, {
-                      M1::Create(0, 4,
-                                 {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4}),
-                      M1::Create(0, 3,
-                                 {0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1}),
-                      M1::Create(0, 1,
-                                 {0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2}),
-                      M1::Create(0, 0,
-                                 {0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3}),
-                      M2::Create(0, 0, 4,
-                                 {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4,
-                                  0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1,
-                                  0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2,
-                                  0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3}),
-                    }
-    },
+      {false, 0, {M1::Create(0, 0, {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4}),
+                  M1::Create(0, 1, {0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1}),
+                  M2::Create(0, 0, 1, {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4,
+                                       0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1,
+                                       0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2,
+                                       0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3})
+                 }
+      },
+      {false, 0, {M1::Create(0, 4, {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4}),
+                  M1::Create(0, 3, {0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1}),
+                  M1::Create(0, 1, {0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2}),
+                  M1::Create(0, 0, {0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3}),
+                  M2::Create(0, 0, 4, {0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4,
+                                       0.2, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1,
+                                       0.3, 0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2,
+                                       0.4, 0.1, 0.2, 0.3, 0.4, 0.1, 0.2, 0.3})
+                 }
+      },
+    }
   };
 
   StateSpace state_space(1);
@@ -229,23 +198,23 @@ TEST(ChannelTest, NonUnitaryKdKMatrix) {
   State state1 = state_space.Create(num_qubits);
   ASSERT_FALSE(state_space.IsNull(state1));
 
-  channel[0].CalculateKdKMatrix();
-  ASSERT_EQ(channel[0].kd_k.size(), 32);
-  ASSERT_EQ(channel[0].qubits.size(), 2);
-  EXPECT_EQ(channel[0].qubits[0], 0);
-  EXPECT_EQ(channel[0].qubits[1], 1);
+  channel.kops[0].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[0].kd_k.size(), 32);
+  ASSERT_EQ(channel.kops[0].qubits.size(), 2);
+  EXPECT_EQ(channel.kops[0].qubits[0], 0);
+  EXPECT_EQ(channel.kops[0].qubits[1], 1);
   TestNonUnitaryKrausOparator(
-      channel[0], state_space, simulator, state0, state1);
+      channel.kops[0], state_space, simulator, state0, state1);
 
-  channel[1].CalculateKdKMatrix();
-  ASSERT_EQ(channel[1].kd_k.size(), 512);
-  ASSERT_EQ(channel[1].qubits.size(), 4);
-  EXPECT_EQ(channel[1].qubits[0], 0);
-  EXPECT_EQ(channel[1].qubits[1], 1);
-  EXPECT_EQ(channel[1].qubits[2], 3);
-  EXPECT_EQ(channel[1].qubits[3], 4);
+  channel.kops[1].CalculateKdKMatrix();
+  ASSERT_EQ(channel.kops[1].kd_k.size(), 512);
+  ASSERT_EQ(channel.kops[1].qubits.size(), 4);
+  EXPECT_EQ(channel.kops[1].qubits[0], 0);
+  EXPECT_EQ(channel.kops[1].qubits[1], 1);
+  EXPECT_EQ(channel.kops[1].qubits[2], 3);
+  EXPECT_EQ(channel.kops[1].qubits[3], 4);
   TestNonUnitaryKrausOparator(
-      channel[1], state_space, simulator, state0, state1);
+      channel.kops[1], state_space, simulator, state0, state1);
 }
 
 }  // namespace qsim

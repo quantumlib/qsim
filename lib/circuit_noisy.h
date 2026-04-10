@@ -17,22 +17,9 @@
 
 #include <vector>
 
-#include "circuit.h"
-#include "channel.h"
+#include "operation.h"
 
 namespace qsim {
-
-/**
- * Noisy circuit.
- */
-template <typename Gate>
-struct NoisyCircuit {
-  unsigned num_qubits;
-  std::vector<Channel<Gate>> channels;
-};
-
-template <typename Gate>
-using ncircuit_iterator = typename std::vector<Channel<Gate>>::const_iterator;
 
 /**
  * Makes a noisy circuit from the clean circuit.
@@ -43,28 +30,33 @@ using ncircuit_iterator = typename std::vector<Channel<Gate>>::const_iterator;
  * @param A channel factory to construct channels.
  * @return The output noisy circuit.
  */
-template <typename Gate, typename ChannelFactory>
-inline NoisyCircuit<Gate> MakeNoisy(
+template <typename FP, typename ChannelFactory>
+inline Circuit<Operation<FP>> MakeNoisy(
     unsigned num_qubits,
-    typename std::vector<Gate>::const_iterator gbeg,
-    typename std::vector<Gate>::const_iterator gend,
+    typename std::vector<Operation<FP>>::const_iterator obeg,
+    typename std::vector<Operation<FP>>::const_iterator oend,
     const ChannelFactory& channel_factory) {
-  NoisyCircuit<Gate> ncircuit;
+  Circuit<Operation<FP>> ncircuit;
 
   ncircuit.num_qubits = num_qubits;
-  ncircuit.channels.reserve(4 * std::size_t(gend - gbeg));
+  ncircuit.ops.reserve(4 * std::size_t(oend - obeg));
 
-  for (auto it = gbeg; it != gend; ++it) {
-    const auto& gate = *it;
+  for (auto it = obeg; it != oend; ++it) {
+    const auto& op = *it;
 
-    ncircuit.channels.push_back(MakeChannelFromGate(2 * gate.time, gate));
+    const auto& bop = OpBaseOperation(op);
 
-    for (auto q : gate.qubits) {
-      ncircuit.channels.push_back(channel_factory.Create(2 * gate.time + 1, q));
+    ncircuit.ops.push_back(op);
+    OpBaseOperation(ncircuit.ops.back()).time = 2 * bop.time;
+
+    for (auto q : bop.qubits) {
+      ncircuit.ops.push_back(channel_factory.Create(2 * bop.time + 1, q));
     }
 
-    for (auto q : gate.controlled_by) {
-      ncircuit.channels.push_back(channel_factory.Create(2 * gate.time + 1, q));
+    if (const auto* pg = OpGetAlternative<ControlledGate<FP>>(op)) {
+      for (auto q : pg->controlled_by) {
+        ncircuit.ops.push_back(channel_factory.Create(2 * bop.time + 1, q));
+      }
     }
   }
 
@@ -80,12 +72,11 @@ inline NoisyCircuit<Gate> MakeNoisy(
  * @param A channel factory to construct channels.
  * @return The output noisy circuit.
  */
-template <typename Gate, typename ChannelFactory>
-inline NoisyCircuit<Gate> MakeNoisy(unsigned num_qubits,
-                                    const std::vector<Gate>& gates,
-                                    const ChannelFactory& channel_factory) {
-  return
-      MakeNoisy<Gate>(num_qubits, gates.begin(), gates.end(), channel_factory);
+template <typename FP, typename ChannelFactory>
+inline Circuit<Operation<FP>> MakeNoisy(
+    unsigned num_qubits, const std::vector<Operation<FP>>& ops,
+    const ChannelFactory& channel_factory) {
+  return MakeNoisy<FP>(num_qubits, ops.begin(), ops.end(), channel_factory);
 }
 
 /**
@@ -96,11 +87,12 @@ inline NoisyCircuit<Gate> MakeNoisy(unsigned num_qubits,
  * @param A channel factory to construct channels.
  * @return The output noisy circuit.
  */
-template <typename Gate, typename ChannelFactory>
-inline NoisyCircuit<Gate> MakeNoisy(const Circuit<Gate>& circuit,
-                                    const ChannelFactory& channel_factory) {
-  return MakeNoisy<Gate>(circuit.num_qubits, circuit.gates.begin(),
-                         circuit.gates.end(), channel_factory);
+template <typename FP, typename ChannelFactory>
+inline Circuit<Operation<FP>> MakeNoisy(
+    const Circuit<Operation<FP>>& circuit,
+    const ChannelFactory& channel_factory) {
+  return MakeNoisy<FP, ChannelFactory>(circuit.num_qubits, circuit.ops.begin(),
+                       circuit.ops.end(), channel_factory);
 }
 
 }  // namespace qsim
