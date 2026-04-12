@@ -18,6 +18,7 @@ import pytest
 import sympy
 
 import qsimcirq
+import qsimcirq.qsim_circuit
 
 
 class NoiseTrigger(cirq.Gate):
@@ -128,6 +129,26 @@ def test_cirq_too_big_gate():
         qsimSim.compute_amplitudes(cirq_circuit, bitstrings=[0b0, 0b1])
 
 
+def test_translate_matrix_gate_too_big():
+    gate = cirq.MatrixGate(np.eye(128))
+    with pytest.raises(
+        NotImplementedError, match="only up to 6-qubit gates are supported"
+    ):
+        qsimcirq.qsim_circuit._translate_MatrixGate(gate)
+
+
+def test_simulate_matrix_gate_too_big():
+    qubits = cirq.LineQubit.range(7)
+    gate = cirq.MatrixGate(np.eye(128))
+    circuit = cirq.Circuit(gate.on(*qubits))
+
+    qsim_sim = qsimcirq.QSimSimulator()
+    with pytest.raises(
+        NotImplementedError, match="only up to 6-qubit gates are supported"
+    ):
+        qsim_sim.compute_amplitudes(circuit, bitstrings=[0b0, 0b1])
+
+
 def test_cirq_giant_identity():
     # Pick qubits.
     a, b, c, d, e, f, g, h = [
@@ -178,6 +199,61 @@ def test_noise_alongside_multistep_decompose():
     result_hist = result.histogram(key="m")
     assert result_hist[0] > 0
     assert result_hist[1] > 0
+
+
+def test_translate_cirq_to_qtrajectory():
+    q0, q1 = cirq.LineQubit.range(2)
+
+    # General circuit with unitary, mixture, and channel.
+    circuit = cirq.Circuit(
+        cirq.H(q0),
+        cirq.CNOT(q0, q1),
+        cirq.bit_flip(0.1)(q0),
+        cirq.depolarize(0.1)(q1),
+    )
+    qsim_circuit = qsimcirq.QSimCircuit(circuit)
+    qsim_ncircuit, moment_indices = qsim_circuit.translate_cirq_to_qtrajectory()
+
+    assert isinstance(qsim_ncircuit, qsimcirq.qsim.NoisyCircuit)
+    assert qsim_ncircuit.num_qubits == 2
+    # The circuit has 3 moments, and 4 gates are translated in total.
+    assert moment_indices == [1, 2, 4]
+
+    # Edge case: empty circuit.
+    circuit_empty = cirq.Circuit()
+    qsim_circuit_empty = qsimcirq.QSimCircuit(circuit_empty)
+    qsim_ncircuit_empty, moment_indices_empty = (
+        qsim_circuit_empty.translate_cirq_to_qtrajectory()
+    )
+
+    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.NoisyCircuit)
+    assert qsim_ncircuit_empty.num_qubits == 0
+    assert moment_indices_empty == []
+
+    # Edge case: circuit with only unitary gates.
+    circuit_unitary = cirq.Circuit(cirq.X(q0), cirq.H(q1))
+    qsim_circuit_unitary = qsimcirq.QSimCircuit(circuit_unitary)
+    qsim_ncircuit_unitary, moment_indices_unitary = (
+        qsim_circuit_unitary.translate_cirq_to_qtrajectory()
+    )
+
+    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.NoisyCircuit)
+    assert qsim_ncircuit_unitary.num_qubits == 2
+    assert moment_indices_unitary == [2]
+
+    # Edge case: unparseable operation.
+    class UnparseableOp(cirq.Operation):
+        @property
+        def qubits(self):
+            return (q0,)
+
+        def with_qubits(self, *new_qubits):
+            return self
+
+    circuit_unparseable = cirq.Circuit(UnparseableOp())
+    qsim_circuit_unparseable = qsimcirq.QSimCircuit(circuit_unparseable)
+    with pytest.raises(ValueError, match="Encountered unparseable op"):
+        qsim_circuit_unparseable.translate_cirq_to_qtrajectory()
 
 
 @pytest.mark.parametrize("mode", ["noiseless", "noisy"])
@@ -2196,3 +2272,21 @@ def test_1d_representation():
     want = np.array([0.0 - 0.5j, 0.0 + 0.5j, 0.0 - 0.5j, 0.0 + 0.5j])
     _, res, _ = qsim_sim.simulate_into_1d_array(c)
     np.testing.assert_allclose(res, np.array(want, dtype=np.complex64))
+
+
+def test_get_seed():
+    # Test range.
+    qsim_sim = qsimcirq.QSimSimulator(seed=42)
+    for _ in range(100):
+        seed = qsim_sim.get_seed()
+        assert 0 <= seed < 2**31 - 1
+
+    # Test determinism.
+    sim1 = qsimcirq.QSimSimulator(seed=42)
+    sim2 = qsimcirq.QSimSimulator(seed=42)
+    assert sim1.get_seed() == sim2.get_seed()
+
+    # Test subsequent calls.
+    sim = qsimcirq.QSimSimulator(seed=42)
+    seeds = {sim.get_seed() for _ in range(10)}
+    assert len(seeds) > 1

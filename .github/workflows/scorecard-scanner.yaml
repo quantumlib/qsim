@@ -32,11 +32,6 @@ on:
 
   # Allow manual invocation.
   workflow_dispatch:
-    inputs:
-      debug:
-        description: 'Run with debugging options'
-        type: boolean
-        default: true
 
 concurrency:
   # Cancel any previously-started but still active runs on the same branch.
@@ -73,18 +68,9 @@ jobs:
 
       - name: Upload results to code-scanning dashboard
         # yamllint disable rule:line-length
-        uses: github/codeql-action/upload-sarif@ba454b8ab46733eb6145342877cd148270bb77ab # codeql-bundle-v2.23.5
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1
         with:
           sarif_file: scorecard-results.sarif
-
-      - if: github.event.inputs.debug == true || runner.debug == true
-        name: Upload results as artifacts to the workflow Summary page
-        # yamllint disable rule:line-length
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: Scorecard SARIF file
-          path: scorecard-results.sarif
-          retention-days: 5
 
   # Scorecard currently (ver. 2.4.x) doesn't allow submissions from jobs having
   # steps that use "run:". To print to the summary, we need to use another job.
