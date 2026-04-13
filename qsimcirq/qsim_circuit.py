@@ -19,8 +19,8 @@ import numpy as np
 
 from . import qsim
 
-# List of parameter names that appear in valid Cirq protos.
-GATE_PARAMS = [
+# Set of parameter names that appear in valid Cirq protos.
+GATE_PARAMS = {
     "exponent",
     "phase_exponent",
     "global_shift",
@@ -29,7 +29,7 @@ GATE_PARAMS = [
     "axis_phase_exponent",
     "phi",
     "theta",
-]
+}
 
 
 def _translate_ControlledGate(gate: cirq.ControlledGate):
