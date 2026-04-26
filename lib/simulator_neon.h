@@ -324,13 +324,6 @@ class SimulatorNEON final : public SimulatorBase {
   void ApplyGateH(
       const std::vector<unsigned>& qs, const fp_type* matrix,
       State& state) const {
-    ApplyGateHImpl(std::integral_constant<unsigned, H>{}, qs, matrix, state);
-  }
-
-  template <unsigned H>
-  void ApplyGateHImpl(
-      std::integral_constant<unsigned, H>, const std::vector<unsigned>& qs,
-      const fp_type* matrix, State& state) const {
     auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* v,
                 const uint64_t* ms, const uint64_t* xss, fp_type* rstate) {
       constexpr unsigned hsize = 1 << H;
