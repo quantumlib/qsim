@@ -21,8 +21,6 @@
 #include <vector>
 
 #include "simulator.h"
-#include "simulator_basic.h"
-#include "statespace_basic.h"
 #include "statespace_neon.h"
 
 namespace qsim {
@@ -36,12 +34,9 @@ class SimulatorNEON final : public SimulatorBase {
   using StateSpace = StateSpaceNEON<For>;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using BasicStateSpace = StateSpaceBasic<For, float>;
-  using BasicState = typename BasicStateSpace::State;
 
   template <typename... ForArgs>
-  explicit SimulatorNEON(ForArgs&&... args)
-      : for_(args...), basic_state_space_(args...), fallback_(args...) {}
+  explicit SimulatorNEON(ForArgs&&... args) : for_(args...) {}
 
   /**
    * Applies a gate using NEON instructions.
@@ -109,7 +104,6 @@ class SimulatorNEON final : public SimulatorBase {
       default:
         break;
     }
-    ApplyGateFallback(qs, matrix, state);
   }
 
   /**
@@ -262,9 +256,6 @@ class SimulatorNEON final : public SimulatorBase {
       default:
         break;
     }
-    auto basic_state = CreateBasicState(state);
-    fallback_.ApplyControlledGate(qs, cqs, cvals, matrix, basic_state);
-    CopyBasicStateToNeon(basic_state, state);
   }
 
   std::complex<double> ExpectationValue(
@@ -320,8 +311,7 @@ class SimulatorNEON final : public SimulatorBase {
       default:
         break;
     }
-    auto basic_state = CreateBasicState(state);
-    return fallback_.ExpectationValue(qs, matrix, basic_state);
+    return 0;
   }
 
   static unsigned SIMDRegisterSize() { return 4; }
@@ -902,37 +892,7 @@ class SimulatorNEON final : public SimulatorBase {
     using Op = std::plus<std::complex<double>>;
     return for_.RunReduce(size, f, Op(), w, ms, xss, qs[0], state.get());
   }
-  BasicState CreateBasicState(const State& state) const {
-    auto basic_state = BasicStateSpace::Create(state.num_qubits());
-    CopyNeonStateToBasic(state, basic_state);
-    return basic_state;
-  }
-
-  void CopyNeonStateToBasic(const State& src, BasicState& dest) const {
-    uint64_t size = uint64_t{1} << src.num_qubits();
-    for (uint64_t i = 0; i < size; ++i) {
-      BasicStateSpace::SetAmpl(dest, i, StateSpace::GetAmpl(src, i));
-    }
-  }
-
-  void CopyBasicStateToNeon(const BasicState& src, State& dest) const {
-    uint64_t size = uint64_t{1} << dest.num_qubits();
-    for (uint64_t i = 0; i < size; ++i) {
-      StateSpace::SetAmpl(dest, i, BasicStateSpace::GetAmpl(src, i));
-    }
-  }
-
-  void ApplyGateFallback(
-      const std::vector<unsigned>& qs, const fp_type* matrix,
-      State& state) const {
-    auto basic_state = CreateBasicState(state);
-    fallback_.ApplyGate(qs, matrix, basic_state);
-    CopyBasicStateToNeon(basic_state, state);
-  }
-
   For for_;
-  BasicStateSpace basic_state_space_;
-  SimulatorBasic<For, float> fallback_;
 };
 
 }  // namespace qsim
