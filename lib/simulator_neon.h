@@ -49,6 +49,9 @@ class SimulatorNEON final : public SimulatorBase {
     // Assume qs[0] < qs[1] < qs[2] < ... .
 
     switch (qs.size()) {
+      case 0:
+        ApplyGateH<0>(qs, matrix, state);
+        return;
       case 1:
         if (qs[0] > 1) {
           ApplyGateH<1>(qs, matrix, state);
