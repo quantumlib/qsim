@@ -1,0 +1,22 @@
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -32,6 +32,10 @@
+ 
+ package(default_visibility = ["//visibility:public"])
+ 
++load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
++gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
++
++
+ licenses(["notice"])
+ 
+ exports_files(["LICENSE"])
+@@ -108,7 +112,7 @@
+         "googletest/include/gtest/*.h",
+         "googlemock/include/gmock/*.h",
+     ]),
+-    copts = select({
++    copts = gsframe_copts + select({
+         ":qnx": [],
+         ":windows": [],
+         "//conditions:default": ["-pthread"],
