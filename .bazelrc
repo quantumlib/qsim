@@ -25,6 +25,7 @@ common --enable_platform_specific_config
 
 build:linux --copt=-std=c++17
 build:linux --cxxopt=-std=c++17
+build:linux --linkopt=-fuse-ld=bfd
 
 build:macos --copt=-std=c++17
 build:macos --cxxopt=-std=c++17
