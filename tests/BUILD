@@ -13,16 +13,19 @@
 # limitations under the License.
 
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
 
 # Options for testing different simulator types.
+gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
+
 avx_copts = [
     "-mavx2",
     "-mfma",
-]
+] + gsframe_copts
 
-avx512_copts = ["-march=native"]
+avx512_copts = ["-march=native"] + gsframe_copts
 
-sse_copts = ["-msse4"]
+sse_copts = ["-msse4"] + gsframe_copts
 
 windows_copts = [
     "/arch:AVX",

@@ -55,6 +55,10 @@ load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
 
 tf_workspace0()
 
+load("//dev_tools:compiler_probe.bzl", "compiler_probe")
+
+compiler_probe(name = "local_compiler_config")
+
 # https://gitlab.com/libeigen/eigen/-/releases/3.4.1
 EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
 
