@@ -19,6 +19,10 @@
 # forcing the closing parenthesis to be on a separate line if a split is done.
 
 format:
+  line_width: 80
+  tab_size: 4
+  use_tabchars: false
+
   # If a stmt is split across lines, put the closing paren on its own line.
   dangle_parens: true
 
