@@ -14,9 +14,9 @@
 
 # Summary: configure cmake-format (from https://pypi.org/project/cmakelang/) to
 # apply a consistent style to CMakeLists.txt and *.cmake files. For readability
-# and maintainability, the Quantumlib style diverges slightly from cmake-format
-# defaults, specifically in (1) how splitting across lines is done and (2)
-# forcing the closing parenthesis to be on a separate line if a split is done.
+# and maintainability, the Quantumlib style diverges slightly from the defaults,
+# specifically in (1) using 4-space indent, (2) how splitting across lines is
+# done, and (3) putting the closing paren on a separate line when splitting.
 
 format:
   line_width: 80
