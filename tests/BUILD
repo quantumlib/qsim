@@ -15,9 +15,9 @@
 load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
-# Options for testing different simulator types.
 gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
 
+# Options for testing different simulator types.
 avx_copts = [
     "-mavx2",
     "-mfma",
