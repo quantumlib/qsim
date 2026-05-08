@@ -17,7 +17,10 @@
 load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
-gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
+gsframe_copts = select({
+    "@platforms//os:linux": ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else [],
+    "//conditions:default": [],
+})
 
 cc_binary(
     name = "qsim_base",
