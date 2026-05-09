@@ -29,10 +29,6 @@ inputs:
     required: false
     default: ''
 
-permissions:
-  actions: write
-  contents: read
-
 runs:
   using: 'composite'
   steps:
