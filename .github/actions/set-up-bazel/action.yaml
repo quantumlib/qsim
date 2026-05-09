@@ -23,7 +23,7 @@ inputs:
   debug:
     description: 'Run with debugging options'
     required: false
-    default: true
+    default: 'true'
   bazel-version:
     description: 'Version of Bazel to use:'
     required: false
