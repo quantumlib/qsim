@@ -25,6 +25,8 @@ http_archive(
 
 http_archive(
     name = "com_google_googletest",
+    patch_args = ["-p1"],
+    patches = ["//third_party:googletest.patch"],
     sha256 = "40d4ec942217dcc84a9ebe2a68584ada7d4a33a8ee958755763278ea1c5e18ff",
     strip_prefix = "googletest-1.17.0",
     url = "https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip",
@@ -54,6 +56,10 @@ tf_workspace1()
 load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
 
 tf_workspace0()
+
+load("//dev_tools:compiler_probe.bzl", "compiler_probe")
+
+compiler_probe(name = "local_compiler_config")
 
 # https://gitlab.com/libeigen/eigen/-/releases/3.4.1
 EIGEN_COMMIT = "b66188b5dfd147265bfa9ec47595ca0db72d21f5"
