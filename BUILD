@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load(":compiler_probe_test.bzl", "compiler_probe_test_suite")
+package(default_visibility = ["//visibility:public"])
 
-compiler_probe_test_suite(name = "compiler_probe_tests")
+# Define configurations for build with AVX and/or SSE support.
+
+config_setting(
+    name = "avx_requested",
+    values = {"define": "qsim_avx=true"},
+)
+
+config_setting(
+    name = "sse_requested",
+    values = {"define": "qsim_sse=true"},
+)
