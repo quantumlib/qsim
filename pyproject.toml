@@ -110,6 +110,7 @@ dev = [
     "pylint~=4.0.2",
     "pytest",
     "pytest-xdist",
+    "pytest-randomly",
 ]
 
 [tool.setuptools]
