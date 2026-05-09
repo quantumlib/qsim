@@ -17,4 +17,4 @@
 
 [codespell]
 ignore-words-list = unparseable
-skip = 'third_party'
+skip = third_party
