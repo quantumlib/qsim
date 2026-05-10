@@ -317,7 +317,12 @@ class SimulatorNEON final : public SimulatorBase {
     return 0;
   }
 
-  static unsigned SIMDRegisterSize() { return 4; }
+  /**
+   * @return The size of SIMD register if applicable.
+   */
+  static unsigned SIMDRegisterSize() {
+    return 4;
+  }
 
  private:
   template <unsigned H>
@@ -888,6 +893,7 @@ class SimulatorNEON final : public SimulatorBase {
     using Op = std::plus<std::complex<double>>;
     return for_.RunReduce(size, f, Op(), w, ms, xss, qs[0], state.get());
   }
+
   For for_;
 };
 
