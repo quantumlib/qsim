@@ -79,6 +79,12 @@ SSE_COPTS = {sse}
         ),
     )
 
+    # Print a message to inform the user what was found.
+    cpu_features_str = " ".join([feat.upper() for feat, found in features.items() if found])
+    flags_str = " ".join(avx_copts) + " " + " ".join(sse_copts)
+    print("Host CPU features detected: " + cpu_features_str)  # buildifier: disable=print
+    print("Build options being used: " + flags_str)  # buildifier: disable=print
+
 def get_cpu_features(os_name, cpu_info):
     """Parses system command output to identify CPU features.
 
