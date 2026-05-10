@@ -861,7 +861,9 @@ def test_add_op_to_opstring_controlled_gate_error():
     op = cirq.X(q0).controlled_by(q1)
     opstring = qsimcirq.qsim.OpString()
     qubit_to_index_dict = {q0: 0, q1: 1}
-    with pytest.raises(ValueError, match="OpString should only have Paulis; got GateKind.kCX"):
+    with pytest.raises(
+        ValueError, match="OpString should only have Paulis; got GateKind.kCX"
+    ):
         qsimcirq.add_op_to_opstring(op, qubit_to_index_dict, opstring)
 
 
