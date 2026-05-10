@@ -14,22 +14,10 @@
 
 # TODO: remove reliance on getopt (unistd.h) to allow apps to run on Windows.
 
-load("@local_compiler_config//:compiler_config.bzl", "AVX_COPTS", "SSE_COPTS", "SUPPORTS_GSFRAME")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("//dev_tools:bazel_utils.bzl", "qsim_select_copts")
 
-gsframe_copts = select({
-    "@platforms//os:linux": ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else [],
-    "//conditions:default": [],
-})
-
-qsim_copts = gsframe_copts + qsim_select_copts(
-    avx_copts = AVX_COPTS,
-    default = [],
-    native_copts = ["-march=native"],
-    sse_copts = SSE_COPTS,
-    windows_copts = AVX_COPTS,
-)
+qsim_copts = qsim_select_copts(target_level = "avx")
 
 cc_binary(
     name = "qsim_base",

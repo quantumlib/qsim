@@ -12,18 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@local_compiler_config//:compiler_config.bzl", "AVX_COPTS", "SSE_COPTS")
 load("//dev_tools:bazel_utils.bzl", "qsim_print_flags", "qsim_select_copts")
 
 qsim_print_flags(
     name = "show_flags",
-    flags = qsim_select_copts(
-        avx_copts = AVX_COPTS,
-        default = [],
-        native_copts = ["-march=native"],
-        sse_copts = SSE_COPTS,
-        windows_copts = AVX_COPTS,
-    ),
+    flags = qsim_select_copts(target_level = "avx"),
     visibility = ["//visibility:public"],
 )
 
@@ -35,8 +28,46 @@ config_setting(
 )
 
 config_setting(
-    name = "sse_requested",
-    values = {"define": "qsim_sse=true"},
+    name = "avx2_requested",
+    values = {"define": "qsim_avx2=true"},
+)
+
+config_setting(
+    name = "avx512_requested",
+    values = {"define": "qsim_avx512=true"},
+)
+
+config_setting(
+    name = "avx_and_avx2_requested",
+    define_values = {
+        "qsim_avx": "true",
+        "qsim_avx2": "true",
+    },
+)
+
+config_setting(
+    name = "avx_and_avx512_requested",
+    define_values = {
+        "qsim_avx": "true",
+        "qsim_avx512": "true",
+    },
+)
+
+config_setting(
+    name = "avx512_and_avx2_requested",
+    define_values = {
+        "qsim_avx512": "true",
+        "qsim_avx2": "true",
+    },
+)
+
+config_setting(
+    name = "avx_all_requested",
+    define_values = {
+        "qsim_avx": "true",
+        "qsim_avx2": "true",
+        "qsim_avx512": "true",
+    },
 )
 
 config_setting(
@@ -45,6 +76,11 @@ config_setting(
         "qsim_avx": "true",
         "qsim_sse": "true",
     },
+)
+
+config_setting(
+    name = "sse_requested",
+    values = {"define": "qsim_sse=true"},
 )
 
 config_setting(

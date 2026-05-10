@@ -82,6 +82,18 @@ build:avx --copt=-O3
 build:avx --build_tag_filters=
 test:avx --test_tag_filters=
 
+# Build with AVX2
+build:avx2 --define=qsim_avx2=true --define=cpu_features=AVX2
+build:avx2 --copt=-O3
+build:avx2 --build_tag_filters=
+test:avx2 --test_tag_filters=
+
+# Build with AVX512
+build:avx512 --define=qsim_avx512=true --define=cpu_features=AVX512
+build:avx512 --copt=-O3
+build:avx512 --build_tag_filters=
+test:avx512 --test_tag_filters=
+
 # Build with SSE
 build:sse --define=qsim_sse=true --define=cpu_features=SSE
 build:sse --copt=-O3
