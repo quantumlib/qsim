@@ -12,7 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package(default_visibility = ["//visibility:public"])
+load("@local_compiler_config//:compiler_config.bzl", "AVX_COPTS", "SSE_COPTS")
+load("//dev_tools:bazel_utils.bzl", "qsim_print_flags", "qsim_select_copts")
+
+qsim_print_flags(
+    name = "show_flags",
+    flags = qsim_select_copts(
+        avx_copts = AVX_COPTS,
+        default = [],
+        native_copts = ["-march=native"],
+        sse_copts = SSE_COPTS,
+        windows_copts = AVX_COPTS,
+    ),
+    visibility = ["//visibility:public"],
+)
 
 # Define configurations for build with AVX and/or SSE support.
 
@@ -24,6 +37,14 @@ config_setting(
 config_setting(
     name = "sse_requested",
     values = {"define": "qsim_sse=true"},
+)
+
+config_setting(
+    name = "avx_and_sse_requested",
+    define_values = {
+        "qsim_avx": "true",
+        "qsim_sse": "true",
+    },
 )
 
 config_setting(

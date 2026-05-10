@@ -15,7 +15,31 @@
 """Unit tests for compiler_probe.bzl."""
 
 load("@bazel_skylib//lib:unittest.bzl", "asserts", "unittest")
-load("//dev_tools:compiler_probe.bzl", "get_compiler_flags", "get_cpu_features")
+load("//dev_tools:compiler_probe.bzl", "get_compiler_flags", "get_cpu_features", "get_feature_booleans")
+
+def _test_linux_basic_impl(ctx):
+    env = unittest.begin(ctx)
+
+    # Mock /proc/cpuinfo output for an older AVX/SSE2 Linux box
+    cmd_output = "flags : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq vmx ssse3 cx16 pcid movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch cpuid_fault pti ssbd ibrs ibpb stibp tpr_shadow vnmi flexpriority ept vpid ept_ad fsgsbase tsc_adjust erms invpcid rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves arat umip arch_capabilities"
+
+    features = get_cpu_features("linux", cmd_output)
+    asserts.true(env, features["avx"])
+    asserts.false(env, features["avx2"])
+    asserts.true(env, features["sse2"])
+    asserts.false(env, features["sse4"])
+
+    avx_copts, sse_copts = get_compiler_flags("linux", features)
+    asserts.equals(env, ["-mavx"], avx_copts)
+    asserts.equals(env, ["-msse2"], sse_copts)
+
+    has_avx, has_sse, features_str = get_feature_booleans(features)
+    asserts.true(env, has_avx)
+    asserts.true(env, has_sse)
+    asserts.true(env, "AVX" in features_str)
+    asserts.true(env, "SSE2" in features_str)
+
+    return unittest.end(env)
 
 def _test_linux_avx2_impl(ctx):
     env = unittest.begin(ctx)
@@ -79,6 +103,7 @@ def _test_windows_impl(ctx):
 
     return unittest.end(env)
 
+linux_basic_test = unittest.make(_test_linux_basic_impl)
 linux_avx2_test = unittest.make(_test_linux_avx2_impl)
 linux_avx512_test = unittest.make(_test_linux_avx512_impl)
 macos_test = unittest.make(_test_macos_impl)
@@ -87,6 +112,7 @@ windows_test = unittest.make(_test_windows_impl)
 def compiler_probe_test_suite(name):
     unittest.suite(
         name,
+        linux_basic_test,
         linux_avx2_test,
         linux_avx512_test,
         macos_test,

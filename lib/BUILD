@@ -75,6 +75,7 @@ cc_library(
         "util_cpu.h",
         "vectorspace.h",
     ],
+    deps = ["//:show_flags"],
 )
 
 cc_library(
@@ -156,6 +157,7 @@ cuda_library(
     ],
     deps = [
         ":cuda",
+        "//:show_flags",
         "@local_config_cuda//cuda:cuda_headers",
     ],
 )
@@ -330,22 +332,28 @@ cc_library(
 cc_library(
     name = "bitstring",
     hdrs = ["bitstring.h"],
+    deps = ["//:show_flags"],
 )
 
 cc_library(
     name = "bits",
     hdrs = ["bits.h"],
+    deps = ["//:show_flags"],
 )
 
 cc_library(
     name = "matrix",
     hdrs = ["matrix.h"],
-    deps = [":bits"],
+    deps = [
+        ":bits",
+        "//:show_flags",
+    ],
 )
 
 cc_library(
     name = "util",
     hdrs = ["util.h"],
+    deps = ["//:show_flags"],
 )
 
 cc_library(

@@ -37,10 +37,6 @@ build:windows --cxxopt=/std:c++17
 # Config options later in this file can be layered to enable them.
 build --build_tag_filters=-avx,-sse
 test --test_tag_filters=-avx,-sse
-# "bazel run" inherits options from "build". Our run targets don't have tags,
-# so we must clear the filter explicitly or we get "No targets found to run".
-run:sse --build_tag_filters=
-run:avx --build_tag_filters=
 
 # CUDA options
 build:cuda --@local_config_cuda//:enable_cuda
@@ -81,19 +77,19 @@ build:nosan --
 # ~~~~ Instruction set options (choose one) ~~~~
 
 # Build with AVX
-build:avx --define=qsim_avx=true
+build:avx --define=qsim_avx=true --define=cpu_features=AVX
 build:avx --copt=-O3
-build:avx --build_tag_filters=-sse --ui_event_filters=-WARNING
-test:avx --test_tag_filters=-sse --ui_event_filters=-WARNING
+build:avx --build_tag_filters=
+test:avx --test_tag_filters=
 
 # Build with SSE
-build:sse --define=qsim_sse=true
+build:sse --define=qsim_sse=true --define=cpu_features=SSE
 build:sse --copt=-O3
-build:sse --build_tag_filters=-avx --ui_event_filters=-WARNING
-test:sse --test_tag_filters=-avx --ui_event_filters=-WARNING
+build:sse --build_tag_filters=
+test:sse --test_tag_filters=
 
-# Build with native architecture
-build:native --define=qsim_native=true
+# Let the compiler pick the best combination for the native architecture.
+build:native --define=qsim_native=true --define=cpu_features=Native
 build:native --copt=-O3
 build:native --build_tag_filters=
 test:native --test_tag_filters=

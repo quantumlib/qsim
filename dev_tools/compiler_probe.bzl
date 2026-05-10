@@ -61,6 +61,7 @@ def _compiler_probe_impl(repo_ctx):
 
     features = get_cpu_features(os_name, cpu_info)
     avx_copts, sse_copts = get_compiler_flags(os_name, features)
+    has_avx, has_sse, cpu_features_str = get_feature_booleans(features)
 
     repo_ctx.file(
         "BUILD.bazel",
@@ -72,18 +73,37 @@ def _compiler_probe_impl(repo_ctx):
 SUPPORTS_GSFRAME = {gsframe}
 AVX_COPTS = {avx}
 SSE_COPTS = {sse}
+CPU_FEATURES_STR = "{cpu_features}"
+HOST_HAS_AVX = {has_avx}
+HOST_HAS_SSE = {has_sse}
 """.format(
             gsframe = supports_gsframe,
             avx = avx_copts,
             sse = sse_copts,
+            cpu_features = cpu_features_str,
+            has_avx = has_avx,
+            has_sse = has_sse,
         ),
     )
 
     # Print a message to inform the user what was found.
-    cpu_features_str = " ".join([feat.upper() for feat, found in features.items() if found])
     flags_str = " ".join(avx_copts) + " " + " ".join(sse_copts)
     print("Host CPU features detected: " + cpu_features_str)  # buildifier: disable=print
-    print("Build options being used: " + flags_str)  # buildifier: disable=print
+    print("Available host-optimized flags: " + flags_str)  # buildifier: disable=print
+
+def get_feature_booleans(features):
+    """Summarizes feature presence as booleans and a string.
+
+    Args:
+        features: A dict of detected features (from get_cpu_features).
+
+    Returns:
+        A tuple of (has_avx, has_sse, cpu_features_str).
+    """
+    cpu_features_str = " ".join([feat.upper() for feat, found in features.items() if found])
+    has_avx = "AVX" in cpu_features_str
+    has_sse = "SSE" in cpu_features_str
+    return has_avx, has_sse, cpu_features_str
 
 def get_cpu_features(os_name, cpu_info):
     """Parses system command output to identify CPU features.
@@ -104,6 +124,7 @@ def get_cpu_features(os_name, cpu_info):
     feature_map = {
         "avx512f": ["avx512f"],
         "avx2": ["avx2"],
+        "avx": ["avx"],
         "fma": ["fma"],
         "bmi2": ["bmi2"],
         "sse4": ["sse4_1", "sse4_2", "sse4.1", "sse4.2"],
