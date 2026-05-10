@@ -46,7 +46,7 @@ object itself.
 
 ```cpp
 // Requires num_qubits >= 2 and bond_dim >= 2.
-auto state = MPSStateSpace::Create(num_qubits, bond_dim);
+auto state = MPSStateSpace<For, float>::Create(num_qubits, bond_dim);
 ```
 
 ### Initializing to |0⟩
