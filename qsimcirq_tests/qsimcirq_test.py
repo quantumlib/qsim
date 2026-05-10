@@ -856,6 +856,15 @@ def test_decompose_to_matrix_gates():
     )
 
 
+def test_add_op_to_opstring_controlled_gate_error():
+    q0, q1 = cirq.LineQubit.range(2)
+    op = cirq.X(q0).controlled_by(q1)
+    opstring = qsimcirq.qsim.OpString()
+    qubit_to_index_dict = {q0: 0, q1: 1}
+    with pytest.raises(ValueError, match="OpString should only have Paulis; got GateKind.kCX"):
+        qsimcirq.add_op_to_opstring(op, qubit_to_index_dict, opstring)
+
+
 def test_basic_controlled_gate():
     qubits = cirq.LineQubit.range(3)
 
