@@ -308,7 +308,7 @@ jobs:
     strategy:
       matrix:
         # Hardware optimizers.
-        hardware_opt: [avx, sse, basic]
+        hardware_opt: [avx512, avx2, avx, sse, native, basic]
         # Optimizers for parallelism.
         parallel_opt: [openmp, nopenmp]
     steps:
