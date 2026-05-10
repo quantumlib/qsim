@@ -25,3 +25,8 @@ config_setting(
     name = "sse_requested",
     values = {"define": "qsim_sse=true"},
 )
+
+config_setting(
+    name = "native_requested",
+    values = {"define": "qsim_native=true"},
+)

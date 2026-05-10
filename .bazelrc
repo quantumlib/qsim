@@ -92,6 +92,12 @@ build:sse --copt=-O3
 build:sse --build_tag_filters=-avx --ui_event_filters=-WARNING
 test:sse --test_tag_filters=-avx --ui_event_filters=-WARNING
 
+# Build with native architecture
+build:native --define=qsim_native=true
+build:native --copt=-O3
+build:native --build_tag_filters= --ui_event_filters=-WARNING
+test:native --test_tag_filters= --ui_event_filters=-WARNING
+
 # Build without AVX or SSE
 build:basic --copt=-O3
 

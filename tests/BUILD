@@ -24,6 +24,8 @@ avx512_copts = AVX_COPTS + gsframe_copts
 
 sse_copts = SSE_COPTS + gsframe_copts
 
+native_copts = ["-march=native"] + gsframe_copts
+
 windows_copts = AVX_COPTS
 
 windows_avx512_copts = AVX_COPTS
@@ -39,6 +41,7 @@ cc_test(
     srcs = ["bitstring_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -55,6 +58,7 @@ cc_test(
     srcs = ["channel_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -75,6 +79,7 @@ cc_test(
     srcs = ["channels_cirq_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -99,6 +104,7 @@ cc_test(
     srcs = ["circuit_qsim_parser_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -116,6 +122,7 @@ cc_test(
     srcs = ["expect_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -138,6 +145,7 @@ cc_test(
     srcs = ["fuser_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -156,6 +164,7 @@ cc_test(
     srcs = ["fuser_mqubit_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -188,6 +197,7 @@ cc_test(
     srcs = ["gates_qsim_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -204,6 +214,7 @@ cc_library(
     hdrs = ["hybrid_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -225,6 +236,7 @@ cc_test(
     srcs = ["hybrid_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": avx_copts,
     }),
     tags = ["avx"],
@@ -242,6 +254,7 @@ cc_test(
     srcs = ["matrix_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -258,6 +271,7 @@ cc_library(
     hdrs = ["qtrajectory_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -282,6 +296,7 @@ cc_test(
     srcs = ["qtrajectory_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": avx_copts,
     }),
     tags = ["avx"],
@@ -303,6 +318,7 @@ cc_test(
     srcs = ["run_qsim_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -320,6 +336,7 @@ cc_test(
     srcs = ["run_qsimh_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -337,6 +354,7 @@ cc_library(
     hdrs = ["simulator_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -358,6 +376,7 @@ cc_test(
     srcs = ["simulator_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": avx_copts,
     }),
     tags = ["avx"],
@@ -376,6 +395,7 @@ cc_test(
     srcs = ["simulator_avx512_test.cc"],
     copts = select({
         ":windows": windows_avx512_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": avx512_copts,
@@ -396,6 +416,7 @@ cc_test(
     srcs = ["simulator_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -415,6 +436,7 @@ cc_test(
     srcs = ["simulator_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": sse_copts,
     }),
     tags = ["sse"],
@@ -433,6 +455,7 @@ cc_library(
     hdrs = ["statespace_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -453,6 +476,7 @@ cc_test(
     srcs = ["statespace_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": avx_copts,
     }),
     tags = ["avx"],
@@ -472,6 +496,7 @@ cc_test(
     srcs = ["statespace_avx512_test.cc"],
     copts = select({
         ":windows": windows_avx512_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": avx512_copts,
@@ -493,6 +518,7 @@ cc_test(
     srcs = ["statespace_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -513,6 +539,7 @@ cc_test(
     srcs = ["statespace_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": sse_copts,
     }),
     tags = ["sse"],
@@ -532,6 +559,7 @@ cc_library(
     hdrs = ["unitaryspace_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -547,6 +575,7 @@ cc_test(
     srcs = ["unitaryspace_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": avx_copts,
     }),
     tags = ["avx"],
@@ -564,6 +593,7 @@ cc_test(
     srcs = ["unitaryspace_avx512_test.cc"],
     copts = select({
         ":windows": windows_avx512_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": avx512_copts,
@@ -583,6 +613,7 @@ cc_test(
     srcs = ["unitaryspace_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -601,6 +632,7 @@ cc_test(
     srcs = ["unitaryspace_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": sse_copts,
     }),
     tags = ["sse"],
@@ -618,6 +650,7 @@ cc_library(
     hdrs = ["unitary_calculator_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -636,6 +669,7 @@ cc_test(
     srcs = ["unitary_calculator_avx_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": avx_copts,
     }),
     tags = ["avx"],
@@ -654,6 +688,7 @@ cc_test(
     srcs = ["unitary_calculator_avx512_test.cc"],
     copts = select({
         ":windows": windows_avx512_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": avx512_copts,
@@ -674,6 +709,7 @@ cc_test(
     srcs = ["unitary_calculator_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -693,6 +729,7 @@ cc_test(
     srcs = ["unitary_calculator_sse_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//conditions:default": sse_copts,
     }),
     tags = ["sse"],
@@ -711,6 +748,7 @@ cc_test(
     srcs = ["vectorspace_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -728,6 +766,7 @@ cc_test(
     srcs = ["mps_statespace_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],
@@ -745,6 +784,7 @@ cc_test(
     srcs = ["mps_simulator_test.cc"],
     copts = select({
         ":windows": windows_copts,
+        "//:native_requested": native_copts,
         "//:avx_requested": avx_copts,
         "//:sse_requested": sse_copts,
         "//conditions:default": [],

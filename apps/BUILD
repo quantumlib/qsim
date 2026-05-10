@@ -23,6 +23,7 @@ gsframe_copts = select({
 })
 
 qsim_copts = gsframe_copts + select({
+    "//:native_requested": ["-march=native"],
     "//:avx_requested": AVX_COPTS,
     "//:sse_requested": SSE_COPTS,
     "//conditions:default": [],
