@@ -22,9 +22,7 @@ sample programs in apps/.
 
 If the first option on the command line is -h, --help, or help, this help text
 will be printed and the program will exit. Any other options on the command
-line are passed directly to Bazel.
-
-This script makes use of the Python package 'py-cpuinfo'."
+line are passed directly to Bazel."
 
 # Exit early if the user requested help.
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
@@ -32,42 +30,14 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
-if ! python -m pip show -qq py-cpuinfo 2>/dev/null; then
-    echo "Error: missing package 'py-cpuinfo'." >&2
-    exit 1
-fi
-
-# Look for AVX and SSE in the processor's feature flags.
-declare features=""
-declare filters=""
-declare -a configs=()
-features="$(python -c 'import cpuinfo; print(" ".join(cpuinfo.get_cpu_info().get("flags", [])))')"
-if [[ "$features" == *avx2* ]]; then
-     filters+=",avx"
-     configs+=( "--config=avx" )
-fi
-if [[ "$features" == *sse4* ]]; then
-     filters+=",sse"
-     configs+=( "--config=sse" )
-fi
-filters="${filters#,}"
-
-# If none of the optimization configs were added, use the basic config.
-if [[ ${#configs[@]} -eq 0 ]]; then
-    configs=( "--config=basic" )
-fi
-
-declare -a build_filters=()
-declare -a test_filters=()
-if [[ -n "$filters" ]]; then
-    build_filters=( "--build_tag_filters=$filters" )
-    test_filters=( "--test_tag_filters=$filters" )
-fi
+# We use the 'native' config to automatically detect and use the best 
+# instruction set available on the current host.
+declare -a configs=( "--config=native" )
 
 # The apps are sample programs and are only meant to run on Linux.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    bazel build "${configs[@]}" "${build_filters[@]}" "$@" apps:all
+    bazel build "${configs[@]}" "$@" apps:all
 fi
 
-# Run all basic tests. This should work on all platforms.
-bazel test "${configs[@]}" "${test_filters[@]}" "$@" tests:all
+# Run all tests. Incompatible SIMD tests will be skipped automatically.
+bazel test "${configs[@]}" "$@" tests:all
