@@ -103,7 +103,7 @@ MPSStateSpace::ReduceDensityMatrix(state, scratch, qubit_index, rdm);
 ### Applying gates
 
 ```cpp
-MPSSimulator sim(/* ForArgs */);
+MPSSimulator<For, float> sim(/* ForArgs */);
 
 // Apply a 1-qubit gate
 sim.ApplyGate({qubit_index}, gate_matrix, state);
