@@ -74,7 +74,7 @@ build:msan --linkopt=-fsanitize=leak
 build:nosan --
 
 
-# ~~~~ Instruction set options (choose one) ~~~~
+# ~~~~ Instruction set options (can be combined) ~~~~
 
 # Build with AVX
 build:avx --define=qsim_avx=true --define=cpu_features=AVX
