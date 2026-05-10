@@ -92,7 +92,7 @@ process.
 You can compute the 2×2 reduced density matrix (1-RDM) for any single qubit:
 
 ```cpp
-float rdm[8]; // 2x2 complex matrix = 8 floats
+float rdm[8]; // Use double if fp_type is double
 MPSStateSpace::ReduceDensityMatrix(state, scratch, qubit_index, rdm);
 ```
 
