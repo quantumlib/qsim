@@ -16,7 +16,7 @@ dimension" (often written as χ or `bond_dim`) controls how much entanglement th
 representation can capture: a higher bond dimension is more accurate but uses more
 memory and takes longer to simulate.
 
-The catch — and the reason this is so useful — is that many quantum circuits of
+The catch, and the reason this is so useful, is that many quantum circuits of
 practical interest don't generate a lot of entanglement. For those circuits, a
 small bond dimension works great, and you can simulate far more qubits than a
 full state-vector simulator could handle.
