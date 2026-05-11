@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//dev_tools:bazel_utils.bzl", "qsim_print_flags", "qsim_select_copts")
+load("//dev_tools:bazel_utils.bzl", "qsim_print_config", "qsim_validate_host")
 
-qsim_print_flags(
-    name = "show_flags",
-    flags = qsim_select_copts(target_level = "avx"),
+qsim_validate_host(
+    name = "validate_host",
     visibility = ["//visibility:public"],
 )
 
-# Define configurations for build with AVX and/or SSE support.
+qsim_print_config(name = "print_config")
+
+# Define configurations for build with AVX, SSE, and BMI support.
 
 config_setting(
     name = "avx_requested",
@@ -38,52 +39,26 @@ config_setting(
 )
 
 config_setting(
-    name = "avx_and_avx2_requested",
-    define_values = {
-        "qsim_avx": "true",
-        "qsim_avx2": "true",
-    },
-)
-
-config_setting(
-    name = "avx_and_avx512_requested",
-    define_values = {
-        "qsim_avx": "true",
-        "qsim_avx512": "true",
-    },
-)
-
-config_setting(
-    name = "avx512_and_avx2_requested",
-    define_values = {
-        "qsim_avx512": "true",
-        "qsim_avx2": "true",
-    },
-)
-
-config_setting(
-    name = "avx_all_requested",
-    define_values = {
-        "qsim_avx": "true",
-        "qsim_avx2": "true",
-        "qsim_avx512": "true",
-    },
-)
-
-config_setting(
-    name = "avx_and_sse_requested",
-    define_values = {
-        "qsim_avx": "true",
-        "qsim_sse": "true",
-    },
-)
-
-config_setting(
     name = "sse_requested",
     values = {"define": "qsim_sse=true"},
 )
 
 config_setting(
+    name = "bmi_requested",
+    values = {"define": "qsim_bmi=true"},
+)
+
+config_setting(
+    name = "bmi2_requested",
+    values = {"define": "qsim_bmi2=true"},
+)
+
+config_setting(
     name = "native_requested",
     values = {"define": "qsim_native=true"},
+)
+
+config_setting(
+    name = "verbose_requested",
+    values = {"define": "qsim_verbose=true"},
 )

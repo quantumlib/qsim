@@ -25,7 +25,6 @@ common --enable_platform_specific_config
 
 build:linux --copt=-std=c++17
 build:linux --cxxopt=-std=c++17
-build:linux --per_file_copt="googletest/.*@-Xassembler,-W"
 
 build:macos --copt=-std=c++17
 build:macos --cxxopt=-std=c++17
@@ -49,9 +48,12 @@ test --test_timeout=600
 # Configs for verbose builds & tests
 common:verbose --announce_rc
 common:verbose --auto_output_filter=none
+common:verbose --define=qsim_verbose=true
 build:verbose --show_progress_rate_limit=1
 test:verbose --test_summary=detailed
 
+# Flags to silence warnings we can't do anything about.
+build:linux --per_file_copt="googletest/.*@-Xassembler,-W"
 
 # ~~~~ Sanitizers (choose one, or nosan for none) ~~~~
 
@@ -77,31 +79,38 @@ build:nosan --
 # ~~~~ Instruction set options (can be combined) ~~~~
 
 # Build with AVX
-build:avx --define=qsim_avx=true --define=cpu_features=AVX
+build:avx --define=qsim_avx=true
 build:avx --copt=-O3
 build:avx --build_tag_filters=
 test:avx --test_tag_filters=
 
 # Build with AVX2
-build:avx2 --define=qsim_avx2=true --define=cpu_features=AVX2
+build:avx2 --define=qsim_avx2=true
 build:avx2 --copt=-O3
 build:avx2 --build_tag_filters=
 test:avx2 --test_tag_filters=
 
 # Build with AVX512
-build:avx512 --define=qsim_avx512=true --define=cpu_features=AVX512
+build:avx512 --define=qsim_avx512=true
 build:avx512 --copt=-O3
 build:avx512 --build_tag_filters=
 test:avx512 --test_tag_filters=
 
 # Build with SSE
-build:sse --define=qsim_sse=true --define=cpu_features=SSE
+build:sse --define=qsim_sse=true
 build:sse --copt=-O3
 build:sse --build_tag_filters=
 test:sse --test_tag_filters=
 
+# Build with BMI
+build:bmi --config=bmi2
+
+# Build with BMI2
+build:bmi2 --define=qsim_bmi2=true
+build:bmi2 --copt=-O3
+
 # Let the compiler pick the best combination for the native architecture.
-build:native --define=qsim_native=true --define=cpu_features=Native
+build:native --define=qsim_native=true
 build:native --copt=-O3
 build:native --build_tag_filters=
 test:native --test_tag_filters=

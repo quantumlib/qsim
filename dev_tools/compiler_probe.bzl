@@ -61,7 +61,7 @@ def _compiler_probe_impl(repo_ctx):
 
     features = get_cpu_features(os_name, cpu_info)
     avx_copts, sse_copts = get_compiler_flags(os_name, features)
-    has_avx, has_avx2, has_avx512, has_sse, cpu_features_str = get_feature_booleans(features)
+    has_avx, has_avx2, has_avx512, has_sse, has_bmi, has_bmi2, cpu_features_str = get_feature_booleans(features)
 
     # Specific flags for requested levels
     if is_win:
@@ -71,7 +71,8 @@ def _compiler_probe_impl(repo_ctx):
         avx2_flags = ["-mavx2", "-mfma"]
         avx512_flags = ["-mavx512f", "-mavx2", "-mfma"]
 
-    bmi2_flags = ["-mbmi2"] if features.get("bmi2") else []
+    bmi_flags = ["-mbmi"] if has_bmi and not has_bmi2 else []
+    bmi2_flags = ["-mbmi2"] if has_bmi2 else []
 
     repo_ctx.file(
         "BUILD.bazel",
@@ -85,29 +86,35 @@ AVX_COPTS = {avx}
 AVX2_COPTS = {avx2}
 AVX512_COPTS = {avx512}
 SSE_COPTS = {sse}
+BMI_COPTS = {bmi}
 BMI2_COPTS = {bmi2}
 CPU_FEATURES_STR = "{cpu_features}"
 HOST_HAS_AVX = {has_avx}
 HOST_HAS_AVX2 = {has_avx2}
 HOST_HAS_AVX512 = {has_avx512}
 HOST_HAS_SSE = {has_sse}
+HOST_HAS_BMI = {has_bmi}
+HOST_HAS_BMI2 = {has_bmi2}
 """.format(
             gsframe = supports_gsframe,
             avx = avx_copts,
             avx2 = avx2_flags,
             avx512 = avx512_flags,
             sse = sse_copts,
+            bmi = bmi_flags,
             bmi2 = bmi2_flags,
             cpu_features = cpu_features_str,
             has_avx = has_avx,
             has_avx2 = has_avx2,
             has_avx512 = has_avx512,
             has_sse = has_sse,
+            has_bmi = has_bmi,
+            has_bmi2 = has_bmi2,
         ),
     )
 
     # Print a message to inform the user what was found.
-    flags_str = " ".join(avx_copts) + " " + " ".join(sse_copts) + " " + " ".join(bmi2_flags)
+    flags_str = " ".join(avx_copts) + " " + " ".join(sse_copts) + " " + " ".join(bmi_flags) + " " + " ".join(bmi2_flags)
     print("Host CPU features detected: " + cpu_features_str)  # buildifier: disable=print
     print("Available host-optimized flags: " + flags_str)  # buildifier: disable=print
 
@@ -118,14 +125,16 @@ def get_feature_booleans(features):
         features: A dict of detected features (from get_cpu_features).
 
     Returns:
-        A tuple of (has_avx, has_avx2, has_avx512, has_sse, cpu_features_str).
+        A tuple of (has_avx, has_avx2, has_avx512, has_sse, has_bmi, has_bmi2, cpu_features_str).
     """
     cpu_features_str = " ".join([feat.upper() for feat, found in features.items() if found])
     has_avx = features.get("avx", False)
     has_avx2 = features.get("avx2", False)
     has_avx512 = features.get("avx512f", False)
     has_sse = "SSE" in cpu_features_str
-    return has_avx, has_avx2, has_avx512, has_sse, cpu_features_str
+    has_bmi = features.get("bmi", False)
+    has_bmi2 = features.get("bmi2", False)
+    return has_avx, has_avx2, has_avx512, has_sse, has_bmi, has_bmi2, cpu_features_str
 
 def get_cpu_features(os_name, cpu_info):
     """Parses system command output to identify CPU features.
@@ -148,6 +157,7 @@ def get_cpu_features(os_name, cpu_info):
         "avx2": ["avx2"],
         "avx": ["avx"],
         "fma": ["fma"],
+        "bmi": ["bmi1", "bmi "],  # bmi1 is often just 'bmi'
         "bmi2": ["bmi2"],
         "sse4": ["sse4_1", "sse4_2", "sse4.1", "sse4.2"],
         "sse2": ["sse2"],
