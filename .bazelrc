@@ -15,7 +15,6 @@
 # ~~~~ General flags ~~~~
 
 # Common flags
-common --announce_rc
 common --experimental_repo_remote_exec
 common --verbose_failures
 
@@ -48,8 +47,7 @@ test --test_timeout=600
 # Configs for verbose builds & tests
 common:verbose --announce_rc
 common:verbose --auto_output_filter=none
-common:verbose --define=qsim_verbose=true
-build:verbose --show_progress_rate_limit=1
+common:verbose --subcommands
 test:verbose --test_summary=detailed
 
 # Flags to silence warnings we can't do anything about.

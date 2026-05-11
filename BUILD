@@ -57,8 +57,3 @@ config_setting(
     name = "native_requested",
     values = {"define": "qsim_native=true"},
 )
-
-config_setting(
-    name = "verbose_requested",
-    values = {"define": "qsim_verbose=true"},
-)
