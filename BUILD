@@ -57,3 +57,20 @@ config_setting(
     name = "native_requested",
     values = {"define": "qsim_native=true"},
 )
+
+config_setting(
+    name = "native_on_linux",
+    constraint_values = ["@platforms//os:linux"],
+    values = {"define": "qsim_native=true"},
+)
+
+config_setting(
+    name = "native_on_macos",
+    constraint_values = ["@platforms//os:macos"],
+    values = {"define": "qsim_native=true"},
+)
+
+config_setting(
+    name = "verbose_requested",
+    values = {"define": "qsim_verbose=true"},
+)

@@ -24,12 +24,15 @@ common --enable_platform_specific_config
 
 build:linux --copt=-std=c++17
 build:linux --cxxopt=-std=c++17
+build:linux --copt=-O3
 
 build:macos --copt=-std=c++17
 build:macos --cxxopt=-std=c++17
+build:macos --copt=-O3
 
 build:windows --copt=/std:c++17
 build:windows --cxxopt=/std:c++17
+build:windows --copt=/O2
 
 # The default for vector instruction sets is to exclude them.
 # Config options later in this file can be layered to enable them.
@@ -78,25 +81,21 @@ build:nosan --
 
 # Build with AVX
 build:avx --define=qsim_avx=true
-build:avx --copt=-O3
 build:avx --build_tag_filters=
 test:avx --test_tag_filters=
 
 # Build with AVX2
 build:avx2 --define=qsim_avx2=true
-build:avx2 --copt=-O3
 build:avx2 --build_tag_filters=
 test:avx2 --test_tag_filters=
 
 # Build with AVX512
 build:avx512 --define=qsim_avx512=true
-build:avx512 --copt=-O3
 build:avx512 --build_tag_filters=
 test:avx512 --test_tag_filters=
 
 # Build with SSE
 build:sse --define=qsim_sse=true
-build:sse --copt=-O3
 build:sse --build_tag_filters=
 test:sse --test_tag_filters=
 
@@ -105,16 +104,14 @@ build:bmi --config=bmi2
 
 # Build with BMI2
 build:bmi2 --define=qsim_bmi2=true
-build:bmi2 --copt=-O3
 
 # Let the compiler pick the best combination for the native architecture.
 build:native --define=qsim_native=true
-build:native --copt=-O3
 build:native --build_tag_filters=
 test:native --test_tag_filters=
 
 # Build without AVX or SSE
-build:basic --copt=-O3
+build:basic --
 
 
 # ~~~~ Parallelization (choose one, or nopenmp for none) ~~~~

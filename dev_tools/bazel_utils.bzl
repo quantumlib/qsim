@@ -47,8 +47,9 @@ def qsim_select_copts(target_level = "basic"):
     """
 
     # 1. Native configuration.
-    native_part = select({
-        "//:native_requested": ["-march=native"],
+    # Windows (MSVC) does not support -march=native.
+    native_part = selects.with_or({
+        ("//:native_on_linux", "//:native_on_macos"): ["-march=native"],
         "//conditions:default": [],
     })
 
