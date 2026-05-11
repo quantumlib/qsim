@@ -237,18 +237,6 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "run_qsimh_test",
-    size = "small",
-    srcs = ["run_qsimh_test.cc"],
-    copts = qsim_select_copts(target_level = "basic"),
-    deps = [
-        ":gates_cirq_testfixture",
-        "//lib:run_qsimh_lib",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
 cc_library(
     name = "simulator_testfixture",
     testonly = 1,

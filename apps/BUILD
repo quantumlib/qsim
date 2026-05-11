@@ -47,23 +47,3 @@ cc_binary(
         "//lib:run_qsim_lib",
     ],
 )
-
-cc_binary(
-    name = "qsimh_base",
-    srcs = ["qsimh_base.cc"],
-    copts = qsim_copts,
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsimh_lib",
-    ],
-)
-
-cc_binary(
-    name = "qsimh_amplitudes",
-    srcs = ["qsimh_amplitudes.cc"],
-    copts = qsim_copts,
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsimh_lib",
-    ],
-)
