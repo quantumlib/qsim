@@ -22,68 +22,66 @@
 
 #include "gate.h"
 #include "gate_appl.h"
+#include "gates_cirq.h"
+#include "gates_qsim.h"
 
 namespace qsim {
+
+namespace detail {
+
+template <typename fp_type>
+inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
+    unsigned kind, const std::vector<fp_type>& params) {
+  if (kind >= kGateId1) {
+    return qsim::GetSchmidtDecomp(kind, params);
+  } else {
+    return qsim::Cirq::GetSchmidtDecomp(kind, params);
+  }
+}
+
+}  // namespace detail
 
 /**
  * Hybrid Feynman-Schrodinger simulator.
  */
-template <typename IO, typename GateT,
-          template <typename, typename> class FuserT, typename For>
+template <typename IO, typename For>
 struct HybridSimulator final {
- public:
-  using Gate = GateT;
-  using GateKind = typename Gate::GateKind;
-  using fp_type = typename Gate::fp_type;
-
  private:
-  // Note that one can use "struct GateHybrid : public Gate {" in C++17.
-  struct GateHybrid {
-    using GateKind = HybridSimulator::GateKind;
-    using fp_type = HybridSimulator::fp_type;
-
-    GateKind kind;
-    unsigned time;
-    std::vector<unsigned> qubits;
-    std::vector<unsigned> controlled_by;
-    uint64_t cmask;
-    std::vector<fp_type> params;
-    Matrix<fp_type> matrix;
-    bool unfusible;
-    bool swapped;
-
-    const Gate* parent;
-    unsigned id;
-  };
-
+  template <typename FP>
   struct GateX {
-    GateHybrid* decomposed0;
-    GateHybrid* decomposed1;
+    using fp_type = FP;
+
+    DecomposedGate<fp_type>* decomposed0;
+    DecomposedGate<fp_type>* decomposed1;
     schmidt_decomp_type<fp_type> schmidt_decomp;
     unsigned schmidt_bits;
     unsigned swapped;
   };
 
- public:
-  using Fuser = FuserT<IO, GateHybrid>;
-  using GateFused = typename Fuser::GateFused;
+  struct Empty {};
 
+ public:
   /**
    * Contextual data for hybrid simulation.
    */
+  template <typename FP>
   struct HybridData {
+    using fp_type = FP;
+    using OperationD = detail::append_to_variant_t<Operation<fp_type>,
+                                                   DecomposedGate<fp_type>>;
+
     /**
-     * List of gates on the "0" side of the cut.
+     * List of operations on the "0" side of the cut.
      */
-    std::vector<GateHybrid> gates0;
+    std::vector<OperationD> ops0;
     /**
-     * List of gates on the "1" side of the cut.
+     * List of operations on the "1" side of the cut.
      */
-    std::vector<GateHybrid> gates1;
+    std::vector<OperationD> ops1;
     /**
      * List of gates on the cut.
      */
-    std::vector<GateX> gatexs;
+    std::vector<GateX<fp_type>> gatexs;
     /**
      * Global qubit index to local qubit index map.
      */
@@ -105,7 +103,8 @@ struct HybridSimulator final {
   /**
    * User-specified parameters for gate fusion and hybrid simulation.
    */
-  struct Parameter : public Fuser::Parameter {
+  template <typename ParameterF = Empty>
+  struct Parameter : public ParameterF {
     /**
      * Fixed bitstring indicating values to assign to Schmidt decomposition
      * indices of prefix gates.
@@ -131,18 +130,25 @@ struct HybridSimulator final {
    * Splits the lattice into two parts, using Schmidt decomposition for gates
    * on the cut.
    * @param parts Lattice sections to be simulated.
-   * @param gates List of all gates in the circuit.
+   * @param ops List of all operations in the circuit. Only matrix gates are
+   *   supported.
    * @param hd Output data with split parts.
    * @return True if the splitting done successfully; false otherwise.
    */
+  template <typename Operation, typename FP>
   static bool SplitLattice(const std::vector<unsigned>& parts,
-                           const std::vector<Gate>& gates, HybridData& hd) {
+                           const std::vector<Operation>& ops,
+                           HybridData<FP>& hd) {
+    using fp_type = FP;
+    using Gate = qsim::Gate<fp_type>;
+    using DecomposedGate = qsim::DecomposedGate<fp_type>;
+
     hd.num_gatexs = 0;
     hd.num_qubits0 = 0;
     hd.num_qubits1 = 0;
 
-    hd.gates0.reserve(gates.size());
-    hd.gates1.reserve(gates.size());
+    hd.ops0.reserve(ops.size());
+    hd.ops1.reserve(ops.size());
     hd.qubit_map.reserve(parts.size());
 
     unsigned count0 = 0;
@@ -155,68 +161,60 @@ struct HybridSimulator final {
     }
 
     // Split the lattice.
-    for (const auto& gate : gates) {
-      if (gate.kind == gate::kMeasurement) {
-        IO::errorf("measurement gates are not suported by qsimh.\n");
+    for (const auto& op : ops) {
+      if (!OpGetAlternative<Gate>(op)) {
+        IO::errorf("measurement, controlled or other non-matrix gates "
+                   "are not suported by qsimh.\n");
         return false;
       }
 
-      if (gate.controlled_by.size() > 0) {
-        IO::errorf("controlled gates are not suported by qsimh.\n");
-        return false;
-      }
+      const auto& gate = *OpGetAlternative<Gate>(op);
 
       switch (gate.qubits.size()) {
       case 1:  // Single qubit gates.
         switch (parts[gate.qubits[0]]) {
         case 0:
-          hd.gates0.emplace_back(GateHybrid{gate.kind, gate.time,
-            {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, gate.matrix,
-            false, false, nullptr, 0});
+          hd.ops0.push_back(Gate{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}, gate.params, gate.matrix});
           break;
         case 1:
-          hd.gates1.emplace_back(GateHybrid{gate.kind, gate.time,
-            {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, gate.matrix,
-            false, false, nullptr, 0});
+          hd.ops1.push_back(Gate{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}, gate.params, gate.matrix});
           break;
         }
         break;
       case 2:  // Two qubit gates.
-        {
-          switch ((parts[gate.qubits[1]] << 1) | parts[gate.qubits[0]]) {
-          case 0:  // Both qubits in part 0.
-            hd.gates0.emplace_back(GateHybrid{gate.kind, gate.time,
+        switch ((parts[gate.qubits[1]] << 1) | parts[gate.qubits[0]]) {
+        case 0:  // Both qubits in part 0.
+          hd.ops0.push_back(Gate{gate.kind, gate.time,
               {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
-              {}, 0, gate.params, gate.matrix, false, gate.swapped,
-              nullptr, 0});
-            break;
-          case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
-            hd.gates0.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              {hd.qubit_map[gate.qubits[1]]}, {}, 0, gate.params, {},
-              true, gate.swapped, &gate, hd.num_gatexs});
-            hd.gates1.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, {},
-              true, gate.swapped, &gate, hd.num_gatexs});
+              gate.params, gate.matrix});
+          break;
+        case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
+          hd.ops0.push_back(DecomposedGate{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
+              gate.swapped, &gate, hd.num_gatexs});
+          hd.ops1.push_back(DecomposedGate{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
+              gate.swapped, &gate, hd.num_gatexs});
 
-            ++hd.num_gatexs;
-            break;
-          case 2:  // Gate on the cut, qubit 0 in part 0, qubit 1 in part 1.
-            hd.gates0.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              {hd.qubit_map[gate.qubits[0]]}, {}, 0, gate.params, {},
-              true, gate.swapped, &gate, hd.num_gatexs});
-            hd.gates1.emplace_back(GateHybrid{GateKind::kDecomp, gate.time,
-              {hd.qubit_map[gate.qubits[1]]}, {}, 0, gate.params, {},
-              true, gate.swapped, &gate, hd.num_gatexs});
+          ++hd.num_gatexs;
+          break;
+        case 2:  // Gate on the cut, qubit 0 in part 0, qubit 1 in part 1.
+          hd.ops0.push_back(DecomposedGate{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
+              gate.swapped, &gate, hd.num_gatexs});
+          hd.ops1.push_back(DecomposedGate{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
+              gate.swapped, &gate, hd.num_gatexs});
 
-            ++hd.num_gatexs;
-            break;
-          case 3:  // Both qubits in part 1.
-            hd.gates1.emplace_back(GateHybrid{gate.kind, gate.time,
+          ++hd.num_gatexs;
+          break;
+        case 3:  // Both qubits in part 1.
+          hd.ops1.push_back(Gate{gate.kind, gate.time,
               {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
-              {}, 0, gate.params, gate.matrix, false, gate.swapped,
-              nullptr, 0});
-            break;
-          }
+              gate.params, gate.matrix});
+          break;
         }
         break;
       default:
@@ -225,45 +223,54 @@ struct HybridSimulator final {
       }
     }
 
-    auto compare = [](const GateHybrid& l, const GateHybrid& r) -> bool {
-      return l.time < r.time || (l.time == r.time &&
-          (l.parent < r.parent || (l.parent == r.parent && l.id < r.id)));
+    using OperationD = typename HybridData<fp_type>::OperationD;
+
+    auto compare = [](const OperationD& lop, const OperationD& rop) -> bool {
+      unsigned ltime = OpTime(lop);
+      unsigned rtime = OpTime(rop);
+
+      const auto* ld = OpGetAlternative<DecomposedGate>(lop);
+      const auto* rd = OpGetAlternative<DecomposedGate>(rop);
+
+      return ltime < rtime ||
+          (ltime == rtime && ((!ld && rd) || (ld && rd && ld->id < rd->id)));
     };
 
-    // Sort gates.
-    std::sort(hd.gates0.begin(), hd.gates0.end(), compare);
-    std::sort(hd.gates1.begin(), hd.gates1.end(), compare);
+    // Sort ops.
+    std::sort(hd.ops0.begin(), hd.ops0.end(), compare);
+    std::sort(hd.ops1.begin(), hd.ops1.end(), compare);
 
     hd.gatexs.reserve(hd.num_gatexs);
 
     // Get Schmidt matrices.
-    for (auto& gate0 : hd.gates0) {
-      if (gate0.parent != nullptr) {
-        auto d = GetSchmidtDecomp(gate0.parent->kind, gate0.parent->params);
+    for (auto& op0 : hd.ops0) {
+      if (auto* pg = OpGetAlternative<DecomposedGate>(op0)) {
+        auto d = detail::GetSchmidtDecomp(pg->parent->kind, pg->parent->params);
         if (d.size() == 0) {
           IO::errorf("no Schmidt decomposition for gate kind %u.\n",
-                     gate0.parent->kind);
+                     pg->parent->kind);
           return false;
         }
 
         unsigned schmidt_bits = SchmidtBits(d.size());
         if (schmidt_bits > 2) {
           IO::errorf("Schmidt rank is too large for gate kind %u.\n",
-                     gate0.parent->kind);
+                     pg->parent->kind);
           return false;
         }
 
-        unsigned swapped = parts[gate0.parent->qubits[0]];
-        if (gate0.parent->swapped) swapped = 1 - swapped;
-        hd.gatexs.emplace_back(GateX{&gate0, nullptr, std::move(d),
-                                     schmidt_bits, swapped});
+        unsigned swapped = parts[pg->parent->qubits[0]];
+        if (pg->parent->swapped) swapped = 1 - swapped;
+
+        hd.gatexs.push_back(GateX<fp_type>{pg, nullptr, std::move(d),
+                                           schmidt_bits, swapped});
       }
     }
 
     unsigned count = 0;
-    for (auto& gate1 : hd.gates1) {
-      if (gate1.parent != nullptr) {
-        hd.gatexs[count++].decomposed1 = &gate1;
+    for (auto& op1 : hd.ops1) {
+      if (auto* pg = OpGetAlternative<DecomposedGate>(op1)) {
+        hd.gatexs[count++].decomposed1 = pg;
       }
     }
 
@@ -284,18 +291,20 @@ struct HybridSimulator final {
    * @param hd Container object for gates on the boundary between lattice
    *   sections.
    * @param parts Lattice sections to be simulated.
-   * @param fgates0 List of gates from one section of the lattice.
-   * @param fgates1 List of gates from the other section of the lattice.
+   * @param ops0 List of (fused) operations from one section of the lattice.
+   * @param ops1 List of (fused) operations from the other section of
+   *   the lattice.
    * @param bitstrings List of output states to simulate, as bitstrings.
    * @param results Output vector of amplitudes. After a successful run, this
    *   will be populated with amplitudes for each state in 'bitstrings'.
    * @return True if the simulation completed successfully; false otherwise.
    */
-  template <typename Factory, typename Results>
-  bool Run(const Parameter& param, const Factory& factory,
-           HybridData& hd, const std::vector<unsigned>& parts,
-           const std::vector<GateFused>& fgates0,
-           const std::vector<GateFused>& fgates1,
+  template <typename ParameterF, typename Factory, typename FP,
+            typename OperationF, typename Results>
+  bool Run(const Parameter<ParameterF>& param, const Factory& factory,
+           HybridData<FP>& hd, const std::vector<unsigned>& parts,
+           const std::vector<OperationF>& ops0,
+           const std::vector<OperationF>& ops1,
            const std::vector<uint64_t>& bitstrings, Results& results) const {
     using Simulator = typename Factory::Simulator;
     using StateSpace = typename Simulator::StateSpace;
@@ -309,8 +318,8 @@ struct HybridSimulator final {
     uint64_t rmax = uint64_t{1} << bits.num_r_bits;
     uint64_t smax = uint64_t{1} << bits.num_s_bits;
 
-    auto loc0 = CheckpointLocations(param, fgates0);
-    auto loc1 = CheckpointLocations(param, fgates1);
+    auto loc0 = CheckpointLocations(param, ops0);
+    auto loc1 = CheckpointLocations(param, ops1);
 
     struct Index {
       unsigned i0;
@@ -374,8 +383,8 @@ struct HybridSimulator final {
 
     if (gatex_index == 0) {
       // Apply gates before the first checkpoint.
-      ApplyGates(fgates0, 0, loc0[0], simulator, state0p);
-      ApplyGates(fgates1, 0, loc1[0], simulator, state1p);
+      ApplyGates(ops0, 0, loc0[0], simulator, state0p);
+      ApplyGates(ops1, 0, loc1[0], simulator, state1p);
     } else {
       IO::errorf("invalid prefix %lu for prefix gate index %u.\n",
                  param.prefix, gatex_index - 1);
@@ -392,8 +401,8 @@ struct HybridSimulator final {
       if (SetSchmidtMatrices(num_p_gates, num_pr_gates,
                              r, prev, hd.gatexs) == 0) {
         // Apply gates before the second checkpoint.
-        ApplyGates(fgates0, loc0[0], loc0[1], simulator, state0r);
-        ApplyGates(fgates1, loc1[0], loc1[1], simulator, state1r);
+        ApplyGates(ops0, loc0[0], loc0[1], simulator, state0r);
+        ApplyGates(ops1, loc1[0], loc1[1], simulator, state1r);
       } else {
         continue;
       }
@@ -408,8 +417,8 @@ struct HybridSimulator final {
         if (SetSchmidtMatrices(num_pr_gates, hd.num_gatexs,
                                s, prev, hd.gatexs) == 0) {
           // Apply the rest of the gates.
-          ApplyGates(fgates0, loc0[1], fgates0.size(), simulator, state0s);
-          ApplyGates(fgates1, loc1[1], fgates1.size(), simulator, state1s);
+          ApplyGates(ops0, loc0[1], ops0.size(), simulator, state0s);
+          ApplyGates(ops1, loc1[1], ops1.size(), simulator, state1s);
         } else {
           continue;
         }
@@ -429,7 +438,6 @@ struct HybridSimulator final {
                  state_space, *rstate0, *rstate1, indices, results);
       }
     }
-
     return true;
   }
 
@@ -439,24 +447,26 @@ struct HybridSimulator final {
    * runs with different cut-index values to reuse parts of the simulation.
    * @param param Options for parallelism and logging. Also specifies the size
    *   of the 'prefix' and 'root' sections of the lattice.
-   * @param fgates Set of gates for which to find checkpoint locations.
+   * @param ops Set of (fused) operations for which to find checkpoint
+   *   locations.
    * @return A pair of numbers specifying how many gates to apply before the
    *   first and second checkpoints, respectively.
    */
+  template <typename Parameter, typename OperationF>
   static std::array<unsigned, 2> CheckpointLocations(
-      const Parameter& param, const std::vector<GateFused>& fgates) {
+      const Parameter& param, const std::vector<OperationF>& ops) {
+    using FusedGate = std::variant_alternative_t<0, OperationF>;
+
     std::array<unsigned, 2> loc{0, 0};
 
     unsigned num_decomposed = 0;
     unsigned num_p_gates = param.num_prefix_gatexs;
     unsigned num_pr_gates = num_p_gates + param.num_root_gatexs;
 
-    for (std::size_t i = 0; i < fgates.size(); ++i) {
-      for (auto gate: fgates[i].gates) {
-        if (gate->parent != nullptr) {
+    for (std::size_t i = 0; i < ops.size(); ++i) {
+      if (const auto* pg = OpGetAlternative<FusedGate>(ops[i])) {
+        if (pg->ParentIsDecomposed()) {
           ++num_decomposed;
-          // There should be only one decomposed gate in fused gate.
-          break;
         }
       }
 
@@ -478,6 +488,7 @@ struct HybridSimulator final {
     unsigned num_s_bits;
   };
 
+  template <typename Parameter, typename GateX>
   static Bits CountSchmidtBits(
       const Parameter& param, const std::vector<GateX>& gatexs) {
     Bits bits{0, 0, 0};
@@ -499,6 +510,7 @@ struct HybridSimulator final {
     return bits;
   }
 
+  template <typename GateX>
   static unsigned SetSchmidtMatrices(std::size_t i0, std::size_t i1,
                                      uint64_t path,
                                      std::vector<unsigned>& prev_k,
@@ -532,6 +544,7 @@ struct HybridSimulator final {
     return 0;
   }
 
+  template <typename GateX>
   static void FillSchmidtMatrices(unsigned k, const GateX& gatex) {
     unsigned part0 = gatex.swapped;
     unsigned part1 = 1 - part0;
@@ -549,18 +562,24 @@ struct HybridSimulator final {
     }
   }
 
-  template <typename Simulator>
-  static void ApplyGates(const std::vector<GateFused>& gates,
+  template <typename OperationF, typename Simulator>
+  static void ApplyGates(const std::vector<OperationF>& ops,
                          std::size_t i0, std::size_t i1,
                          const Simulator& simulator,
                          typename Simulator::State& state) {
+    using FusedGate = std::variant_alternative_t<0, OperationF>;
+
     for (std::size_t i = i0; i < i1; ++i) {
-      if (gates[i].matrix.size() > 0) {
-        ApplyFusedGate(simulator, gates[i], state);
+      if (const auto* pg = OpGetAlternative<FusedGate>(ops[i])) {
+        if (!pg->ParentIsDecomposed()) {
+          ApplyGate(simulator, ops[i], state);
+        } else {
+          auto fgate = *pg;
+          CalculateFusedMatrix(fgate);
+          ApplyGate(simulator, fgate, state);
+        }
       } else {
-        auto gate = gates[i];
-        CalculateFusedMatrix(gate);
-        ApplyFusedGate(simulator, gate, state);
+        ApplyGate(simulator, ops[i], state);
       }
     }
   }

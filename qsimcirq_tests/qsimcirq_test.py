@@ -214,7 +214,7 @@ def test_translate_cirq_to_qtrajectory():
     qsim_circuit = qsimcirq.QSimCircuit(circuit)
     qsim_ncircuit, moment_indices = qsim_circuit.translate_cirq_to_qtrajectory()
 
-    assert isinstance(qsim_ncircuit, qsimcirq.qsim.NoisyCircuit)
+    assert isinstance(qsim_ncircuit, qsimcirq.qsim.Circuit)
     assert qsim_ncircuit.num_qubits == 2
     # The circuit has 3 moments, and 4 gates are translated in total.
     assert moment_indices == [1, 2, 4]
@@ -226,7 +226,7 @@ def test_translate_cirq_to_qtrajectory():
         qsim_circuit_empty.translate_cirq_to_qtrajectory()
     )
 
-    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.NoisyCircuit)
+    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.Circuit)
     assert qsim_ncircuit_empty.num_qubits == 0
     assert moment_indices_empty == []
 
@@ -237,7 +237,7 @@ def test_translate_cirq_to_qtrajectory():
         qsim_circuit_unitary.translate_cirq_to_qtrajectory()
     )
 
-    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.NoisyCircuit)
+    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.Circuit)
     assert qsim_ncircuit_unitary.num_qubits == 2
     assert moment_indices_unitary == [2]
 

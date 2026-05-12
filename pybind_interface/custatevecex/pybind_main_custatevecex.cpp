@@ -73,12 +73,13 @@ namespace qsim {
     }
 
     using Gate = Cirq::GateCirq<float>;
+    using Operation = qsim::Operation<float>;
     using Runner = CuStateVecExRunner<IO, Factory>;
     struct RunnerParameter : public Runner::Parameter {
       // max_fused_size is not used, but kept for consistency.
       unsigned max_fused_size = 2;
     };
-    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Gate, Runner>;
+    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Runner>;
     struct NoisyRunnerParameter : public NoisyRunner::Parameter {
       // max_fused_size is not used, but kept for consistency.
       unsigned max_fused_size = 2;
