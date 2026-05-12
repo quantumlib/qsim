@@ -40,7 +40,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
  private:
   using Base = Fuser<IO>;
 
-  // Auxillary classes and structs.
+  // Auxiliary classes and structs.
 
   // Manages doubly-linked lists.
   template <typename T>
@@ -310,7 +310,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
     LinkManager<Operation, PGate> link_manager(max_qubit1 * num_ops);
 
-    // Auxillary data structures.
+    // Auxiliary data structures.
     // Sequence of intermediate fused gates.
     std::vector<GateF> gates_seq;
     // Gate "lattice".
