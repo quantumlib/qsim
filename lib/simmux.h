@@ -15,7 +15,13 @@
 #ifndef SIMMUX_H_
 #define SIMMUX_H_
 
-#ifdef __AVX512F__
+#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+# include "simulator_neon.h"
+  namespace qsim {
+    template <typename For>
+    using Simulator = SimulatorNEON<For>;
+  }
+#elif defined(__AVX512F__)
 # include "simulator_avx512.h"
   namespace qsim {
     template <typename For>
