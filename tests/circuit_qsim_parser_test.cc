@@ -17,7 +17,9 @@
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
-#include "../lib/gates_qsim.h"
+#include "../lib/gate.h"
+#include "../lib/operation.h"
+#include "../lib/operation_base.h"
 
 namespace qsim {
 
@@ -57,18 +59,18 @@ R"(2
 15 p 0.3
 )";
 
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
   std::stringstream ss1(valid_circuit);
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss1, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 22);
+  EXPECT_EQ(circuit.ops.size(), 22);
 
   std::stringstream ss2(valid_circuit);
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(4, provider, ss2, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 10);
+  EXPECT_EQ(circuit.ops.size(), 10);
 }
 
 TEST(CircuitQsimParserTest, ValidCircuitWithControlledGates) {
@@ -79,17 +81,25 @@ R"(5
 2 c 2 4 p 0.5
 )";
 
-  Circuit<GateQSim<float>> circuit;
+  using CG = ControlledGate<float>;
+
+  Circuit<Operation<float>> circuit;
   std::stringstream ss(valid_circuit);
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 5);
-  EXPECT_EQ(circuit.gates.size(), 3);
-  EXPECT_EQ(circuit.gates[0].qubits.size(), 1);
-  EXPECT_EQ(circuit.gates[0].controlled_by.size(), 2);
-  EXPECT_EQ(circuit.gates[1].qubits.size(), 2);
-  EXPECT_EQ(circuit.gates[1].controlled_by.size(), 3);
-  EXPECT_EQ(circuit.gates[2].qubits.size(), 0);
-  EXPECT_EQ(circuit.gates[2].controlled_by.size(), 2);
+  EXPECT_EQ(circuit.ops.size(), 3);
+  const auto* pg0 = OpGetAlternative<CG>(circuit.ops[0]);
+  const auto* pg1 = OpGetAlternative<CG>(circuit.ops[1]);
+  const auto* pg2 = OpGetAlternative<CG>(circuit.ops[2]);
+  ASSERT_NE(pg0, nullptr);
+  ASSERT_NE(pg1, nullptr);
+  ASSERT_NE(pg2, nullptr);
+  EXPECT_EQ(pg0->qubits.size(), 1);
+  EXPECT_EQ(pg0->controlled_by.size(), 2);
+  EXPECT_EQ(pg1->qubits.size(), 2);
+  EXPECT_EQ(pg1->controlled_by.size(), 3);
+  EXPECT_EQ(pg2->qubits.size(), 0);
+  EXPECT_EQ(pg2->controlled_by.size(), 2);
 }
 
 TEST(CircuitQsimParserTest, ValidTimeOrder) {
@@ -111,11 +121,11 @@ R"(4
 9 h 3
 )";
 
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
   std::stringstream ss(valid_circuit);
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 14);
+  EXPECT_EQ(circuit.ops.size(), 14);
 }
 
 TEST(CircuitQsimParserTest, InvalidGateName) {
@@ -126,7 +136,7 @@ R"(2
 1 badgate 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -139,7 +149,7 @@ R"(2
 1 cz 0 1 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -152,7 +162,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -165,7 +175,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -178,7 +188,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -191,7 +201,7 @@ R"(2
 1 cz 1 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -204,7 +214,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -217,7 +227,7 @@ R"(2
 1 cz 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -231,7 +241,7 @@ R"(2
 2 rx 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -245,7 +255,7 @@ R"(2
 2 ry 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -259,7 +269,7 @@ R"(2
 2 rz 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -273,7 +283,7 @@ R"(2
 2 rxy 0 0.7)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -286,7 +296,7 @@ R"(2
 1 fs 0 1 0.5)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -299,7 +309,7 @@ R"(2
 1 cp 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -315,7 +325,7 @@ R"(2
 1 cz 0 1)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -328,7 +338,7 @@ R"(2
 1 m 0 2)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -341,7 +351,7 @@ R"(2
 1 m 0 i)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -354,7 +364,7 @@ R"(2
 1 m 0 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -367,7 +377,7 @@ R"(2
 1 m 0 0)";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -379,7 +389,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -391,7 +401,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -403,7 +413,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -415,7 +425,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -427,7 +437,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -441,7 +451,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -455,7 +465,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -469,7 +479,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -484,7 +494,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
@@ -499,7 +509,7 @@ R"(4
 )";
 
   std::stringstream ss(invalid_circuit);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_FALSE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
 }
