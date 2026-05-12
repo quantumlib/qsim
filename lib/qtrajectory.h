@@ -361,7 +361,7 @@ class QuantumTrajectorySimulator {
         if (r < cp || i == channel.kops.size() - 1) {
           // Sample ith Kraus operator if r < cp
           // Sample the highest probability Kraus operator if r is greater
-          // than the sum of all probablities due to round-off errors.
+          // than the sum of all probabilities due to round-off errors.
           uint64_t k = r < cp ? i : max_prob_index;
 
           DeferOps(channel.kops[k].ops, deferred_ops);

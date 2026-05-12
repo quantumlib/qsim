@@ -365,7 +365,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
           return fused_ops;
         }
 
-        // Fill in auxillary data structures.
+        // Fill in auxiliary data structures.
 
         if (OpGetAlternative<Measurement>(op)) {
           // Measurement gate.

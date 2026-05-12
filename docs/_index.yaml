@@ -55,7 +55,7 @@ landing_page:
         qubits = [cirq.GridQubit(i,j) for i in range(5) for j in range(5)]
 
         # Define a circuit to run
-        # (Example is from the 2019 "Quantum Supremacy" experiement)
+        # (Example is from the 2019 "Quantum Supremacy" experiment)
         circuit = (cirq.experiments.
             random_rotations_between_grid_interaction_layers_circuit(
             qubits=qubits, depth=16))

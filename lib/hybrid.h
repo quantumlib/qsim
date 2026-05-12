@@ -164,7 +164,7 @@ struct HybridSimulator final {
     for (const auto& op : ops) {
       if (!OpGetAlternative<Gate>(op)) {
         IO::errorf("measurement, controlled or other non-matrix gates "
-                   "are not suported by qsimh.\n");
+                   "are not supported by qsimh.\n");
         return false;
       }
 

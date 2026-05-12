@@ -453,7 +453,7 @@ inline BitFlipChannel<fp_type> bit_flip(double p) {
   return BitFlipChannel<fp_type>(p);
 }
 
-}  // namesapce Cirq
+}  // namespace Cirq
 
 }  // namespace qsim
 
