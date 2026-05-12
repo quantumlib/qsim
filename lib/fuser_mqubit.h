@@ -102,7 +102,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
   };
 
   // Possible values for visited in GateF.
-  // Note that MakeGateSequence assignes values from kSecond to the number of
+  // Note that MakeGateSequence assigns values from kSecond to the number of
   // gates in the sequence plus one, see below.
   enum Visited {
     kZero = 0,              // Start value for matrix gates.
@@ -1247,3 +1247,4 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 }  // namespace qsim
 
 #endif  // FUSER_MQUBIT_H_
+
