@@ -16,5 +16,5 @@
 # about exceptions in this project.
 
 [codespell]
-ignore-words-list = unparseable
+ignore-words-list = unparseable,braket,ket,valu
 skip = third_party
