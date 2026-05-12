@@ -58,11 +58,13 @@ cc_library(
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -136,6 +138,7 @@ cuda_library(
         "simulator_basic.h",
         "simulator_cuda.h",
         "simulator_cuda_kernels.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
@@ -143,6 +146,7 @@ cuda_library(
         "statespace_basic.h",
         "statespace_cuda.h",
         "statespace_cuda_kernels.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -210,6 +214,7 @@ cuda_library(
         "simulator_basic.h",
         "simulator_custatevec.h",
         "simulator_custatevecex.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
@@ -217,6 +222,7 @@ cuda_library(
         "statespace_basic.h",
         "statespace_custatevec.h",
         "statespace_custatevecex.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -275,11 +281,13 @@ cc_library(
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -325,11 +333,13 @@ cc_library(
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "util.h",
         "util_cpu.h",
@@ -651,6 +661,16 @@ cc_library(
 )
 
 cc_library(
+    name = "statespace_neon",
+    hdrs = ["statespace_neon.h"],
+    deps = [
+        ":statespace",
+        ":util",
+        ":vectorspace",
+    ],
+)
+
+cc_library(
     name = "statespace_sse",
     hdrs = ["statespace_sse.h"],
     deps = [
@@ -735,6 +755,17 @@ cc_library(
 )
 
 cc_library(
+    name = "simulator_neon",
+    hdrs = ["simulator_neon.h"],
+    deps = [
+        ":simulator_base",
+        ":simulator_basic",
+        ":statespace_basic",
+        ":statespace_neon",
+    ],
+)
+
+cc_library(
     name = "simulator_sse",
     hdrs = ["simulator_sse.h"],
     deps = [
@@ -789,6 +820,7 @@ cc_library(
         ":simulator_avx",
         ":simulator_avx512",
         ":simulator_basic",
+        ":simulator_neon",
         ":simulator_sse",
     ],
 )

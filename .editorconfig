@@ -21,24 +21,20 @@ root = true
 # the same settings and need to be updated if changes are made to this file.
 [*]
 charset = utf-8
+indent_size = 4
 indent_style = space
 insert_final_newline = true
+max_line_length = 80
 spelling_language = en-US
 trim_trailing_whitespace = true
-max_line_length = 80
 
-[{BUILD,*.BUILD,*.bzl,*.bazel,.bazelrc,WORKSPACE}]
-indent_size = 4
-
-[{CMakeLists.txt,*.cmake}]
-indent_size = 4
-
-[Dockerfile]
-indent_size = 4
+[{COMMIT_EDITMSG,MERGE_MSG,SQUASH_MSG,TAG_EDITMSG}]
+max_line_length = 72
 
 [{Makefile,makefile,*.mk}]
 indent_style = tab
-indent_size = 4
+indent_size = 8
+tab_width = 8
 
 [{*.cc,*.h}]
 indent_size = 2
@@ -47,15 +43,8 @@ indent_size = 2
 indent_size = 2
 
 [*.py]
-indent_size = 4
 # This is the Black default line length.
 max_line_length = 88
-
-[*.sh]
-indent_size = 4
-
-[*.toml]
-indent_size = 4
 
 [{*.yaml,*.yml,*.cff}]
 indent_size = 2

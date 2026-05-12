@@ -19,14 +19,12 @@ description: >
 landing_page:
   custom_css_path: /site-assets/css/style.css
   rows:
-  - classname: quantum-hero quantum-hero--qsim quantum-hero--icon-medium
+  - classname: quantum-hero quantum-hero--qsim
     options:
     - hero
     - description-50
     - padding-large
     heading: qsim
-    icon:
-      path: /site-assets/images/icons/icon_qsim.png
     description: >
       Optimized quantum circuit simulators
     items:
