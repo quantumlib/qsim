@@ -65,8 +65,8 @@ noisy simulation, using a phase damping channel (p=0.01). The charts use a log
 scale. These benchmarks were all performed using qsim's native GPU and CPU
 backends and do not involve sampling bitstrings (i.e. no measure gates).
 
-![qsim runtime comparison on multipe processors: noiseless](images/qsim_runtime_comparison_noiseless.png)
-![qsim runtime comparison on multipe processors: noisy](images/qsim_runtime_comparison_noisy.png)
+![qsim runtime comparison on multiple processors: noiseless](images/qsim_runtime_comparison_noiseless.png)
+![qsim runtime comparison on multiple processors: noisy](images/qsim_runtime_comparison_noisy.png)
 
 ### 4. If using GPUs, select a backend
 

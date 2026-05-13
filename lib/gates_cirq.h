@@ -1631,7 +1631,7 @@ inline schmidt_decomp_type<fp_type> GetSchmidtDecomp(
   }
 }
 
-}  // namesapce Cirq
+}  // namespace Cirq
 
 }  // namespace qsim
 

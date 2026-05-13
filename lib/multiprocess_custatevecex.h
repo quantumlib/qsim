@@ -134,7 +134,7 @@ struct MultiProcessCuStateVecEx {
     }
 
     if (num_acc_global_qubits < num_global_qubits_) {
-      IO::errorf("erorr: too few network layers at %s %d.\n",
+      IO::errorf("error: too few network layers at %s %d.\n",
                  __FILE__, __LINE__);
       exit(1);
     }

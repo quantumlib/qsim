@@ -63,7 +63,7 @@ To create the VM use the steps in sequence below:
       [make a different choice](https://cloud.google.com/compute/docs/regions-zones#available).
 *   Choose the machine family / series: N2
     * Quantum simulation requires powerful processors—the N2, N1, or C2 will work.
-    * But if you have your own prefences, other
+    * But if you have your own preferences, other
       [machine types](https://cloud.google.com/blog/products/compute/choose-the-right-google-compute-engine-machine-type-for-you)
       are available.
 

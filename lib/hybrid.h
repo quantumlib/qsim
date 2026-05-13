@@ -164,7 +164,7 @@ struct HybridSimulator final {
     for (const auto& op : ops) {
       if (!OpGetAlternative<Gate>(op)) {
         IO::errorf("measurement, controlled or other non-matrix gates "
-                   "are not suported by qsimh.\n");
+                   "are not supported by qsimh.\n");
         return false;
       }
 
@@ -218,7 +218,7 @@ struct HybridSimulator final {
         }
         break;
       default:
-        IO::errorf("multi-qubit gates are not suported by qsimh.\n");
+        IO::errorf("multi-qubit gates are not supported by qsimh.\n");
         return false;
       }
     }
