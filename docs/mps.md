@@ -1,6 +1,6 @@
 # The MPS Simulator
 
-qsim includes a **Matrix Product State (MPS)** simulator alongside its standard
+qsim includes a Matrix Product State (MPS) simulator alongside its standard
 state-vector and hybrid Schrödinger-Feynman simulators. While the full
 state-vector simulator (`qsim`) stores the entire quantum state in memory — which
 grows exponentially with the number of qubits — the MPS simulator takes a
