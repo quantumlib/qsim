@@ -10,25 +10,27 @@ circuits.
 ## What is a Matrix Product State?
 
 A _matrix product state_ is a way of representing a quantum state as a chain of
-tensors, one per qubit, connected together. Instead of storing one 
-exponentially-large vector, you store a sequence of small matrices. The "bond
-dimension" (often written as χ or `bond_dim`) controls how much entanglement the
-representation can capture: a higher bond dimension is more accurate but uses more
-memory and takes longer to simulate.
+tensors, one per qubit, connected together. Instead of storing one
+exponentially-large vector, you store a sequence of small matrices. The
+_bond dimension_ (often written as χ or `bond_dim`) controls how much
+*entanglement* (quantum correlations between qubits) the representation can
+capture: a higher bond dimension is more accurate but uses more memory and takes
+longer to simulate.
 
-The catch, and the reason this is so useful, is that many quantum circuits of
+The catch, and the reason MPS is so useful, is that many quantum circuits of
 practical interest don't generate a lot of entanglement. For those circuits, a
-small bond dimension works great, and you can simulate far more qubits than a
+small bond dimension works well, and you can simulate far more qubits than a
 full state-vector simulator could handle.
 
-The trade-off is that MPS simulation is **approximate for highly entangled circuits**.
-When a gate creates entanglement that exceeds the bond dimension, the simulator
-truncates it (using SVD). For low-entanglement circuits (e.g., 1D nearest-neighbor
-circuits, QAOA with shallow depth), the results are exact or very close to exact.
+The trade-off is that MPS simulation only provides approximate results for
+highly entangled circuits. When a gate creates entanglement that exceeds the
+bond dimension, the simulator truncates it (using Singular Value Decomposition,
+or SVD). For low-entanglement circuits (e.g., 1D nearest-neighbor circuits,
+QAOA with shallow depth), the results are exact or very close to exact.
 
 ## Where to find the implementation
 
-The MPS simulator lives in two C++ header files:
+The qsim MPS simulation interface lives in two C++ header files:
 
 - [`lib/mps_simulator.h`](https://github.com/quantumlib/qsim/blob/main/lib/mps_simulator.h)
   — the `MPSSimulator` class, which applies gates to an MPS.
@@ -115,26 +117,25 @@ sim.ApplyGate({qubit_a, qubit_b}, gate_matrix, state);
 When a 2-qubit gate is applied, the simulator:
 1. Contracts the two neighboring MPS tensors into one combined tensor.
 2. Applies the gate matrix.
-3. Uses **Singular Value Decomposition (SVD)** to split the result back into two
-   tensors.
+3. Uses SVD to split the result back into two tensors.
 4. Keeps only the top `bond_dim` singular values, truncating the rest.
 
-This is the key step where approximation happens. If the true quantum state
-needs more entanglement than `bond_dim` allows, some information is lost.
+Step 4, the truncation step, is where approximation happens. If the true quantum
+state needs more entanglement than `bond_dim` allows, some information is lost.
 
 ## Current limitations
 
 The MPS simulator is actively developed but not yet complete. As of now:
 
-- **Only 1-qubit and 2-qubit gates are supported.** Support for 3+ qubit gates
+- _Only 1-qubit and 2-qubit gates are supported._ Support for 3+ qubit gates
   is not yet implemented (commented placeholders exist in the source).
-- **Controlled gates are not yet implemented.** `ApplyControlledGate` exists but
+- _Controlled gates are not yet implemented._ `ApplyControlledGate` exists but
   is a stub (`// TODO`).
-- **Expectation values are not yet implemented.** `ExpectationValue` currently
+- _Expectation values are not yet implemented._ `ExpectationValue` currently
   returns a placeholder value of `(-10, -10)`.
-- **No Python interface.** The MPS simulator is currently only accessible through
+- _No Python interface._ The MPS simulator is currently only accessible through
   C++. It is not yet exposed via the `qsimcirq` Python package.
-- **2-qubit gates must act on adjacent qubits.** Non-adjacent 2-qubit gates
+- _2-qubit gates must act on adjacent qubits._ Non-adjacent 2-qubit gates
   require SWAP networks (not handled automatically).
 
 ## When to use MPS vs. state-vector simulation
