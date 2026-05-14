@@ -9,7 +9,7 @@ circuits.
 
 ## What is a Matrix Product State?
 
-A Matrix Product State is a way of representing a quantum state as a chain of
+A _matrix product state_ is a way of representing a quantum state as a chain of
 tensors, one per qubit, connected together. Instead of storing one giant
 exponentially-large vector, you store a sequence of small matrices. The "bond
 dimension" (often written as χ or `bond_dim`) controls how much entanglement the
