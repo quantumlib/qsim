@@ -117,7 +117,7 @@ sim.ApplyGate({qubit_a, qubit_b}, gate_matrix, state);
 When a 2-qubit gate is applied, the simulator:
 1. Contracts the two neighboring MPS tensors into one combined tensor.
 2. Applies the gate matrix.
-3. Uses SVD to split the result back into two tensors.
+3. Uses Singular Value Decomposition (SVD) to split the result back into two tensors.
 4. Keeps only the top `bond_dim` singular values, truncating the rest.
 
 Step 4, the truncation step, is where approximation happens. If the true quantum
