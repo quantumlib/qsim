@@ -27,6 +27,7 @@ cc_library(
         "bitstring.h",
         "channel.h",
         "channels_cirq.h",
+        "channels_qsim.h",
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
@@ -45,6 +46,8 @@ cc_library(
         "matrix.h",
         "mps_simulator.h",
         "mps_statespace.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
@@ -101,6 +104,7 @@ cuda_library(
         "bitstring.h",
         "channel.h",
         "channels_cirq.h",
+        "channels_qsim.h",
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
@@ -119,6 +123,8 @@ cuda_library(
         "matrix.h",
         "mps_simulator.h",
         "mps_statespace.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
@@ -172,6 +178,7 @@ cuda_library(
         "bitstring.h",
         "channel.h",
         "channels_cirq.h",
+        "channels_qsim.h",
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
@@ -191,6 +198,8 @@ cuda_library(
         "mps_simulator.h",
         "mps_statespace.h",
         "multiprocess_custatevecex.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
         "run_custatevecex.h",
@@ -248,6 +257,7 @@ cc_library(
     name = "run_qsim_lib",
     hdrs = [
         "bits.h",
+        "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",
@@ -261,6 +271,8 @@ cc_library(
         "io.h",
         "io_file.h",
         "matrix.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "run_qsim.h",
         "seqfor.h",
@@ -296,6 +308,7 @@ cc_library(
     name = "run_qsimh_lib",
     hdrs = [
         "bits.h",
+        "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",
@@ -310,6 +323,8 @@ cc_library(
         "io.h",
         "io_file.h",
         "matrix.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "run_qsimh.h",
         "seqfor.h",
@@ -418,18 +433,36 @@ cc_library(
 ### Gate libraries ###
 
 cc_library(
+    name = "operation_base",
+    hdrs = ["operation_base.h"],
+)
+
+cc_library(
+    name = "operation",
+    hdrs = ["operation.h"],
+    deps = [
+        ":channel",
+        ":gate",
+        ":operation_base",
+    ],
+)
+
+cc_library(
     name = "gate",
     hdrs = ["gate.h"],
-    deps = [":matrix"],
+    deps = [
+        ":matrix",
+        ":operation_base",
+    ],
 )
 
 cc_library(
     name = "gate_appl",
     hdrs = ["gate_appl.h"],
     deps = [
-        ":fuser",
         ":gate",
         ":matrix",
+        ":operation_base",
     ],
 )
 
@@ -445,7 +478,10 @@ cc_library(
 cc_library(
     name = "gates_qsim",
     hdrs = ["gates_qsim.h"],
-    deps = [":gate"],
+    deps = [
+        ":gate",
+        ":matrix",
+    ],
 )
 
 ### Circuit libraries ###
@@ -462,6 +498,8 @@ cc_library(
     deps = [
         ":circuit",
         ":gates_qsim",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -473,6 +511,7 @@ cc_library(
     deps = [
         ":gate",
         ":matrix",
+        ":operation_base",
     ],
 )
 
@@ -482,6 +521,8 @@ cc_library(
     deps = [
         ":fuser",
         ":gate",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -491,6 +532,8 @@ cc_library(
     deps = [
         ":fuser",
         ":gate",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -501,7 +544,9 @@ cc_library(
     hdrs = ["expect.h"],
     deps = [
         ":fuser",
+        ":gate",
         ":gate_appl",
+        ":operation_base",
     ],
 )
 
@@ -514,6 +559,7 @@ cc_library(
         ":circuit",
         ":gate",
         ":gate_appl",
+        ":operation_base",
         ":util",
     ],
 )
@@ -522,7 +568,9 @@ cc_library(
     name = "run_qsimh",
     hdrs = ["run_qsimh.h"],
     deps = [
+        ":circuit",
         ":hybrid",
+        ":operation",
         ":util",
     ],
 )
@@ -784,6 +832,8 @@ cc_library(
     deps = [
         ":gate",
         ":gate_appl",
+        ":gates_cirq",
+        ":gates_qsim",
     ],
 )
 
@@ -795,6 +845,7 @@ cc_library(
     deps = [
         ":gate",
         ":matrix",
+        ":operation_base",
     ],
 )
 
@@ -802,8 +853,8 @@ cc_library(
     name = "circuit_noisy",
     hdrs = ["circuit_noisy.h"],
     deps = [
-        ":channel",
-        ":circuit",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -816,15 +867,25 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "channels_qsim",
+    hdrs = ["channels_qsim.h"],
+    deps = [
+        ":channel",
+        ":gates_qsim",
+    ],
+)
+
 ### Quantum trajectory simulator ###
 
 cc_library(
     name = "qtrajectory",
     hdrs = ["qtrajectory.h"],
     deps = [
-        ":circuit_noisy",
         ":gate",
         ":gate_appl",
+        ":operation",
+        ":operation_base",
     ],
 )
 

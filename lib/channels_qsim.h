@@ -31,7 +31,7 @@ template <typename fp_type>
 struct AmplitudeDampingChannel {
   AmplitudeDampingChannel(double gamma) : gamma(gamma) {}
 
-  static Channel<GateQSim<fp_type>> Create(
+  static Channel<fp_type> Create(
       unsigned time, unsigned q, double gamma) {
     double p1 = 1 - gamma;
     double p2 = 0;
@@ -40,20 +40,19 @@ struct AmplitudeDampingChannel {
     fp_type s = std::sqrt(gamma);
 
     using M = GateMatrix1<fp_type>;
-    auto normal = KrausOperator<GateQSim<fp_type>>::kNormal;
 
-    return {{normal, 0, p1,
-             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
-             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
-            },
-            {normal, 0, p2,
-             {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})},
-             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
-            },
-           };
+    return {
+      {kChannel, time, {q}},
+      {
+        {false, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+            {1, 0, 0, 0, 0, 0, r * r, 0}, {q}},
+        {false, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})},
+            {0, 0, 0, 0, 0, 0, s * s, 0}, {q}},
+      }
+    };
   }
 
-  Channel<GateQSim<fp_type>> Create(unsigned time, unsigned q) const {
+  Channel<fp_type> Create(unsigned time, unsigned q) const {
     return Create(time, q, gamma);
   }
 
@@ -75,7 +74,7 @@ template <typename fp_type>
 struct PhaseDampingChannel {
   PhaseDampingChannel(double gamma) : gamma(gamma) {}
 
-  static Channel<GateQSim<fp_type>> Create(
+  static Channel<fp_type> Create(
       unsigned time, unsigned q, double gamma) {
     double p1 = 1 - gamma;
     double p2 = 0;
@@ -84,20 +83,19 @@ struct PhaseDampingChannel {
     fp_type s = std::sqrt(gamma);
 
     using M = GateMatrix1<fp_type>;
-    auto normal = KrausOperator<GateQSim<fp_type>>::kNormal;
 
-    return {{normal, 0, p1,
-             {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
-             {1, 0, 0, 0, 0, 0, r * r, 0}, {q},
-            },
-            {normal, 0, p2,
-             {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})},
-             {0, 0, 0, 0, 0, 0, s * s, 0}, {q},
-            },
-           };
+    return {
+      {kChannel, time, {q}},
+      {
+        {false, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})},
+            {1, 0, 0, 0, 0, 0, r * r, 0}, {q}},
+        {false, p2, {M::Create(time, q, {0, 0, 0, 0, 0, 0, s, 0})},
+            {0, 0, 0, 0, 0, 0, s * s, 0}, {q}},
+      }
+    };
   }
 
-  Channel<GateQSim<fp_type>> Create(unsigned time, unsigned q) const {
+  Channel<fp_type> Create(unsigned time, unsigned q) const {
     return Create(time, q, gamma);
   }
 
