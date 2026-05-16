@@ -18,8 +18,10 @@
 #include <algorithm>
 #include <array>
 #include <complex>
+#include <cstdint>
 #include <vector>
 
+#include "bits.h"
 #include "gate.h"
 #include "gate_appl.h"
 
@@ -317,20 +319,34 @@ struct HybridSimulator final {
       unsigned i1;
     };
 
-    std::vector<Index> indices;
-    indices.reserve(bitstrings.size());
+    std::vector<Index> indices(bitstrings.size());
 
-    // Bitstring indices for part 0 and part 1. TODO: optimize.
-    for (const auto& bitstring : bitstrings) {
-      Index index{0, 0};
+    uint64_t mask0 = 0;
+    uint64_t mask1 = 0;
 
-      for (uint64_t i = 0; i < hd.qubit_map.size(); ++i) {
-        unsigned m = ((bitstring >> i) & 1) << hd.qubit_map[i];
-        parts[i] ? index.i1 |= m : index.i0 |= m;
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+      if (parts[i] == 0) {
+        mask0 |= uint64_t{1} << i;
+      } else {
+        mask1 |= uint64_t{1} << i;
       }
-
-      indices.push_back(index);
     }
+
+    unsigned num_qubits = parts.size();
+
+    // Bitstring indices for part 0 and part 1.
+    // The bitstring index calculation is optimized by precalculating
+    // bitmasks for the two parts and using bit-compression. This is
+    // equivalent to the original loop because hd.qubit_map[i] is
+    // the sequential rank of qubit i in its part (0 or 1).
+    auto f_idx = [](unsigned n, unsigned m, uint64_t i, uint64_t m0, uint64_t m1,
+                    unsigned nq, const uint64_t* bss, Index* idxs) {
+      idxs[i].i0 = bits::CompressBits(bss[i], nq, m0);
+      idxs[i].i1 = bits::CompressBits(bss[i], nq, m1);
+    };
+
+    for_.Run(bitstrings.size(), f_idx, mask0, mask1, num_qubits,
+             bitstrings.data(), indices.data());
 
     StateSpace state_space = factory.CreateStateSpace();
 
