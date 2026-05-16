@@ -2290,3 +2290,13 @@ def test_get_seed():
     sim = qsimcirq.QSimSimulator(seed=42)
     seeds = {sim.get_seed() for _ in range(10)}
     assert len(seeds) > 1
+
+
+def test_qsim_simulator_reserved_keys():
+    for key in ("c", "i", "s"):
+        with pytest.raises(
+            ValueError,
+            match='Keys {"c", "i", "s"} are reserved for internal use and cannot be '
+            "used in QSimCircuit instantiation.",
+        ):
+            _ = qsimcirq.QSimSimulator(qsim_options={key: 1})
