@@ -2299,7 +2299,7 @@ def test_qsim_simulator_reserved_keys():
     for key in ("c", "i", "s"):
         with pytest.raises(
             ValueError,
-            match='Keys {"c", "i", "s"} are reserved for internal use and cannot be '
+            match=r'Keys \{"c", "i", "s"\} are reserved for internal use and cannot be '
             "used in QSimCircuit instantiation.",
         ):
             _ = qsimcirq.QSimSimulator(qsim_options={key: 1})
