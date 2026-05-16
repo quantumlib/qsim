@@ -109,6 +109,7 @@ dev = [
     "py-cpuinfo",
     "pylint~=4.0.2",
     "pytest",
+    "pytest-randomly",
     "pytest-xdist",
 ]
 

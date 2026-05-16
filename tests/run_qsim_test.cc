@@ -24,8 +24,8 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 
@@ -79,16 +79,16 @@ struct Factory {
 
 TEST(RunQSimTest, QSimRunner1) {
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 27);
+  EXPECT_EQ(circuit.ops.size(), 27);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   float entropy = 0;
 
@@ -117,16 +117,16 @@ TEST(RunQSimTest, QSimRunner1) {
 
 TEST(RunQSimTest, QSimRunner2) {
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 27);
+  EXPECT_EQ(circuit.ops.size(), 27);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
@@ -172,17 +172,17 @@ R"(2
 
 TEST(RunQSimTest, QSimSampler) {
   std::stringstream ss(sample_circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 11);
+  EXPECT_EQ(circuit.ops.size(), 11);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using Result = StateSpace::MeasurementResult;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, GateQSim<float>>, Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
@@ -220,8 +220,7 @@ TEST(RunQSimTest, CirqGates) {
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO, Cirq::GateCirq<float>>,
-                            Factory>;
+  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
 
   StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);

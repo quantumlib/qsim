@@ -214,7 +214,7 @@ def test_translate_cirq_to_qtrajectory():
     qsim_circuit = qsimcirq.QSimCircuit(circuit)
     qsim_ncircuit, moment_indices = qsim_circuit.translate_cirq_to_qtrajectory()
 
-    assert isinstance(qsim_ncircuit, qsimcirq.qsim.NoisyCircuit)
+    assert isinstance(qsim_ncircuit, qsimcirq.qsim.Circuit)
     assert qsim_ncircuit.num_qubits == 2
     # The circuit has 3 moments, and 4 gates are translated in total.
     assert moment_indices == [1, 2, 4]
@@ -226,7 +226,7 @@ def test_translate_cirq_to_qtrajectory():
         qsim_circuit_empty.translate_cirq_to_qtrajectory()
     )
 
-    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.NoisyCircuit)
+    assert isinstance(qsim_ncircuit_empty, qsimcirq.qsim.Circuit)
     assert qsim_ncircuit_empty.num_qubits == 0
     assert moment_indices_empty == []
 
@@ -237,7 +237,7 @@ def test_translate_cirq_to_qtrajectory():
         qsim_circuit_unitary.translate_cirq_to_qtrajectory()
     )
 
-    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.NoisyCircuit)
+    assert isinstance(qsim_ncircuit_unitary, qsimcirq.qsim.Circuit)
     assert qsim_ncircuit_unitary.num_qubits == 2
     assert moment_indices_unitary == [2]
 
@@ -1029,6 +1029,7 @@ class NoiseStep(cirq.Gate):
         return str(self)
 
 
+@pytest.mark.filterwarnings("ignore:.*skipping renormalization.*")
 def test_mixture_simulation():
     q0, q1 = cirq.LineQubit.range(2)
     pflip = cirq.phase_flip(p=0.4)
@@ -1069,6 +1070,7 @@ def test_mixture_simulation():
     assert all(result_count > 0 for result_count in result_hist)
 
 
+@pytest.mark.filterwarnings("ignore:.*skipping renormalization.*")
 def test_channel_simulation():
     q0, q1 = cirq.LineQubit.range(2)
     # These probabilities are set unreasonably high in order to reduce the number
@@ -1166,6 +1168,7 @@ class NoiseMixture(NoiseChannel):
     ],
 )
 @pytest.mark.parametrize("noise_type", [NoiseMixture, NoiseChannel])
+@pytest.mark.filterwarnings("ignore:.*skipping renormalization.*")
 def test_multi_qubit_noise(cx_qubits, noise_type):
     # Tests that noise across multiple qubits works correctly.
     qs = cirq.LineQubit.range(3)

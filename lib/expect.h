@@ -18,14 +18,16 @@
 #include <complex>
 
 #include "fuser.h"
+#include "gate.h"
 #include "gate_appl.h"
+#include "operation_base.h"
 
 namespace qsim {
 
-template <typename Gate>
+template <typename FP>
 struct OpString {
   std::complex<double> weight;
-  std::vector<Gate> ops;
+  std::vector<Gate<FP>> ops;
 };
 
 /**
@@ -42,10 +44,10 @@ struct OpString {
  * @param ket Temporary state vector.
  * @return The computed expectation value.
  */
-template <typename IO, typename Fuser, typename Gate, typename Simulator>
+template <typename IO, typename Fuser, typename FP, typename Simulator>
 std::complex<double> ExpectationValue(
     const typename Fuser::Parameter& param,
-    const std::vector<OpString<Gate>>& strings,
+    const std::vector<OpString<FP>>& strings,
     const typename Simulator::StateSpace& state_space,
     const Simulator& simulator, const typename Simulator::State& state,
     typename Simulator::State& ket) {
@@ -78,7 +80,7 @@ std::complex<double> ExpectationValue(
       }
 
       for (const auto& fgate : fused_gates) {
-        ApplyFusedGate(simulator, fgate, ket);
+        ApplyGate(simulator, fgate, ket);
       }
     }
 
@@ -100,9 +102,9 @@ std::complex<double> ExpectationValue(
  * @param state The state of the system.
  * @return The computed expectation value.
  */
-template <typename IO, typename Fuser, typename Gate, typename Simulator>
+template <typename IO, typename Fuser, typename FP, typename Simulator>
 std::complex<double> ExpectationValue(
-    const std::vector<OpString<Gate>>& strings,
+    const std::vector<OpString<FP>>& strings,
     const Simulator& simulator, const typename Simulator::State& state) {
   std::complex<double> eval = 0;
 
@@ -125,18 +127,23 @@ std::complex<double> ExpectationValue(
         break;
       }
 
-      const auto& fgate = fused_gates[0];
+      if (const auto* pg = OpGetAlternative<FusedGate<FP>>(fused_gates[0])) {
+        if (pg->qubits.size() > 6) {
+          IO::errorf("operator string acts on too many qubits; "
+                     "cannot compute the expectation value.\n");
+          eval = 0;
+          break;
+        }
 
-      if (fgate.qubits.size() > 6) {
-        IO::errorf("operator string acts on too many qubits; "
+        auto r = simulator.ExpectationValue(
+            pg->qubits, pg->matrix.data(), state);
+        eval += str.weight * r;
+      } else {
+        IO::errorf("gate fusion error; "
                    "cannot compute the expectation value.\n");
         eval = 0;
         break;
       }
-
-      auto r = simulator.ExpectationValue(
-          fgate.qubits, fgate.matrix.data(), state);
-      eval += str.weight * r;
     }
   }
 
