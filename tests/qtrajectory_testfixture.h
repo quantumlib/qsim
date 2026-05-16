@@ -23,66 +23,76 @@
 
 #include "../lib/channel.h"
 #include "../lib/channels_cirq.h"
+#include "../lib/circuit.h"
 #include "../lib/circuit_noisy.h"
 #include "../lib/expect.h"
 #include "../lib/fuser_mqubit.h"
+#include "../lib/gate.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_cirq.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
+#include "../lib/operation_base.h"
 #include "../lib/qtrajectory.h"
 
 namespace qsim {
 
-template <typename Gate>
-void AddBitFlipNoise1(
-    unsigned time, unsigned q, double p, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddBitFlipNoise1(unsigned time, unsigned q, double p,
+                      Circuit<Operation<fp_type>>& ncircuit) {
   double p1 = 1 - p;
   double p2 = p;
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
-  ncircuit.channels.push_back(
-      {{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, q)}},
-       {normal, 1, p2, {Cirq::X<fp_type>::Create(time, q)}}});
+  ncircuit.ops.push_back(Channel<fp_type>{
+    {kChannel, time, {q}},
+    {
+      {true, p1, {Cirq::I1<fp_type>::Create(time, q)}},
+      {true, p2, {Cirq::X<fp_type>::Create(time, q)}},
+    }
+  });
 }
 
-template <typename Gate>
-void AddBitFlipNoise2(unsigned time, double p, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddBitFlipNoise2(unsigned time, double p,
+                      Circuit<Operation<fp_type>>& ncircuit) {
   double p1 = 1 - p;
   double p2 = p;
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
-  ncircuit.channels.push_back({
-    {normal, 1, p1 * p1, {Cirq::I1<fp_type>::Create(time, 0),
-                          Cirq::I1<fp_type>::Create(time, 1)}},
-    {normal, 1, p1 * p2, {Cirq::I1<fp_type>::Create(time, 0),
-                          Cirq::X<fp_type>::Create(time, 1)}},
-    {normal, 1, p2 * p1, {Cirq::X<fp_type>::Create(time, 0),
-                          Cirq::I1<fp_type>::Create(time, 1)}},
-    {normal, 1, p2 * p2, {Cirq::X<fp_type>::Create(time, 0),
-                          Cirq::X<fp_type>::Create(time, 1)}},
+  ncircuit.ops.push_back(Channel<fp_type>{
+    {kChannel, time, {0, 1}},
+    {
+      {true, p1 * p1, {Cirq::I1<fp_type>::Create(time, 0),
+                       Cirq::I1<fp_type>::Create(time, 1)}},
+      {true, p1 * p2, {Cirq::I1<fp_type>::Create(time, 0),
+                       Cirq::X<fp_type>::Create(time, 1)}},
+      {true, p2 * p1, {Cirq::X<fp_type>::Create(time, 0),
+                       Cirq::I1<fp_type>::Create(time, 1)}},
+      {true, p2 * p2, {Cirq::X<fp_type>::Create(time, 0),
+                       Cirq::X<fp_type>::Create(time, 1)}},
+    }
   });
 
 //  This can also be imnplemented as the following.
 //
-//  ncircuit.channels.push_back(
-//    {{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, 0)}},
-//     {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 0)}}});
-//  ncircuit.channels.push_back(
-//    {{normal, 1, p1, {Cirq::I1<fp_type>::Create(time, 1)}},
-//     {normal, 1, p2, {Cirq::X<fp_type>::Create(time, 1)}}});
+//  ncircuit.ops.push_back(Channel<fp_type>{
+//    {kChannel, time, {0}},
+//    {
+//      {true, p1, {Cirq::I1<fp_type>::Create(time, 0)}},
+//      {true, p2, {Cirq::X<fp_type>::Create(time, 0)}},
+//    }
+//  });
+//  ncircuit.ops.push_back(Channel<fp_type>{
+//    {kChannel, time, {1}},
+//    {
+//      {true, p1, {Cirq::I1<fp_type>::Create(time, 1)}},
+//      {true, p2, {Cirq::X<fp_type>::Create(time, 1)}},
+//    }
+//  });
 }
 
-template <typename Gate>
-void AddGenAmplDumpNoise1(
-    unsigned time, unsigned q, double g, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddGenAmplDumpNoise1(unsigned time, unsigned q, double g,
+                          Circuit<Operation<fp_type>>& ncircuit) {
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -97,26 +107,28 @@ void AddGenAmplDumpNoise1(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
   using M = Cirq::MatrixGate1<fp_type>;
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1, {M::Create(time, q, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p2, {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p3, {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p3, {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+  Channel<fp_type> channel = {
+    {kChannel, time, {q}},
+    {
+      {false, p1, {M::Create(time, q, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p2, {M::Create(time, q, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p3, {M::Create(time, q, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p3, {M::Create(time, q, {0, 0, 0, 0, s2, 0, 0, 0})}},
+    }
+  };
 
-  for (auto& kop : ncircuit.channels.back()) {
+  for (auto& kop : channel.kops) {
     kop.CalculateKdKMatrix();
   }
+
+  ncircuit.ops.push_back(std::move(channel));
 }
 
-template <typename Gate>
-void AddGenAmplDumpNoise2(
-    unsigned time, double g, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddGenAmplDumpNoise2(unsigned time, double g,
+                          Circuit<Operation<fp_type>>& ncircuit) {
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -131,37 +143,45 @@ void AddGenAmplDumpNoise2(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
   using M = Cirq::MatrixGate1<fp_type>;
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1, {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p2, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p3, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p3, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+  Channel<fp_type> channel1 = {
+    {kChannel, time, {0}},
+    {
+      {false, p1, {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p2, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p3, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p3, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0})}},
+    }
+  };
 
-  for (auto& kop : ncircuit.channels.back()) {
+  for (auto& kop : channel1.kops) {
     kop.CalculateKdKMatrix();
   }
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1, {M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p2, {M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p3, {M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p3, {M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}}});
+  ncircuit.ops.push_back(std::move(channel1));
 
-  for (auto& kop : ncircuit.channels.back()) {
+  Channel<fp_type> channel2 = {
+    {kChannel, time, {1}},
+    {
+      {false, p1, {M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p2, {M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p3, {M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p3, {M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+    }
+  };
+
+  for (auto& kop : channel2.kops) {
     kop.CalculateKdKMatrix();
   }
+
+  ncircuit.ops.push_back(std::move(channel2));
 }
 
 // Adds the same channel as in AddGenAmplDumpNoise2 above.
-template <typename Gate>
-void AddGenAmplDumpNoise2Alt(
-    unsigned time, double g, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddGenAmplDumpNoise2Alt(unsigned time, double g,
+                             Circuit<Operation<fp_type>>& ncircuit) {
   // Probability of exchanging energy with the environment.
   double p = 0.5;
 
@@ -176,178 +196,170 @@ void AddGenAmplDumpNoise2Alt(
   fp_type r2 = std::sqrt((1 - p) * (1 - g));
   fp_type s2 = std::sqrt((1 - p) * g);
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
   using M = Cirq::MatrixGate1<fp_type>;
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1 * p1,
-        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
-         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p1 * p2,
-        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
-         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p1 * p3,
-        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
-         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p1 * p3,
-        {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
-         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+  Channel<fp_type> channel = {
+    {kChannel, time, {0, 1}},
+    {
+      {false, p1 * p1, {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+                        M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p1 * p2, {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+                        M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p1 * p3, {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+                        M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p1 * p3, {M::Create(time, 0, {t1, 0, 0, 0, 0, 0, r1, 0}),
+                        M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
 
-       {normal, 0, p2 * p1,
-        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
-         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p2 * p2,
-        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
-         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p2 * p3,
-        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
-         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p2 * p3,
-        {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
-         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+      {false, p2 * p1, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+                        M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p2 * p2, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+                        M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p2 * p3, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+                        M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p2 * p3, {M::Create(time, 0, {r2, 0, 0, 0, 0, 0, t2, 0}),
+                        M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
 
-       {normal, 0, p3 * p1,
-        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
-         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p3 * p2,
-        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
-         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p3 * p3,
-        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
-         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p3 * p3,
-        {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
-         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+      {false, p3 * p1, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+                        M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p3 * p2, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+                        M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p3 * p3, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+                        M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p3 * p3, {M::Create(time, 0, {0, 0, s1, 0, 0, 0, 0, 0}),
+                        M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
 
-       {normal, 0, p3 * p1,
-        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
-         M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
-       {normal, 0, p3 * p2,
-        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
-         M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
-       {normal, 0, p3 * p3,
-        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
-         M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
-       {normal, 0, p3 * p3,
-        {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
-         M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
-      });
+      {false, p3 * p1, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+                        M::Create(time, 1, {t1, 0, 0, 0, 0, 0, r1, 0})}},
+      {false, p3 * p2, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+                        M::Create(time, 1, {r2, 0, 0, 0, 0, 0, t2, 0})}},
+      {false, p3 * p3, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+                        M::Create(time, 1, {0, 0, s1, 0, 0, 0, 0, 0})}},
+      {false, p3 * p3, {M::Create(time, 0, {0, 0, 0, 0, s2, 0, 0, 0}),
+                      M::Create(time, 1, {0, 0, 0, 0, s2, 0, 0, 0})}},
+    }
+  };
 
-  for (auto& kop : ncircuit.channels.back()) {
+  for (auto& kop : channel.kops) {
     kop.CalculateKdKMatrix();
   }
+
+  ncircuit.ops.push_back(std::move(channel));
 }
 
-template <typename Gate>
-void AddAmplDumpNoise1(
-    unsigned time, unsigned q, double g, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddAmplDumpNoise1(unsigned time, unsigned q, double g,
+                       Circuit<Operation<fp_type>>& ncircuit) {
   double p1 = 1 - g;
   double p2 = 0;
 
   fp_type r = std::sqrt(p1);
   fp_type s = std::sqrt(g);
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
   using M = Cirq::MatrixGate1<fp_type>;
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})}}});
+  Channel<fp_type> channel = {
+    {kChannel, time, {q}},
+    {
+      {false, p1, {M::Create(time, q, {1, 0, 0, 0, 0, 0, r, 0})}},
+      {false, p2, {M::Create(time, q, {0, 0, s, 0, 0, 0, 0, 0})}},
+    }
+  };
 
-  for (auto& kop : ncircuit.channels.back()) {
+  for (auto& kop : channel.kops) {
     kop.CalculateKdKMatrix();
   }
+
+  ncircuit.ops.push_back(std::move(channel));
 }
 
-template <typename Gate>
-void AddAmplDumpNoise2(
-    unsigned time, double g, NoisyCircuit<Gate>& ncircuit) {
-  using fp_type = typename Gate::fp_type;
-
+template <typename fp_type>
+void AddAmplDumpNoise2(unsigned time, double g,
+                       Circuit<Operation<fp_type>>& ncircuit) {
   double p1 = 1 - g;
   double p2 = 0;
 
   fp_type r = std::sqrt(p1);
   fp_type s = std::sqrt(g);
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
   using M = Cirq::MatrixGate1<fp_type>;
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1, {M::Create(time, 0, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, 0, {0, 0, s, 0, 0, 0, 0, 0})}}});
+  Channel<fp_type> channel1 = {
+    {kChannel, time, {0}},
+    {
+      {false, p1, {M::Create(time, 0, {1, 0, 0, 0, 0, 0, r, 0})}},
+      {false, p2, {M::Create(time, 0, {0, 0, s, 0, 0, 0, 0, 0})}},
+    }
+  };
 
-  for (auto& kop : ncircuit.channels.back()) {
+  for (auto& kop : channel1.kops) {
     kop.CalculateKdKMatrix();
   }
 
-  ncircuit.channels.push_back(
-      {{normal, 0, p1, {M::Create(time, 1, {1, 0, 0, 0, 0, 0, r, 0})}},
-       {normal, 0, p2, {M::Create(time, 1, {0, 0, s, 0, 0, 0, 0, 0})}}});
+  ncircuit.ops.push_back(std::move(channel1));
 
-  for (auto& kop : ncircuit.channels.back()) {
+  Channel<fp_type> channel2 = {
+    {kChannel, time, {1}},
+    {
+      {false, p1, {M::Create(time, 1, {1, 0, 0, 0, 0, 0, r, 0})}},
+      {false, p2, {M::Create(time, 1, {0, 0, s, 0, 0, 0, 0, 0})}},
+    }
+  };
+
+  for (auto& kop : channel2.kops) {
     kop.CalculateKdKMatrix();
   }
+
+  ncircuit.ops.push_back(std::move(channel2));
 }
 
-template <typename Gate, typename AddNoise1, typename AddNoise2>
-NoisyCircuit<Gate> GenerateNoisyCircuit(
+template <typename fp_type, typename AddNoise1, typename AddNoise2>
+Circuit<Operation<fp_type>> GenerateNoisyCircuit(
     double p, AddNoise1&& add_noise1, AddNoise2&& add_noise2,
     bool add_measurement = true) {
-  using fp_type = typename Gate::fp_type;
-
-  NoisyCircuit<Gate> ncircuit;
+  Circuit<Operation<fp_type>> ncircuit;
 
   ncircuit.num_qubits = 2;
-  ncircuit.channels.reserve(24);
+  ncircuit.ops.reserve(24);
 
   using Hd = Cirq::H<fp_type>;
   using IS = Cirq::ISWAP<fp_type>;
   using Rx = Cirq::rx<fp_type>;
   using Ry = Cirq::ry<fp_type>;
 
-  auto normal = KrausOperator<Gate>::kNormal;
-
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 0)}}});
+  ncircuit.ops.push_back(Hd::Create(0, 0));
   add_noise1(1, 0, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 1)}}});
+  ncircuit.ops.push_back(Hd::Create(0, 1));
   add_noise1(1, 1, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {IS::Create(2, 0, 1)}}});
+  ncircuit.ops.push_back(IS::Create(2, 0, 1));
   add_noise2(3, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Rx::Create(4, 0, 0.7)}}});
+  ncircuit.ops.push_back(Rx::Create(4, 0, 0.7));
   add_noise1(5, 0, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Ry::Create(4, 1, 0.1)}}});
+  ncircuit.ops.push_back(Ry::Create(4, 1, 0.1));
   add_noise1(5, 1, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {IS::Create(6, 0, 1)}}});
+  ncircuit.ops.push_back(IS::Create(6, 0, 1));
   add_noise2(7, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Ry::Create(8, 0, 0.4)}}});
+  ncircuit.ops.push_back(Ry::Create(8, 0, 0.4));
   add_noise1(9, 0, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Rx::Create(8, 1, 0.7)}}});
+  ncircuit.ops.push_back(Rx::Create(8, 1, 0.7));
   add_noise1(9, 1, p, ncircuit);
-  ncircuit.channels.push_back({{normal, 1, 1.0, {IS::Create(10, 0, 1)}}});
+  ncircuit.ops.push_back(IS::Create(10, 0, 1));
   add_noise2(11, p, ncircuit);
+
   if (add_measurement) {
-    ncircuit.channels.push_back(
-        {{KrausOperator<Gate>::kMeasurement, 1, 1.0,
-          {gate::Measurement<Gate>::Create(12, {0, 1})}}});
+    ncircuit.ops.push_back(CreateMeasurement(12, {0, 1}));
     add_noise2(13, p, ncircuit);
   }
 
   return ncircuit;
 }
 
-template <typename Runner, typename Factory, typename Gate>
-void RunBatch(const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
+template <typename Runner, typename Factory, typename NoisyCircuit>
+void RunBatch(const Factory& factory, const NoisyCircuit& ncircuit,
               const std::vector<double>& expected_results) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -375,14 +387,13 @@ void RunBatch(const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
   }
 }
 
-template <typename Runner, typename Factory, typename Gate>
-void RunOnceRepeatedly(const Factory& factory,
-                       const NoisyCircuit<Gate>& ncircuit,
+template <typename Runner, typename Factory, typename NoisyCircuit>
+void RunOnceRepeatedly(const Factory& factory, const NoisyCircuit& ncircuit,
                        const std::vector<double>& expected_results) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -415,15 +426,15 @@ void RunOnceRepeatedly(const Factory& factory,
   }
 }
 
-template <typename Runner, typename Factory, typename Gate>
+template <typename Runner, typename fp_type, typename Factory>
 std::vector<std::complex<double>> ExpValsRunBatch(
-    const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
+    const Factory& factory, const Circuit<Operation<fp_type>>& ncircuit,
     bool reuse_results) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
-  using Fuser = MultiQubitGateFuser<IO, Gate>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
+  using Fuser = MultiQubitGateFuser<IO>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -439,11 +450,11 @@ std::vector<std::complex<double>> ExpValsRunBatch(
   typename QTSimulator::Parameter param;
   param.apply_last_deferred_ops = !reuse_results;
 
-  using Observables = std::vector<std::vector<qsim::OpString<Gate>>>;
+  using Observables = std::vector<std::vector<qsim::OpString<fp_type>>>;
   Observables observables;
   observables.reserve(num_qubits);
 
-  using rx = qsim::Cirq::rx<typename Gate::fp_type>;
+  using rx = qsim::Cirq::rx<fp_type>;
 
   for (unsigned q = 0; q < num_qubits; ++q) {
     observables.push_back({{{1.0, 0.0}, {rx::Create(0, q, 1.7 + 0.6 * q)}}});
@@ -504,15 +515,15 @@ std::vector<std::complex<double>> ExpValsRunBatch(
   return results;
 }
 
-template <typename Runner, typename Factory, typename Gate>
+template <typename Runner, typename fp_type, typename Factory>
 std::vector<std::complex<double>> ExpValsRunOnceRepeatedly(
-    const Factory& factory, const NoisyCircuit<Gate>& ncircuit,
+    const Factory& factory, const Circuit<Operation<fp_type>>& ncircuit,
     bool reuse_results) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
-  using Fuser = MultiQubitGateFuser<IO, Gate>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
+  using Fuser = MultiQubitGateFuser<IO>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 2;
   unsigned num_reps = 25000;
@@ -528,10 +539,10 @@ std::vector<std::complex<double>> ExpValsRunOnceRepeatedly(
   typename QTSimulator::Parameter param;
   param.apply_last_deferred_ops = true;
 
-  std::vector<std::vector<qsim::OpString<Gate>>> observables;
+  std::vector<std::vector<qsim::OpString<fp_type>>> observables;
   observables.reserve(num_qubits);
 
-  using rx = qsim::Cirq::rx<typename Gate::fp_type>;
+  using rx = qsim::Cirq::rx<fp_type>;
 
   for (unsigned q = 0; q < num_qubits; ++q) {
     observables.push_back({{{1.0, 0.0}, {rx::Create(0, q, 1.7 + 0.6 * q)}}});
@@ -625,10 +636,10 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.389352, 0.242790, 0.081009, 0.286850,
   };
 
-  using Gate = Cirq::GateCirq<typename Factory::fp_type>;
+  using fp_type = typename Factory::fp_type;
 
-  auto ncircuit = GenerateNoisyCircuit<Gate>(0.01, AddBitFlipNoise1<Gate>,
-                                             AddBitFlipNoise2<Gate>);
+  auto ncircuit = GenerateNoisyCircuit<fp_type>(
+      0.01, AddBitFlipNoise1<fp_type>, AddBitFlipNoise2<fp_type>);
   RunBatch<Runner>(factory, ncircuit, expected_results);
 }
 
@@ -683,32 +694,34 @@ for key, val in sorted(res.histogram(key='m').items()):
     0.318501, 0.260538, 0.164616, 0.256345,
   };
 
-  using Gate = Cirq::GateCirq<typename Factory::fp_type>;
+  using fp_type = typename Factory::fp_type;
 
   {
-    auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
-                                               AddGenAmplDumpNoise2<Gate>);
+    auto ncircuit = GenerateNoisyCircuit<fp_type>(
+        0.1, AddGenAmplDumpNoise1<fp_type>, AddGenAmplDumpNoise2<fp_type>);
     RunOnceRepeatedly<Runner>(factory, ncircuit, expected_results);
   }
 
   {
-    auto ncircuit = GenerateNoisyCircuit<Gate>(0.1, AddGenAmplDumpNoise1<Gate>,
-                                               AddGenAmplDumpNoise2Alt<Gate>);
+    auto ncircuit = GenerateNoisyCircuit<fp_type>(
+        0.1, AddGenAmplDumpNoise1<fp_type>, AddGenAmplDumpNoise2Alt<fp_type>);
     RunOnceRepeatedly<Runner>(factory, ncircuit, expected_results);
   }
 }
 
 template <typename Runner, typename Factory>
 void TestReusingResults(const Factory& factory) {
-  using Gate = Cirq::GateCirq<typename Factory::fp_type>;
+  using fp_type = typename Factory::fp_type;
 
-  auto ncircuit = GenerateNoisyCircuit<Gate>(0.02, AddAmplDumpNoise1<Gate>,
-                                             AddAmplDumpNoise2<Gate>, false);
+  auto ncircuit = GenerateNoisyCircuit<fp_type>(
+      0.02, AddAmplDumpNoise1<fp_type>, AddAmplDumpNoise2<fp_type>, false);
 
-  auto results1 = ExpValsRunOnceRepeatedly<Runner>(factory, ncircuit, false);
-  auto results2 = ExpValsRunOnceRepeatedly<Runner>(factory, ncircuit, true);
-  auto results3 = ExpValsRunBatch<Runner>(factory, ncircuit, false);
-  auto results4 = ExpValsRunBatch<Runner>(factory, ncircuit, true);
+  auto results1 =
+      ExpValsRunOnceRepeatedly<Runner, fp_type>(factory, ncircuit, false);
+  auto results2 =
+      ExpValsRunOnceRepeatedly<Runner, fp_type>(factory, ncircuit, true);
+  auto results3 = ExpValsRunBatch<Runner, fp_type>(factory, ncircuit, false);
+  auto results4 = ExpValsRunBatch<Runner, fp_type>(factory, ncircuit, true);
 
   for (std::size_t k = 0; k < results1.size(); ++k) {
     EXPECT_NEAR(std::real(results1[k]), std::real(results2[k]), 1e-8);
@@ -726,8 +739,7 @@ void TestCollectKopStat(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 4;
   unsigned num_reps = 20000;
@@ -740,27 +752,41 @@ void TestCollectKopStat(const Factory& factory) {
   using I = Cirq::I1<fp_type>;
   using X = Cirq::X<fp_type>;
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
-
-  NoisyCircuit<GateCirq> ncircuit;
+  Circuit<Operation<fp_type>> ncircuit;
 
   ncircuit.num_qubits = num_qubits;
-  ncircuit.channels.reserve(8);
+  ncircuit.ops.reserve(8);
 
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 0)}}});
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 1)}}});
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 2)}}});
-  ncircuit.channels.push_back({{normal, 1, 1.0, {Hd::Create(0, 3)}}});
+  ncircuit.ops.push_back(Hd::Create(0, 0));
+  ncircuit.ops.push_back(Hd::Create(0, 1));
+  ncircuit.ops.push_back(Hd::Create(0, 2));
+  ncircuit.ops.push_back(Hd::Create(0, 3));
+
+  Channel<fp_type> channel1 = {
+    {kChannel, 1, {0}},
+    {{true, p1, {I::Create(1, 0)}}, {true, p2, {X::Create(1, 0)}}},
+  };
+
+  Channel<fp_type> channel2 = {
+    {kChannel, 1, {1}},
+    {{true, p1, {I::Create(1, 1)}}, {true, p2, {X::Create(1, 1)}}},
+  };
+
+  Channel<fp_type> channel3 = {
+    {kChannel, 1, {2}},
+    {{true, p1, {I::Create(1, 2)}}, {true, p2, {X::Create(1, 2)}}},
+  };
+
+  Channel<fp_type> channel4 = {
+    {kChannel, 1, {3}},
+    {{true, p1, {I::Create(1, 3)}}, {true, p2, {X::Create(1, 3)}}},
+  };
 
   // Add bit flip noise.
-  ncircuit.channels.push_back({{normal, 1, p1, {I::Create(1, 0)}},
-                      {normal, 1, p2, {X::Create(1, 0)}}});
-  ncircuit.channels.push_back({{normal, 1, p1, {I::Create(1, 1)}},
-                      {normal, 1, p2, {X::Create(1, 1)}}});
-  ncircuit.channels.push_back({{normal, 1, p1, {I::Create(1, 2)}},
-                      {normal, 1, p2, {X::Create(1, 2)}}});
-  ncircuit.channels.push_back({{normal, 1, p1, {I::Create(1, 3)}},
-                      {normal, 1, p2, {X::Create(1, 3)}}});
+  ncircuit.ops.push_back(std::move(channel1));
+  ncircuit.ops.push_back(std::move(channel2));
+  ncircuit.ops.push_back(std::move(channel3));
+  ncircuit.ops.push_back(std::move(channel4));
 
   auto measure = [](uint64_t r, const State& state,
                     const typename QTSimulator::Stat& stat,
@@ -800,7 +826,7 @@ void TestCleanCircuit(const Factory& factory) {
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
   using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 4;
   auto size = uint64_t{1} << num_qubits;
@@ -834,15 +860,13 @@ void TestCleanCircuit(const Factory& factory) {
   circuit.push_back(Cirq::YPowGate<fp_type>::Create(5, 2, 0.9, 0.4));
   circuit.push_back(Cirq::ZPowGate<fp_type>::Create(5, 3, 1.0, 0.5));
 
-  NoisyCircuit<GateCirq> ncircuit;
+  Circuit<Operation<fp_type>> ncircuit;
 
   ncircuit.num_qubits = num_qubits;
-  ncircuit.channels.reserve(circuit.size());
-
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  ncircuit.ops.reserve(circuit.size());
 
   for (std::size_t i = 0; i < circuit.size(); ++i) {
-    ncircuit.channels.push_back({{normal, 1, 1.0, {circuit[i]}}});
+    ncircuit.ops.push_back(MakeChannelFromGate(circuit[i]));
   }
 
   Simulator simulator = factory.CreateSimulator();
@@ -863,15 +887,14 @@ void TestCleanCircuit(const Factory& factory) {
   EXPECT_FALSE(state_space.IsNull(nstate));
 
   typename QTSimulator::Stat stat;
-
   typename QTSimulator::Parameter param;
 
   state_space.SetStateZero(nstate);
 
   // Run quantum trajectory simulator.
-  EXPECT_TRUE(QTSimulator::RunOnce(param, num_qubits, ncircuit.channels.begin(),
-                                   ncircuit.channels.end(), 0, state_space,
-                                   simulator, nstate, stat));
+  EXPECT_TRUE(QTSimulator::template RunOnce<Operation<fp_type>>(
+      param, num_qubits, ncircuit.ops.begin(), ncircuit.ops.end(),
+      0, state_space, simulator, nstate, stat));
 
   EXPECT_EQ(stat.samples.size(), 0);
 
@@ -890,24 +913,33 @@ void TestInitialState(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 3;
 
-  NoisyCircuit<GateCirq> ncircuit;
+  Circuit<Operation<fp_type>> ncircuit;
 
   ncircuit.num_qubits = num_qubits;
-  ncircuit.channels.reserve(3);
+  ncircuit.ops.reserve(3);
 
-  auto normal = KrausOperator<GateCirq>::kNormal;
+  Channel<fp_type> channel1 = {
+    {kChannel, 0, {0}},
+    {{true, 1.0, {Cirq::X<fp_type>::Create(0, 0)}}},
+  };
 
-  ncircuit.channels.push_back(
-      {{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 0)}}});
-  ncircuit.channels.push_back(
-      {{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 1)}}});
-  ncircuit.channels.push_back(
-      {{normal, 1, 1.0, {Cirq::X<fp_type>::Create(0, 2)}}});
+  Channel<fp_type> channel2 = {
+    {kChannel, 0, {1}},
+    {{true, 1.0, {Cirq::X<fp_type>::Create(0, 1)}}},
+  };
+
+  Channel<fp_type> channel3 = {
+    {kChannel, 0, {2}},
+    {{true, 1.0, {Cirq::X<fp_type>::Create(0, 2)}}},
+  };
+
+  ncircuit.ops.push_back(std::move(channel1));
+  ncircuit.ops.push_back(std::move(channel2));
+  ncircuit.ops.push_back(std::move(channel3));
 
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();
@@ -938,12 +970,11 @@ void TestUncomputeFinalState(const Factory& factory) {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using GateCirq = Cirq::GateCirq<fp_type>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, GateCirq, Runner>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   unsigned num_qubits = 4;
 
-  std::vector<GateCirq> circuit = {
+  std::vector<Operation<fp_type>> circuit = {
     Cirq::H<fp_type>::Create(0, 0),
     Cirq::H<fp_type>::Create(0, 1),
     Cirq::H<fp_type>::Create(0, 2),
@@ -964,7 +995,7 @@ void TestUncomputeFinalState(const Factory& factory) {
 
   // Works only with mixtures.
   auto channel = Cirq::bit_flip<fp_type>(0.3);
-  auto ncircuit = MakeNoisy(num_qubits, circuit, channel);
+  auto ncircuit = MakeNoisy<fp_type>(num_qubits, circuit, channel);
 
   Simulator simulator = factory.CreateSimulator();
   StateSpace state_space = factory.CreateStateSpace();
@@ -984,16 +1015,21 @@ void TestUncomputeFinalState(const Factory& factory) {
   EXPECT_TRUE(QTSimulator::RunOnce(
       param, ncircuit, 0, state_space, simulator, state, stat));
 
-  EXPECT_EQ(ncircuit.channels.size(), stat.samples.size());
+  EXPECT_EQ(ncircuit.ops.size(), stat.samples.size());
 
   // Uncompute the final state back to |0000> (up to round-off errors).
-  for (std::size_t i = 0; i < ncircuit.channels.size(); ++i) {
-    auto k = ncircuit.channels.size() - 1 - i;
+  for (std::size_t i = 0; i < ncircuit.ops.size(); ++i) {
+    auto k = ncircuit.ops.size() - 1 - i;
+    const auto& op = ncircuit.ops[k];
 
-    const auto& ops = ncircuit.channels[k][stat.samples[k]].ops;
+    if (const auto* pg = OpGetAlternative<Channel<fp_type>>(op)) {
+      const auto& ops = pg->kops[stat.samples[k]].ops;
 
-    for (auto it = ops.rbegin(); it != ops.rend(); ++it) {
-      ApplyGateDagger(simulator, *it, state);
+      for (auto it = ops.rbegin(); it != ops.rend(); ++it) {
+        ApplyGateDagger(simulator, *it, state);
+      }
+    } else {
+      ApplyGateDagger(simulator, op, state);
     }
   }
 

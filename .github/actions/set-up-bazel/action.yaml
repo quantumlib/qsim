@@ -23,15 +23,11 @@ inputs:
   debug:
     description: 'Run with debugging options'
     required: false
-    default: true
+    default: 'true'
   bazel-version:
     description: 'Version of Bazel to use:'
     required: false
     default: ''
-
-permissions:
-  actions: write
-  contents: read
 
 runs:
   using: 'composite'

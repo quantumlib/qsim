@@ -20,59 +20,45 @@
 namespace qsim {
 
 /**
- * A collection of gates. This object is consumed by `QSim[h]Runner.Run()`.
+ * A collection of operations.
  */
-template <typename Gate>
+template <typename Operation>
 struct Circuit {
   unsigned num_qubits;
   /**
-   * The set of gates to be run. Gate times should be ordered.
+   * The set of operations to be run. Operation time steps should be ordered.
    */
-  std::vector<Gate> gates;
+  std::vector<Operation> ops;
 };
-
-namespace detail {
 
 /**
- * An adapter for vectors of gates.
+ * An adapter for vectors of operations.
  */
 template <typename Circuit>
-struct Gates;
+struct Operations;
 
-template <typename Gate>
-struct Gates<qsim::Circuit<Gate>> {
-  static const std::vector<Gate>& get(const qsim::Circuit<Gate>& circuit) {
-    return circuit.gates;
-  }
-
-  static const Gate& gate(const Gate& g) {
-    return g;
+template <typename Operation>
+struct Operations<qsim::Circuit<Operation>> {
+  static const std::vector<Operation>& get(
+      const qsim::Circuit<Operation>& circuit) {
+    return circuit.ops;
   }
 };
 
-template <typename Gate>
-struct Gates<std::vector<Gate>> {
-  static const std::vector<Gate>& get(const std::vector<Gate>& gates) {
-    return gates;
-  }
-
-  static const Gate& gate(const Gate& g) {
-    return g;
+template <typename Operation>
+struct Operations<std::vector<Operation>> {
+  static const std::vector<Operation>& get(const std::vector<Operation>& ops) {
+    return ops;
   }
 };
 
-template <typename Gate>
-struct Gates<std::vector<Gate*>> {
-  static const std::vector<Gate*>& get(const std::vector<Gate*>& gates) {
-    return gates;
-  }
-
-  static const Gate& gate(const Gate* g) {
-    return *g;
+template <typename Operation>
+struct Operations<std::vector<Operation*>> {
+  static const std::vector<Operation*>& get(
+      const std::vector<Operation*>& ops) {
+    return ops;
   }
 };
-
-}  // namespace detail
 
 }  // namespace qsim
 

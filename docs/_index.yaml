@@ -19,14 +19,12 @@ description: >
 landing_page:
   custom_css_path: /site-assets/css/style.css
   rows:
-  - classname: quantum-hero quantum-hero--qsim quantum-hero--icon-medium
+  - classname: quantum-hero quantum-hero--qsim
     options:
     - hero
     - description-50
     - padding-large
     heading: qsim
-    icon:
-      path: /site-assets/images/icons/icon_qsim.png
     description: >
       Optimized quantum circuit simulators
     items:
@@ -57,7 +55,7 @@ landing_page:
         qubits = [cirq.GridQubit(i,j) for i in range(5) for j in range(5)]
 
         # Define a circuit to run
-        # (Example is from the 2019 "Quantum Supremacy" experiement)
+        # (Example is from the 2019 "Quantum Supremacy" experiment)
         circuit = (cirq.experiments.
             random_rotations_between_grid_interaction_layers_circuit(
             qubits=qubits, depth=16))
