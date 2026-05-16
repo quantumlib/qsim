@@ -24,7 +24,7 @@
 namespace qsim {
 
 TEST(VectorSpaceTest, BasicTest) {
-  struct DummyImplementation {
+  struct FakeImplementation {
     static uint64_t MinSize(unsigned num_qubits) {
       return uint64_t{1} << num_qubits;
     }
@@ -33,7 +33,7 @@ TEST(VectorSpaceTest, BasicTest) {
   unsigned num_qubits = 4;
   uint64_t size = uint64_t{1} << num_qubits;
 
-  VectorSpace<DummyImplementation, For, float> vector_space(1);
+  VectorSpace<FakeImplementation, For, float> vector_space(1);
 
   auto vector1 = vector_space.Create(num_qubits);
 
