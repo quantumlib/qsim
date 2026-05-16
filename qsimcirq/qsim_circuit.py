@@ -202,9 +202,8 @@ def _gate_kind_translator(gate_type: type):
     return None
 
 
-@functools.lru_cache()
 def _is_supported_gate_type(gate_type: type):
-    return any(t in TYPE_TRANSLATOR for t in gate_type.mro())
+    return _gate_kind_translator(gate_type) is not None
 
 
 def _cirq_gate_kind(gate: cirq.Gate):
