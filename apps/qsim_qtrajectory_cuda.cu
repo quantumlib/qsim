@@ -27,8 +27,8 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/expect.h"
 #include "../lib/fuser_mqubit.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
+#include "../lib/operation.h"
 #include "../lib/qtrajectory.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simulator_cuda.h"
@@ -44,10 +44,10 @@ struct Options {
   unsigned verbosity = 0;
 };
 
-constexpr char usage[] = "usage:\n  ./qsim_qtrajectory_cuda.x "
+constexpr char usage[] = "usage:\n  ./qsim_qtrajectory.x "
                          "-c circuit_file -d times_to_calculate_observables "
                          "-a amplitude_damping_const -p phase_damping_const "
-                         "-t traj0 -n num_trajectories -f max_fused_size "
+                         "-0 traj0 -n num_trajectories -f max_fused_size "
                          "-v verbosity\n";
 
 Options GetOptions(int argc, char* argv[]) {
@@ -59,7 +59,7 @@ Options GetOptions(int argc, char* argv[]) {
     return std::atoi(word.c_str());
   };
 
-  while ((k = getopt(argc, argv, "c:d:a:p:t:n:f:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:a:p:0:n:f:v:")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -73,7 +73,7 @@ Options GetOptions(int argc, char* argv[]) {
       case 'p':
         opt.phase_damp_const = std::atof(optarg);
         break;
-      case 't':
+      case '0':
         opt.traj0 = std::atoi(optarg);
         break;
       case 'n':
@@ -84,7 +84,6 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
-        break;
         break;
       default:
         qsim::IO::errorf(usage);
@@ -120,47 +119,52 @@ bool ValidateOptions(const Options& opt) {
   return true;
 }
 
-template <typename Gate, typename Channel1, typename Channel2>
-std::vector<qsim::NoisyCircuit<Gate>> AddNoise(
-    const qsim::Circuit<Gate>& circuit, const std::vector<unsigned>& times,
+template <typename FP, typename Channel1, typename Channel2>
+std::vector<qsim::Circuit<qsim::Operation<FP>>> AddNoise(
+    const qsim::Circuit<qsim::Operation<FP>>& circuit,
+    const std::vector<unsigned>& times,
     const Channel1& channel1, const Channel2& channel2) {
-  std::vector<qsim::NoisyCircuit<Gate>> ncircuits;
+  std::vector<qsim::Circuit<qsim::Operation<FP>>> ncircuits;
   ncircuits.reserve(times.size());
 
-  qsim::NoisyCircuit<Gate> ncircuit;
+  qsim::Circuit<qsim::Operation<FP>> ncircuit;
 
   ncircuit.num_qubits = circuit.num_qubits;
-  ncircuit.channels.reserve(5 * circuit.gates.size());
+  ncircuit.ops.reserve(5 * circuit.ops.size());
 
   unsigned cur_time_index = 0;
 
-  for (std::size_t i = 0; i < circuit.gates.size(); ++i) {
-    const auto& gate = circuit.gates[i];
+  for (std::size_t i = 0; i < circuit.ops.size(); ++i) {
+    const auto& op = circuit.ops[i];
 
-    ncircuit.channels.push_back(qsim::MakeChannelFromGate(3 * gate.time, gate));
+    unsigned time = OpTime(op);
+    const auto& qubits = OpQubits(op);
 
-    for (auto q : gate.qubits) {
-      ncircuit.channels.push_back(channel1.Create(3 * gate.time + 1, q));
+    ncircuit.ops.push_back(op);
+    OpBaseOperation(ncircuit.ops.back()).time = 3 * time;
+
+    for (auto q : qubits) {
+      ncircuit.ops.push_back(channel1.Create(3 * time + 1, q));
     }
 
-    for (auto q : gate.qubits) {
-      ncircuit.channels.push_back(channel2.Create(3 * gate.time + 2, q));
+    for (auto q : qubits) {
+      ncircuit.ops.push_back(channel2.Create(3 * time + 2, q));
     }
 
     unsigned t = times[cur_time_index];
 
-    if (i == circuit.gates.size() - 1 || t < circuit.gates[i + 1].time) {
+    if (i == circuit.ops.size() - 1 || t < OpTime(circuit.ops[i + 1])) {
       ncircuits.push_back(std::move(ncircuit));
 
       ncircuit = {};
 
-      if (i < circuit.gates.size() - 1) {
-        if (circuit.gates[i + 1].time > times.back()) {
+      if (i < circuit.ops.size() - 1) {
+        if (OpTime(circuit.ops[i + 1]) > times.back()) {
           break;
         }
 
         ncircuit.num_qubits = circuit.num_qubits;
-        ncircuit.channels.reserve(5 * circuit.gates.size());
+        ncircuit.ops.reserve(5 * circuit.ops.size());
       }
 
       ++cur_time_index;
@@ -170,13 +174,13 @@ std::vector<qsim::NoisyCircuit<Gate>> AddNoise(
   return ncircuits;
 }
 
-template <typename Gate>
-std::vector<std::vector<qsim::OpString<Gate>>> GetObservables(
+template <typename FP>
+std::vector<std::vector<qsim::OpString<FP>>> GetObservables(
     unsigned num_qubits) {
-  std::vector<std::vector<qsim::OpString<Gate>>> observables;
+  std::vector<std::vector<qsim::OpString<FP>>> observables;
   observables.reserve(num_qubits);
 
-  using X = qsim::GateX<typename Gate::fp_type>;
+  using X = qsim::GateX<FP>;
 
   for (unsigned q = 0; q < num_qubits; ++q) {
     observables.push_back({{{1.0, 0.0}, {X::Create(0, q)}}});
@@ -210,18 +214,16 @@ int main(int argc, char* argv[]) {
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Gate = GateQSim<fp_type>;
-  using Fuser = MultiQubitGateFuser<IO, Gate>;
-  using FuserQT = MultiQubitGateFuser<IO, const Gate*>;
-  using RunnerQT = QSimRunner<IO, FuserQT, Factory>;
-  using QTSimulator = QuantumTrajectorySimulator<IO, Gate, RunnerQT>;
+  using Fuser = MultiQubitGateFuser<IO>;
+  using Runner = QSimRunner<IO, Fuser, Factory>;
+  using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
   auto opt = GetOptions(argc, argv);
   if (!ValidateOptions(opt)) {
     return 1;
   }
 
-  Circuit<Gate> circuit;
+  Circuit<Operation<fp_type>> circuit;
   unsigned maxtime = opt.times.back();
   if (!CircuitQsimParser<IOFile>::FromFile(maxtime, opt.circuit_file,
                                            circuit)) {
@@ -230,7 +232,7 @@ int main(int argc, char* argv[]) {
 
   if (opt.times.size() == 1
       && opt.times[0] == std::numeric_limits<unsigned>::max()) {
-    opt.times[0] = circuit.gates.back().time;
+    opt.times[0] = OpTime(circuit.ops.back());
   }
 
   StateSpace::Parameter param1;
@@ -256,7 +258,7 @@ int main(int argc, char* argv[]) {
 
   auto noisy_circuits = AddNoise(circuit, opt.times, channel1, channel2);
 
-  auto observables = GetObservables<Gate>(circuit.num_qubits);
+  auto observables = GetObservables<fp_type>(circuit.num_qubits);
 
   std::vector<std::vector<std::vector<std::complex<double>>>> results;
   results.reserve(opt.num_trajectories);
