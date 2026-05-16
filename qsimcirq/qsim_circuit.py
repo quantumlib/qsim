@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 from typing import Dict, List, Sequence, Tuple
 
 import cirq
@@ -193,11 +194,23 @@ TYPE_TRANSLATOR = {
 }
 
 
+@functools.lru_cache()
+def _gate_kind_translator(gate_type: type):
+    for t in gate_type.mro():
+        if t in TYPE_TRANSLATOR:
+            return TYPE_TRANSLATOR[t]
+    return None
+
+
+@functools.lru_cache()
+def _is_supported_gate_type(gate_type: type):
+    return any(t in TYPE_TRANSLATOR for t in gate_type.mro())
+
+
 def _cirq_gate_kind(gate: cirq.Gate):
-    for gate_type in type(gate).mro():
-        translator = TYPE_TRANSLATOR.get(gate_type, None)
-        if translator is not None:
-            return translator(gate)
+    translator = _gate_kind_translator(type(gate))
+    if translator is not None:
+        return translator(gate)
     # Unrecognized gates will be decomposed.
     return None
 
@@ -205,7 +218,7 @@ def _cirq_gate_kind(gate: cirq.Gate):
 def _has_cirq_gate_kind(op: cirq.Operation):
     if isinstance(op, cirq.ControlledOperation):
         return _has_cirq_gate_kind(op.sub_operation)
-    return any(t in TYPE_TRANSLATOR for t in type(op.gate).mro())
+    return _is_supported_gate_type(type(op.gate))
 
 
 def _control_details(
