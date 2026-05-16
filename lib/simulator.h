@@ -26,7 +26,7 @@ namespace qsim {
  */
 class SimulatorBase {
  protected:
-  // The follwoing template parameters are used for functions below.
+  // The following template parameters are used for functions below.
   // H - the number of high (target) qubits.
   // L - the number of low (target) qubits.
   // R - SIMD register width in floats.

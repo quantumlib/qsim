@@ -23,6 +23,8 @@
 
 #include "circuit.h"
 #include "gates_qsim.h"
+#include "operation.h"
+#include "operation_base.h"
 
 namespace qsim {
 
@@ -48,11 +50,11 @@ class CircuitQsimParser final {
    */
   template <typename Stream, typename fp_type>
   static bool FromStream(unsigned maxtime, const std::string& provider,
-                         Stream& fs, Circuit<GateQSim<fp_type>>& circuit) {
+                         Stream& fs, Circuit<Operation<fp_type>>& circuit) {
     circuit.num_qubits = 0;
 
-    circuit.gates.resize(0);
-    circuit.gates.reserve(1024);
+    circuit.ops.resize(0);
+    circuit.ops.reserve(1024);
 
     unsigned k = 0;
 
@@ -100,33 +102,34 @@ class CircuitQsimParser final {
       }
 
       if (gate_name == "c") {
-        if (!ParseControlledGate<fp_type>(ss, time,
-                                          circuit.num_qubits, circuit.gates)) {
+        if (!ParseControlledGate(ss, time, circuit.num_qubits, circuit.ops)) {
           InvalidGateError(provider, k);
           return false;
         }
-      } else if (!ParseGate<fp_type>(ss, time, circuit.num_qubits,
-                                     gate_name, circuit.gates)) {
+      } else if (!ParseGate(ss, time, circuit.num_qubits,
+                            gate_name, false, circuit.ops)) {
         InvalidGateError(provider, k);
         return false;
       }
 
-      const auto& gate = circuit.gates.back();
+      const auto& op = circuit.ops.back();
+      bool is_measurement = OpGetAlternative<Measurement>(op) != nullptr;
 
-      if (time < prev_mea_time
-          || (gate.kind == gate::kMeasurement && time < max_time)) {
-        IO::errorf("gate crosses the time boundary set by measurement "
-                   "gates in line %u in %s.\n", k, provider.c_str());
+      if (time < prev_mea_time || (is_measurement && time < max_time)) {
+        IO::errorf("operation crosses the time boundary set by measurement "
+                   "operations in line %u in/ %s.\n", k, provider.c_str());
         return false;
       }
 
-      if (gate.kind == gate::kMeasurement) {
+      if (is_measurement) {
         prev_mea_time = time;
       }
 
-      if (GateIsOutOfOrder(time, gate.qubits, last_times)
-          || GateIsOutOfOrder(time, gate.controlled_by, last_times)) {
-        IO::errorf("gate is out of time order in line %u in %s.\n",
+      const auto* pg = OpGetAlternative<ControlledGate<fp_type>>(op);
+
+      if (GateIsOutOfOrder(time, OpQubits(op), last_times)
+          || (pg && GateIsOutOfOrder(time, pg->controlled_by, last_times))) {
+        IO::errorf("operation is out of time order in line %u in %s.\n",
                    k, provider.c_str());
         return false;
       }
@@ -150,7 +153,7 @@ class CircuitQsimParser final {
    */
   template <typename fp_type>
   static bool FromFile(unsigned maxtime, const std::string& file,
-                       Circuit<GateQSim<fp_type>>& circuit) {
+                       Circuit<Operation<fp_type>>& circuit) {
     auto fs = IO::StreamFromFile(file);
 
     if (!fs) {
@@ -207,13 +210,12 @@ class CircuitQsimParser final {
    * @param qubits Indices of affected qubits.
    */
   static bool ValidateGate(std::stringstream& ss, unsigned num_qubits,
-                           const std::vector<unsigned>& qubits) {
+                           const Qubits& qubits) {
     return ss && ValidateQubits(num_qubits, qubits);
   }
 
   static bool ValidateControlledGate(
-      unsigned num_qubits, const std::vector<unsigned>& qubits,
-      const std::vector<unsigned>& controlled_by) {
+      unsigned num_qubits, const Qubits& qubits, const Qubits& controlled_by) {
     if (!ValidateQubits(num_qubits, controlled_by)) return false;
 
     std::size_t i = 0, j = 0;
@@ -231,8 +233,7 @@ class CircuitQsimParser final {
     return true;
   }
 
-  static bool ValidateQubits(unsigned num_qubits,
-                             const std::vector<unsigned>& qubits) {
+  static bool ValidateQubits(unsigned num_qubits, const Qubits& qubits) {
     if (qubits.size() == 0 || qubits[0] >= num_qubits) return false;
 
     // qubits should be sorted.
@@ -246,8 +247,7 @@ class CircuitQsimParser final {
     return true;
   }
 
-  static bool GateIsOutOfOrder(unsigned time,
-                               const std::vector<unsigned>& qubits,
+  static bool GateIsOutOfOrder(unsigned time, const Qubits& qubits,
                                std::vector<unsigned>& last_times) {
     for (auto q : qubits) {
       if (last_times[q] != unsigned(-1) && time <= last_times[q]) {
@@ -260,103 +260,108 @@ class CircuitQsimParser final {
     return false;
   }
 
-  template <typename fp_type, typename Stream, typename Gate>
+  template <typename Stream, typename fp_type>
   static bool ParseGate(Stream& ss, unsigned time, unsigned num_qubits,
-                        const std::string& gate_name,
-                        std::vector<Gate>& gates) {
+                        const std::string& gate_name, bool controlled,
+                        std::vector<Operation<fp_type>>& ops) {
     unsigned q0, q1;
     fp_type phi, theta;
 
     if (gate_name == "p") {
       ss >> phi;
       if (!ValidateGate(ss)) return false;
-      gates.push_back(GateGPh<fp_type>::Create(time, phi));
+      ops.push_back(GateGPh<fp_type>::Create(time, phi));
     } else if (gate_name == "id1") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateId1<fp_type>::Create(time, q0));
+      ops.push_back(GateId1<fp_type>::Create(time, q0));
     } else if (gate_name == "h") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateHd<fp_type>::Create(time, q0));
+      ops.push_back(GateHd<fp_type>::Create(time, q0));
     } else if (gate_name == "t") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateT<fp_type>::Create(time, q0));
+      ops.push_back(GateT<fp_type>::Create(time, q0));
     } else if (gate_name == "x") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateX<fp_type>::Create(time, q0));
+      ops.push_back(GateX<fp_type>::Create(time, q0));
     } else if (gate_name == "y") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateY<fp_type>::Create(time, q0));
+      ops.push_back(GateY<fp_type>::Create(time, q0));
     } else if (gate_name == "z") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateZ<fp_type>::Create(time, q0));
+      ops.push_back(GateZ<fp_type>::Create(time, q0));
     } else if (gate_name == "x_1_2") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateX2<fp_type>::Create(time, q0));
+      ops.push_back(GateX2<fp_type>::Create(time, q0));
     } else if (gate_name == "y_1_2") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateY2<fp_type>::Create(time, q0));
+      ops.push_back(GateY2<fp_type>::Create(time, q0));
     } else if (gate_name == "rx") {
       ss >> q0 >> phi;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateRX<fp_type>::Create(time, q0, phi));
+      ops.push_back(GateRX<fp_type>::Create(time, q0, phi));
     } else if (gate_name == "ry") {
       ss >> q0 >> phi;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateRY<fp_type>::Create(time, q0, phi));
+      ops.push_back(GateRY<fp_type>::Create(time, q0, phi));
     } else if (gate_name == "rz") {
       ss >> q0 >> phi;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateRZ<fp_type>::Create(time, q0, phi));
+      ops.push_back(GateRZ<fp_type>::Create(time, q0, phi));
     } else if (gate_name == "rxy") {
       ss >> q0 >> theta >> phi;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateRXY<fp_type>::Create(time, q0, theta, phi));
+      ops.push_back(GateRXY<fp_type>::Create(time, q0, theta, phi));
     } else if (gate_name == "hz_1_2") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateHZ2<fp_type>::Create(time, q0));
+      ops.push_back(GateHZ2<fp_type>::Create(time, q0));
     } else if (gate_name == "s") {
       ss >> q0;
       if (!ValidateGate(ss, num_qubits, q0)) return false;
-      gates.push_back(GateS<fp_type>::Create(time, q0));
+      ops.push_back(GateS<fp_type>::Create(time, q0));
     } else if (gate_name == "id2") {
       ss >> q0 >> q1;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateId2<fp_type>::Create(time, q0, q1));
+      ops.push_back(GateId2<fp_type>::Create(time, q0, q1));
     } else if (gate_name == "cz") {
       ss >> q0 >> q1;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateCZ<fp_type>::Create(time, q0, q1));
+      ops.push_back(GateCZ<fp_type>::Create(time, q0, q1));
     } else if (gate_name == "cnot" || gate_name == "cx") {
       ss >> q0 >> q1;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateCNot<fp_type>::Create(time, q0, q1));
+      ops.push_back(GateCNot<fp_type>::Create(time, q0, q1));
     } else if (gate_name == "sw") {
       ss >> q0 >> q1;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateSwap<fp_type>::Create(time, q0, q1));
+      ops.push_back(GateSwap<fp_type>::Create(time, q0, q1));
     } else if (gate_name == "is") {
       ss >> q0 >> q1;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateIS<fp_type>::Create(time, q0, q1));
+      ops.push_back(GateIS<fp_type>::Create(time, q0, q1));
     } else if (gate_name == "fs") {
       ss >> q0 >> q1 >> theta >> phi;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateFS<fp_type>::Create(time, q0, q1, theta, phi));
+      ops.push_back(GateFS<fp_type>::Create(time, q0, q1, theta, phi));
     } else if (gate_name == "cp") {
       ss >> q0 >> q1 >> phi;
       if (!ValidateGate(ss, num_qubits, q0, q1)) return false;
-      gates.push_back(GateCP<fp_type>::Create(time, q0, q1, phi));
+      ops.push_back(GateCP<fp_type>::Create(time, q0, q1, phi));
     } else if (gate_name == "m") {
-      std::vector<unsigned> qubits;
+      if (controlled) {
+        IO::errorf("measurement gate cannot be controlled.\n");
+        return false;
+      }
+
+      Qubits qubits;
       qubits.reserve(num_qubits);
 
       while (ss.good()) {
@@ -368,10 +373,9 @@ class CircuitQsimParser final {
         }
       }
 
-      gates.push_back(gate::Measurement<GateQSim<fp_type>>::Create(
-          time, std::move(qubits)));
+      if (!ValidateQubits(num_qubits, qubits)) return false;
 
-      if (!ValidateQubits(num_qubits, gates.back().qubits)) return false;
+      ops.push_back(CreateMeasurement(time, std::move(qubits)));
     } else {
       return false;
     }
@@ -379,11 +383,11 @@ class CircuitQsimParser final {
     return true;
   }
 
-  template <typename fp_type, typename Stream, typename Gate>
+  template <typename Stream, typename fp_type>
   static bool ParseControlledGate(Stream& ss, unsigned time,
                                   unsigned num_qubits,
-                                  std::vector<Gate>& gates) {
-    std::vector<unsigned> controlled_by;
+                                  std::vector<Operation<fp_type>>& ops) {
+    Qubits controlled_by;
     controlled_by.reserve(64);
 
     std::string gate_name;
@@ -421,17 +425,18 @@ class CircuitQsimParser final {
 
     ss >> gate_name;
 
-    if (!ss.good() || !ParseGate<fp_type>(ss, time,
-                                          num_qubits, gate_name, gates)) {
+    if (!ss.good() || !ParseGate(ss, time, num_qubits, gate_name, true, ops)) {
       return false;
     }
 
-    gates.back().ControlledBy(std::move(controlled_by));
-
-    if (!ValidateControlledGate(num_qubits, gates.back().qubits,
-                                gates.back().controlled_by)) {
+    if (!ValidateControlledGate(num_qubits, OpQubits(ops.back()),
+                                controlled_by)) {
       return false;
     }
+
+    auto& lop = ops.back();
+    lop = OpGetAlternative<Gate<fp_type>>(lop)->ControlledBy(
+        std::move(controlled_by));
 
     return true;
   }
