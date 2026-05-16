@@ -22,6 +22,8 @@
 #include <custatevecEx.h>
 
 #include "circuit.h"
+#include "gate.h"
+#include "operation_base.h"
 #include "util.h"
 #include "util_custatevec.h"
 #include "util_custatevecex.h"
@@ -39,6 +41,12 @@ struct CuStateVecExRunner final {
   using State = typename StateSpace::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
+ private:
+  using fp_type = typename Simulator::fp_type;
+  using Gate = qsim::Gate<fp_type>;
+  using ControlledGate = qsim::ControlledGate<fp_type>;
+
+ public:
   /**
    * User-specified parameters for simulation.
    */
@@ -53,7 +61,7 @@ struct CuStateVecExRunner final {
 
   /**
    * Runs the given circuit, only measuring at the end.
-   * @param param Options for gate fusion, parallelism and logging.
+   * @param param Options for the random number generator seed.
    * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param measure Function that performs measurements (in the sense of
@@ -63,12 +71,12 @@ struct CuStateVecExRunner final {
   template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param, const Factory& factory,
                   const Circuit& circuit, MeasurementFunc measure) {
-    return Run(param, factory, {circuit.gates.back().time}, circuit, measure);
+    return Run(param, factory, {OpTime(circuit.ops.back())}, circuit, measure);
   }
 
   /**
    * Runs the given circuit, measuring at user-specified times.
-   * @param param Options for gate fusion, parallelism and logging.
+   * @param param Options for the random number generator seed.
    * @param factory Object to create simulators and state spaces.
    * @param times_to_measure_at Time steps at which to perform measurements.
    * @param circuit The circuit to be simulated.
@@ -100,7 +108,7 @@ struct CuStateVecExRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller,
    * recording the result of any intermediate measurements in the circuit.
-   * @param param Options for gate fusion, parallelism and logging.
+   * @param param Options for the random number generator seed.
    * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
@@ -127,7 +135,7 @@ struct CuStateVecExRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller,
    * discarding the result of any intermediate measurements in the circuit.
-   * @param param Options for gate fusion, parallelism and logging.
+   * @param param Options for the random number generator seed.
    * @param factory Object to create simulators and state spaces.
    * @param circuit The circuit to be simulated.
    * @param state As an input parameter, this should contain the initial state
@@ -152,7 +160,7 @@ struct CuStateVecExRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller,
    * recording the result of any intermediate measurements in the circuit.
-   * @param param Options for gate fusion, parallelism and logging.
+   * @param param Options for the random number generator seed.
    * @param circuit The circuit to be simulated.
    * @param state_space StateSpace object required to perform measurements.
    * @param simulator Simulator object. Provides specific implementations for
@@ -179,7 +187,7 @@ struct CuStateVecExRunner final {
   /**
    * Runs the given circuit and make the final state available to the caller,
    * discarding the result of any intermediate measurements in the circuit.
-   * @param param Options for gate fusion, parallelism and logging.
+   * @param param Options for the random number generator seed.
    * @param circuit The circuit to be simulated.
    * @param state_space StateSpace object required to perform measurements.
    * @param simulator Simulator object. Provides specific implementations for
@@ -229,60 +237,60 @@ struct CuStateVecExRunner final {
 
     unsigned cur_time_index = 0;
 
-    using Gates = detail::Gates<Circuit>;
-    const auto& gates = Gates::get(circuit);
+    const auto& ops = Operations<Circuit>::get(circuit);
 
-    for (std::size_t i = 0; i < gates.size(); ++i) {
-      const auto& gate = Gates::gate(gates[i]);
-      unsigned num_qubits = gate.qubits.size();
-      unsigned num_cqubits = gate.controlled_by.size();
+    for (std::size_t i = 0; i < ops.size(); ++i) {
+      const auto& op = ops[i];
 
-      if (gate.kind == gate::kMeasurement) {
+      if (const auto* pg = OpGetAlternative<Measurement>(op)) {
         ErrorCheck(
             custatevecExSVUpdaterApply(sv_updater, state.get(), nullptr, 0));
         ErrorCheck(custatevecExSVUpdaterClear(sv_updater));
 
-        auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+        auto measure_result = state_space.Measure(pg->qubits, rgen, state);
         if (measure_result.valid) {
           measure_results.push_back(std::move(measure_result));
         } else {
           IO::errorf("measurement failed.\n");
           return false;
         }
-      } else if (num_cqubits == 0) {
-        if (num_qubits == 0) {
+      } else if (const auto* pg = OpGetAlternative<Gate>(op)) {
+        if (pg->qubits.size() == 0) {
           ErrorCheck(
             custatevecExSVUpdaterApply(sv_updater, state.get(), nullptr, 0));
           ErrorCheck(custatevecExSVUpdaterClear(sv_updater));
 
-          simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
+          simulator.ApplyGate(pg->qubits, pg->matrix.data(), state);
         } else {
           ErrorCheck(custatevecExSVUpdaterEnqueueMatrix(
-              sv_updater, gate.matrix.data(), StateSpace::kMatrixDataType,
+              sv_updater, pg->matrix.data(), StateSpace::kMatrixDataType,
               StateSpace::kExMatrixType, StateSpace::kMatrixLayout, 0,
-              reinterpret_cast<const int32_t*>(gate.qubits.data()),
-              num_qubits, nullptr, nullptr, 0));
+              reinterpret_cast<const int32_t*>(pg->qubits.data()),
+              pg->qubits.size(), nullptr, nullptr, 0));
         }
-      } else {
+      } else if (const auto* pg = OpGetAlternative<ControlledGate>(op)) {
+        unsigned num_qubits = pg->qubits.size();
+        unsigned num_cqubits = pg->controlled_by.size();
+
         std::vector<int32_t> control_bits;
         control_bits.reserve(num_cqubits);
 
         for (std::size_t i = 0; i < num_cqubits; ++i) {
-          control_bits.push_back((gate.cmask >> i) & 1);
+          control_bits.push_back((pg->cmask >> i) & 1);
         }
 
         ErrorCheck(custatevecExSVUpdaterEnqueueMatrix(
-            sv_updater, gate.matrix.data(), StateSpace::kMatrixDataType,
+            sv_updater, pg->matrix.data(), StateSpace::kMatrixDataType,
             StateSpace::kExMatrixType, StateSpace::kMatrixLayout, 0,
-            reinterpret_cast<const int32_t*>(gate.qubits.data()), num_qubits,
-            reinterpret_cast<const int32_t*>(gate.controlled_by.data()),
+            reinterpret_cast<const int32_t*>(pg->qubits.data()), num_qubits,
+            reinterpret_cast<const int32_t*>(pg->controlled_by.data()),
             control_bits.data(), num_cqubits));
       }
 
       if (times_to_measure_at.size() > 0) {
         unsigned t = times_to_measure_at[cur_time_index];
 
-        if (i == gates.size() - 1 || t < Gates::gate(gates[i + 1]).time) {
+        if (i == ops.size() - 1 || t < OpTime(ops[i + 1])) {
           ErrorCheck(
               custatevecExSVUpdaterApply(sv_updater, state.get(), nullptr, 0));
           ErrorCheck(custatevecExSVUpdaterClear(sv_updater));

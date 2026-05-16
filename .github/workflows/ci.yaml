@@ -289,7 +289,7 @@ jobs:
       - name: Build the Python bindings
         shell: bash
         run: |
-          mkdir build
+          mkdir -p build
           cd build
           cmake ${{inputs.debug && '--debug-output' || ''}} ..
           cmake --build . -j ${{inputs.debug && '--verbose' || ''}}
