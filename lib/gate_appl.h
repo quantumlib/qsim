@@ -18,171 +18,71 @@
 #include <utility>
 #include <vector>
 
-#include "fuser.h"
 #include "gate.h"
 #include "matrix.h"
+#include "operation_base.h"
 
 namespace qsim {
 
 /**
- * Applies the given gate to the simulator state. Ignores measurement gates.
+ * Applies the given operation to the simulator state. Ignores measurement
+ * gates.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
- * @param gate The gate to be applied.
+ * @param op The operation to be applied.
  * @param state The state of the system, to be updated by this method.
  */
-template <typename Simulator, typename Gate>
-inline void ApplyGate(const Simulator& simulator, const Gate& gate,
+template <typename Simulator, typename Operation>
+inline void ApplyGate(const Simulator& simulator, const Operation& op,
                       typename Simulator::State& state) {
-  if (gate.kind != gate::kMeasurement) {
-    if (gate.controlled_by.size() == 0) {
-      simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
-    } else {
-      simulator.ApplyControlledGate(gate.qubits, gate.controlled_by,
-                                    gate.cmask, gate.matrix.data(), state);
-    }
+  using FP = typename Simulator::fp_type;
+
+  if (const auto* pg = OpGetAlternative<Gate<FP>>(op)) {
+    simulator.ApplyGate(pg->qubits, pg->matrix.data(), state);
+  } else if (const auto* pg = OpGetAlternative<FusedGate<FP>>(op)) {
+    simulator.ApplyGate(pg->qubits, pg->matrix.data(), state);
+  } else if (const auto* pg = OpGetAlternative<ControlledGate<FP>>(op)) {
+    simulator.ApplyControlledGate(pg->qubits, pg->controlled_by,
+                                  pg->cmask, pg->matrix.data(), state);
   }
 }
 
 /**
- * Applies the given gate dagger to the simulator state. If the gate matrix is
- *   unitary then this is equivalent to applying the inverse gate. Ignores
- *   measurement gates.
- * @param simulator Simulator object. Provides specific implementations for
- *   applying gates.
- * @param gate The gate to be applied.
- * @param state The state of the system, to be updated by this method.
- */
-template <typename Simulator, typename Gate>
-inline void ApplyGateDagger(const Simulator& simulator, const Gate& gate,
-                            typename Simulator::State& state) {
-  if (gate.kind != gate::kMeasurement) {
-    auto matrix = gate.matrix;
-    MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
-
-    if (gate.controlled_by.size() == 0) {
-      simulator.ApplyGate(gate.qubits, matrix.data(), state);
-    } else {
-      simulator.ApplyControlledGate(gate.qubits, gate.controlled_by,
-                                    gate.cmask, matrix.data(), state);
-    }
-  }
-}
-
-/**
- * Applies the given gate to the simulator state.
- * @param state_space StateSpace object required to perform measurements.
- * @param simulator Simulator object. Provides specific implementations for
- *   applying gates.
- * @param gate The gate to be applied.
- * @param rgen Random number generator to perform measurements.
- * @param state The state of the system, to be updated by this method.
- * @param mresults As an input parameter, this can be empty or this can
- *   contain the results of the previous measurements. If gate is a measurement
- *   gate then after a successful run, the measurement result will be added to
- *   this.
- * @return True if the measurement performed successfully; false otherwise.
- */
-template <typename Simulator, typename Gate, typename Rgen>
-inline bool ApplyGate(
-    const typename Simulator::StateSpace& state_space,
-    const Simulator& simulator, const Gate& gate, Rgen& rgen,
-    typename Simulator::State& state,
-    std::vector<typename Simulator::StateSpace::MeasurementResult>& mresults) {
-  if (gate.kind == gate::kMeasurement) {
-    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
-    if (measure_result.valid) {
-      mresults.push_back(std::move(measure_result));
-    } else {
-      return false;
-    }
-  } else {
-    ApplyGate(simulator, gate, state);
-  }
-
-  return true;
-}
-
-/**
- * Applies the given gate to the simulator state, discarding measurement
- *   results.
- * @param state_space StateSpace object required to perform measurements.
- * @param simulator Simulator object. Provides specific implementations for
- *   applying gates.
- * @param gate The gate to be applied.
- * @param rgen Random number generator to perform measurements.
- * @param state The state of the system, to be updated by this method.
- * @return True if the measurement performed successfully; false otherwise.
- */
-template <typename Simulator, typename Gate, typename Rgen>
-inline bool ApplyGate(const typename Simulator::StateSpace& state_space,
-                      const Simulator& simulator, const Gate& gate, Rgen& rgen,
-                      typename Simulator::State& state) {
-  if (gate.kind == gate::kMeasurement) {
-    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
-    if (!measure_result.valid) {
-      return false;
-    }
-  } else {
-    ApplyGate(state_space, simulator, gate);
-  }
-
-  return true;
-}
-
-/**
- * Applies the given fused gate to the simulator state. Ignores measurement
- *   gates.
- * @param simulator Simulator object. Provides specific implementations for
- *   applying gates.
- * @param gate The gate to be applied.
- * @param state The state of the system, to be updated by this method.
- */
-template <typename Simulator, typename Gate>
-inline void ApplyFusedGate(const Simulator& simulator, const Gate& gate,
-                           typename Simulator::State& state) {
-  if (gate.kind != gate::kMeasurement) {
-    if (gate.parent->controlled_by.size() == 0) {
-      simulator.ApplyGate(gate.qubits, gate.matrix.data(), state);
-    } else {
-      simulator.ApplyControlledGate(gate.qubits, gate.parent->controlled_by,
-                                    gate.parent->cmask, gate.matrix.data(),
-                                    state);
-    }
-  }
-}
-
-/**
- * Applies the given fused gate dagger to the simulator state. If the gate
+ * Applies the given operation dagger to the simulator state. If the gate
  *   matrix is unitary then this is equivalent to applying the inverse gate.
  *   Ignores measurement gates.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
- * @param gate The gate to be applied.
+ * @param op The operation to be applied.
  * @param state The state of the system, to be updated by this method.
  */
-template <typename Simulator, typename Gate>
-inline void ApplyFusedGateDagger(const Simulator& simulator, const Gate& gate,
-                                 typename Simulator::State& state) {
-  if (gate.kind != gate::kMeasurement) {
-    auto matrix = gate.matrix;
-    MatrixDagger(unsigned{1} << gate.qubits.size(), matrix);
+template <typename Simulator, typename Operation>
+inline void ApplyGateDagger(const Simulator& simulator, const Operation& op,
+                            typename Simulator::State& state) {
+  using FP = typename Simulator::fp_type;
 
-    if (gate.parent->controlled_by.size() == 0) {
-      simulator.ApplyGate(gate.qubits, matrix.data(), state);
-    } else {
-      simulator.ApplyControlledGate(gate.qubits, gate.parent->controlled_by,
-                                    gate.parent->cmask, matrix.data(), state);
-    }
+  if (const auto* pg = OpGetAlternative<Gate<FP>>(op)) {
+    auto matrix = pg->matrix;
+    MatrixDagger(unsigned{1} << pg->qubits.size(), matrix);
+    simulator.ApplyGate(pg->qubits, matrix.data(), state);
+  } else if (const auto* pg = OpGetAlternative<FusedGate<FP>>(op)) {
+    auto matrix = pg->matrix;
+    MatrixDagger(unsigned{1} << pg->qubits.size(), matrix);
+    simulator.ApplyGate(pg->qubits, matrix.data(), state);
+  } else if (const auto* pg = OpGetAlternative<ControlledGate<FP>>(op)) {
+    auto matrix = pg->matrix;
+    MatrixDagger(unsigned{1} << pg->qubits.size(), matrix);
+    simulator.ApplyControlledGate(pg->qubits, pg->controlled_by,
+                                  pg->cmask, matrix.data(), state);
   }
 }
 
 /**
- * Applies the given fused gate to the simulator state.
+ * Applies the given operation to the simulator state.
  * @param state_space StateSpace object required to perform measurements.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
- * @param gate The gate to be applied.
+ * @param op The operation to be applied.
  * @param rgen Random number generator to perform measurements.
  * @param state The state of the system, to be updated by this method.
  * @param mresults As an input parameter, this can be empty or this can
@@ -191,48 +91,48 @@ inline void ApplyFusedGateDagger(const Simulator& simulator, const Gate& gate,
  *   this.
  * @return True if the measurement performed successfully; false otherwise.
  */
-template <typename Simulator, typename Gate, typename Rgen>
-inline bool ApplyFusedGate(
+template <typename Simulator, typename Operation, typename Rgen>
+inline bool ApplyGate(
     const typename Simulator::StateSpace& state_space,
-    const Simulator& simulator, const Gate& gate, Rgen& rgen,
+    const Simulator& simulator, const Operation& op, Rgen& rgen,
     typename Simulator::State& state,
     std::vector<typename Simulator::StateSpace::MeasurementResult>& mresults) {
-  if (gate.kind == gate::kMeasurement) {
-    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+  if (const auto* pg = OpGetAlternative<Measurement>(op)) {
+    auto measure_result = state_space.Measure(pg->qubits, rgen, state);
     if (measure_result.valid) {
       mresults.push_back(std::move(measure_result));
     } else {
       return false;
     }
   } else {
-    ApplyFusedGate(simulator, gate, state);
+    ApplyGate(simulator, op, state);
   }
 
   return true;
 }
 
 /**
- * Applies the given fused gate to the simulator state, discarding measurement
+ * Applies the given operation to the simulator state, discarding measurement
  *   results.
  * @param state_space StateSpace object required to perform measurements.
  * @param simulator Simulator object. Provides specific implementations for
  *   applying gates.
- * @param gate The gate to be applied.
+ * @param op The operation to be applied.
  * @param rgen Random number generator to perform measurements.
  * @param state The state of the system, to be updated by this method.
  * @return True if the measurement performed successfully; false otherwise.
  */
-template <typename Simulator, typename Gate, typename Rgen>
-inline bool ApplyFusedGate(const typename Simulator::StateSpace& state_space,
-                           const Simulator& simulator, const Gate& gate,
-                           Rgen& rgen, typename Simulator::State& state) {
-  if (gate.kind == gate::kMeasurement) {
-    auto measure_result = state_space.Measure(gate.qubits, rgen, state);
+template <typename Simulator, typename Operation, typename Rgen>
+inline bool ApplyGate(const typename Simulator::StateSpace& state_space,
+                      const Simulator& simulator, const Operation& op,
+                      Rgen& rgen, typename Simulator::State& state) {
+  if (const auto* pg = OpGetAlternative<Measurement>(op)) {
+    auto measure_result = state_space.Measure(pg->qubits, rgen, state);
     if (!measure_result.valid) {
       return false;
     }
   } else {
-    ApplyFusedGate(simulator, gate, state);
+    ApplyGate(simulator, op, state);
   }
 
   return true;

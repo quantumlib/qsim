@@ -25,9 +25,9 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/hybrid.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
 
 namespace qsim {
 
@@ -61,42 +61,43 @@ R"(2
 14 sw 0 1
 )";
 
+  using fp_type = typename Factory::fp_type;
+
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<fp_type>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 23);
+  EXPECT_EQ(circuit.ops.size(), 23);
 
-  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          For>;
-  using Fuser = HybridSimulator::Fuser;
+  using Fuser = BasicGateFuser<IO>;
+  using HybridSimulator = HybridSimulator<IO, For>;
 
   std::vector<unsigned> parts = {0, 1};
 
-  HybridSimulator::HybridData hd;
-  EXPECT_TRUE(HybridSimulator::SplitLattice(parts, circuit.gates, hd));
+  typename HybridSimulator::HybridData<fp_type> hd;
+  EXPECT_TRUE(HybridSimulator::SplitLattice(parts, circuit.ops, hd));
 
-  EXPECT_EQ(hd.gates0.size(), 15);
-  EXPECT_EQ(hd.gates1.size(), 15);
+  EXPECT_EQ(hd.ops0.size(), 15);
+  EXPECT_EQ(hd.ops1.size(), 15);
   EXPECT_EQ(hd.gatexs.size(), 7);
   EXPECT_EQ(hd.qubit_map.size(), 2);
   EXPECT_EQ(hd.num_qubits0, 1);
   EXPECT_EQ(hd.num_qubits1, 1);
   EXPECT_EQ(hd.num_gatexs, 7);
 
-  HybridSimulator::Parameter param;
+  typename HybridSimulator::Parameter<Fuser::Parameter> param;
   param.prefix = 1;
   param.num_prefix_gatexs = 0;
   param.num_root_gatexs = 0;
   param.num_threads = 1;
   param.verbosity = 0;
 
-  auto fgates0 = Fuser::FuseGates(param, hd.num_qubits0, hd.gates0);
-  auto fgates1 = Fuser::FuseGates(param, hd.num_qubits1, hd.gates1);
+  auto fops0 = Fuser::FuseGates(param, hd.num_qubits0, hd.ops0);
+  auto fops1 = Fuser::FuseGates(param, hd.num_qubits1, hd.ops1);
 
-  EXPECT_EQ(fgates0.size(), 7);
-  EXPECT_EQ(fgates1.size(), 7);
+  EXPECT_EQ(fops0.size(), 7);
+  EXPECT_EQ(fops1.size(), 7);
 
   std::vector<uint64_t> bitstrings;
   bitstrings.reserve(4);
@@ -104,12 +105,12 @@ R"(2
     bitstrings.push_back(i);
   }
 
-  std::vector<std::complex<typename Factory::fp_type>> results(4, 0);
+  std::vector<std::complex<fp_type>> results(4, 0);
 
   std::complex<typename Factory::fp_type> zero(0, 0);
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fops0, fops1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -125,7 +126,7 @@ R"(2
   param.num_root_gatexs = 1;
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fops0, fops1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -141,7 +142,7 @@ R"(2
   param.num_root_gatexs = 2;
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fops0, fops1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -157,7 +158,7 @@ R"(2
   param.num_root_gatexs = 5;
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fops0, fops1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.16006945, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.04964612, 1e-6);
@@ -167,10 +168,6 @@ R"(2
   EXPECT_NEAR(std::imag(results[2]), 0.56567556, 1e-6);
   EXPECT_NEAR(std::real(results[3]), 0.28935891, 1e-6);
   EXPECT_NEAR(std::imag(results[3]), 0.71751291, 1e-6);
-
-  std::fill(results.begin(), results.end(), zero);
-  param.num_prefix_gatexs = 0;
-  param.num_root_gatexs = 6;
 }
 
 template <typename Factory>
@@ -243,42 +240,43 @@ R"(4
 21 h 3
 )";
 
+  using fp_type = typename Factory::fp_type;
+
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<fp_type>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 63);
+  EXPECT_EQ(circuit.ops.size(), 63);
 
-  using HybridSimulator = HybridSimulator<IO, GateQSim<float>, BasicGateFuser,
-                                          For>;
-  using Fuser = HybridSimulator::Fuser;
+  using Fuser = BasicGateFuser<IO>;
+  using HybridSimulator = HybridSimulator<IO, For>;
 
   std::vector<unsigned> parts = {0, 0, 1, 1};
 
-  HybridSimulator::HybridData hd;
-  EXPECT_TRUE(HybridSimulator::SplitLattice(parts, circuit.gates, hd));
+  typename HybridSimulator::HybridData<fp_type> hd;
+  EXPECT_TRUE(HybridSimulator::SplitLattice(parts, circuit.ops, hd));
 
-  EXPECT_EQ(hd.gates0.size(), 34);
-  EXPECT_EQ(hd.gates1.size(), 34);
+  EXPECT_EQ(hd.ops0.size(), 34);
+  EXPECT_EQ(hd.ops1.size(), 34);
   EXPECT_EQ(hd.gatexs.size(), 5);
   EXPECT_EQ(hd.qubit_map.size(), 4);
   EXPECT_EQ(hd.num_qubits0, 2);
   EXPECT_EQ(hd.num_qubits1, 2);
   EXPECT_EQ(hd.num_gatexs, 5);
 
-  HybridSimulator::Parameter param;
+  typename HybridSimulator::Parameter<Fuser::Parameter> param;
   param.prefix = 1;
   param.num_prefix_gatexs = 2;
   param.num_root_gatexs = 1;
   param.num_threads = 1;
   param.verbosity = 0;
 
-  auto fgates0 = Fuser::FuseGates(param, hd.num_qubits0, hd.gates0);
-  auto fgates1 = Fuser::FuseGates(param, hd.num_qubits1, hd.gates1);
+  auto fops0 = Fuser::FuseGates(param, hd.num_qubits0, hd.ops0);
+  auto fops1 = Fuser::FuseGates(param, hd.num_qubits1, hd.ops1);
 
-  EXPECT_EQ(fgates0.size(), 10);
-  EXPECT_EQ(fgates1.size(), 10);
+  EXPECT_EQ(fops0.size(), 10);
+  EXPECT_EQ(fops1.size(), 10);
 
   std::vector<uint64_t> bitstrings;
   bitstrings.reserve(8);
@@ -289,7 +287,7 @@ R"(4
   std::vector<std::complex<typename Factory::fp_type>> results(8, 0);
 
   EXPECT_TRUE(HybridSimulator(1).Run(
-      param, factory, hd, parts, fgates0, fgates1, bitstrings, results));
+      param, factory, hd, parts, fops0, fops1, bitstrings, results));
 
   EXPECT_NEAR(std::real(results[0]), -0.02852439, 1e-6);
   EXPECT_NEAR(std::imag(results[0]), -0.05243438, 1e-6);

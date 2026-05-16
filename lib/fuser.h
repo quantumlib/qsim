@@ -20,121 +20,94 @@
 
 #include "gate.h"
 #include "matrix.h"
+#include "operation_base.h"
 
 namespace qsim {
 
 /**
- * A collection of "fused" gates which can be multiplied together before being
- * applied to the state vector.
+ * Base class for fuser classes with some common functions.
  */
-template <typename Gate>
-struct GateFused {
-  /**
-   * Kind of the first ("parent") gate.
-   */
-  typename Gate::GateKind kind;
-  /**
-   * The time index of the first ("parent") gate.
-   */
-  unsigned time;
-  /**
-   * A list of qubits these gates act upon. Control qubits for
-   * explicitly-controlled gates are excluded from this list.
-   */
-  std::vector<unsigned> qubits;
-  /**
-   * Pointer to the first ("parent") gate.
-   */
-  const Gate* parent;
-  /**
-   * Ordered list of component gates.
-   */
-  std::vector<const Gate*> gates;
-  /**
-   * Fused gate matrix.
-   */
-  Matrix<typename Gate::fp_type> matrix;
-};
-
-/**
- * A base class for fuser classes with some common functions.
- */
-template <typename IO, typename Gate>
+template <typename IO>
 class Fuser {
  protected:
-  using RGate = typename std::remove_pointer<Gate>::type;
-
-  static const RGate& GateToConstRef(const RGate& gate) {
-    return gate;
+  template <typename Operation>
+  static const Operation& OperationToConstRef(const Operation& op) {
+    return op;
   }
 
-  static const RGate& GateToConstRef(const RGate* gate) {
-    return *gate;
+  template <typename Operation>
+  static const Operation& OperationToConstRef(const Operation* op) {
+    return *op;
   }
 
+  template <typename Operation>
   static std::vector<unsigned> MergeWithMeasurementTimes(
-      typename std::vector<Gate>::const_iterator gfirst,
-      typename std::vector<Gate>::const_iterator glast,
+      typename std::vector<Operation>::const_iterator obeg,
+      typename std::vector<Operation>::const_iterator oend,
       const std::vector<unsigned>& times) {
-    std::vector<unsigned> epochs;
-    epochs.reserve(glast - gfirst + times.size());
+    std::vector<unsigned> windows;
+    windows.reserve(oend - obeg + times.size());
 
     std::size_t last = 0;
     unsigned max_time = 0;
 
-    for (auto gate_it = gfirst; gate_it < glast; ++gate_it) {
-      const auto& gate = GateToConstRef(*gate_it);
+    for (auto op_it = obeg; op_it < oend; ++op_it) {
+      const auto& op = OperationToConstRef(*op_it);
 
-      if (gate.time > max_time) {
-        max_time = gate.time;
+      unsigned time = OpTime(op);
+
+      if (time > max_time) {
+        max_time = time;
       }
 
-      if (epochs.size() > 0 && gate.time < epochs.back()) {
+      if (windows.size() > 0 && time < windows.back()) {
         IO::errorf("gate crosses the time boundary.\n");
-        epochs.resize(0);
-        return epochs;
+        windows.resize(0);
+        return windows;
       }
 
-      if (gate.kind == gate::kMeasurement) {
-        if (epochs.size() == 0 || epochs.back() < gate.time) {
-          if (!AddBoundary(gate.time, max_time, epochs)) {
-            epochs.resize(0);
-            return epochs;
+      if (OpGetAlternative<Measurement>(op)) {
+        if (windows.size() == 0 || windows.back() < time) {
+          if (!AddBoundary(time, max_time, windows)) {
+            windows.resize(0);
+            return windows;
           }
         }
       }
 
-      while (last < times.size() && times[last] <= gate.time) {
+      while (last < times.size() && times[last] <= time) {
         unsigned prev = times[last++];
-        epochs.push_back(prev);
-        if (!AddBoundary(prev, max_time, epochs)) {
-          epochs.resize(0);
-          return epochs;
+        windows.push_back(prev);
+        if (!AddBoundary(prev, max_time, windows)) {
+          windows.resize(0);
+          return windows;
         }
         while (last < times.size() && times[last] <= prev) ++last;
       }
     }
 
-    if (epochs.size() == 0 || epochs.back() < max_time) {
-      epochs.push_back(max_time);
+    if (windows.size() == 0 || windows.back() < max_time) {
+      windows.push_back(max_time);
     }
 
-    return epochs;
+    return windows;
   }
 
-  template <typename GateSeq0, typename Parent, typename GateFused>
+  template <typename GateSeq0, typename Parent, typename OperationF>
   static void FuseZeroQubitGates(const GateSeq0& gate_seq0,
-                                 Parent parent, std::size_t first,
-                                 std::vector<GateFused>& fused_gates) {
-    GateFused* fuse_to = nullptr;
+                                 Parent&& parent, std::size_t first,
+                                 std::vector<OperationF>& fused_ops) {
+    using FusedGate = std::variant_alternative_t<0, OperationF>;
+    using fp_type = typename FusedGate::fp_type;
+    using Gate = qsim::Gate<fp_type>;
 
-    for (std::size_t i = first; i < fused_gates.size(); ++i) {
-      auto& fgate = fused_gates[i];
+    FusedGate* fuse_to = nullptr;
 
-      if (fgate.kind != gate::kMeasurement && fgate.kind != gate::kDecomp
-          && fgate.parent->controlled_by.size() == 0
-          && !fgate.parent->unfusible) {
-        fuse_to = &fgate;
+    for (std::size_t i = first; i < fused_ops.size(); ++i) {
+      auto& fop = fused_ops[i];
+
+      fuse_to = OpGetAlternative<FusedGate>(fop);
+      if (fuse_to != nullptr) {
         break;
       }
     }
@@ -142,15 +115,17 @@ class Fuser {
     if (fuse_to != nullptr) {
       // Fuse zero-qubit gates with the first available fused gate.
       for (const auto& g : gate_seq0) {
-        fuse_to->gates.push_back(parent(g));
+        fuse_to->gates.push_back(OpGetAlternative<Gate>(*parent(g)));
       }
     } else {
-      auto g0 = parent(gate_seq0[0]);
-      fused_gates.push_back({g0->kind, g0->time, {}, g0, {g0}, {}});
+      const auto& gate0 = *OpGetAlternative<Gate>(*parent(gate_seq0[0]));
+      FusedGate fgate{gate0.kind, gate0.time, {}, &gate0, {&gate0}, {}};
 
       for (std::size_t i = 1; i < gate_seq0.size(); ++i) {
-        fused_gates.back().gates.push_back(parent(gate_seq0[i]));
+        fgate.gates.push_back(OpGetAlternative<Gate>(*parent(gate_seq0[i])));
       }
+
+      fused_ops.push_back(std::move(fgate));
     }
   }
 
@@ -171,19 +146,24 @@ class Fuser {
  * Multiplies component gate matrices of a fused gate.
  * @param gate Fused gate.
  */
-template <typename FusedGate>
-inline void CalculateFusedMatrix(FusedGate& gate) {
+template <typename FP>
+inline void CalculateFusedMatrix(FusedGate<FP>& gate) {
   MatrixIdentity(unsigned{1} << gate.qubits.size(), gate.matrix);
 
-  for (auto pgate : gate.gates) {
-    if (pgate->qubits.size() == 0) {
-      MatrixScalarMultiply(pgate->matrix[0], pgate->matrix[1], gate.matrix);
-    } else if (gate.qubits.size() == pgate->qubits.size()) {
-      MatrixMultiply(gate.qubits.size(), pgate->matrix, gate.matrix);
+  for (const auto& pgate : gate.gates) {
+    const auto* pg = OpGetAlternative<Gate<FP>>(pgate);
+    const auto& pqubits = OpQubits(pgate);
+    const auto& pmatrix =
+        pg ? pg->matrix : OpGetAlternative<DecomposedGate<FP>>(pgate)->matrix;
+
+    if (pqubits.size() == 0) {
+      MatrixScalarMultiply(pmatrix[0], pmatrix[1], gate.matrix);
+    } else if (gate.qubits.size() == pqubits.size()) {
+      MatrixMultiply(gate.qubits.size(), pmatrix, gate.matrix);
     } else {
       unsigned mask = 0;
 
-      for (auto q : pgate->qubits) {
+      for (auto q : pqubits) {
         for (std::size_t i = 0; i < gate.qubits.size(); ++i) {
           if (q == gate.qubits[i]) {
             mask |= unsigned{1} << i;
@@ -192,32 +172,10 @@ inline void CalculateFusedMatrix(FusedGate& gate) {
         }
       }
 
-      MatrixMultiply(mask, pgate->qubits.size(), pgate->matrix,
+      MatrixMultiply(mask, pqubits.size(), pmatrix,
                      gate.qubits.size(), gate.matrix);
     }
   }
-}
-
-/**
- * Multiplies component gate matrices for a range of fused gates.
- * @param gbeg, gend The iterator range [gbeg, gend) of fused gates.
- */
-template <typename Iterator>
-inline void CalculateFusedMatrices(Iterator gbeg, Iterator gend) {
-  for (auto g = gbeg; g != gend; ++g) {
-    if (g->kind != gate::kMeasurement) {
-      CalculateFusedMatrix(*g);
-    }
-  }
-}
-
-/**
- * Multiplies component gate matrices for a vector of fused gates.
- * @param gates The vector of fused gates.
- */
-template <typename FusedGate>
-inline void CalculateFusedMatrices(std::vector<FusedGate>& gates) {
-  CalculateFusedMatrices(gates.begin(), gates.end());
 }
 
 }  // namespace qsim

@@ -41,11 +41,10 @@ namespace qsim {
     using StateSpace = Simulator::StateSpace;
 
     using Gate = Cirq::GateCirq<float>;
-    using Runner = QSimRunner<IO, MultiQubitGateFuser<IO, Gate>, Factory>;
-    using RunnerQT =
-        QSimRunner<IO, MultiQubitGateFuser<IO, const Gate*>, Factory>;
+    using Operation = qsim::Operation<float>;
+    using Runner = QSimRunner<IO, MultiQubitGateFuser<IO>, Factory>;
     using RunnerParameter = Runner::Parameter;
-    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Gate, RunnerQT>;
+    using NoisyRunner = qsim::QuantumTrajectorySimulator<IO, Runner>;
     using NoisyRunnerParameter = NoisyRunner::Parameter;
 
     StateSpace CreateStateSpace() const {
