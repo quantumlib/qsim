@@ -172,7 +172,7 @@ const T* OpGetAlternative(const Operation& op) {
 /**
  * Recursively retrieves the time step from a (nested) variant.
  * This function traverses the provided `op` (concrete type, pointer,
- * or variant) to access the `time` memeber in the underlying `BaseOperation`.
+ * or variant) to access the `time` member in the underlying `BaseOperation`.
  * This function handles recursive `std::variant` structures and can
  * transparently dereference pointers (e.g., `std::variant<A, const B*>`
  * or `std::variant<A, B*>`) to find the target value.
@@ -208,7 +208,7 @@ inline unsigned OpTime(const Operation& op) {
 /**
  * Recursively retrieves the qubit indices from a (nested) variant.
  * This function traverses the provided `op` (concrete type, pointer,
- * or variant) to access the `qubits` memeber in the underlying `BaseOperation`.
+ * or variant) to access the `qubits` member in the underlying `BaseOperation`.
  * This function handles recursive `std::variant` structures and can
  * transparently dereference pointers (e.g., `std::variant<A, const B*>`
  * or `std::variant<A, B*>`) to find the target value.

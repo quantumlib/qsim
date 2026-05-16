@@ -40,7 +40,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
  private:
   using Base = Fuser<IO>;
 
-  // Auxillary classes and structs.
+  // Auxiliary classes and structs.
 
   // Manages doubly-linked lists.
   template <typename T>
@@ -102,7 +102,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
   };
 
   // Possible values for visited in GateF.
-  // Note that MakeGateSequence assignes values from kSecond to the number of
+  // Note that MakeGateSequence assigns values from kSecond to the number of
   // gates in the sequence plus one, see below.
   enum Visited {
     kZero = 0,              // Start value for matrix gates.
@@ -310,7 +310,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
     LinkManager<Operation, PGate> link_manager(max_qubit1 * num_ops);
 
-    // Auxillary data structures.
+    // Auxiliary data structures.
     // Sequence of intermediate fused gates.
     std::vector<GateF> gates_seq;
     // Gate "lattice".
@@ -365,7 +365,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
           return fused_ops;
         }
 
-        // Fill in auxillary data structures.
+        // Fill in auxiliary data structures.
 
         if (OpGetAlternative<Measurement>(op)) {
           // Measurement gate.
@@ -1247,3 +1247,4 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 }  // namespace qsim
 
 #endif  // FUSER_MQUBIT_H_
+

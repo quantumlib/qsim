@@ -68,7 +68,7 @@ class QuantumTrajectorySimulator {
      * of circuits with weak noise and without measurements by reusing
      * the primary trajectory results. There is an additional condition for
      * RunBatch. In this case, the deferred operators after the main loop are
-     * still applied for the first occurence of the primary trajectory.
+     * still applied for the first occurrence of the primary trajectory.
      * The primary Kraus operators should have the highest sampling
      * probabilities to achieve the highest speedup.
      *
@@ -361,7 +361,7 @@ class QuantumTrajectorySimulator {
         if (r < cp || i == channel.kops.size() - 1) {
           // Sample ith Kraus operator if r < cp
           // Sample the highest probability Kraus operator if r is greater
-          // than the sum of all probablities due to round-off errors.
+          // than the sum of all probabilities due to round-off errors.
           uint64_t k = r < cp ? i : max_prob_index;
 
           DeferOps(channel.kops[k].ops, deferred_ops);

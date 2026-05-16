@@ -19,7 +19,7 @@ or try the runnable
 
 ## Design
 
-The git repository for qsim includes two top-level libraries for simulation:
+The git repository for qsim includes three libraries for simulation:
 
 -   **qsim** is a Schrödinger state-vector simulator designed to run on a
     single machine. It produces the full state vector as output which,
@@ -28,6 +28,13 @@ The git repository for qsim includes two top-level libraries for simulation:
     execution on a cluster of machines. It produces amplitudes for
     user-specified output bitstrings. Compared to qsim, by limiting what it
     returns, qsimh can simulate more qubits.
+-   **MPS** is a truncated Matrix Product State simulator. Instead of storing
+    the full state vector, it represents the quantum state as a chain of
+    small tensors — one per qubit — connected by a configurable "bond
+    dimension". This makes it much more memory-efficient for circuits with
+    low entanglement (such as shallow or 1D-structured circuits), at the
+    cost of being approximate for highly entangled states. See the
+    [MPS simulator docs](./mps.md) for details.
 
 These libraries can be invoked either directly or through the qsim-Cirq
 interface to perform the following operations:
@@ -38,6 +45,8 @@ interface to perform the following operations:
     (qsim only).
 -   Calculate amplitudes for user-specified result bitstrings. With qsimh,
     this is trivially parallelizable across several machines.
+-   Simulate circuits with low entanglement at reduced memory cost (MPS only,
+    C++ only).
 
 Circuits of up to 30 qubits can be simulated in qsim with ~16GB of RAM;
 each additional qubit doubles the RAM requirement. In contrast, careful
