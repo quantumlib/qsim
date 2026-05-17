@@ -32,7 +32,7 @@ def test_qsim_circuit_eq():
     assert circuit != qsim_circuit
 
     # QSimCircuit and other types are not equal
-    assert qsim_circuit is not None
+    assert qsim_circuit != None
     assert qsim_circuit != "not a circuit"
 
     # Different QSimCircuits are not equal
