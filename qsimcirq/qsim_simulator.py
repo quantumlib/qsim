@@ -343,14 +343,14 @@ class QSimSimulator(
         if not noisy and program.are_all_measurements_terminal() and repetitions > 1:
             # Measurements must be replaced with identity gates to sample properly.
             # Simply removing them may omit qubits from the circuit.
-            for i in range(len(program.moments)):
+            for i, moment in enumerate(program.moments):
                 program.moments[i] = cirq.Moment(
                     (
                         op
                         if not isinstance(op.gate, cirq.MeasurementGate)
                         else [cirq.IdentityGate(1).on(q) for q in op.qubits]
                     )
-                    for op in program.moments[i]
+                    for op in moment
                 )
             translator_fn_name = "translate_cirq_to_qsim"
             options["c"], _ = self._translate_circuit(
