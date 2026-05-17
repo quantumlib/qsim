@@ -21,148 +21,149 @@
 
 #include "../lib/circuit.h"
 #include "../lib/gates_cirq.h"
+#include "../lib/operation.h"
 
 namespace qsim {
 
 namespace CirqCircuit1 {
 
 template <typename fp_type>
-Circuit<Cirq::GateCirq<fp_type>> GetCircuit(bool qsim) {
-  Circuit<Cirq::GateCirq<fp_type>> circuit{4, {}};
-  circuit.gates.reserve(128);
+Circuit<Operation<fp_type>> GetCircuit(bool qsim) {
+  Circuit<Operation<fp_type>> circuit{4, {}};
+  circuit.ops.reserve(128);
 
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(0, 0));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(0, 1));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(0, 2));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(0, 3));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(0, 0));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(0, 1));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(0, 2));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(0, 3));
 
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(1, 0));
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(1, 1));
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(1, 2));
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(1, 3));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(1, 0));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(1, 1));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(1, 2));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(1, 3));
 
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::CZPowGate<fp_type>::Create(2, 0, 1, 0.7, 0.2));
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::CXPowGate<fp_type>::Create(2, 2, 3, 1.2, 0.4));
 
-  circuit.gates.emplace_back(Cirq::XPowGate<fp_type>::Create(3, 0, 0.3, 1.1));
-  circuit.gates.emplace_back(Cirq::YPowGate<fp_type>::Create(3, 1, 0.4, 1.0));
-  circuit.gates.emplace_back(Cirq::ZPowGate<fp_type>::Create(3, 2, 0.5, 0.9));
-  circuit.gates.emplace_back(Cirq::HPowGate<fp_type>::Create(3, 3, 0.6, 0.8));
+  circuit.ops.push_back(Cirq::XPowGate<fp_type>::Create(3, 0, 0.3, 1.1));
+  circuit.ops.push_back(Cirq::YPowGate<fp_type>::Create(3, 1, 0.4, 1.0));
+  circuit.ops.push_back(Cirq::ZPowGate<fp_type>::Create(3, 2, 0.5, 0.9));
+  circuit.ops.push_back(Cirq::HPowGate<fp_type>::Create(3, 3, 0.6, 0.8));
 
-  circuit.gates.emplace_back(Cirq::CX<fp_type>::Create(4, 0, 2));
-  circuit.gates.emplace_back(Cirq::CZ<fp_type>::Create(4, 1, 3));
+  circuit.ops.push_back(Cirq::CX<fp_type>::Create(4, 0, 2));
+  circuit.ops.push_back(Cirq::CZ<fp_type>::Create(4, 1, 3));
 
-  circuit.gates.emplace_back(Cirq::X<fp_type>::Create(5, 0));
-  circuit.gates.emplace_back(Cirq::Y<fp_type>::Create(5, 1));
-  circuit.gates.emplace_back(Cirq::Z<fp_type>::Create(5, 2));
-  circuit.gates.emplace_back(Cirq::S<fp_type>::Create(5, 3));
+  circuit.ops.push_back(Cirq::X<fp_type>::Create(5, 0));
+  circuit.ops.push_back(Cirq::Y<fp_type>::Create(5, 1));
+  circuit.ops.push_back(Cirq::Z<fp_type>::Create(5, 2));
+  circuit.ops.push_back(Cirq::S<fp_type>::Create(5, 3));
 
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::XXPowGate<fp_type>::Create(6, 0, 1, 0.4, 0.7));
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::YYPowGate<fp_type>::Create(6, 2, 3, 0.8, 0.5));
 
-  circuit.gates.emplace_back(Cirq::I1<fp_type>::Create(7, 0));
-  circuit.gates.emplace_back(Cirq::I1<fp_type>::Create(7, 1));
-  circuit.gates.emplace_back(Cirq::I2<fp_type>::Create(7, 2, 3));
+  circuit.ops.push_back(Cirq::I1<fp_type>::Create(7, 0));
+  circuit.ops.push_back(Cirq::I1<fp_type>::Create(7, 1));
+  circuit.ops.push_back(Cirq::I2<fp_type>::Create(7, 2, 3));
 
-  circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(8, 0, 0.7));
-  circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(8, 1, 0.2));
-  circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(8, 2, 0.4));
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(Cirq::rx<fp_type>::Create(8, 0, 0.7));
+  circuit.ops.push_back(Cirq::ry<fp_type>::Create(8, 1, 0.2));
+  circuit.ops.push_back(Cirq::rz<fp_type>::Create(8, 2, 0.4));
+  circuit.ops.push_back(
       Cirq::PhasedXPowGate<fp_type>::Create(8, 3, 0.8, 0.6, 0.3));
 
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::ZZPowGate<fp_type>::Create(9, 0, 2, 0.3, 1.3));
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::ISwapPowGate<fp_type>::Create(9, 1, 3, 0.6, 1.2));
 
-  circuit.gates.emplace_back(Cirq::XPowGate<fp_type>::Create(10, 0, 0.1, 0.9));
-  circuit.gates.emplace_back(Cirq::YPowGate<fp_type>::Create(10, 1, 0.2, 1.0));
-  circuit.gates.emplace_back(Cirq::ZPowGate<fp_type>::Create(10, 2, 0.3, 1.1));
-  circuit.gates.emplace_back(Cirq::HPowGate<fp_type>::Create(10, 3, 0.4, 1.2));
+  circuit.ops.push_back(Cirq::XPowGate<fp_type>::Create(10, 0, 0.1, 0.9));
+  circuit.ops.push_back(Cirq::YPowGate<fp_type>::Create(10, 1, 0.2, 1.0));
+  circuit.ops.push_back(Cirq::ZPowGate<fp_type>::Create(10, 2, 0.3, 1.1));
+  circuit.ops.push_back(Cirq::HPowGate<fp_type>::Create(10, 3, 0.4, 1.2));
 
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::SwapPowGate<fp_type>::Create(11, 0, 1, 0.2, 0.9));
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::PhasedISwapPowGate<fp_type>::Create(11, 2, 3, 0.8, 0.6));
 
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::PhasedXZGate<fp_type>::Create(12, 0, 0.2, 0.3, 1.4));
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(12, 1));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(12, 2));
-  circuit.gates.emplace_back(Cirq::S<fp_type>::Create(12, 3));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(12, 1));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(12, 2));
+  circuit.ops.push_back(Cirq::S<fp_type>::Create(12, 3));
 
-  circuit.gates.emplace_back(Cirq::SWAP<fp_type>::Create(13, 0, 2));
-  circuit.gates.emplace_back(Cirq::XX<fp_type>::Create(13, 1, 3));
+  circuit.ops.push_back(Cirq::SWAP<fp_type>::Create(13, 0, 2));
+  circuit.ops.push_back(Cirq::XX<fp_type>::Create(13, 1, 3));
 
-  circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(14, 0, 0.8));
-  circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(14, 1, 0.9));
-  circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(14, 2, 1.2));
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(14, 3));
+  circuit.ops.push_back(Cirq::rx<fp_type>::Create(14, 0, 0.8));
+  circuit.ops.push_back(Cirq::ry<fp_type>::Create(14, 1, 0.9));
+  circuit.ops.push_back(Cirq::rz<fp_type>::Create(14, 2, 1.2));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(14, 3));
 
-  circuit.gates.emplace_back(Cirq::YY<fp_type>::Create(15, 0, 1));
-  circuit.gates.emplace_back(Cirq::ISWAP<fp_type>::Create(15, 2, 3));
+  circuit.ops.push_back(Cirq::YY<fp_type>::Create(15, 0, 1));
+  circuit.ops.push_back(Cirq::ISWAP<fp_type>::Create(15, 2, 3));
 
-  circuit.gates.emplace_back(Cirq::T<fp_type>::Create(16, 0));
-  circuit.gates.emplace_back(Cirq::Z<fp_type>::Create(16, 1));
-  circuit.gates.emplace_back(Cirq::Y<fp_type>::Create(16, 2));
-  circuit.gates.emplace_back(Cirq::X<fp_type>::Create(16, 3));
+  circuit.ops.push_back(Cirq::T<fp_type>::Create(16, 0));
+  circuit.ops.push_back(Cirq::Z<fp_type>::Create(16, 1));
+  circuit.ops.push_back(Cirq::Y<fp_type>::Create(16, 2));
+  circuit.ops.push_back(Cirq::X<fp_type>::Create(16, 3));
 
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(
       Cirq::FSimGate<fp_type>::Create(17, 0, 2, 0.3, 1.7));
-  circuit.gates.emplace_back(Cirq::ZZ<fp_type>::Create(17, 1, 3));
+  circuit.ops.push_back(Cirq::ZZ<fp_type>::Create(17, 1, 3));
 
   if (qsim) {
-    circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(18, 0, 1.3));
-    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(18, 1, 0.4));
-    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(18, 2, 0.7));
-    circuit.gates.emplace_back(Cirq::S<fp_type>::Create(18, 3));
-    circuit.gates.emplace_back(
+    circuit.ops.push_back(Cirq::ry<fp_type>::Create(18, 0, 1.3));
+    circuit.ops.push_back(Cirq::rz<fp_type>::Create(18, 1, 0.4));
+    circuit.ops.push_back(Cirq::rx<fp_type>::Create(18, 2, 0.7));
+    circuit.ops.push_back(Cirq::S<fp_type>::Create(18, 3));
+    circuit.ops.push_back(
         Cirq::GlobalPhaseGate<fp_type>::Create(18, -1, 0));
 
-    circuit.gates.emplace_back(Cirq::I<fp_type>::Create(19, {0, 1, 2, 3}));
+    circuit.ops.push_back(Cirq::I<fp_type>::Create(19, {0, 1, 2, 3}));
 
-    circuit.gates.emplace_back(
+    circuit.ops.push_back(
         Cirq::CCZPowGate<fp_type>::Create(20, 2, 0, 1, 0.7, 0.3));
 
-    circuit.gates.emplace_back(Cirq::CCXPowGate<fp_type>::Create(
+    circuit.ops.push_back(Cirq::CCXPowGate<fp_type>::Create(
         21, 3, 1, 0, 0.4, 0.6).ControlledBy({2}, {0}));
 
-    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(22, 0, 0.3));
-    circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(22, 1, 0.5));
-    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(22, 2, 0.7));
-    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(22, 3, 0.9));
+    circuit.ops.push_back(Cirq::rx<fp_type>::Create(22, 0, 0.3));
+    circuit.ops.push_back(Cirq::ry<fp_type>::Create(22, 1, 0.5));
+    circuit.ops.push_back(Cirq::rz<fp_type>::Create(22, 2, 0.7));
+    circuit.ops.push_back(Cirq::rx<fp_type>::Create(22, 3, 0.9));
 
-    circuit.gates.emplace_back(
+    circuit.ops.push_back(
         Cirq::TwoQubitDiagonalGate<fp_type>::Create(23, 0, 1,
                                                     {0.1f, 0.2f, 0.3f, 0.4f}));
 
-    circuit.gates.emplace_back(
+    circuit.ops.push_back(
         Cirq::ThreeQubitDiagonalGate<fp_type>::Create(
             24, 1, 2, 3, {0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.3}));
 
-    circuit.gates.emplace_back(Cirq::CSwapGate<fp_type>::Create(25, 0, 3, 1));
+    circuit.ops.push_back(Cirq::CSwapGate<fp_type>::Create(25, 0, 3, 1));
 
-    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(26, 0, 0.6));
-    circuit.gates.emplace_back(Cirq::rx<fp_type>::Create(26, 1, 0.7));
-    circuit.gates.emplace_back(Cirq::ry<fp_type>::Create(26, 2, 0.8));
-    circuit.gates.emplace_back(Cirq::rz<fp_type>::Create(26, 3, 0.9));
+    circuit.ops.push_back(Cirq::rz<fp_type>::Create(26, 0, 0.6));
+    circuit.ops.push_back(Cirq::rx<fp_type>::Create(26, 1, 0.7));
+    circuit.ops.push_back(Cirq::ry<fp_type>::Create(26, 2, 0.8));
+    circuit.ops.push_back(Cirq::rz<fp_type>::Create(26, 3, 0.9));
 
-    circuit.gates.emplace_back(Cirq::TOFFOLI<fp_type>::Create(27, 3, 2, 0));
+    circuit.ops.push_back(Cirq::TOFFOLI<fp_type>::Create(27, 3, 2, 0));
 
-    circuit.gates.emplace_back(Cirq::FREDKIN<fp_type>::Create(28, 1, 3, 2));
+    circuit.ops.push_back(Cirq::FREDKIN<fp_type>::Create(28, 1, 3, 2));
 
     Matrix<fp_type> m40 = {0, 0, -0.5, -0.5, -0.5, -0.5, 0, 0,
                            0.5, -0.5, 0, 0, 0, 0, -0.5, 0.5,
                            0.5, -0.5, 0, 0, 0, 0, 0.5, -0.5,
                            0, 0, -0.5, -0.5, 0.5, 0.5, 0, 0};
 
-    circuit.gates.emplace_back(
+    circuit.ops.push_back(
         Cirq::MatrixGate2<fp_type>::Create(51, 0, 1, m40));
-    circuit.gates.emplace_back(
+    circuit.ops.push_back(
         Cirq::MatrixGate<fp_type>::Create(51, {2, 3},
                                           {0.5, -0.5, 0, 0, 0, 0, -0.5, 0.5,
                                            0, 0, 0.5, -0.5, -0.5, 0.5, 0, 0,
@@ -173,19 +174,19 @@ Circuit<Cirq::GateCirq<fp_type>> GetCircuit(bool qsim) {
   Matrix<fp_type> m20 = {1, 0, 0, 0, 0, 0, 0, 1};
   Matrix<fp_type> m21 = {0, 0, 0, -1, 0, 1, 0, 0};
   Matrix<fp_type> m22 = {0, 0, 1, 0, 1, 0, 0, 0};
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(52, 0, m20));
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(52, 1, m21));
-  circuit.gates.emplace_back(Cirq::MatrixGate1<fp_type>::Create(52, 2, m22));
-  circuit.gates.emplace_back(
+  circuit.ops.push_back(Cirq::MatrixGate1<fp_type>::Create(52, 0, m20));
+  circuit.ops.push_back(Cirq::MatrixGate1<fp_type>::Create(52, 1, m21));
+  circuit.ops.push_back(Cirq::MatrixGate1<fp_type>::Create(52, 2, m22));
+  circuit.ops.push_back(
       Cirq::MatrixGate1<fp_type>::Create(52, 3, {1, 0, 0, 0, 0, 0, -1, 0}));
 
-  circuit.gates.emplace_back(Cirq::riswap<fp_type>::Create(53, 0, 1, 0.7));
-  circuit.gates.emplace_back(Cirq::givens<fp_type>::Create(53, 2, 3, 1.2));
+  circuit.ops.push_back(Cirq::riswap<fp_type>::Create(53, 0, 1, 0.7));
+  circuit.ops.push_back(Cirq::givens<fp_type>::Create(53, 2, 3, 1.2));
 
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 0));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 1));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 2));
-  circuit.gates.emplace_back(Cirq::H<fp_type>::Create(54, 3));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(54, 0));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(54, 1));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(54, 2));
+  circuit.ops.push_back(Cirq::H<fp_type>::Create(54, 3));
 
   return circuit;
 }

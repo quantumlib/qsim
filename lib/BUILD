@@ -27,6 +27,7 @@ cc_library(
         "bitstring.h",
         "channel.h",
         "channels_cirq.h",
+        "channels_qsim.h",
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
@@ -45,6 +46,8 @@ cc_library(
         "matrix.h",
         "mps_simulator.h",
         "mps_statespace.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
@@ -55,11 +58,13 @@ cc_library(
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -100,6 +105,7 @@ cuda_library(
         "bitstring.h",
         "channel.h",
         "channels_cirq.h",
+        "channels_qsim.h",
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
@@ -118,6 +124,8 @@ cuda_library(
         "matrix.h",
         "mps_simulator.h",
         "mps_statespace.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
@@ -131,6 +139,7 @@ cuda_library(
         "simulator_basic.h",
         "simulator_cuda.h",
         "simulator_cuda_kernels.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
@@ -138,6 +147,7 @@ cuda_library(
         "statespace_basic.h",
         "statespace_cuda.h",
         "statespace_cuda_kernels.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -170,6 +180,7 @@ cuda_library(
         "bitstring.h",
         "channel.h",
         "channels_cirq.h",
+        "channels_qsim.h",
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
@@ -189,6 +200,8 @@ cuda_library(
         "mps_simulator.h",
         "mps_statespace.h",
         "multiprocess_custatevecex.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
         "run_custatevecex.h",
@@ -203,6 +216,7 @@ cuda_library(
         "simulator_basic.h",
         "simulator_custatevec.h",
         "simulator_custatevecex.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
@@ -210,6 +224,7 @@ cuda_library(
         "statespace_basic.h",
         "statespace_custatevec.h",
         "statespace_custatevecex.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -245,6 +260,7 @@ cc_library(
     name = "run_qsim_lib",
     hdrs = [
         "bits.h",
+        "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",
@@ -258,6 +274,8 @@ cc_library(
         "io.h",
         "io_file.h",
         "matrix.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "run_qsim.h",
         "seqfor.h",
@@ -266,11 +284,13 @@ cc_library(
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "umux.h",
         "unitary_calculator_avx.h",
@@ -292,6 +312,7 @@ cc_library(
     name = "run_qsimh_lib",
     hdrs = [
         "bits.h",
+        "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",
@@ -306,6 +327,8 @@ cc_library(
         "io.h",
         "io_file.h",
         "matrix.h",
+        "operation.h",
+        "operation_base.h",
         "parfor.h",
         "run_qsimh.h",
         "seqfor.h",
@@ -314,11 +337,13 @@ cc_library(
         "simulator_avx.h",
         "simulator_avx512.h",
         "simulator_basic.h",
+        "simulator_neon.h",
         "simulator_sse.h",
         "statespace.h",
         "statespace_avx.h",
         "statespace_avx512.h",
         "statespace_basic.h",
+        "statespace_neon.h",
         "statespace_sse.h",
         "util.h",
         "util_cpu.h",
@@ -415,18 +440,36 @@ cc_library(
 ### Gate libraries ###
 
 cc_library(
+    name = "operation_base",
+    hdrs = ["operation_base.h"],
+)
+
+cc_library(
+    name = "operation",
+    hdrs = ["operation.h"],
+    deps = [
+        ":channel",
+        ":gate",
+        ":operation_base",
+    ],
+)
+
+cc_library(
     name = "gate",
     hdrs = ["gate.h"],
-    deps = [":matrix"],
+    deps = [
+        ":matrix",
+        ":operation_base",
+    ],
 )
 
 cc_library(
     name = "gate_appl",
     hdrs = ["gate_appl.h"],
     deps = [
-        ":fuser",
         ":gate",
         ":matrix",
+        ":operation_base",
     ],
 )
 
@@ -442,7 +485,10 @@ cc_library(
 cc_library(
     name = "gates_qsim",
     hdrs = ["gates_qsim.h"],
-    deps = [":gate"],
+    deps = [
+        ":gate",
+        ":matrix",
+    ],
 )
 
 ### Circuit libraries ###
@@ -459,6 +505,8 @@ cc_library(
     deps = [
         ":circuit",
         ":gates_qsim",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -470,6 +518,7 @@ cc_library(
     deps = [
         ":gate",
         ":matrix",
+        ":operation_base",
     ],
 )
 
@@ -479,6 +528,8 @@ cc_library(
     deps = [
         ":fuser",
         ":gate",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -488,6 +539,8 @@ cc_library(
     deps = [
         ":fuser",
         ":gate",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -498,7 +551,9 @@ cc_library(
     hdrs = ["expect.h"],
     deps = [
         ":fuser",
+        ":gate",
         ":gate_appl",
+        ":operation_base",
     ],
 )
 
@@ -511,6 +566,7 @@ cc_library(
         ":circuit",
         ":gate",
         ":gate_appl",
+        ":operation_base",
         ":util",
     ],
 )
@@ -519,7 +575,9 @@ cc_library(
     name = "run_qsimh",
     hdrs = ["run_qsimh.h"],
     deps = [
+        ":circuit",
         ":hybrid",
+        ":operation",
         ":util",
     ],
 )
@@ -602,6 +660,16 @@ cc_library(
 cc_library(
     name = "statespace_basic",
     hdrs = ["statespace_basic.h"],
+    deps = [
+        ":statespace",
+        ":util",
+        ":vectorspace",
+    ],
+)
+
+cc_library(
+    name = "statespace_neon",
+    hdrs = ["statespace_neon.h"],
     deps = [
         ":statespace",
         ":util",
@@ -694,6 +762,17 @@ cc_library(
 )
 
 cc_library(
+    name = "simulator_neon",
+    hdrs = ["simulator_neon.h"],
+    deps = [
+        ":simulator_base",
+        ":simulator_basic",
+        ":statespace_basic",
+        ":statespace_neon",
+    ],
+)
+
+cc_library(
     name = "simulator_sse",
     hdrs = ["simulator_sse.h"],
     deps = [
@@ -748,6 +827,7 @@ cc_library(
         ":simulator_avx",
         ":simulator_avx512",
         ":simulator_basic",
+        ":simulator_neon",
         ":simulator_sse",
     ],
 )
@@ -759,6 +839,8 @@ cc_library(
     deps = [
         ":gate",
         ":gate_appl",
+        ":gates_cirq",
+        ":gates_qsim",
     ],
 )
 
@@ -770,6 +852,7 @@ cc_library(
     deps = [
         ":gate",
         ":matrix",
+        ":operation_base",
     ],
 )
 
@@ -777,8 +860,8 @@ cc_library(
     name = "circuit_noisy",
     hdrs = ["circuit_noisy.h"],
     deps = [
-        ":channel",
-        ":circuit",
+        ":operation",
+        ":operation_base",
     ],
 )
 
@@ -791,15 +874,25 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "channels_qsim",
+    hdrs = ["channels_qsim.h"],
+    deps = [
+        ":channel",
+        ":gates_qsim",
+    ],
+)
+
 ### Quantum trajectory simulator ###
 
 cc_library(
     name = "qtrajectory",
     hdrs = ["qtrajectory.h"],
     deps = [
-        ":circuit_noisy",
         ":gate",
         ":gate_appl",
+        ":operation",
+        ":operation_base",
     ],
 )
 

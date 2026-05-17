@@ -108,6 +108,7 @@ dev = [
     "isort[colors]~=8.0.1",
     "pylint~=4.0.2",
     "pytest",
+    "pytest-randomly",
     "pytest-xdist",
 ]
 
