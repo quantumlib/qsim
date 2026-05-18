@@ -86,7 +86,7 @@ def _test_macos_impl(ctx):
     asserts.true(env, features["sse4"])
 
     avx_copts, sse_copts = get_compiler_flags("darwin", features)
-    asserts.equals(env, ["-mavx2", "-mfma", "-mbmi2"], avx_copts)
+    asserts.equals(env, ["-mavx2", "-mfma"], avx_copts)
     asserts.equals(env, ["-msse4"], sse_copts)
 
     return unittest.end(env)

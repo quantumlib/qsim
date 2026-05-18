@@ -167,7 +167,7 @@ def get_cpu_features(os_name, cpu_info):
     for feat, search_terms in feature_map.items():
         if is_win:
             # Heuristic fallback for Windows hosts.
-            features[feat] = feat in ("avx2", "sse4", "sse2")
+            features[feat] = feat in ("avx", "avx2", "sse4", "sse2")
         else:
             features[feat] = any([term in cpu_info_lower for term in search_terms])
 
