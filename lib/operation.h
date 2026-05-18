@@ -64,8 +64,8 @@ struct op_fp_type<std::variant<Ts...>> {
 
 }  // namespace detail
 
-template <typename Operation>
-using OpFpType = typename detail::op_fp_type<std::decay_t<Operation>>::type;
+template <typename OperationType>
+using OpFpType = typename detail::op_fp_type<std::decay_t<OperationType>>::type;
 
 }  // namespace qsim
 
