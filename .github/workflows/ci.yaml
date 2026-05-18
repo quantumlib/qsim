@@ -289,10 +289,10 @@ jobs:
       - name: Build the Python bindings
         shell: bash
         run: |
-          mkdir -p build
-          cd build
-          cmake ${{inputs.debug && '--debug-output' || ''}} ..
-          cmake --build . -j ${{inputs.debug && '--verbose' || ''}}
+          # Note: do not name the build directory "build", because on
+          # case-insensitive file systems, it clashes with BUILD.
+          cmake -B cmake_build ${{inputs.debug && '--debug-output' || ''}} -S .
+          cmake --build cmake_build -j ${{inputs.debug && '--verbose' || ''}}
 
   options-tests:
     name: Options tests
@@ -308,7 +308,7 @@ jobs:
     strategy:
       matrix:
         # Hardware optimizers.
-        hardware_opt: [avx, sse, basic]
+        hardware_opt: [avx, sse, native, basic]
         # Optimizers for parallelism.
         parallel_opt: [openmp, nopenmp]
     steps:

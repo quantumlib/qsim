@@ -53,13 +53,13 @@ using Simulator = Factory<For>::Simulator;
 using StateSpace = Simulator::StateSpace;
 using State = StateSpace::State;
 using fp_type = StateSpace::fp_type;
-using Gate = Cirq::GateCirq<fp_type>;
-using Operation = Operation<fp_type>;
-using Fuser = MultiQubitGateFuser<IO>;
-using Runner = QSimRunner<IO, Fuser, Factory<For>>;
+using TestGate = Cirq::GateCirq<fp_type>;
+using TestOperation = qsim::Operation<fp_type>;
+using TestFuser = MultiQubitGateFuser<IO>;
+using Runner = QSimRunner<IO, TestFuser, Factory<For>>;
 using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
-Circuit<Operation> CleanCircuit() {
+Circuit<TestOperation> CleanCircuit() {
   using Hd = Cirq::H<fp_type>;
   using IS = Cirq::ISWAP<fp_type>;
   using Rx = Cirq::rx<fp_type>;
@@ -82,7 +82,7 @@ Circuit<Operation> CleanCircuit() {
   };
 }
 
-void RunBatch(const Circuit<Operation>& ncircuit,
+void RunBatch(const Circuit<TestOperation>& ncircuit,
               const std::vector<double>& expected_results,
               unsigned num_reps = 25000) {
   unsigned num_qubits = 2;
@@ -112,9 +112,9 @@ void RunBatch(const Circuit<Operation>& ncircuit,
 }
 
 template <typename ChannelFactory>
-inline Circuit<Operation> MakeNoisy2(
-    const std::vector<Operation>& ops, const ChannelFactory& channel_factory) {
-  Circuit<Operation> ncircuit;
+inline Circuit<TestOperation> MakeNoisy2(
+    const std::vector<TestOperation>& ops, const ChannelFactory& channel_factory) {
+  Circuit<TestOperation> ncircuit;
 
   ncircuit.num_qubits = 2;
   ncircuit.ops.reserve(2 * ops.size());

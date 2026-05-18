@@ -80,6 +80,7 @@ cc_library(
         "util_cpu.h",
         "vectorspace.h",
     ],
+    deps = ["//:validate_host"],
 )
 
 cc_library(
@@ -166,6 +167,7 @@ cuda_library(
     ],
     deps = [
         ":cuda",
+        "//:validate_host",
         "@local_config_cuda//cuda:cuda_headers",
     ],
 )
@@ -246,6 +248,7 @@ cuda_library(
     copts = ["-D__CUSTATEVEC__"],
     deps = [
         ":cuda",
+        "//:validate_host",
         "@local_config_cuda//cuda:cuda_headers",
         "@local_config_cuquantum//:cuquantum_headers",
         "@local_config_cuquantum//:libcuquantum",
@@ -301,6 +304,7 @@ cc_library(
         "util_cpu.h",
         "vectorspace.h",
     ],
+    deps = ["//:validate_host"],
 )
 
 # Library to run qsimh with qsim circuit parser and parallel `for`
@@ -345,6 +349,7 @@ cc_library(
         "util_cpu.h",
         "vectorspace.h",
     ],
+    deps = ["//:validate_host"],
 )
 
 ##### Basic libraries #####
@@ -365,7 +370,9 @@ cc_library(
 cc_library(
     name = "matrix",
     hdrs = ["matrix.h"],
-    deps = [":bits"],
+    deps = [
+        ":bits",
+    ],
 )
 
 cc_library(

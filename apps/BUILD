@@ -14,18 +14,15 @@
 
 # TODO: remove reliance on getopt (unistd.h) to allow apps to run on Windows.
 
-load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("//dev_tools:bazel_utils.bzl", "qsim_select_copts")
 
-gsframe_copts = select({
-    "@platforms//os:linux": ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else [],
-    "//conditions:default": [],
-})
+qsim_copts = qsim_select_copts(target_level = "avx")
 
 cc_binary(
     name = "qsim_base",
     srcs = ["qsim_base.cc"],
-    copts = gsframe_copts,
+    copts = qsim_copts,
     data = ["//circuits:circuit_q24"],
     deps = [
         "//lib:run_qsim_lib",
@@ -35,7 +32,7 @@ cc_binary(
 cc_binary(
     name = "qsim_von_neumann",
     srcs = ["qsim_von_neumann.cc"],
-    copts = gsframe_copts,
+    copts = qsim_copts,
     deps = [
         "//lib:run_qsim_lib",
     ],
@@ -44,29 +41,9 @@ cc_binary(
 cc_binary(
     name = "qsim_amplitudes",
     srcs = ["qsim_amplitudes.cc"],
-    copts = gsframe_copts,
+    copts = qsim_copts,
     deps = [
         "//lib:bitstring",
         "//lib:run_qsim_lib",
-    ],
-)
-
-cc_binary(
-    name = "qsimh_base",
-    srcs = ["qsimh_base.cc"],
-    copts = gsframe_copts,
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsimh_lib",
-    ],
-)
-
-cc_binary(
-    name = "qsimh_amplitudes",
-    srcs = ["qsimh_amplitudes.cc"],
-    copts = gsframe_copts,
-    deps = [
-        "//lib:bitstring",
-        "//lib:run_qsimh_lib",
     ],
 )

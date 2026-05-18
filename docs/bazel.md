@@ -7,73 +7,93 @@ for qsim tests and sample applications. The Bazel targets are `tests` and
 and software environment.
 
 On hardware and software platforms that support them, qsim can be configured to
-take advantage of certain hardware optimizations, specifically AVX (a hardware
-extension for optimizing vector arithmetic), SSE (streaming SIMD extensions),
-and/or OpenMP (a software API for shared-memory parallel programming). By
-default, the basic qsim build configuration does _not_ compile in support for
-these features. (On some systems such as MacOS on Apple Silicon, they are not
-available.) A basic build & test run is obtained using the following command:
+take advantage of certain CPU hardware extensions for optimizing operations.
+Specifically, qsim can take advantage of AVX (Advanced Vector Extensions), SSE
+(Streaming SIMD Extensions), BMI (Bit Manipulation Instructions), and/or OpenMP
+(shared-memory parallel programming).
+
+By default, the basic qsim build configuration does _not_ include these
+optimizations. A basic build and test run is obtained using the following
+command:
 
 ```shell
 bazel test tests:all
 ```
 
-As an example of using optimization options, if your computer has support for
-AVX and OpenMP, the following command will build and run all the tests with the
-appropriate config options to make use of those features:
+Conversely, if you want to get all optimizations possible, you can use this:
 
 ```shell
-bazel test --config=avx --config=openmp tests:all
-```
-
-To run a sample simulation, use the command below. Note that this command
-requires the `circuit_q24` file to be specified both on the command line and in
-the `data` field of the `qsim_base` BUILD rule.
-
-```shell
-bazel run --config=avx --config=openmp apps:qsim_base -- -c circuits/circuit_q24
+bazel test --config=native --config=openmp tests:all
 ```
 
 ## Build configurations
 
-Depending on your computer's hardware architecture and the features available,
-different Bazel config flags (such as `--config=avx`, above) can be used to
-control which hardware optimizers are included in a given build or test run.
+qsim uses an additive, host-aware configuration model. Multiple hardware
+features can be enabled simultaneously, and Bazel will automatically verify
+that your host CPU supports the requested instruction sets.
 
-### Vector arithmetic optimizers
+### Vector arithmetic and bit manipulation
 
-Pick at most one of the following options:
+You can combine one or more of the following options. Bazel will fail fast if
+the host hardware does not support a requested feature.
 
 ```bazel
-# Use AVX instructions for vector arithmetic.
+# Use AVX2 and AVX instructions.
+--config=avx2
+
+# Use AVX512 instructions (implies AVX2/AVX).
+--config=avx512
+
+# Use AVX instructions (includes AVX2 and AVX512).
 --config=avx
 
-# Use SSE instructions for vector arithmetic.
+# Use SSE 4.1 instructions.
 --config=sse
 
-# Do not use vector arithmetic optimization (default).
+# Use BMI2 instructions.
+--config=bmi
+
+# Automatically detect and use the best instruction set for the host.
+--config=native
+
+# Do not use AVX, SSE, or BMI optimizations (default).
 --config=basic
+```
+
+For example, if your computer supports AVX2, SSE, and BMI, you can enable all
+of them:
+
+```shell
+bazel test --config=avx2 --config=sse --config=bmi tests:all
+```
+
+For another example, if you want to let the build system choose all the
+optimizations supported on your host computer, you can use this:
+
+```shell
+bazel test --config=native tests:all
 ```
 
 ### Parallelism optimizers
 
-Pick at most one of the following options:
+qsim can take advantage of [OpenMP]( https://en.wikipedia.org/wiki/OpenMP)
+(Open Multi-Processing), an industry-standard API for shared-memory parallel
+programming. You can enable the use of OpenMP this way:
 
 ```bazel
 # Use OpenMP to run operations in parallel when possible.
 --config=openmp
-
-# Do not use OpenMP for parallelism (default).
---config=nopenmp
 ```
+
+To explicitly disable the use of OpenMP, you can use `--config=nopenmp` or not
+use the OpenMP option at all (which is the default).
 
 ### Memory allocators
 
-[TCMalloc](https://github.com/google/tcmalloc) is a fast, multithreaded
-implementation of C's `malloc()` and C++'s `new` operator. It is an independent
-open-source library developed by Google. TCMalloc can be used with qsim as an
-alternative to the default `malloc()`. Pick at most one of the following
-options:
+[TCMalloc](https://github.com/google/tcmalloc) can be used as a faster
+alternative to the default `malloc()`. Consult the TCMalloc documentation for
+information about how to install it. If it is available on your system, you
+can tell Bazel to build qsim with it like this:
 
 ```bazel
 # Use TCMalloc for memory allocation.
@@ -83,9 +103,19 @@ options:
 --config=malloc
 ```
 
-### Additional configuration options
+### Diagnostics and Verbosity
 
-To provide more information when building and testing qsim, you can add the
-configuration option `--config=verbose` to any of the `bazel`  commands above.
+To see the active compiler flags and detected host CPU features, add the
+`--config=verbose` configuration to any of the other options. For example,
 
-Other configuration options are described elsewhere in the qsim documentation.
+```shell
+bazel build --config=verbose --config=native tests:all
+```
+
+You can also add `--config=verbose` to any `test` or `run` command for
+detailed build information.
+
+---
+
+For more details on running sample simulations, see the documentation for
+individual apps in the `apps/` directory.
