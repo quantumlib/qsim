@@ -2333,6 +2333,8 @@ def test_qsim_circuit_eq():
     circuit_diff = cirq.Circuit(cirq.X(q0))
     qsim_circuit_diff = qsimcirq.QSimCircuit(circuit_diff)
     assert qsim_circuit != qsim_circuit_diff
+
+
 def test_qsim_simulator_reserved_keys():
     for key in ("c", "i", "s"):
         with pytest.raises(
