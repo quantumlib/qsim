@@ -2293,3 +2293,27 @@ def test_get_seed():
     sim = qsimcirq.QSimSimulator(seed=42)
     seeds = {sim.get_seed() for _ in range(10)}
     assert len(seeds) > 1
+
+
+def test_qsim_circuit_eq():
+    q0 = cirq.LineQubit(0)
+    circuit = cirq.Circuit(cirq.H(q0))
+    qsim_circuit = qsimcirq.QSimCircuit(circuit)
+    qsim_circuit_2 = qsimcirq.QSimCircuit(circuit)
+
+    # Identical QSimCircuits are equal
+    assert qsim_circuit == qsim_circuit_2
+    assert qsim_circuit == qsim_circuit
+
+    # QSimCircuit and cirq.Circuit are not equal
+    assert qsim_circuit != circuit
+    assert circuit != qsim_circuit
+
+    # QSimCircuit and other types are not equal
+    assert qsim_circuit != None
+    assert qsim_circuit != "not a circuit"
+
+    # Different QSimCircuits are not equal
+    circuit_diff = cirq.Circuit(cirq.X(q0))
+    qsim_circuit_diff = qsimcirq.QSimCircuit(circuit_diff)
+    assert qsim_circuit != qsim_circuit_diff
