@@ -33,7 +33,7 @@ def _test_linux_basic_impl(ctx):
     asserts.equals(env, ["-mavx"], avx_copts)
     asserts.equals(env, ["-msse2"], sse_copts)
 
-    has_avx, has_sse, features_str = get_feature_booleans(features)
+    has_avx, _, _, has_sse, _, _, features_str = get_feature_booleans(features)
     asserts.true(env, has_avx)
     asserts.true(env, has_sse)
     asserts.true(env, "AVX" in features_str)
