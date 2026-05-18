@@ -289,10 +289,8 @@ jobs:
       - name: Build the Python bindings
         shell: bash
         run: |
-          mkdir -p build
-          cd build
-          cmake ${{inputs.debug && '--debug-output' || ''}} ..
-          cmake --build . -j ${{inputs.debug && '--verbose' || ''}}
+          cmake -B build ${{inputs.debug && '--debug-output' || ''}} -S .
+          cmake --build build -j ${{inputs.debug && '--verbose' || ''}}
 
   options-tests:
     name: Options tests
