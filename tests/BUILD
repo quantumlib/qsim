@@ -216,10 +216,7 @@ cc_test(
     name = "operation_test",
     size = "small",
     srcs = ["operation_test.cc"],
-    copts = select({
-        ":windows": windows_copts,
-        "//conditions:default": [],
-    }),
+    copts = qsim_select_copts(target_level = "basic"),
     deps = [
         "//lib:gate",
         "//lib:operation",
