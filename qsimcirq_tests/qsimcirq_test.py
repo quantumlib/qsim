@@ -2333,3 +2333,11 @@ def test_qsim_circuit_eq():
     circuit_diff = cirq.Circuit(cirq.X(q0))
     qsim_circuit_diff = qsimcirq.QSimCircuit(circuit_diff)
     assert qsim_circuit != qsim_circuit_diff
+def test_qsim_simulator_reserved_keys():
+    for key in ("c", "i", "s"):
+        with pytest.raises(
+            ValueError,
+            match=r'Keys \{"c", "i", "s"\} are reserved for internal use and cannot be '
+            "used in QSimCircuit instantiation.",
+        ):
+            _ = qsimcirq.QSimSimulator(qsim_options={key: 1})
