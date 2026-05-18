@@ -2301,19 +2301,35 @@ def test_qsim_circuit_eq():
     qsim_circuit = qsimcirq.QSimCircuit(circuit)
     qsim_circuit_2 = qsimcirq.QSimCircuit(circuit)
 
-    # Identical QSimCircuits are equal
+    # Test that identical QSimCircuits are equal.
     assert qsim_circuit == qsim_circuit_2
     assert qsim_circuit == qsim_circuit
 
-    # QSimCircuit and cirq.Circuit are not equal
+    # Test that QSimCircuit and cirq.Circuit are not equal.
     assert qsim_circuit != circuit
     assert circuit != qsim_circuit
 
-    # QSimCircuit and other types are not equal
-    assert qsim_circuit != None
-    assert qsim_circuit != "not a circuit"
+    # Test that QSimCircuit and other types are not equal. Note: the use of !=
+    # instead of "is not None" is deliberate in order to test __eq__.
+    class NotACircuit:
+        pass
 
-    # Different QSimCircuits are not equal
+    for not_a_circuit in (
+        None,
+        "not a circuit",
+        1,
+        1.0,
+        [],
+        {},
+        set(),
+        (),
+        NotACircuit(),
+    ):
+        # Test both a != b and b != a, to verify __eq__ is symmetric.
+        assert qsim_circuit != not_a_circuit
+        assert not_a_circuit != qsim_circuit
+
+    # Different QSimCircuits are not equal.
     circuit_diff = cirq.Circuit(cirq.X(q0))
     qsim_circuit_diff = qsimcirq.QSimCircuit(circuit_diff)
     assert qsim_circuit != qsim_circuit_diff
