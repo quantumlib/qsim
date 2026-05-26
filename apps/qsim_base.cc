@@ -24,13 +24,14 @@
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
+#include "../lib/qubit_remap.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 #include "../lib/util_cpu.h"
 
 constexpr char usage[] = "usage:\n  ./qsim_base -c circuit -d maxtime "
                          "-s seed -t threads -f max_fused_size "
-                         "-v verbosity -z\n";
+                         "-v verbosity -r -z\n";
 
 struct Options {
   std::string circuit_file;
@@ -39,6 +40,7 @@ struct Options {
   unsigned num_threads = 1;
   unsigned max_fused_size = 2;
   unsigned verbosity = 0;
+  bool cache_local_remap = false;
   bool denormals_are_zeros = false;
 };
 
@@ -47,7 +49,7 @@ Options GetOptions(int argc, char* argv[]) {
 
   int k;
 
-  while ((k = getopt(argc, argv, "c:d:s:t:f:v:z")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:v:rz")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -66,6 +68,9 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
+        break;
+      case 'r':
+        opt.cache_local_remap = true;
         break;
       case 'z':
         opt.denormals_are_zeros = true;
@@ -91,7 +96,8 @@ bool ValidateOptions(const Options& opt) {
 
 template <typename StateSpace, typename State>
 void PrintAmplitudes(
-    unsigned num_qubits, const StateSpace& state_space, const State& state) {
+    unsigned num_qubits, const StateSpace& state_space, const State& state,
+    const qsim::qubit_remap::QubitMap& logical_to_physical = {}) {
   static constexpr char const* bits[8] = {
     "000", "001", "010", "011", "100", "101", "110", "111",
   };
@@ -100,7 +106,9 @@ void PrintAmplitudes(
   unsigned s = 3 - std::min(unsigned{3}, num_qubits);
 
   for (uint64_t i = 0; i < size; ++i) {
-    auto a = state_space.GetAmpl(state, i);
+    uint64_t physical_i =
+        qsim::qubit_remap::LogicalToPhysicalIndex(i, logical_to_physical);
+    auto a = state_space.GetAmpl(state, physical_i);
     qsim::IO::messagef("%s:%16.8g%16.8g%16.8g\n",
                        bits[i] + s, std::real(a), std::imag(a), std::norm(a));
   }
@@ -141,13 +149,13 @@ int main(int argc, char* argv[]) {
     unsigned num_threads;
   };
 
-  using Simulator = Factory::Simulator;
-  using StateSpace = Simulator::StateSpace;
+  using StateSpace = Factory::StateSpace;
   using State = StateSpace::State;
   using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
 
-  StateSpace state_space = Factory(opt.num_threads).CreateStateSpace();
+  Factory factory(opt.num_threads);
+  StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
   if (state_space.IsNull(state)) {
@@ -155,15 +163,23 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  qubit_remap::QubitMap logical_to_physical;
+
   state_space.SetStateZero(state);
 
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
   param.seed = opt.seed;
   param.verbosity = opt.verbosity;
+  param.cache_local_remap = opt.cache_local_remap;
 
-  if (Runner::Run(param, Factory(opt.num_threads), circuit, state)) {
-    PrintAmplitudes(circuit.num_qubits, state_space, state);
+  auto simulator = factory.CreateSimulator();
+  bool ok = Runner::Run(param, circuit, state_space, simulator, state,
+                        logical_to_physical);
+
+  if (ok) {
+    PrintAmplitudes(circuit.num_qubits, state_space, state,
+                    logical_to_physical);
   }
 
   return 0;

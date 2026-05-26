@@ -17,12 +17,14 @@
 
 #include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "circuit.h"
 #include "gate.h"
 #include "gate_appl.h"
 #include "operation_base.h"
+#include "qubit_remap.h"
 #include "util.h"
 
 namespace qsim {
@@ -39,6 +41,12 @@ struct QSimRunner final {
   using State = typename StateSpace::State;
   using MeasurementResult = typename StateSpace::MeasurementResult;
 
+  template <typename Circuit>
+  struct IsCircuit : std::false_type {};
+
+  template <typename Gate>
+  struct IsCircuit<qsim::Circuit<Gate>> : std::true_type {};
+
   /**
    * User-specified parameters for gate fusion and simulation.
    */
@@ -47,6 +55,10 @@ struct QSimRunner final {
      * Random number generator seed to apply measurement gates.
      */
     uint64_t seed;
+    /**
+     * Remap logical qubits to improve state-vector cache locality.
+     */
+    bool cache_local_remap = false;
   };
 
   /**
@@ -159,6 +171,49 @@ struct QSimRunner final {
     return true;
   }
 
+  template <typename FusedOps>
+  static bool RunFusedGates(
+      const Parameter& param, const FusedOps& fused_ops,
+      const StateSpace& state_space, const Simulator& simulator, State& state,
+      std::vector<MeasurementResult>& measure_results) {
+    double t0 = 0.0;
+    double t1 = 0.0;
+
+    RGen rgen(param.seed);
+    measure_results.reserve(measure_results.size() + fused_ops.size());
+
+    if (param.verbosity > 0) {
+      t0 = GetTime();
+    }
+
+    // Apply fused operations.
+    for (std::size_t i = 0; i < fused_ops.size(); ++i) {
+      if (param.verbosity > 3) {
+        t1 = GetTime();
+      }
+
+      if (!ApplyGate(state_space, simulator, fused_ops[i], rgen, state,
+                     measure_results)) {
+        IO::errorf("measurement failed.\n");
+        return false;
+      }
+
+      if (param.verbosity > 3) {
+        state_space.DeviceSync();
+        double t2 = GetTime();
+        IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
+      }
+    }
+
+    if (param.verbosity > 0) {
+      state_space.DeviceSync();
+      double t2 = GetTime();
+      IO::messagef("simu time is %g seconds.\n", t2 - t0);
+    }
+
+    return true;
+  }
+
   /**
    * Runs the given circuit and make the final state available to the caller,
    * recording the result of any intermediate measurements in the circuit.
@@ -223,10 +278,42 @@ struct QSimRunner final {
    * @return True if the simulation completed successfully; false otherwise.
    */
   template <typename Circuit>
+  static bool Run(const Parameter& param, Circuit& circuit,
+                  const StateSpace& state_space, const Simulator& simulator,
+                  State& state,
+                  std::vector<MeasurementResult>& measure_results) {
+    if (param.cache_local_remap) {
+      IO::errorf(
+          "cache-local remap requires a logical_to_physical output map.\n");
+      return false;
+    }
+
+    qubit_remap::QubitMap discarded_map;
+
+    return Run(param, circuit, state_space, simulator, state,
+               discarded_map, measure_results);
+  }
+
+  template <typename Circuit>
   static bool Run(const Parameter& param, const Circuit& circuit,
                   const StateSpace& state_space, const Simulator& simulator,
                   State& state,
                   std::vector<MeasurementResult>& measure_results) {
+    auto circuit_copy = circuit;
+
+    return Run(param, circuit_copy, state_space, simulator, state,
+               measure_results);
+  }
+
+  template <typename Circuit>
+  static bool Run(const Parameter& param, Circuit& circuit,
+                  const StateSpace& state_space, const Simulator& simulator,
+                  State& state,
+                  qubit_remap::QubitMap& logical_to_physical,
+                  std::vector<MeasurementResult>& measure_results) {
+    using CircuitType = std::remove_cv_t<Circuit>;
+    const auto& ops = Operations<CircuitType>::get(circuit);
+
     double t0 = 0.0;
     double t1 = 0.0;
 
@@ -234,55 +321,46 @@ struct QSimRunner final {
       t0 = GetTime();
     }
 
-    RGen rgen(param.seed);
-
     if (param.verbosity > 1) {
       t1 = GetTime();
       IO::messagef("init time is %g seconds.\n", t1 - t0);
       t0 = GetTime();
     }
 
-    const auto& ops = Operations<Circuit>::get(circuit);
-    auto fused_ops = Fuser::FuseGates(param, state.num_qubits(), ops);
+    auto fused_ops = Fuser::FuseGates(
+        param, state.num_qubits(), ops, !param.cache_local_remap);
 
     if (fused_ops.size() == 0 && ops.size() > 0) {
       return false;
     }
 
-    measure_results.reserve(fused_ops.size());
+    if (param.cache_local_remap) {
+      if constexpr (IsCircuit<CircuitType>::value) {
+        logical_to_physical =
+            qubit_remap::RemapCircuit(fused_ops, circuit);
+      } else {
+        IO::errorf("cache-local remap requires a qsim::Circuit.\n");
+        return false;
+      }
+    }
 
     if (param.verbosity > 1) {
       t1 = GetTime();
       IO::messagef("fuse time is %g seconds.\n", t1 - t0);
     }
 
-    if (param.verbosity > 0) {
-      t0 = GetTime();
+    std::size_t previous_measurement_count = measure_results.size();
+    if (!RunFusedGates(param, fused_ops, state_space, simulator, state,
+                       measure_results)) {
+      return false;
     }
 
-    // Apply fused operations.
-    for (std::size_t i = 0; i < fused_ops.size(); ++i) {
-      if (param.verbosity > 3) {
-        t1 = GetTime();
+    if (param.cache_local_remap) {
+      for (std::size_t i = previous_measurement_count;
+           i < measure_results.size(); ++i) {
+        qubit_remap::detail::RemapMeasurementResult(
+            logical_to_physical, measure_results[i]);
       }
-
-      if (!ApplyGate(state_space, simulator, fused_ops[i], rgen, state,
-                     measure_results)) {
-        IO::errorf("measurement failed.\n");
-        return false;
-      }
-
-      if (param.verbosity > 3) {
-        state_space.DeviceSync();
-        double t2 = GetTime();
-        IO::messagef("gate %lu done in %g seconds.\n", i, t2 - t1);
-      }
-    }
-
-    if (param.verbosity > 0) {
-      state_space.DeviceSync();
-      double t2 = GetTime();
-      IO::messagef("simu time is %g seconds.\n", t2 - t0);
     }
 
     return true;
@@ -309,6 +387,17 @@ struct QSimRunner final {
 
     return Run(
         param, circuit, state_space, simulator, state, discarded_results);
+  }
+
+  template <typename Gate>
+  static bool Run(const Parameter& param, Circuit<Gate>& circuit,
+                  const StateSpace& state_space, const Simulator& simulator,
+                  State& state,
+                  qubit_remap::QubitMap& logical_to_physical) {
+    std::vector<MeasurementResult> discarded_results;
+
+    return Run(param, circuit, state_space, simulator, state,
+               logical_to_physical, discarded_results);
   }
 };
 

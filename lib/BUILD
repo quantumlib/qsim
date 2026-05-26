@@ -50,6 +50,7 @@ cc_library(
         "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
+        "qubit_remap.h",
         "run_qsim.h",
         "run_qsimh.h",
         "seqfor.h",
@@ -127,6 +128,7 @@ cuda_library(
         "operation_base.h",
         "parfor.h",
         "qtrajectory.h",
+        "qubit_remap.h",
         "run_qsim.h",
         "run_qsimh.h",
         "seqfor.h",
@@ -274,6 +276,7 @@ cc_library(
         "operation.h",
         "operation_base.h",
         "parfor.h",
+        "qubit_remap.h",
         "run_qsim.h",
         "seqfor.h",
         "simmux.h",
@@ -516,6 +519,18 @@ cc_library(
 )
 
 cc_library(
+    name = "qubit_remap",
+    hdrs = ["qubit_remap.h"],
+    deps = [
+        ":circuit",
+        ":fuser",
+        ":gate",
+        ":matrix",
+        ":operation",
+    ],
+)
+
+cc_library(
     name = "fuser_basic",
     hdrs = ["fuser_basic.h"],
     deps = [
@@ -560,6 +575,7 @@ cc_library(
         ":gate",
         ":gate_appl",
         ":operation_base",
+        ":qubit_remap",
         ":util",
     ],
 )

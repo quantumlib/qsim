@@ -15,6 +15,7 @@
 #ifndef FUSER_H_
 #define FUSER_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
@@ -174,6 +175,58 @@ inline void CalculateFusedMatrix(FusedGate<FP>& gate) {
 
       MatrixMultiply(mask, pqubits.size(), pmatrix,
                      gate.qubits.size(), gate.matrix);
+    }
+  }
+}
+
+/**
+ * Multiplies component gate matrices for a range of fused gates.
+ * @param gbeg, gend The iterator range [gbeg, gend) of fused gates.
+ */
+template <typename Iterator>
+inline void CalculateFusedMatrices(Iterator gbeg, Iterator gend) {
+  for (auto g = gbeg; g != gend; ++g) {
+    if (!g->ParentIsDecomposed()) {
+      CalculateFusedMatrix(*g);
+    }
+  }
+}
+
+/**
+ * Multiplies component gate matrices for a vector of fused gates.
+ * @param gates The vector of fused gates.
+ */
+template <typename FusedGate>
+inline void CalculateFusedMatrices(std::vector<FusedGate>& gates) {
+  CalculateFusedMatrices(gates.begin(), gates.end());
+}
+
+/**
+ * Rebuilds fused-gate qubit lists and matrices from component gates.
+ * @param fused_gates The vector of fused gates to rebuild.
+ */
+template <typename FusedGate>
+inline void RebuildFusedGates(std::vector<FusedGate>& fused_gates) {
+  for (auto& op : fused_gates) {
+    auto* fused_gate = OpGetAlternative<std::variant_alternative_t<0, FusedGate>>(
+        op);
+    if (fused_gate == nullptr) {
+      continue;
+    }
+
+    auto& qubits = fused_gate->qubits;
+    qubits.clear();
+
+    for (const auto& gate : fused_gate->gates) {
+      const auto& gate_qubits = OpQubits(gate);
+      qubits.insert(qubits.end(), gate_qubits.begin(), gate_qubits.end());
+    }
+
+    std::sort(qubits.begin(), qubits.end());
+    qubits.erase(std::unique(qubits.begin(), qubits.end()), qubits.end());
+
+    if (!fused_gate->ParentIsDecomposed()) {
+      CalculateFusedMatrix(*fused_gate);
     }
   }
 }
