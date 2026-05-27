@@ -591,7 +591,9 @@ class QSimSimulator(
             program, params, qubit_order, initial_state
         ):
             final_state = cirq.StateVectorSimulationState(
-                initial_state=state_vector, qubits=cirq_order
+                initial_state=state_vector,
+                qubits=cirq_order,
+                should_preserve_initial_state=False,
             )
             # create result for this parameter
             # TODO: We need to support measurements.
