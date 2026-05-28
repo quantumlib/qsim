@@ -6,7 +6,6 @@ import gc
 import sys
 
 import cirq.testing
-import numpy as np
 
 import qsimcirq
 
