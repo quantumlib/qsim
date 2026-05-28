@@ -1,0 +1,14 @@
+#!/usr/bin/gawk -f
+
+BEGIN { FS = "="; }
+
+/^snapshot=[0-9]+$/ {inrec = 1}
+inrec && /^time=[0-9]+/ {t = $2 * 1e-9}
+inrec && /^mem_heap_B/ {mem_heap_B = $2 + 0}
+inrec && /^mem_heap_extra_B/ {mem_heap_extra_B = $2 + 0}
+
+inrec && /^heap_tree/ {
+    print t, mem_heap_B + mem_heap_extra_B;
+    t = mem_heap_B = mem_heap_extra_B = "";
+    inrec = 0;
+}
