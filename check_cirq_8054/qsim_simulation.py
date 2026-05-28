@@ -1,8 +1,8 @@
 import gc
 
+import cirq.testing
 import numpy as np
 
-import cirq.testing
 import qsimcirq
 
 nqubits = 20

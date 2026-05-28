@@ -1,7 +1,7 @@
 import itertools
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 memuse_files_q20 = [
     # baseline qsim and cirq

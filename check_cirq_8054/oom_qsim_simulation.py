@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-"""Script to check for maximum number of qubits where QSimSimulator segfaults.
-"""
+"""Script to check for maximum number of qubits where QSimSimulator segfaults."""
 
 import gc
 import sys
 
+import cirq.testing
 import numpy as np
 
-import cirq.testing
 import qsimcirq
 
 assert __name__ == "__main__"
