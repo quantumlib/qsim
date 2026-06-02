@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:24.04 AS qsimcirq
+FROM ubuntu:26.04 AS qsimcirq
 
 # hadolint ignore=DL3002
 USER root
