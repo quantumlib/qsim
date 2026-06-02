@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Base OS
-FROM ubuntu:24.04 AS qsim-base
+FROM ubuntu:26.04 AS qsim-base
 
 # Allow passing this variable in from the outside.
 ARG CUDA_PATH
