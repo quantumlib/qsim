@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Base OS
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 # Allow passing this variable in from the outside.
 ARG CUDA_PATH
