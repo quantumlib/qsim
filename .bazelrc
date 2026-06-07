@@ -15,7 +15,6 @@
 # ~~~~ General flags ~~~~
 
 # Common flags
-common --announce_rc
 common --experimental_repo_remote_exec
 common --verbose_failures
 
@@ -25,25 +24,20 @@ common --enable_platform_specific_config
 
 build:linux --copt=-std=c++17
 build:linux --cxxopt=-std=c++17
-build:linux --per_file_copt="googletest/.*@-Xassembler,-W"
+build:linux --copt=-O3
 
 build:macos --copt=-std=c++17
 build:macos --cxxopt=-std=c++17
+build:macos --copt=-O3
 
 build:windows --copt=/std:c++17
 build:windows --cxxopt=/std:c++17
-
-build --copt=-D_GLIBCXX_USE_CXX11_ABI=1
-build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1
+build:windows --copt=/O2
 
 # The default for vector instruction sets is to exclude them.
 # Config options later in this file can be layered to enable them.
 build --build_tag_filters=-avx,-sse
 test --test_tag_filters=-avx,-sse
-# "bazel run" inherits options from "build". Our run targets don't have tags,
-# so we must clear the filter explicitly or we get "No targets found to run".
-run:sse --build_tag_filters=
-run:avx --build_tag_filters=
 
 # CUDA options
 build:cuda --@local_config_cuda//:enable_cuda
@@ -56,9 +50,11 @@ test --test_timeout=600
 # Configs for verbose builds & tests
 common:verbose --announce_rc
 common:verbose --auto_output_filter=none
-build:verbose --show_progress_rate_limit=1
+common:verbose --subcommands
 test:verbose --test_summary=detailed
 
+# Flags to silence warnings we can't do anything about.
+build:linux --per_file_copt="googletest/.*@-Xassembler,-W"
 
 # ~~~~ Sanitizers (choose one, or nosan for none) ~~~~
 
@@ -81,23 +77,41 @@ build:msan --linkopt=-fsanitize=leak
 build:nosan --
 
 
-# ~~~~ Instruction set options (choose one) ~~~~
+# ~~~~ Instruction set options (can be combined) ~~~~
 
-# Build with AVX2 + FMA
-build:avx --copt=-O3
-build:avx --copt=-mavx2
-build:avx --copt=-mfma
-build:avx --build_tag_filters=avx --ui_event_filters=-WARNING
-test:avx --test_tag_filters=avx --ui_event_filters=-WARNING
+# Build with AVX
+build:avx --define=qsim_avx=true
+build:avx --build_tag_filters=
+test:avx --test_tag_filters=
+
+# Build with AVX2
+build:avx2 --define=qsim_avx2=true
+build:avx2 --build_tag_filters=
+test:avx2 --test_tag_filters=
+
+# Build with AVX512
+build:avx512 --define=qsim_avx512=true
+build:avx512 --build_tag_filters=
+test:avx512 --test_tag_filters=
 
 # Build with SSE
-build:sse --copt=-O3
-build:sse --copt=-msse4
-build:sse --build_tag_filters=sse --ui_event_filters=-WARNING
-test:sse --test_tag_filters=sse --ui_event_filters=-WARNING
+build:sse --define=qsim_sse=true
+build:sse --build_tag_filters=
+test:sse --test_tag_filters=
+
+# Build with BMI
+build:bmi --config=bmi2
+
+# Build with BMI2
+build:bmi2 --define=qsim_bmi2=true
+
+# Let the compiler pick the best combination for the native architecture.
+build:native --define=qsim_native=true
+build:native --build_tag_filters=
+test:native --test_tag_filters=
 
 # Build without AVX or SSE
-build:basic --copt=-O3
+build:basic --
 
 
 # ~~~~ Parallelization (choose one, or nopenmp for none) ~~~~
