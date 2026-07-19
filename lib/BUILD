@@ -565,6 +565,21 @@ cc_library(
 )
 
 cc_library(
+    name = "run_qsim_gate_batch",
+    hdrs = [
+        "qubit_mapped_state.h",
+        "qubit_remap.h",
+        "run_qsim_gate_batch.h",
+    ],
+    deps = [
+        ":gate",
+        ":matrix",
+        ":operation_base",
+        ":util",
+    ],
+)
+
+cc_library(
     name = "run_qsimh",
     hdrs = ["run_qsimh.h"],
     deps = [

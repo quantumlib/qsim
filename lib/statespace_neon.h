@@ -66,6 +66,9 @@ class StateSpaceNEON :
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
+  // Number of low amplitude-index bits stored inside one SIMD chunk.
+  static constexpr unsigned kChunkQubits = 2;
+
   template <typename... ForArgs>
   explicit StateSpaceNEON(ForArgs&&... args) : Base(args...) {}
 

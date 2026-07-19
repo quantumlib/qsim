@@ -86,6 +86,9 @@ class StateSpaceAVX512 :
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
+  // Number of low amplitude-index bits stored inside one SIMD chunk.
+  static constexpr unsigned kChunkQubits = 4;
+
   template <typename... ForArgs>
   explicit StateSpaceAVX512(ForArgs&&... args) : Base(args...) {}
 
