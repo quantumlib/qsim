@@ -809,6 +809,7 @@ struct ExprParser {
       }
 
       if (sym->HoldsMea()) {
+        // sym->Size() should should not exceed 63.
         val &= (Symbol::Int{1} << sym->Size()) - 1;
       }
     } else if (IsSymbolInd(l)) {

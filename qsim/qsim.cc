@@ -151,6 +151,21 @@ bool ValidateOptions(const Options& opt) {
     return false;
   }
 
+  if (opt.num_workers == 0) {
+    qsim::IO::errorf("number of workers must be greater than 0.\n");
+    return false;
+  }
+
+  if (opt.num_threads == 0) {
+    qsim::IO::errorf("number of threads per worker must be greater than 0.\n");
+    return false;
+  }
+
+  if (opt.rep1 <= opt.rep0) {
+    qsim::IO::errorf("rep1 must be greater than rep0.\n");
+    return false;
+  }
+
   return true;
 }
 

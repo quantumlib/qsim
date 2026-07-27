@@ -438,6 +438,9 @@ struct CircuitQsimParser final {
             if (qubits.size() == 0) {
               PE::Throw(
                   "measurement gate should have at least one qubit", t.lc);
+            } else if (qubits.size() > 63) {
+              PE::Throw(
+                  "measurement gate cannot measure more than 63 qubits", t.lc);
             }
 
             cur_time = GetTime(t, time, cur_time, qubits, qubit_times);
