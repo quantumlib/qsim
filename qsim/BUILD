@@ -48,4 +48,3 @@ cc_binary(
         "//lib:util_cpu",
     ],
 )
-

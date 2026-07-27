@@ -54,8 +54,8 @@ struct Symbol {
   /**  Variant over all supported concrete value types. */
   using Val = std::variant<Mea, Int, Float, IntVector, FloatVector>;
 
-  /** Constructs an uninitialized/default Symbol. */
-  Symbol() {}
+  /** Constructs a default Symbol. */
+  Symbol() : val(Int{0}) {}
 
   /**
    * Constructs a Symbol inferring read-only status based on the value type.
