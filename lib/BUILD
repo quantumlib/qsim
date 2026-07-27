@@ -288,6 +288,7 @@ cc_library(
     hdrs = [
         "bits.h",
         "channel.h",
+        "channels_cirq.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "classical_control_error.h",
@@ -349,6 +350,7 @@ cc_library(
     hdrs = [
         "bits.h",
         "channel.h",
+        "channels_cirq.h",
         "circuit.h",
         "circuit_qsim_parser.h",
         "expect.h",

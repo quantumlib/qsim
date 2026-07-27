@@ -141,7 +141,7 @@ struct Symbol {
    *   or 1 for scalars.
    */
   unsigned Size() const {
-    auto f = [this](auto&& v) -> unsigned {
+    auto f = [](auto&& v) -> unsigned {
       using V = std::decay_t<decltype(v)>;
 
       if constexpr (std::is_same_v<V, Mea>) {
@@ -165,7 +165,7 @@ struct Symbol {
    * @throws std::runtime_error If the stored value is a Float or Vector.
    */
   Int GetInt() const {
-    auto f = [this](auto&& v) -> Int {
+    auto f = [](auto&& v) -> Int {
       using V = std::decay_t<decltype(v)>;
 
       if constexpr (std::is_same_v<V, Mea>) {
@@ -189,7 +189,7 @@ struct Symbol {
    * @throws std::runtime_error If the stored value is a Vector.
    */
   Float GetFloat() const {
-    auto f = [this](auto&& v) -> Float {
+    auto f = [](auto&& v) -> Float {
       using V = std::decay_t<decltype(v)>;
 
       if constexpr (std::is_same_v<V, Mea>) {
@@ -215,7 +215,7 @@ struct Symbol {
    *   or non-indexable scalars.
    */
   Int GetInt(std::size_t i) const {
-    auto f = [this, &i](auto&& v) -> Int {
+    auto f = [&i](auto&& v) -> Int {
       using V = std::decay_t<decltype(v)>;
 
       if constexpr (std::is_same_v<V, Mea>) {
@@ -245,7 +245,7 @@ struct Symbol {
    *   scalars.
    */
   Float GetFloat(std::size_t i) const {
-    auto f = [this, &i](auto&& v) -> Float {
+    auto f = [&i](auto&& v) -> Float {
       using V = std::decay_t<decltype(v)>;
 
       if constexpr (std::is_same_v<V, Mea>) {
