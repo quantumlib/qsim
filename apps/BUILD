@@ -28,7 +28,7 @@ cc_binary(
     copts = gsframe_copts,
     data = ["//circuits:circuit_q24"],
     deps = [
-        "//lib:run_qsim_deprecated_lib",
+        "//lib:run_qsim_lib",
     ],
 )
 
@@ -37,7 +37,7 @@ cc_binary(
     srcs = ["qsim_von_neumann.cc"],
     copts = gsframe_copts,
     deps = [
-        "//lib:run_qsim_deprecated_lib",
+        "//lib:run_qsim_lib",
     ],
 )
 
@@ -47,7 +47,7 @@ cc_binary(
     copts = gsframe_copts,
     deps = [
         "//lib:bitstring",
-        "//lib:run_qsim_deprecated_lib",
+        "//lib:run_qsim_lib",
     ],
 )
 

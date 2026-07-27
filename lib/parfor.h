@@ -64,9 +64,12 @@ struct ParallelForT {
   }
 
   template <typename Function, typename Op, typename... Args>
-  std::vector<typename Op::result_type> RunReduceP(
+  auto RunReduceP(
       uint64_t size, Function&& func, Op&& op, Args&&... args) const {
-    std::vector<typename Op::result_type> partial_results;
+    using ResultType =
+        std::invoke_result_t<Function, unsigned, unsigned, uint64_t, Args...>;
+
+    std::vector<ResultType> partial_results;
 
     if (num_threads > 1 && size >= MIN_SIZE) {
       partial_results.resize(num_threads, 0);
@@ -79,7 +82,7 @@ struct ParallelForT {
         uint64_t i0 = GetIndex0(size, m);
         uint64_t i1 = GetIndex1(size, m);
 
-        typename Op::result_type partial_result = 0;
+        ResultType partial_result{};
 
         for (uint64_t i = i0; i < i1; ++i) {
           partial_result = op(partial_result, func(n, m, i, args...));
@@ -88,7 +91,7 @@ struct ParallelForT {
         partial_results[m] = partial_result;
       }
     } else if (num_threads > 0) {
-      typename Op::result_type result = 0;
+      ResultType result{};
       for (uint64_t i = 0; i < size; ++i) {
         result = op(result, func(1, 0, i, args...));
       }
@@ -100,11 +103,11 @@ struct ParallelForT {
   }
 
   template <typename Function, typename Op, typename... Args>
-  typename Op::result_type RunReduce(uint64_t size, Function&& func,
-                                     Op&& op, Args&&... args) const {
+  auto RunReduce(
+      uint64_t size, Function&& func, Op&& op, Args&&... args) const {
     auto partial_results = RunReduceP(size, func, std::move(op), args...);
 
-    typename Op::result_type result = 0;
+    typename decltype(partial_results)::value_type result{};
 
     for (auto partial_result : partial_results) {
       result = op(result, partial_result);
