@@ -23,11 +23,12 @@
 
 #include "../lib/bitstring.h"
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/classical_control_util.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
-#include "../lib/run_qsim.h"
+#include "../lib/run_qsim_deprecated.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
 #include "../lib/util_cpu.h"
@@ -160,12 +161,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Operation<float>> circuit;
-  unsigned maxtime = opt.times.back();
-  if (!CircuitQsimParser<IOFile>::FromFile(maxtime, opt.circuit_file,
-                                           circuit)) {
-    return 1;
-  }
+  auto cstr = cc::ReadFile(opt.circuit_file);
+  auto circuit = CircuitQsimParser<float>::Run(cstr, opt.times.back());
 
   if (opt.denormals_are_zeros) {
     SetFlushToZeroAndDenormalsAreZeros();

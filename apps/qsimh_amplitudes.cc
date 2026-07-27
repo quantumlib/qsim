@@ -23,6 +23,7 @@
 
 #include "../lib/bitstring.h"
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/classical_control_util.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/io_file.h"
@@ -174,11 +175,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Operation<float>> circuit;
-  if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
-                                           circuit)) {
-    return 1;
-  }
+  auto cstr = cc::ReadFile(opt.circuit_file);
+  auto circuit = CircuitQsimParser<float>::Run(cstr, opt.maxtime);
 
   if (!ValidatePart1(circuit.num_qubits, opt.part1)) {
     return 1;

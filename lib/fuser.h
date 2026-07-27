@@ -151,10 +151,11 @@ inline void CalculateFusedMatrix(FusedGate<FP>& gate) {
   MatrixIdentity(unsigned{1} << gate.qubits.size(), gate.matrix);
 
   for (const auto& pgate : gate.gates) {
-    const auto* pg = OpGetAlternative<Gate<FP>>(pgate);
+    const auto* g = OpGetAlternative<Gate<FP>>(pgate);
+    const auto* d = OpGetAlternative<DecomposedGate<FP>>(pgate);
+    const auto* r = OpGetAlternative<RuntimeResolvedGate<FP>>(pgate);
     const auto& pqubits = OpQubits(pgate);
-    const auto& pmatrix =
-        pg ? pg->matrix : OpGetAlternative<DecomposedGate<FP>>(pgate)->matrix;
+    const auto& pmatrix = g ? g->matrix : (d ? d->matrix : r->matrix);
 
     if (pqubits.size() == 0) {
       MatrixScalarMultiply(pmatrix[0], pmatrix[1], gate.matrix);

@@ -115,10 +115,7 @@ struct Factory {
 };
 
 TEST(RunQSimHTest, QSimHRunner) {
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<Factory::fp_type>> circuit;
-
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  auto circuit = CircuitQsimParser<Factory::fp_type>::Run(circuit_string, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 63);
 

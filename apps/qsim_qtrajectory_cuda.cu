@@ -25,12 +25,13 @@
 
 #include "../lib/channels_qsim.h"
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/classical_control_util.h"
 #include "../lib/expect.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
 #include "../lib/qtrajectory.h"
-#include "../lib/run_qsim.h"
+#include "../lib/run_qsim_deprecated.h"
 #include "../lib/simulator_cuda.h"
 
 struct Options {
@@ -223,12 +224,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Operation<fp_type>> circuit;
-  unsigned maxtime = opt.times.back();
-  if (!CircuitQsimParser<IOFile>::FromFile(maxtime, opt.circuit_file,
-                                           circuit)) {
-    return 1;
-  }
+  auto cstr = cc::ReadFile(opt.circuit_file);
+  auto circuit = CircuitQsimParser<fp_type>::Run(cstr, opt.times.back());
 
   if (opt.times.size() == 1
       && opt.times[0] == std::numeric_limits<unsigned>::max()) {

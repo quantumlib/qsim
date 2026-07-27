@@ -31,6 +31,15 @@ cc_library(
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
+        "classical_control_error.h",
+        "classical_control_expr.h",
+        "classical_control_obs.h",
+        "classical_control_parser.h",
+        "classical_control_symbol.h",
+        "classical_control_symtab.h",
+        "classical_control_tokenizer.h",
+        "classical_control_util.h",
+        "error.h",
         "expect.h",
         "formux.h",
         "fuser.h",
@@ -51,6 +60,7 @@ cc_library(
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
+        "run_qsim_deprecated.h",
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
@@ -108,6 +118,15 @@ cuda_library(
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
+        "classical_control_error.h",
+        "classical_control_expr.h",
+        "classical_control_obs.h",
+        "classical_control_parser.h",
+        "classical_control_symbol.h",
+        "classical_control_symtab.h",
+        "classical_control_tokenizer.h",
+        "classical_control_util.h",
+        "error.h",
         "expect.h",
         "formux.h",
         "fuser.h",
@@ -128,6 +147,7 @@ cuda_library(
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
+        "run_qsim_deprecated.h",
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
@@ -182,6 +202,15 @@ cuda_library(
         "circuit.h",
         "circuit_noisy.h",
         "circuit_qsim_parser.h",
+        "classical_control_error.h",
+        "classical_control_expr.h",
+        "classical_control_obs.h",
+        "classical_control_parser.h",
+        "classical_control_symbol.h",
+        "classical_control_symtab.h",
+        "classical_control_tokenizer.h",
+        "classical_control_util.h",
+        "error.h",
         "expect.h",
         "formux.h",
         "fuser.h",
@@ -204,6 +233,7 @@ cuda_library(
         "qtrajectory.h",
         "run_custatevecex.h",
         "run_qsim.h",
+        "run_qsim_deprecated.h",
         "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
@@ -260,6 +290,15 @@ cc_library(
         "channel.h",
         "circuit.h",
         "circuit_qsim_parser.h",
+        "classical_control_error.h",
+        "classical_control_expr.h",
+        "classical_control_obs.h",
+        "classical_control_parser.h",
+        "classical_control_symbol.h",
+        "classical_control_symtab.h",
+        "classical_control_tokenizer.h",
+        "classical_control_util.h",
+        "error.h",
         "expect.h",
         "formux.h",
         "fuser.h",
@@ -275,6 +314,7 @@ cc_library(
         "operation_base.h",
         "parfor.h",
         "run_qsim.h",
+        "run_qsim_deprecated.h",
         "seqfor.h",
         "simmux.h",
         "simulator.h",
@@ -350,6 +390,11 @@ cc_library(
 ##### Basic libraries #####
 
 ### Utility libraries ###
+
+cc_library(
+    name = "error",
+    hdrs = ["error.h"],
+)
 
 # Bitstring parser
 cc_library(
@@ -430,6 +475,36 @@ cc_library(
     ],
 )
 
+### Classical control libraries ###
+
+cc_library(
+    name = "classical_control_expr",
+    hdrs = ["classical_control_expr.h"],
+    deps = [
+        ":error",
+    ],
+)
+
+cc_library(
+    name = "classical_control",
+    hdrs = [
+        "classical_control_error.h",
+        "classical_control_obs.h",
+        "classical_control_parser.h",
+        "classical_control_symbol.h",
+        "classical_control_symtab.h",
+        "classical_control_tokenizer.h",
+        "classical_control_util.h",
+    ],
+    deps = [
+        ":channel",
+        ":classical_control_expr",
+        ":error",
+        ":gate",
+        ":operation_base",
+    ],
+)
+
 ### Gate libraries ###
 
 cc_library(
@@ -442,8 +517,8 @@ cc_library(
     hdrs = ["operation.h"],
     deps = [
         ":channel",
-        ":gate",
-        ":operation_base",
+        ":classical_control_expr",
+        ":error",
     ],
 )
 
@@ -451,6 +526,7 @@ cc_library(
     name = "gate",
     hdrs = ["gate.h"],
     deps = [
+        ":classical_control_expr",
         ":matrix",
         ":operation_base",
     ],
@@ -496,7 +572,11 @@ cc_library(
     name = "circuit_qsim_parser",
     hdrs = ["circuit_qsim_parser.h"],
     deps = [
+        ":channels_cirq",
         ":circuit",
+        ":classical_control",
+        ":classical_control_expr",
+        ":error",
         ":gates_qsim",
         ":operation",
         ":operation_base",
@@ -555,6 +635,22 @@ cc_library(
 cc_library(
     name = "run_qsim",
     hdrs = ["run_qsim.h"],
+    deps = [
+        ":circuit",
+        ":classical_control",
+        ":classical_control_expr",
+        ":error",
+        ":gate",
+        ":gate_appl",
+        ":operation",
+        ":operation_base",
+        ":util",
+    ],
+)
+
+cc_library(
+    name = "run_qsim_deprecated",
+    hdrs = ["run_qsim_deprecated.h"],
     deps = [
         ":circuit",
         ":gate",

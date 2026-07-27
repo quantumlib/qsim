@@ -22,6 +22,8 @@
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/classical_control_obs.h"
+#include "../lib/classical_control_symtab.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
 #include "../lib/io.h"
@@ -29,39 +31,56 @@
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 
-namespace qsim {
+struct TestParserError {
+  template <typename... Args>
+  [[noreturn]] static void Throw(
+      std::string_view msg, unsigned lc, Args&&... args) {
+    throw std::invalid_argument("syntax error");
+  }
+};
 
-constexpr char provider[] = "run_qsim_test";
+struct TestRuntimeError {
+  template <typename... Args>
+  [[noreturn]] static void Throw(
+      std::string_view msg, unsigned lc, Args&&... args) {
+    throw std::runtime_error("runtime error");
+  }
+};
+
+using TestQsimParser =
+    qsim::CircuitQsimParser<float, TestParserError, TestRuntimeError>;
+
+namespace qsim {
 
 constexpr char circuit_string[] =
 R"(4
-0 h 0
-0 h 1
-0 h 2
-0 h 3
-1 cz 0 1
-1 cz 2 3
-2 t 0
-2 x 1
-2 y 2
-2 t 3
-3 y 0
-3 cz 1 2
-3 x 3
-4 t 1
-4 t 2
-5 cz 1 2
-6 x 1
-6 y 2
-7 cz 1 2
-8 t 1
-8 t 2
-9 cz 0 1
-9 cz 2 3
-10 h 0
-10 h 1
-10 h 2
-10 h 3
+h 0
+h 1
+h 2
+h 3
+cz 0 1
+cz 2 3
+t 0
+x 1
+y 2
+t 3
+y 0
+cz 1 2
+x 3
+t 1
+t 2
+cz 1 2
+x 1
+y 2
+cz 1 2
+t 1
+t 2
+cz 0 1
+cz 2 3
+h 0
+h 1
+h 2
+h 3
 )";
 
 struct Factory {
@@ -77,57 +96,18 @@ struct Factory {
   }
 };
 
-TEST(RunQSimTest, QSimRunner1) {
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<float>> circuit;
+TEST(RunQSimTest, QSimRunner) {
+  auto circuit = CircuitQsimParser<float>::Run(circuit_string, 99);
 
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
+  using Runner = QSimRunner<BasicGateFuser<IO>>;
 
-  float entropy = 0;
-
-  auto measure = [&entropy](
-      unsigned k, const StateSpace& state_space, const State& state) {
-    // Calculate entropy.
-
-    entropy = 0;
-    auto size = uint64_t{1} << state.num_qubits();
-
-    for (uint64_t i = 0; i < size; ++i) {
-      auto ampl = state_space.GetAmpl(state, i);
-      float p = std::norm(ampl);
-      entropy -= p * std::log(p);
-    }
-  };
-
-  Runner::Parameter param;
-  param.seed = 1;
-  param.verbosity = 0;
-
-  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, measure));
-
-  EXPECT_NEAR(entropy, 2.2192848, 1e-6);
-}
-
-TEST(RunQSimTest, QSimRunner2) {
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<float>> circuit;
-
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
-  EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.ops.size(), 27);
-
-  using Simulator = Factory::Simulator;
-  using StateSpace = Simulator::StateSpace;
-  using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
-
+  Simulator simulator = Factory::CreateSimulator();
   StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
@@ -136,10 +116,13 @@ TEST(RunQSimTest, QSimRunner2) {
   state_space.SetStateZero(state);
 
   Runner::Parameter param;
-  param.seed = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, state));
+  cc::SymTable symtab;
+  cc::Observables obss;
+
+  EXPECT_TRUE(Runner::Run(
+      param, circuit, state_space, simulator, 1, state, symtab, obss));
 
   // Calculate entropy.
 
@@ -155,64 +138,6 @@ TEST(RunQSimTest, QSimRunner2) {
   EXPECT_NEAR(entropy, 2.2192848, 1e-6);
 }
 
-constexpr char sample_circuit_string[] =
-R"(2
-0 h 0
-0 x 1
-1 m 1
-2 cx 0 1
-3 m 0 1
-4 m 0
-5 cx 1 0
-6 m 0
-7 x 0
-7 h 1
-8 m 0 1
-)";
-
-TEST(RunQSimTest, QSimSampler) {
-  std::stringstream ss(sample_circuit_string);
-  Circuit<Operation<float>> circuit;
-
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
-  EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.ops.size(), 11);
-
-  using Simulator = Factory::Simulator;
-  using StateSpace = Simulator::StateSpace;
-  using Result = StateSpace::MeasurementResult;
-  using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
-
-  StateSpace state_space = Factory::CreateStateSpace();
-  State state = state_space.Create(circuit.num_qubits);
-
-  EXPECT_FALSE(state_space.IsNull(state));
-
-  state_space.SetStateZero(state);
-
-  std::vector<Result> results;
-
-  Runner::Parameter param;
-  param.seed = 1;
-  param.verbosity = 0;
-
-  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, state, results));
-
-  // Results should contain (qubit @ time):
-  // (1 @ 1) - should be |01)
-  EXPECT_TRUE(results[0].bitstring[0]);
-  // (0 @ 3), (1 @ 3) - either |01) or |10)
-  EXPECT_EQ(results[1].bitstring[0], !results[1].bitstring[1]);
-  // (0 @ 4) - should match (0 @ 3)
-  EXPECT_EQ(results[1].bitstring[0], results[2].bitstring[0]);
-  // (0 @ 6) - either |11) or |10)
-  EXPECT_TRUE(results[3].bitstring[0]);
-  // (0 @ 8), (1 @ 8) - should be |00)
-  EXPECT_FALSE(results[4].bitstring[0]);
-  EXPECT_FALSE(results[4].bitstring[1]);
-}
-
 TEST(RunQSimTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<float>(true);
   const auto& expected_results = CirqCircuit1::expected_results1;
@@ -220,8 +145,9 @@ TEST(RunQSimTest, CirqGates) {
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Runner = QSimRunner<IO, BasicGateFuser<IO>, Factory>;
+  using Runner = QSimRunner<BasicGateFuser<IO>>;
 
+  Simulator simulator = Factory::CreateSimulator();
   StateSpace state_space = Factory::CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
@@ -233,16 +159,107 @@ TEST(RunQSimTest, CirqGates) {
   state_space.SetStateZero(state);
 
   Runner::Parameter param;
-  param.seed = 1;
   param.verbosity = 0;
 
-  EXPECT_TRUE(Runner::Run(param, Factory(), circuit, state));
+  cc::SymTable symtab;
+  cc::Observables obss;
+
+  EXPECT_TRUE(Runner::Run(
+      param, circuit, state_space, simulator, 1, state, symtab, obss));
 
   for (uint64_t i = 0; i < size; ++i) {
     auto ampl = state_space.GetAmpl(state, i);
     EXPECT_NEAR(std::real(ampl), std::real(expected_results[i]), 2e-6);
     EXPECT_NEAR(std::imag(ampl), std::imag(expected_results[i]), 2e-6);
   }
+}
+
+TEST(RunQSimTest, Factorial) {
+  std::string circuit_str = R"(
+    int f = 1
+    int i = 1
+    repeat i <= n
+      f = f * i
+      i = i + 1
+    end
+  )";
+
+  cc::SymTable symtab;
+  symtab.EnterScope(symtab.AddScope());
+  symtab.Insert("n", cc::Symbol::Int(12));
+
+  cc::Observables obss;
+
+  auto [circuit, _] = TestQsimParser::Run(circuit_str, 100, symtab);
+
+  using Simulator = Factory::Simulator;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = QSimRunner<BasicGateFuser<IO>>;
+
+  Simulator simulator = Factory::CreateSimulator();
+  StateSpace state_space = Factory::CreateStateSpace();
+  State state = state_space.Create(circuit.num_qubits);
+
+  Runner::Parameter param;
+  param.verbosity = 0;
+
+  EXPECT_TRUE(Runner::Run(
+      param, circuit, state_space, simulator, 1, state, symtab, obss));
+
+  const auto* var = symtab.Lookup("f");
+
+  ASSERT_NE(var, nullptr);
+  EXPECT_EQ(var->GetInt(), 479001600);
+}
+
+TEST(RunQSimTest, Histogram) {
+  std::string circuit_str = R"(
+    2
+    x 1
+    m 0 1 m1
+    histogram m1
+  )";
+
+  cc::SymTable symtab;
+
+  auto [circuit, obss] = TestQsimParser::Run(circuit_str, 100, symtab);
+
+  using Simulator = Factory::Simulator;
+  using StateSpace = Simulator::StateSpace;
+  using State = StateSpace::State;
+  using Runner = QSimRunner<BasicGateFuser<IO>>;
+
+  Simulator simulator = Factory::CreateSimulator();
+  StateSpace state_space = Factory::CreateStateSpace();
+  State state = state_space.Create(circuit.num_qubits);
+
+  Runner::Parameter param;
+  param.verbosity = 0;
+
+  for (uint64_t r = 0; r < 100; ++r) {
+    state_space.SetStateZero(state);
+    EXPECT_TRUE(Runner::Run(
+        param, circuit, state_space, simulator, 1, state, symtab, obss));
+    obss.Iterate([](auto, auto& obs) { obs.Update(); });
+  }
+
+  const auto* h = obss.Lookup("m1");
+  ASSERT_NE(h, nullptr);
+
+  EXPECT_EQ(h->num_qubits, 2);
+
+  ASSERT_EQ(h->cur_count.size(), 4);
+  EXPECT_EQ(h->cur_count[0], 0);
+  EXPECT_EQ(h->cur_count[1], 0);
+  EXPECT_EQ(h->cur_count[2], 0);
+  EXPECT_EQ(h->cur_count[3], 0);
+
+  ASSERT_EQ(h->total_count.size(), 4);
+  EXPECT_EQ(h->total_count[0], 0);
+  EXPECT_EQ(h->total_count[1], 0);
+  EXPECT_EQ(h->total_count[2], 100);
+  EXPECT_EQ(h->total_count[3], 0);
 }
 
 }  // namespace qsim

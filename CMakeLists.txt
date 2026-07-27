@@ -108,7 +108,7 @@ endif()
 
 # Additional miscellanous settings.
 # The following settings mirror what is in our hand-written Makefiles.
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Print additional useful info.
