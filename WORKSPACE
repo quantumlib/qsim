@@ -32,6 +32,47 @@ http_archive(
     url = "https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip",
 )
 
+
+# ---------------------------------------------------------------------------
+# rules_python — hermetic Python toolchain + pip dependencies
+# ---------------------------------------------------------------------------
+
+http_archive(
+    name = "rules_python",
+    sha256 = "4a02240a4a6a8b04077a7e49921949d2e6879d6f047be1e870d222de6709c7d1",
+    strip_prefix = "rules_python-1.4.1",
+    url = "https://github.com/bazelbuild/rules_python/releases/download/v1.4.1/rules_python-v1.4.1.tar.gz",
+)
+
+load("@rules_python//python:repositories.bzl", "py_repositories")
+py_repositories()
+
+# Register a hermetic Python interpreter (3.11 in this example; pick what qsim supports)
+load("@rules_python//python:versions.bzl", "MINOR_MAPPING")
+load("@rules_python//python:repositories.bzl", "python_register_toolchains")
+
+python_register_toolchains(
+    name = "python_3_11",
+    python_version = "3.11",
+)
+
+load("@python_3_11//:defs.bzl", "interpreter")
+
+# Parse locked requirements.
+# pip_parse needs a lockfile, not a bare requirements.txt.
+# We'll generate the lockfile in step 2.
+load("@rules_python//python:pip.bzl", "pip_parse")
+
+pip_parse(
+    name = "pip",
+    python_interpreter_target = interpreter,
+    requirements_lock = "//:requirements_lock.txt",
+)
+
+load("@pip//:requirements.bzl", "install_deps")
+install_deps()
+
+
 # Required for testing compatibility with TF Quantum:
 # https://github.com/tensorflow/quantum
 http_archive(
