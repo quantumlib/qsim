@@ -206,7 +206,6 @@ struct ExprParser {
     case "~"_ophash:
       {
         Token n = tok.Peek();
-        unsigned lc = n.lc;
 
         Expr l = GetLeft(symtab, tok, f);
 

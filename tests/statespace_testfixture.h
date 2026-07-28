@@ -34,8 +34,6 @@
 
 namespace qsim {
 
-constexpr char provider[] = "statespace_test";
-
 constexpr char circuit_string[] =
 R"(20
 0 h 0

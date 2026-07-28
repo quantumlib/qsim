@@ -32,8 +32,6 @@ struct IO {
   static void messagef(const char* format, ...) {}
 };
 
-constexpr char provider[] = "fuser_basic_test";
-
 constexpr char circuit_string1[] =
 R"(4
 0 h 0

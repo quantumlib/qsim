@@ -31,8 +31,6 @@
 
 namespace qsim {
 
-constexpr char provider[] = "run_custatevecex_test";
-
 constexpr char circuit_string[] =
 R"(4
 0 h 0

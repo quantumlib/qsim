@@ -306,7 +306,7 @@ struct Symbol {
    */
   template <typename SymTable>
   void Assign(const SymTable& symtab, const std::vector<Expr>& es) {
-    auto f = [this, &symtab, &es](auto&& val) {
+    auto f = [&symtab, &es](auto&& val) {
       using V = std::decay_t<decltype(val)>;
 
       if constexpr (std::is_same_v<V, Int>) {
@@ -354,7 +354,7 @@ struct Symbol {
   void Assign(const SymTable& symtab, const Expr& e, const Index& index) {
     std::size_t i = EvalIndex(symtab, index);
 
-    auto g = [this, &symtab, &e, i](auto&& val) {
+    auto g = [&symtab, &e, i](auto&& val) {
       using V = std::decay_t<decltype(val)>;
 
       if constexpr (std::is_same_v<V, IntVector>) {
