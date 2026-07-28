@@ -855,7 +855,7 @@ struct CircuitQsimParser final {
       PE::Throw("expected an identifier", t.lc);
     }
 
-    if (auto* sym = symtab.LookupInCurrentScope(t.val)) {
+    if (symtab.LookupInCurrentScope(t.val) != nullptr) {
       PE::Throw("identifier '{}' is already defined", t.lc, t.val);
     }
 

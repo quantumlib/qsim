@@ -119,7 +119,7 @@ class Fuser {
       }
     } else {
       const auto& gate0 = *OpGetAlternative<Gate>(*parent(gate_seq0[0]));
-      FusedGate fgate{gate0.kind, gate0.time, {}, &gate0, {&gate0}, {}};
+      FusedGate fgate{{gate0.kind, gate0.time, {}}, &gate0, {&gate0}, {}};
 
       for (std::size_t i = 1; i < gate_seq0.size(); ++i) {
         fgate.gates.push_back(OpGetAlternative<Gate>(*parent(gate_seq0[i])));

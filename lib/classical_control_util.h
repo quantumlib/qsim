@@ -73,7 +73,7 @@ inline double ToFloat(std::string_view s) {
   double val;
 
 #if defined(_MSC_VER) || (defined(__GLIBCXX__) && __GLIBCXX__ >= 20210427) || \
-    (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 170000)
+    (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 200000)
   auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
 
   if (ec != std::errc{} || p != s.data() + s.size()) {

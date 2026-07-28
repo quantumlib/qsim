@@ -79,7 +79,7 @@ inline unsigned IndexSize(const Index&) {
  */
 template <typename SymTable>
 inline bool IsConstIndex(const SymTable& symtab, const Index& i) {
-  auto f = [&symtab](auto&& i) -> bool {
+  auto f = [](auto&& i) -> bool {
     using I = std::decay_t<decltype(i)>;
     return std::is_same_v<I, TInt> || std::is_same_v<I, TBool>;
   };

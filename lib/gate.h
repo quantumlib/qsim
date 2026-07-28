@@ -328,7 +328,7 @@ template <typename Gate, typename GateDef, typename Q = Qubits,
           typename M = Matrix<typename Gate::fp_type>>
 inline Gate CreateGate(unsigned time, Q&& qubits, M&& matrix = {},
                        std::vector<typename Gate::fp_type>&& params = {}) {
-  Gate gate = {GateDef::kind, time, std::forward<Q>(qubits),
+  Gate gate = {{GateDef::kind, time, std::forward<Q>(qubits)},
                std::move(params), std::forward<M>(matrix), false};
 
   switch (gate.qubits.size()) {
@@ -358,8 +358,8 @@ enum OtherGateKind {
 template <typename Q = Qubits>
 inline Measurement CreateMeasurement(unsigned time, Q&& qubits,
                                      std::string_view id = "") {
-  return
-      Measurement{kMeasurement, time, std::forward<Q>(qubits), std::string{id}};
+  return Measurement{{kMeasurement, time, std::forward<Q>(qubits)},
+                     std::string{id}};
 }
 
 template <typename fp_type>

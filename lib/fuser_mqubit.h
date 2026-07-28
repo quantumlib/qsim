@@ -495,8 +495,8 @@ class MultiQubitGateFuser final : public Fuser<IO> {
             const auto& bop =
                 OpBaseOperation(Base::OperationToConstRef(*fgate.parent));
 
-            fused_ops.push_back(FusedGate{bop.kind, bop.time,
-                                          std::move(fgate.qubits), parent,
+            fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                          std::move(fgate.qubits)}, parent,
                                           std::move(fgate.gates), {},
                                           fgate.defer_matrix_computation});
 
@@ -611,8 +611,8 @@ class MultiQubitGateFuser final : public Fuser<IO> {
         auto parent = FusedGate::OpToPGate(fgate.parent);
         const auto& bop =
             OpBaseOperation(Base::OperationToConstRef(*fgate.parent));
-        fused_ops.push_back(FusedGate{bop.kind, bop.time,
-                                      std::move(fgate.qubits), parent,
+        fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                      std::move(fgate.qubits)}, parent,
                                       std::move(fgate.gates), {},
                                       fgate.defer_matrix_computation});
 
@@ -643,8 +643,8 @@ class MultiQubitGateFuser final : public Fuser<IO> {
           auto parent = FusedGate::OpToPGate(fgate->parent);
           const auto& bop =
               OpBaseOperation(Base::OperationToConstRef(*fgate->parent));
-          fused_ops.push_back(FusedGate{bop.kind, bop.time,
-                                        std::move(fgate->qubits), parent,
+          fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                        std::move(fgate->qubits)}, parent,
                                         std::move(fgate->gates), {},
                                         fgate->defer_matrix_computation});
 
@@ -712,8 +712,8 @@ class MultiQubitGateFuser final : public Fuser<IO> {
       auto parent = FusedGate::OpToPGate(ogate1->parent);
       const auto& bop =
           OpBaseOperation(Base::OperationToConstRef(*ogate1->parent));
-      fused_ops.push_back(FusedGate{bop.kind, bop.time,
-                                    std::move(ogate1->qubits), parent,
+      fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                    std::move(ogate1->qubits)}, parent,
                                     std::move(ogate1->gates), {},
                                     ogate1->defer_matrix_computation});
 
@@ -739,7 +739,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
     } else {
       if (const auto* pg = OpGetAlternative<DecomposedGate>(*fgate.parent)) {
         fused_ops.push_back(
-            FusedGate{pg->kind, pg->time, {pg->qubits[0]}, pg, {pg}, {}});
+            FusedGate{{pg->kind, pg->time, {pg->qubits[0]}}, pg, {pg}, {}});
       } else {
         fused_ops.push_back(fgate.parent);
       }

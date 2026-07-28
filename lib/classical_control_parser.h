@@ -217,7 +217,7 @@ struct ExprParser {
         if (IsConstExpr(symtab, l)) {
           return TInt{~EvalIntExpr(symtab, l)};
         } else {
-          return TFuncI{[l, lc](const SymTable& symtab) {
+          return TFuncI{[l](const SymTable& symtab) {
             auto val = ~EvalIntExpr(symtab, l);
             val = TruncateMea(symtab, l, val);
             return TInt{val};
