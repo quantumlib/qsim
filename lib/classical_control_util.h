@@ -17,6 +17,7 @@
 
 #include <charconv>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -71,11 +72,21 @@ inline int64_t ToInt(std::string_view s) {
 inline double ToFloat(std::string_view s) {
   double val;
 
+#if defined(_MSC_VER) || (defined(__GLIBCXX__) && __GLIBCXX__ >= 20210427) || \
+    (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 170000)
   auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
 
   if (ec != std::errc{} || p != s.data() + s.size()) {
-    Error::Throw("cannot convert string to int.");
+    Error::Throw("cannot convert string to float.");
   }
+#else
+  char* end;
+  std::string str(s);
+  val = std::strtod(str.c_str(), &end);
+  if (end == str.c_str() || errno == ERANGE) {
+    Error::Throw("cannot convert string to float.");
+  }
+#endif
 
   return val;
 }
