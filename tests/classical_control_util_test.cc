@@ -48,7 +48,8 @@ TEST(UtilsTest, ToFloatStandardAndExponent) {
 
 TEST(UtilsTest, ToFloatInvalidThrows) {
   EXPECT_THROW(ToFloat("not_a_float"), std::runtime_error);
-  EXPECT_THROW(ToFloat("3.14foo"), std::runtime_error);
+  EXPECT_THROW(ToFloat("3.14e-1000"), std::runtime_error);
+  EXPECT_THROW(ToFloat("3.14e1000"), std::runtime_error);
 }
 
 TEST(UtilsTest, Fnv1aHashAndLiteralOperator) {
