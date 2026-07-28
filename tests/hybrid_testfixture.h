@@ -33,7 +33,6 @@ namespace qsim {
 
 template <typename Factory>
 void TestHybrid2(const Factory& factory) {
-  constexpr char provider[] = "hybrid_test";
   constexpr char circuit_string[] =
 R"(2
 0 h 0
@@ -170,7 +169,6 @@ R"(2
 
 template <typename Factory>
 void TestHybrid4(const Factory& factory) {
-  constexpr char provider[] = "hybrid_test";
   constexpr char circuit_string[] =
 R"(4
 0 h 0
