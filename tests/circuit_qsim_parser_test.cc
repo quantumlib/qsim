@@ -41,9 +41,9 @@ struct TestRuntimeError {
 };
 
 using TestQSimParser =
-    qsim::CircuitQsimParser<float, TestParserError, TestRuntimeError>;
+    qsim::CircuitQSimParser<float, TestParserError, TestRuntimeError>;
 
-class CircuitQsimParserTest : public ::testing::Test {
+class CircuitQSimParserTest : public ::testing::Test {
  protected:
   qsim::cc::SymTable symtab;
 
@@ -55,7 +55,7 @@ class CircuitQsimParserTest : public ::testing::Test {
 
 namespace qsim {
 
-TEST_F(CircuitQsimParserTest, ValidCircuit) {
+TEST_F(CircuitQSimParserTest, ValidCircuit) {
   constexpr char valid_circuit[] =
 R"(2
 0 id1 0
@@ -93,7 +93,7 @@ R"(2
   EXPECT_EQ(circuit2.ops.size(), 10);
 }
 
-TEST_F(CircuitQsimParserTest, ValidCircuitWithControlledGates) {
+TEST_F(CircuitQSimParserTest, ValidCircuitWithControlledGates) {
   constexpr char valid_circuit[] =
 R"(5
 0 c 0 1 h 2
@@ -120,7 +120,7 @@ R"(5
   EXPECT_EQ(pg2->controlled_by.size(), 2);
 }
 
-TEST_F(CircuitQsimParserTest, ValidTimeOrder) {
+TEST_F(CircuitQSimParserTest, ValidTimeOrder) {
   constexpr char valid_circuit[] =
 R"(4
 0 cz 0 3
@@ -144,7 +144,7 @@ R"(4
   EXPECT_EQ(circuit.ops.size(), 14);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidGateName) {
+TEST_F(CircuitQSimParserTest, InvalidGateName) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -154,7 +154,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, TrailingCharacters) {
+TEST_F(CircuitQSimParserTest, TrailingCharacters) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -164,7 +164,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidQubitRange1) {
+TEST_F(CircuitQSimParserTest, InvalidQubitRange1) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -174,7 +174,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, QubitIsNotNumber1) {
+TEST_F(CircuitQSimParserTest, QubitIsNotNumber1) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -184,7 +184,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, SameQubits1) {
+TEST_F(CircuitQSimParserTest, SameQubits1) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -194,7 +194,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidSingleQubitGate) {
+TEST_F(CircuitQSimParserTest, InvalidSingleQubitGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -204,7 +204,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidTwoQubitGate) {
+TEST_F(CircuitQSimParserTest, InvalidTwoQubitGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -214,7 +214,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidRxGate) {
+TEST_F(CircuitQSimParserTest, InvalidRxGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -225,7 +225,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidRyGate) {
+TEST_F(CircuitQSimParserTest, InvalidRyGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -236,7 +236,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidRzGate) {
+TEST_F(CircuitQSimParserTest, InvalidRzGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -247,7 +247,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidRxyGate) {
+TEST_F(CircuitQSimParserTest, InvalidRxyGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -258,7 +258,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidFsimGate) {
+TEST_F(CircuitQSimParserTest, InvalidFsimGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -268,7 +268,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidCpGate) {
+TEST_F(CircuitQSimParserTest, InvalidCpGate) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -278,7 +278,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, TimeOutOfOrder) {
+TEST_F(CircuitQSimParserTest, TimeOutOfOrder) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -290,7 +290,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidQubitRange2) {
+TEST_F(CircuitQSimParserTest, InvalidQubitRange2) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -300,7 +300,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, QubitIsNotNumber2) {
+TEST_F(CircuitQSimParserTest, QubitIsNotNumber2) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -310,7 +310,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, SameQubits2) {
+TEST_F(CircuitQSimParserTest, SameQubits2) {
   constexpr char invalid_circuit[] =
 R"(2
 0 h 0
@@ -320,7 +320,7 @@ R"(2
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, NoControlQubits) {
+TEST_F(CircuitQSimParserTest, NoControlQubits) {
   constexpr char invalid_circuit[] =
 R"(4
 0 c is 0 1
@@ -329,7 +329,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidControlQubitRange) {
+TEST_F(CircuitQSimParserTest, InvalidControlQubitRange) {
   constexpr char invalid_circuit[] =
 R"(4
 0 c 1 5 is 2 3
@@ -338,7 +338,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, ControlQubitIsNotNumber) {
+TEST_F(CircuitQSimParserTest, ControlQubitIsNotNumber) {
   constexpr char invalid_circuit[] =
 R"(4
 1 c 3 x is 0 1
@@ -347,7 +347,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, SameControlQubits) {
+TEST_F(CircuitQSimParserTest, SameControlQubits) {
   constexpr char invalid_circuit[] =
 R"(4
 0 c 1 1 is 2 3
@@ -356,7 +356,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, SameControlAndTargetQubits) {
+TEST_F(CircuitQSimParserTest, SameControlAndTargetQubits) {
   constexpr char invalid_circuit[] =
 R"(4
 0 c 1 2 is 0 1
@@ -365,7 +365,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, OverlappingQubits1) {
+TEST_F(CircuitQSimParserTest, OverlappingQubits1) {
   constexpr char invalid_circuit[] =
 R"(4
 0 h 0
@@ -376,7 +376,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, OverlappingQubits2) {
+TEST_F(CircuitQSimParserTest, OverlappingQubits2) {
   constexpr char invalid_circuit[] =
 R"(4
 0 h 0
@@ -387,7 +387,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidTimeOrder1) {
+TEST_F(CircuitQSimParserTest, InvalidTimeOrder1) {
   constexpr char invalid_circuit[] =
 R"(4
 0 cz 0 1
@@ -398,7 +398,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidTimeOrder2) {
+TEST_F(CircuitQSimParserTest, InvalidTimeOrder2) {
   constexpr char invalid_circuit[] =
 R"(4
 0 cz 0 1
@@ -410,7 +410,7 @@ R"(4
   EXPECT_THROW(TestQSimParser::Run(invalid_circuit, 99), std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, InvalidTimeOrder3) {
+TEST_F(CircuitQSimParserTest, InvalidTimeOrder3) {
   constexpr char invalid_circuit[] =
 R"(4
 0 cz 0 1
@@ -427,7 +427,7 @@ R"(4
 namespace qsim::cc {
 namespace {
 
-TEST_F(CircuitQsimParserTest, ParsesSimpleSymbolDefinitions) {
+TEST_F(CircuitQSimParserTest, ParsesSimpleSymbolDefinitions) {
   std::string_view sym_defs = "nq = 5 c1 = 1 c2 = c1 * 2 f1 = 3.14 * c1";
 
   ParseSymbols<TestParserError, TestRuntimeError>(sym_defs, symtab);
@@ -450,7 +450,7 @@ TEST_F(CircuitQsimParserTest, ParsesSimpleSymbolDefinitions) {
   EXPECT_DOUBLE_EQ(f1->GetFloat(), 3.14);
 }
 
-TEST_F(CircuitQsimParserTest, ParseSymbolsHandlesSemicolonsAndDelimiters) {
+TEST_F(CircuitQSimParserTest, ParseSymbolsHandlesSemicolonsAndDelimiters) {
   std::string_view sym_defs = "a = 10; b = a + 5;\n c = b * 2";
 
   ParseSymbols<TestParserError, TestRuntimeError>(sym_defs, symtab);
@@ -460,7 +460,7 @@ TEST_F(CircuitQsimParserTest, ParseSymbolsHandlesSemicolonsAndDelimiters) {
   EXPECT_EQ(symtab.Lookup("c")->GetInt(), 30);
 }
 
-TEST_F(CircuitQsimParserTest, ParseSymbolsThrowsOnInvalidSyntax) {
+TEST_F(CircuitQSimParserTest, ParseSymbolsThrowsOnInvalidSyntax) {
   std::string_view bad_defs = "a 10"; // Missing '='
 
   EXPECT_THROW(
@@ -468,7 +468,7 @@ TEST_F(CircuitQsimParserTest, ParseSymbolsThrowsOnInvalidSyntax) {
       std::invalid_argument);
 }
 
-TEST_F(CircuitQsimParserTest, ParsesConstantDeclarationsAndQubitCount) {
+TEST_F(CircuitQSimParserTest, ParsesConstantDeclarationsAndQubitCount) {
   std::string circuit_str = R"(
     2  # 2-qubit circuit
     const float phi = 3.14159 / 2.0
@@ -489,7 +489,7 @@ TEST_F(CircuitQsimParserTest, ParsesConstantDeclarationsAndQubitCount) {
   EXPECT_TRUE(phi->IsReadOnly());
 }
 
-TEST_F(CircuitQsimParserTest, ParsesClassicalControlAndHistograms) {
+TEST_F(CircuitQSimParserTest, ParsesClassicalControlAndHistograms) {
   std::string circuit_str = R"(
     2
     h 0
@@ -510,7 +510,7 @@ TEST_F(CircuitQsimParserTest, ParsesClassicalControlAndHistograms) {
   EXPECT_EQ(hist->Size(), 2u); // 2 qubits measured in m1 tag
 }
 
-TEST_F(CircuitQsimParserTest, ImplicitTimeTagAssignmentOrdering) {
+TEST_F(CircuitQSimParserTest, ImplicitTimeTagAssignmentOrdering) {
   // Gates without time tags should automatically increment time step per qubit
   std::string circuit_str = R"(
     2
@@ -536,7 +536,7 @@ TEST_F(CircuitQsimParserTest, ImplicitTimeTagAssignmentOrdering) {
   EXPECT_EQ(bop2.qubits.size(), 2);
 }
 
-TEST_F(CircuitQsimParserTest, ExpressionQubitIndices) {
+TEST_F(CircuitQSimParserTest, ExpressionQubitIndices) {
   std::string circuit_str = R"(
     5
     const int i = 0

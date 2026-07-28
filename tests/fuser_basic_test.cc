@@ -67,7 +67,7 @@ TEST(FuserBasicTest, NoTimesToSplitAt) {
   using Gate = qsim::Gate<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string1, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string1, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
 
@@ -296,7 +296,7 @@ TEST(FuserBasicTest, TimesToSplitAt1) {
   using Gate = qsim::Gate<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string1, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string1, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
 
@@ -537,7 +537,7 @@ TEST(FuserBasicTest, TimesToSplitAt2) {
   using Gate = qsim::Gate<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string1, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string1, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
 
@@ -782,7 +782,7 @@ TEST(FuserBasicTest, OrphanedQubits1) {
   using Gate = qsim::Gate<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string2, 2);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string2, 2);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.ops.size(), 7);
 
@@ -857,7 +857,7 @@ TEST(FuserBasicTest, OrphanedQubits2) {
   using Gate = qsim::Gate<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string2, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string2, 99);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.ops.size(), 9);
 
@@ -969,7 +969,7 @@ TEST(FuserBasicTest, DecomposedQubitGate) {
 
   using OperationD = detail::append_to_variant_t<Operation, DecomposedGate>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string2, 2);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string2, 2);
   EXPECT_EQ(circuit.num_qubits, 3);
   EXPECT_EQ(circuit.ops.size(), 7);
 
@@ -1083,7 +1083,7 @@ TEST(FuserBasicTest, MeasurementGate) {
   using Operation = qsim::Operation<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string3, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string3, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 17);
 
@@ -1292,7 +1292,7 @@ TEST(FuserBasicTest, ControlledGate) {
   using ControlledGate = qsim::ControlledGate<float>;
   using FusedGate = qsim::FusedGate<float>;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string4, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string4, 99);
   EXPECT_EQ(circuit.num_qubits, 5);
   EXPECT_EQ(circuit.ops.size(), 13);
 

@@ -62,7 +62,7 @@ R"(2
 
   using fp_type = typename Factory::fp_type;
 
-  auto circuit = CircuitQsimParser<fp_type>::Run(circuit_string, 99);
+  auto circuit = CircuitQSimParser<fp_type>::Run(circuit_string, 99);
 
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.ops.size(), 23);
@@ -238,7 +238,7 @@ R"(4
 
   using fp_type = typename Factory::fp_type;
 
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
 
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 63);

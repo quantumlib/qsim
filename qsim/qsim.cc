@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
     auto cstr = ReadFile(opt.circuit_file);
     unsigned maxtime = std::numeric_limits<unsigned>::max();
     auto [circuit, obss] =
-        qsim::CircuitQsimParser<float>::Run(cstr, maxtime, symtab);
+        qsim::CircuitQSimParser<float>::Run(cstr, maxtime, symtab);
 
     struct Factory {
       Factory(unsigned num_threads) : num_threads(num_threads) {}

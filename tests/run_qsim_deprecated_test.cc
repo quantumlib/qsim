@@ -76,7 +76,7 @@ struct Factory {
 };
 
 TEST(RunQSimTest, QSimRunner1) {
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
 
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
@@ -112,7 +112,7 @@ TEST(RunQSimTest, QSimRunner1) {
 }
 
 TEST(RunQSimTest, QSimRunner2) {
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
 
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
@@ -165,7 +165,7 @@ R"(2
 )";
 
 TEST(RunQSimTest, QSimSampler) {
-  auto circuit = CircuitQsimParser<float>::Run(sample_circuit_string, 99);
+  auto circuit = CircuitQSimParser<float>::Run(sample_circuit_string, 99);
 
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.ops.size(), 11);

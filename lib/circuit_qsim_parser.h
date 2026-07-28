@@ -119,7 +119,7 @@ inline void ParseSymbols(std::string_view sym_defs, SymTable& symtab) {
  * @tparam RuntimeError Error policy for runtime errors.
  */
 template <typename FP, typename ParserError, typename RuntimeError>
-struct CircuitQsimParser final {
+struct CircuitQSimParser final {
  private:
   using fp_type = FP;
   using Operation = qsim::Operation<fp_type>;
@@ -1587,7 +1587,7 @@ struct CircuitQsimParser final {
 
 template <typename FP, typename ParserError = cc::ParserError,
           typename RuntimeError = cc::RuntimeError>
-using CircuitQsimParser = cc::CircuitQsimParser<FP, ParserError, RuntimeError>;
+using CircuitQSimParser = cc::CircuitQSimParser<FP, ParserError, RuntimeError>;
 
 }  // namespace qsim
 

@@ -113,7 +113,7 @@ struct Factory {
 };
 
 TEST(RunQSimHTest, QSimHRunner) {
-  auto circuit = CircuitQsimParser<Factory::fp_type>::Run(circuit_string, 99);
+  auto circuit = CircuitQSimParser<Factory::fp_type>::Run(circuit_string, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 63);
 

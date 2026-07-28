@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
   using fp_type = float;
 
   auto cstr = cc::ReadFile(opt.circuit_file);
-  auto circuit = CircuitQsimParser<fp_type>::Run(cstr, opt.maxtime);
+  auto circuit = CircuitQSimParser<fp_type>::Run(cstr, opt.maxtime);
 
   struct Factory {
     using Simulator = qsim::SimulatorCUDA<fp_type>;

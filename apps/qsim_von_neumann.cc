@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
   }
 
   auto cstr = cc::ReadFile(opt.circuit_file);
-  auto circuit = CircuitQsimParser<float>::Run(cstr, opt.maxtime);
+  auto circuit = CircuitQSimParser<float>::Run(cstr, opt.maxtime);
 
   if (opt.denormals_are_zeros) {
     SetFlushToZeroAndDenormalsAreZeros();

@@ -47,8 +47,8 @@ struct TestRuntimeError {
   }
 };
 
-using TestQsimParser =
-    qsim::CircuitQsimParser<float, TestParserError, TestRuntimeError>;
+using TestQSimParser =
+    qsim::CircuitQSimParser<float, TestParserError, TestRuntimeError>;
 
 namespace qsim {
 
@@ -97,7 +97,7 @@ struct Factory {
 };
 
 TEST(RunQSimTest, QSimRunner) {
-  auto circuit = CircuitQsimParser<float>::Run(circuit_string, 99);
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
 
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
@@ -190,7 +190,7 @@ TEST(RunQSimTest, Factorial) {
 
   cc::Observables obss;
 
-  auto [circuit, _] = TestQsimParser::Run(circuit_str, 100, symtab);
+  auto [circuit, _] = TestQSimParser::Run(circuit_str, 100, symtab);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
@@ -223,7 +223,7 @@ TEST(RunQSimTest, Histogram) {
 
   cc::SymTable symtab;
 
-  auto [circuit, obss] = TestQsimParser::Run(circuit_str, 100, symtab);
+  auto [circuit, obss] = TestQSimParser::Run(circuit_str, 100, symtab);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;

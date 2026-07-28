@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
   }
 
   auto cstr = cc::ReadFile(opt.circuit_file);
-  auto circuit = CircuitQsimParser<fp_type>::Run(cstr, opt.times.back());
+  auto circuit = CircuitQSimParser<fp_type>::Run(cstr, opt.times.back());
 
   if (opt.times.size() == 1
       && opt.times[0] == std::numeric_limits<unsigned>::max()) {

@@ -470,7 +470,7 @@ void TestNormAndInnerProduct(const Factory& factory) {
 
   unsigned depth = 8;
 
-  auto circuit = CircuitQsimParser<fp_type>::Run(circuit_string, depth);
+  auto circuit = CircuitQSimParser<fp_type>::Run(circuit_string, depth);
   circuit.ops.push_back(GateT<fp_type>::Create(depth + 1, 0));
 
   StateSpace state_space = factory.CreateStateSpace();
@@ -564,7 +564,7 @@ void TestSamplingCrossEntropyDifference(const Factory& factory) {
   unsigned depth = 30;
   uint64_t num_samples = 2000000;
 
-  auto circuit = CircuitQsimParser<fp_type>::Run(circuit_string, depth);
+  auto circuit = CircuitQSimParser<fp_type>::Run(circuit_string, depth);
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
@@ -776,7 +776,7 @@ void TestMeasurementLarge(const Factory& factory) {
 
   unsigned depth = 20;
 
-  auto circuit = CircuitQsimParser<fp_type>::Run(circuit_string, depth);
+  auto circuit = CircuitQSimParser<fp_type>::Run(circuit_string, depth);
   StateSpace state_space = factory.CreateStateSpace();
   State state = state_space.Create(circuit.num_qubits);
 
