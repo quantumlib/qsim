@@ -205,8 +205,6 @@ struct ExprParser {
       }
     case "~"_ophash:
       {
-        Token n = tok.Peek();
-
         Expr l = GetLeft(symtab, tok, f);
 
         if (!IsConvertibleToInt(symtab, l)) {
