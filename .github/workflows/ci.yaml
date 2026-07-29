@@ -286,8 +286,16 @@ jobs:
           export CXXFLAGS="-I${xcode_prefix}/usr/include -I${brew_prefix}/include -O3 -std=c++17 -flto=auto -Xpreprocessor -fopenmp"
           echo "CXXFLAGS=${CXXFLAGS}" >> "$GITHUB_ENV"
 
+      - name: Set up MSVC developer environment (Windows only)
+        if: startsWith(matrix.os, 'windows-')
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
+
       - name: Build the Python bindings
         shell: bash
+        env:
+          # Use Ninja on Windows: it is pre-installed on GitHub runners and does
+          # not require a Developer Command Prompt the way NMake does.
+          CMAKE_GENERATOR: ${{startsWith(matrix.os, 'windows-') && 'Ninja' || ''}}
         run: |
           mkdir -p build
           cd build
