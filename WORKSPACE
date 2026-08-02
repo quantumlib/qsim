@@ -66,7 +66,6 @@ load("@pip//:requirements.bzl", "install_deps")
 
 install_deps()
 
-
 # Required for testing compatibility with TF Quantum:
 # https://github.com/tensorflow/quantum
 http_archive(
