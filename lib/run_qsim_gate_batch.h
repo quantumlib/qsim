@@ -90,16 +90,45 @@ struct ExecutableGate {
 // 2^(n - L) contiguous blocks of 2^L amplitudes.
 template <typename StateSpace>
 struct BlockPartition {
-  BlockPartition(unsigned state_qubits, unsigned requested_block_qubits)
+  BlockPartition(unsigned state_qubits, unsigned requested_block_qubits,
+                 unsigned num_threads, unsigned min_block_qubits)
       : num_state_qubits(state_qubits),
-        block_qubits(std::min(requested_block_qubits, state_qubits)),
+        requested_block_qubits(
+            std::min(requested_block_qubits, state_qubits)),
+        block_qubits(ChooseBlockQubits(
+            state_qubits, requested_block_qubits, num_threads,
+            min_block_qubits)),
         floats_per_block(StateSpace::MinSize(block_qubits)),
         num_blocks(int64_t{1} << (state_qubits - block_qubits)) {}
 
-  unsigned num_state_qubits;    // n
-  unsigned block_qubits;        // L
-  uint64_t floats_per_block;    // state floats per block (SIMD layout)
-  int64_t num_blocks;           // 2^(n - L)
+  // Use the requested L as an upper bound. For a small state, lower L until
+  // there are at least bit_floor(num_threads) blocks for the outer parallel
+  // loop. Using bit_floor rather than bit_ceil avoids doubling the number of
+  // gate batches and remaps merely to occupy the last few threads.
+  static unsigned ChooseBlockQubits(unsigned state_qubits,
+                                    unsigned requested_block_qubits,
+                                    unsigned num_threads,
+                                    unsigned min_block_qubits) {
+    unsigned parallel_bits = 0;
+    for (auto threads = std::max(num_threads, 1u); threads > 1;
+         threads >>= 1) {
+      ++parallel_bits;
+    }
+
+    const auto parallel_block_qubits =
+        state_qubits > parallel_bits ? state_qubits - parallel_bits : 0u;
+    const auto minimum = std::min(min_block_qubits, state_qubits);
+    return std::max(
+        minimum,
+        std::min({requested_block_qubits, state_qubits,
+                  parallel_block_qubits}));
+  }
+
+  unsigned num_state_qubits;         // n
+  unsigned requested_block_qubits;  // User-specified upper bound for L.
+  unsigned block_qubits;             // Effective L.
+  uint64_t floats_per_block;         // State floats per block (SIMD layout).
+  int64_t num_blocks;                // 2^(n - L).
 };
 
 // Counters and phase timings accumulated across gate batches. Gate batches
@@ -177,6 +206,7 @@ class QSimGateBatchRunner final {
     Parameter() { this->max_fused_size = 3; }
 
     unsigned block_qubits = 19;
+    unsigned num_threads = 1;
   };
 
   template <typename Circuit>
@@ -214,7 +244,9 @@ class QSimGateBatchRunner final {
   QSimGateBatchRunner(const Parameter& param, unsigned num_qubits,
                       State& state, QubitLayout& layout)
       : param_(param),
-        partition_(num_qubits, param.block_qubits),
+        partition_(num_qubits, param.block_qubits, param.num_threads,
+                   std::max(StateSpace::kChunkQubits,
+                            param.max_fused_size)),
         state_data_(state.get()),
         chunk_qubits_(StateSpace::kChunkQubits),
         seq_sim_(1),
@@ -229,6 +261,7 @@ class QSimGateBatchRunner final {
   bool SimulateCircuit(const Circuit& circuit, bool restore_qubit_order) {
     using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
 
+    LogAdaptiveBlockSize();
     const auto prepare_start = StartPhaseTimer();
     if (!PreparePendingGates(circuit)) return false;
     LogPreparationTime(prepare_start);
@@ -266,6 +299,18 @@ class QSimGateBatchRunner final {
     if (param_.verbosity <= 1) return;
     IO::messagef("prepare time is %g seconds.\n",
                  GetTime() - prepare_start);
+  }
+
+  void LogAdaptiveBlockSize() const {
+    if (param_.verbosity > 1 &&
+        partition_.block_qubits != partition_.requested_block_qubits) {
+      IO::messagef("adaptive block size: L=%u reduced to L=%u, producing "
+                   "%lld state blocks for %u threads.\n",
+                   partition_.requested_block_qubits,
+                   partition_.block_qubits,
+                   static_cast<long long>(partition_.num_blocks),
+                   param_.num_threads);
+    }
   }
 
   // ======== Shared gate utilities ========
