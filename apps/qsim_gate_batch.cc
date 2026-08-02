@@ -114,6 +114,7 @@ int main(int argc, char* argv[]) {
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
   param.block_qubits = opt.block_qubits;
+  param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 
   if (Runner::Run(param, Factory(opt.num_threads), circuit, state)) {
