@@ -33,40 +33,34 @@ http_archive(
 )
 
 
-# ---------------------------------------------------------------------------
-# rules_python — hermetic Python toolchain + pip dependencies
-# ---------------------------------------------------------------------------
+# Hermetic Python toolchain and pinned PyPI dependencies.
 
 http_archive(
     name = "rules_python",
-    sha256 = "4a02240a4a6a8b04077a7e49921949d2e6879d6f047be1e870d222de6709c7d1",
-    strip_prefix = "rules_python-1.4.1",
-    url = "https://github.com/bazelbuild/rules_python/releases/download/v1.4.1/rules_python-v1.4.1.tar.gz",
+    sha256 = "ca77768989a7f311186a29747e3e95c936a41dffac779aff6b443db22290d913",
+    strip_prefix = "rules_python-0.36.0",
+    url = "https://github.com/bazel-contrib/rules_python/releases/download/0.36.0/rules_python-0.36.0.tar.gz",
 )
 
-load("@rules_python//python:repositories.bzl", "py_repositories")
-py_repositories()
+load(
+    "@rules_python//python:repositories.bzl",
+    "py_repositories",
+    "python_register_toolchains",
+)
 
-# Register a hermetic Python interpreter (3.11 in this example; pick what qsim supports)
-load("@rules_python//python:versions.bzl", "MINOR_MAPPING")
-load("@rules_python//python:repositories.bzl", "python_register_toolchains")
+py_repositories()
 
 python_register_toolchains(
     name = "python_3_11",
-    python_version = "3.11",
+    python_version = "3.11.9",
 )
 
-load("@python_3_11//:defs.bzl", "interpreter")
-
-# Parse locked requirements.
-# pip_parse needs a lockfile, not a bare requirements.txt.
-# We'll generate the lockfile in step 2.
 load("@rules_python//python:pip.bzl", "pip_parse")
 
 pip_parse(
     name = "pip",
-    python_interpreter_target = interpreter,
-    requirements_lock = "//:requirements_lock.txt",
+    requirements_lock = "//third_party:requirements_lock.txt",
+    python_interpreter_target = "@python_3_11_host//:python",
 )
 
 load("@pip//:requirements.bzl", "install_deps")
@@ -82,21 +76,12 @@ http_archive(
     url = "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.13.0.zip",
 )
 
-load("@org_tensorflow//tensorflow:workspace3.bzl", "tf_workspace3")
+# qsim uses TensorFlow's CUDA repository rule, but does not directly depend on
+# TensorFlow build targets. Avoid TensorFlow's broader workspace initialization,
+# which runs a host-Python NumPy probe.
+load("@org_tensorflow//third_party/gpus:cuda_configure.bzl", "cuda_configure")
 
-tf_workspace3()
-
-load("@org_tensorflow//tensorflow:workspace2.bzl", "tf_workspace2")
-
-tf_workspace2()
-
-load("@org_tensorflow//tensorflow:workspace1.bzl", "tf_workspace1")
-
-tf_workspace1()
-
-load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
-
-tf_workspace0()
+cuda_configure(name = "local_config_cuda")
 
 load("//dev_tools:compiler_probe.bzl", "compiler_probe")
 
