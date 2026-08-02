@@ -32,7 +32,6 @@ http_archive(
     url = "https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip",
 )
 
-
 # Hermetic Python toolchain and pinned PyPI dependencies.
 
 http_archive(
@@ -59,11 +58,12 @@ load("@rules_python//python:pip.bzl", "pip_parse")
 
 pip_parse(
     name = "pip",
-    requirements_lock = "//third_party:requirements_lock.txt",
     python_interpreter_target = "@python_3_11_host//:python",
+    requirements_lock = "//third_party:requirements_lock.txt",
 )
 
 load("@pip//:requirements.bzl", "install_deps")
+
 install_deps()
 
 
