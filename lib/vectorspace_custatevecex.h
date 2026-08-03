@@ -160,6 +160,17 @@ class VectorSpaceCuStateVecEx {
       return true;
     }
 
+    // Raw pointer to device (GPU) memory. Only meaningful in single-device
+    // mode; the state has no single contiguous device buffer when it is
+    // distributed across multiple devices or processes. Ownership is
+    // retained by this vector.
+    void* device_ptr() const {
+      if (distr_type_ != kSingleDevice) {
+        return nullptr;
+      }
+      return get_resources(0).device_ptr;
+    }
+
     const auto& get_wire_ordering() const {
       ErrorCheck(custatevecExStateVectorGetProperty(
           ptr_, CUSTATEVEC_EX_SV_PROP_WIRE_ORDERING,

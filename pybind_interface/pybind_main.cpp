@@ -17,7 +17,9 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -590,6 +592,50 @@ class SimulatorHelper {
     return results;
   }
 
+#ifdef QSIM_DEVICE_STATE_BINDINGS
+  // Runs a fullstate simulation and returns a heap-allocated helper whose
+  // final state stays alive in device (GPU) memory. Returns nullptr if the
+  // simulation fails.
+  template <typename StateType>
+  static std::unique_ptr<SimulatorHelper> simulate_fullstate_device(
+      const py::dict &options, bool is_noisy, const StateType& input_state) {
+    std::unique_ptr<SimulatorHelper> helper(
+        new SimulatorHelper(options, is_noisy));
+    // IsNull distinguishes allocation failure here from the multi-device
+    // case, which device_ptr_normal_order() reports separately.
+    if (!helper->is_valid || StateSpace::IsNull(helper->state) ||
+        !helper->simulate(input_state)) {
+      return nullptr;
+    }
+    return helper;
+  }
+
+  // Returns the device pointer to the final state vector, converting the
+  // buffer to normal (interleaved complex) order in place on first call.
+  // The state must not be used for further simulation afterwards. Returns
+  // nullptr, without reordering the state, if the state has no single
+  // contiguous device buffer (e.g. multi-device or multi-process
+  // cuStateVecEx states).
+  void* device_ptr_normal_order() {
+    void* ptr = state.device_ptr();
+    if (ptr == nullptr) {
+      return nullptr;
+    }
+    if (!normal_order_done_) {
+      StateSpace state_space = factory.CreateStateSpace();
+      state_space.InternalToNormalOrder(state);
+      StateSpace::DeviceSync();
+      normal_order_done_ = true;
+    }
+    // Re-query in case the reorder relocated the buffer.
+    return state.device_ptr();
+  }
+
+  unsigned get_num_qubits() const {
+    return num_qubits;
+  }
+#endif
+
  private:
   SimulatorHelper(const py::dict &options, bool noisy)
       : factory(Factory(options)),
@@ -773,7 +819,142 @@ class SimulatorHelper {
 
   // Only set to "true" once initialization is complete.
   bool is_valid;
+
+#ifdef QSIM_DEVICE_STATE_BINDINGS
+  // Once set, the internal state layout has been irreversibly mutated to
+  // normal order (for the native CUDA backend); the state must not be used
+  // for further simulation or sampling.
+  bool normal_order_done_ = false;
+#endif
 };
+
+#ifdef QSIM_DEVICE_STATE_BINDINGS
+
+// Owns the final state of a fullstate simulation in device (GPU) memory and
+// exposes it through the CUDA Array Interface (version 3), so that libraries
+// such as CuPy, Numba and PyTorch can consume the state without copying it
+// to the host. See https://github.com/quantumlib/qsim/issues/836.
+class DeviceStateVector {
+ public:
+  explicit DeviceStateVector(std::unique_ptr<SimulatorHelper> helper)
+      : helper_(std::move(helper)) {}
+
+  template <typename StateType>
+  static std::unique_ptr<DeviceStateVector> simulate(
+      const py::dict &options, bool is_noisy, const StateType& input_state) {
+    auto helper = SimulatorHelper::simulate_fullstate_device(
+        options, is_noisy, input_state);
+    if (helper == nullptr) {
+      throw std::runtime_error("qsim simulation errored out.");
+    }
+    return std::unique_ptr<DeviceStateVector>(
+        new DeviceStateVector(std::move(helper)));
+  }
+
+  unsigned num_qubits() const {
+    check_not_freed();
+    return helper_->get_num_qubits();
+  }
+
+  bool is_freed() const {
+    return helper_ == nullptr;
+  }
+
+  // Releases the device memory immediately instead of waiting for garbage
+  // collection. Idempotent.
+  void free() {
+    helper_.reset();
+  }
+
+  py::dict cuda_array_interface() {
+    check_not_freed();
+    void* ptr = helper_->device_ptr_normal_order();
+    if (ptr == nullptr) {
+      throw std::runtime_error(
+          "This state has no single contiguous device buffer (multi-device "
+          "or multi-process simulation is not supported).");
+    }
+
+    py::dict interface;
+    // The "stream" key is intentionally omitted per CAI v3: the data is
+    // fully synchronized (DeviceSync) before the pointer is exposed.
+    interface["shape"] =
+        py::make_tuple(uint64_t{1} << helper_->get_num_qubits());
+    interface["typestr"] = "<c8";
+    // The buffer is intentionally exported as writable (read_only=false):
+    // qsim performs no further reads of the state, so consumers may reuse
+    // the memory in place.
+    interface["data"] =
+        py::make_tuple(reinterpret_cast<std::uintptr_t>(ptr), false);
+    interface["version"] = 3;
+    return interface;
+  }
+
+ private:
+  void check_not_freed() const {
+    if (helper_ == nullptr) {
+      throw std::runtime_error("This DeviceStateVector has been freed.");
+    }
+  }
+
+  std::unique_ptr<SimulatorHelper> helper_;
+};
+
+void bind_device_state_vector(py::module_& m) {
+  // module_local: several GPU modules (e.g. qsim_cuda and qsim_custatevec)
+  // are loaded into the same process and each registers this class; without
+  // it, pybind11's shared type registry rejects the second registration and
+  // `import qsimcirq` fails. Instances never cross modules.
+  py::class_<DeviceStateVector>(
+      m, "DeviceStateVector", py::module_local(),
+      "Final state vector of a simulation, held in device (GPU) memory. "
+      "After free(), all properties and methods except is_freed and "
+      "free() itself raise RuntimeError.")
+      .def_property_readonly("__cuda_array_interface__",
+                             &DeviceStateVector::cuda_array_interface)
+      .def_property_readonly("num_qubits", &DeviceStateVector::num_qubits,
+                             "Number of qubits in the state vector. Raises "
+                             "RuntimeError if the state has been freed.")
+      .def_property_readonly("is_freed", &DeviceStateVector::is_freed,
+                             "Whether the device memory has been released. "
+                             "Always safe to access, even after free().")
+      .def("free", &DeviceStateVector::free,
+           "Releases the device memory held by this object. Idempotent; "
+           "afterwards all other properties and methods raise RuntimeError. "
+           "WARNING: any view previously created from "
+           "__cuda_array_interface__ (e.g. via cupy.asarray) becomes a "
+           "dangling device pointer; drop all such views, and synchronize "
+           "any streams still reading the buffer, before calling free().");
+
+  m.def(
+      "qsim_simulate_fullstate_device",
+      [](const py::dict &options, uint64_t input_state) {
+        return DeviceStateVector::simulate(options, false, input_state);
+      },
+      "Call the qsim simulator, keeping the final state in device memory");
+  m.def(
+      "qsim_simulate_fullstate_device",
+      [](const py::dict &options, const py::array_t<float> &input_vector) {
+        return DeviceStateVector::simulate(options, false, input_vector);
+      },
+      "Call the qsim simulator, keeping the final state in device memory");
+  m.def(
+      "qtrajectory_simulate_fullstate_device",
+      [](const py::dict &options, uint64_t input_state) {
+        return DeviceStateVector::simulate(options, true, input_state);
+      },
+      "Call the qtrajectory simulator, keeping the final state in device "
+      "memory");
+  m.def(
+      "qtrajectory_simulate_fullstate_device",
+      [](const py::dict &options, const py::array_t<float> &input_vector) {
+        return DeviceStateVector::simulate(options, true, input_vector);
+      },
+      "Call the qtrajectory simulator, keeping the final state in device "
+      "memory");
+}
+
+#endif  // QSIM_DEVICE_STATE_BINDINGS
 
 // Methods for simulating full state vectors.
 

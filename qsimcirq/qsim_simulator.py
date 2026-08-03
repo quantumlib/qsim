@@ -550,6 +550,121 @@ class QSimSimulator(
         params = cirq.study.ParamResolver(param_resolver)
         return next(self._simulate_impl(program, params, qubit_order, initial_state))
 
+    def simulate_into_device_array(
+        self,
+        program: cirq.AbstractCircuit,
+        param_resolver: cirq.ParamResolverOrSimilarType = None,
+        qubit_order: cirq.QubitOrderOrList = cirq.ops.QubitOrder.DEFAULT,
+        initial_state: Optional[Union[int, np.ndarray]] = None,
+    ) -> Tuple[cirq.ParamResolver, Any, Sequence[cirq.Qid]]:
+        """Simulates the circuit, leaving the final state in GPU memory.
+
+        Requires a GPU backend (`use_gpu=True`). Unlike `simulate`, the final
+        state vector is not copied to host memory. Instead, this returns an
+        object exposing `__cuda_array_interface__`, which GPU libraries such
+        as CuPy, Numba or PyTorch can consume without a copy, e.g.
+        `cupy.asarray(device_state)`.
+
+        The returned object owns the device buffer; the buffer is released
+        when the object is garbage-collected or when its `free()` method is
+        called. Consumers such as CuPy and Numba keep the returned object
+        alive via the `__cuda_array_interface__` owner reference. However,
+        `free()` releases the device buffer immediately and must not be
+        called while any consumer view of the buffer exists (doing so leads
+        to use-after-free on the device); synchronize any streams still
+        reading the buffer first. After `free()`, all properties and
+        methods of the returned object except `is_freed` and `free()` itself
+        raise RuntimeError. Release the state (via `free()` or by dropping
+        all references) before interpreter shutdown; freeing device memory
+        during interpreter teardown, after the CUDA context is destroyed,
+        is unsafe.
+
+        The state has the same layout and qubit-ordering convention as the
+        numpy array returned by `simulate_into_1d_array`.
+
+        Multi-device and multi-process simulations (`gpu_mode >= 2` running
+        on more than one GPU) have no single device buffer; accessing
+        `__cuda_array_interface__` on their results raises a RuntimeError.
+
+        Returns:
+            Tuple of (param resolver, device state, qubit order). The device
+            state is a `DeviceStateVector` (a per-backend pybind11 class)
+            exposing `__cuda_array_interface__`, `num_qubits`, `is_freed`
+            and `free()`. The qubit order is the cirq-ordered qubits
+            (`Sequence[cirq.Qid]`) corresponding to the state's qubit
+            indexing.
+
+        Raises:
+            ValueError: if this simulator was not configured with
+                `use_gpu=True`, or if `initial_state` is a vector whose size
+                does not match the number of qubits.
+            TypeError: if `initial_state` is neither an int nor a
+                `np.complex64` numpy array.
+            RuntimeError: if the simulation fails (e.g. the device state
+                could not be allocated). Additionally, accessing
+                `__cuda_array_interface__` on the returned object raises
+                RuntimeError if the state is spread across multiple devices
+                or has been freed.
+        """
+        if not self.qsim_options["g"]:
+            raise ValueError(
+                "simulate_into_device_array requires GPU execution. "
+                "Set use_gpu=True in QSimOptions."
+            )
+
+        if initial_state is None:
+            initial_state = 0
+        if not isinstance(initial_state, (int, np.ndarray)):
+            raise TypeError("initial_state must be an int or state vector.")
+
+        # Add noise to the circuit if a noise model was provided.
+        all_qubits = program.all_qubits()
+        program = qsimc.QSimCircuit(
+            (
+                self.noise.noisy_moments(program, sorted(all_qubits))
+                if self.noise is not cirq.NO_NOISE
+                else program
+            ),
+        )
+
+        options = {}
+        options.update(self.qsim_options)
+
+        prs = cirq.study.ParamResolver(param_resolver)
+        cirq_order = cirq.QubitOrder.as_qubit_order(qubit_order).order_for(all_qubits)
+        num_qubits = len(cirq_order)
+        if isinstance(initial_state, np.ndarray):
+            if initial_state.dtype != np.complex64:
+                raise TypeError("initial_state vector must have dtype np.complex64.")
+            input_vector = initial_state.view(np.float32)
+            if len(input_vector) != 2**num_qubits * 2:
+                raise ValueError(
+                    "initial_state vector size must match number of qubits. "
+                    f"Expected: {2**num_qubits * 2} Received: {len(input_vector)}"
+                )
+
+        if _needs_trajectories(program):
+            translator_fn_name = "translate_cirq_to_qtrajectory"
+            simulator_fn = self._sim_module.qtrajectory_simulate_fullstate_device
+        else:
+            translator_fn_name = "translate_cirq_to_qsim"
+            simulator_fn = self._sim_module.qsim_simulate_fullstate_device
+
+        solved_circuit = cirq.resolve_parameters(program, prs)
+        options["c"], _ = self._translate_circuit(
+            solved_circuit,
+            translator_fn_name,
+            cirq_order,
+        )
+        options["s"] = self.get_seed()
+
+        if isinstance(initial_state, int):
+            device_state = simulator_fn(options, initial_state)
+        else:
+            device_state = simulator_fn(options, input_vector)
+
+        return prs, device_state, cirq_order
+
     def simulate_sweep_iter(
         self,
         program: cirq.Circuit,
