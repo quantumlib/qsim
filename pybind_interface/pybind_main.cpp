@@ -847,8 +847,7 @@ class DeviceStateVector {
     if (helper == nullptr) {
       throw std::runtime_error("qsim simulation errored out.");
     }
-    return std::unique_ptr<DeviceStateVector>(
-        new DeviceStateVector(std::move(helper)));
+    return std::make_unique<DeviceStateVector>(std::move(helper));
   }
 
   unsigned num_qubits() const {

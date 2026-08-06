@@ -636,6 +636,7 @@ class QSimSimulator(
         if isinstance(initial_state, np.ndarray):
             if initial_state.dtype != np.complex64:
                 raise TypeError("initial_state vector must have dtype np.complex64.")
+            initial_state = np.ascontiguousarray(initial_state)
             input_vector = initial_state.view(np.float32)
             if len(input_vector) != 2**num_qubits * 2:
                 raise ValueError(

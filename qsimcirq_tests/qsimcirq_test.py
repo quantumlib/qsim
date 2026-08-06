@@ -1581,6 +1581,37 @@ def test_cirq_qsim_gpu_simulate_into_device_array_with_input_state():
         assert cirq.approx_eq(state_vector[i], 0, atol=1e-6)
 
 
+def test_cirq_qsim_gpu_simulate_into_device_array_with_non_contiguous_input_state():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+    pytest.importorskip("cupy")
+
+    num_qubits = 2
+    qubits = cirq.LineQubit.range(num_qubits)
+    circuit = cirq.Circuit(cirq.H.on_each(*qubits))
+
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    sim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+
+    # Create non-contiguous sliced initial_state array
+    full_array = np.zeros(8, dtype=np.complex64)
+    full_array[0] = 0.5
+    full_array[2] = 0.5
+    full_array[4] = 0.5
+    full_array[6] = 0.5
+    initial_state_strided = full_array[::2]
+    assert not initial_state_strided.flags.c_contiguous
+
+    _, device_state, _ = sim.simulate_into_device_array(
+        circuit, initial_state=initial_state_strided
+    )
+    state_vector = _device_state_to_numpy(device_state)
+
+    assert cirq.approx_eq(state_vector[0], 1, atol=1e-6)
+    for i in range(1, 4):
+        assert cirq.approx_eq(state_vector[i], 0, atol=1e-6)
+
+
 def test_device_state_vector_free():
     if qsimcirq.qsim_gpu is None:
         pytest.skip("GPU is not available for testing.")
