@@ -267,7 +267,7 @@ jobs:
           root: 'C:\\hostedtoolcache\\windows\\Python'
           exe: '${{steps.setup.outputs.python-version}}\\x64\\python3.exe'
         shell: pwsh
-        run: bash -x dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose'}} --action_env PYTHON_BIN_PATH="${root}\\${exe}"
+        run: bash -x dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose'}} --action_env PYTHON_BIN_PATH="${root}/${exe}"
 
       - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
