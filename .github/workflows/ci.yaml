@@ -256,7 +256,7 @@ jobs:
         name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
-          dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose'}}
+          dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose' || ''}}
 
       - if: ${{startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (Windows case)
@@ -267,7 +267,7 @@ jobs:
           root: 'C:\\hostedtoolcache\\windows\\Python'
           exe: '${{steps.setup.outputs.python-version}}\\x64\\python3.exe'
         shell: pwsh
-        run: bash -x dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose'}} --action_env PYTHON_BIN_PATH="${root}/${exe}"
+        run: bash -x dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose' || ''}} --action_env PYTHON_BIN_PATH="${root}/${exe}"
 
       - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
@@ -349,7 +349,7 @@ jobs:
           bazel test \
               --config=${{matrix.hardware_opt}} \
               --config=${{matrix.parallel_opt}} \
-              ${{runner.debug == '1' && '--config=verbose'}} \
+              ${{runner.debug == '1' && '--config=verbose' || ''}} \
               tests:all
 
       - name: Run sample simulation
@@ -357,7 +357,7 @@ jobs:
           bazel run \
               --config=${{matrix.hardware_opt}} \
               --config=${{matrix.parallel_opt}} \
-              ${{runner.debug == '1' && '--config=verbose'}} \
+              ${{runner.debug == '1' && '--config=verbose' || ''}} \
               apps:qsim_base -- -c circuits/circuit_q24
 
   memory-tests:
