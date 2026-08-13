@@ -256,7 +256,7 @@ jobs:
         name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
-          dev_tools/test_libs.sh ${{inputs.debug == '1' && '--config=verbose'}}
+          dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose'}}
 
       - if: ${{startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (Windows case)
@@ -350,7 +350,7 @@ jobs:
           bazel test \
               --config=${{matrix.hardware_opt}} \
               --config=${{matrix.parallel_opt}} \
-              ${{inputs.debug == '1' && '--config=verbose'}} \
+              ${{runner.debug == '1' && '--config=verbose'}} \
               tests:all
 
       - name: Run sample simulation
@@ -358,7 +358,7 @@ jobs:
           bazel run \
               --config=${{matrix.hardware_opt}} \
               --config=${{matrix.parallel_opt}} \
-              ${{inputs.debug == '1' && '--config=verbose'}} \
+              ${{runner.debug == '1' && '--config=verbose'}} \
               apps:qsim_base -- -c circuits/circuit_q24
 
   memory-tests:
@@ -432,15 +432,16 @@ jobs:
       - yaml-lint
     runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
-    env:
-      # The next environment variable is used by Docker.
-      BUILDKIT_PROGRESS: ${{runner.debug == '1' && 'plain'}}
     steps:
       - name: Check out a copy of the git repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
+
+      - name: Configure Docker BuildKit for debug mode
+        if: runner.debug == '1'
+        run: echo "BUILDKIT_PROGRESS=plain" >> "$GITHUB_ENV"
 
       - name: Build Docker images
         run: |

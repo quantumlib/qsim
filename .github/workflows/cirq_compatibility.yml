@@ -20,11 +20,6 @@ on:
     - cron: "10 7 * * *"
 
   workflow_dispatch:
-    inputs:
-      debug:
-        description: 'Run with debugging options'
-        type: boolean
-        default: true
 
 permissions:
   contents: read
@@ -66,5 +61,5 @@ jobs:
 
       - name: Run Python tests
         env:
-          PYTEST_ADDOPTS: ${{inputs.debug && '-n auto -v' || '-n auto' }}
+          PYTEST_ADDOPTS: ${{runner.debug && '-n auto -v' || '-n auto' }}
         run: make -j run-py-tests
