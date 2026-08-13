@@ -87,6 +87,8 @@ jobs:
     needs: run-scorecard
     runs-on: ubuntu-slim
     timeout-minutes: 5
+    permissions:
+      actions: read
     steps:
       - name: Write the Scorecard report page link to the workflow summary
         run: |
