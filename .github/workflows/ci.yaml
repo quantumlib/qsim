@@ -34,26 +34,20 @@ on:
 
   workflow_dispatch:
     inputs:
-      debug:
-        description: 'Run with debugging options'
-        type: boolean
-        default: true
       soft-linting:
         description: 'Do not quit for linting errors'
         type: boolean
         default: true
 
 env:
-  # Python version to use for actions/setup-python.
-  python-version: '3.13'
-  SHELLOPTS: ${{inputs.debug && 'xtrace'}}
   PIP_PROGRESS_BAR: 'off'
 
 concurrency:
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   python-checks:
@@ -62,14 +56,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{env.python-version}}
+          python-version: 3.13
           cache: pip
           cache-dependency-path: |
             requirements.txt
@@ -101,7 +96,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run hadolint on Dockerfiles
         continue-on-error: ${{inputs.soft-linting == 'true'}}
@@ -123,7 +120,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install problem matcher
         run: echo '::add-matcher::.github/problem-matchers/shellcheck.json'
@@ -144,7 +143,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install yamllint
         run: |
@@ -164,7 +165,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Buildifier
         uses: jbajic/setup-buildifier@c558ee05c6f74ab5753ff794516750b4aadac296 # v1
@@ -184,13 +187,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run actionlint
         continue-on-error: ${{inputs.soft-linting == 'true'}}
-        uses: raven-actions/actionlint@205b530c5d9fa8f44ae9ed59f341a0db994aa6f8 # v2
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
         with:
-          flags: ${{inputs.debug && '-verbose'}}
+          flags: ${{runner.debug == '1' && '-verbose' || '' }}
           files: '.github/workflows/*.{yaml,yml}'
           pyflakes: false
 
@@ -221,12 +226,13 @@ jobs:
           - '3.13'
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           submodules: recursive
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         id: setup
         with:
           python-version: ${{matrix.python_version}}
@@ -244,24 +250,23 @@ jobs:
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
         with:
-          debug: ${{inputs.debug}}
+          debug: ${{runner.debug == '1'}}
 
       - if: ${{! startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (non-Windows case)
         run: |
           alias bazel=bazelisk
-          dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}}
+          dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose' || ''}}
 
       - if: ${{startsWith(matrix.os, 'windows-')}}
         name: Build the qsim C++ library and run tests (Windows case)
         # On GitHub Windows runners, Bazel ends up finding a different "python3"
         # binary than what's installed by setup-python unless we tell Bazel what
         # to use. Here we do that by setting PYTHON_BIN_PATH.
-        env:
-          root: 'C:\\hostedtoolcache\\windows\\Python'
-          exe: '${{steps.setup.outputs.python-version}}\\x64\\python3.exe'
-        shell: cmd
-        run: bash -x dev_tools/test_libs.sh ${{inputs.debug && '--config=verbose'}} --action_env PYTHON_BIN_PATH=${{env.root}}\\${{env.exe}}
+        run: |
+          $pythonPath = (Get-Command python).Source -replace '\\', '/'
+          bash -x dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose' || ''}} --action_env PYTHON_BIN_PATH="$pythonPath"
+        shell: pwsh
 
       - name: Install LLVM and OpenMP on macOS
         if: startsWith(matrix.os, 'macos')
@@ -291,8 +296,8 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake ${{inputs.debug && '--debug-output' || ''}} ..
-          cmake --build . -j ${{inputs.debug && '--verbose' || ''}}
+          cmake ${{runner.debug == '1' && '--debug-output' || ''}} ..
+          cmake --build . -j ${{runner.debug == '1' && '--verbose' || ''}}
 
   options-tests:
     name: Options tests
@@ -313,14 +318,15 @@ jobs:
         parallel_opt: [openmp, nopenmp]
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           submodules: recursive
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{env.python-version}}
+          python-version: 3.13
           cache: pip
           cache-dependency-path: |
             requirements.txt
@@ -335,14 +341,14 @@ jobs:
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
         with:
-          debug: ${{inputs.debug}}
+          debug: ${{runner.debug == '1'}}
 
       - name: Run C++ tests
         run: |
           bazel test \
               --config=${{matrix.hardware_opt}} \
               --config=${{matrix.parallel_opt}} \
-              ${{inputs.debug && '--config=verbose'}} \
+              ${{runner.debug == '1' && '--config=verbose' || ''}} \
               tests:all
 
       - name: Run sample simulation
@@ -350,7 +356,7 @@ jobs:
           bazel run \
               --config=${{matrix.hardware_opt}} \
               --config=${{matrix.parallel_opt}} \
-              ${{inputs.debug && '--config=verbose'}} \
+              ${{runner.debug == '1' && '--config=verbose' || ''}} \
               apps:qsim_base -- -c circuits/circuit_q24
 
   memory-tests:
@@ -368,18 +374,19 @@ jobs:
       common_args: >-
         --config=avx
         --config=openmp
-        ${{inputs.debug && '--config=verbose'}}
+        --config=verbose
         tests:all
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           submodules: recursive
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{env.python-version}}
+          python-version: 3.13
           cache: pip
           cache-dependency-path: |
             requirements.txt
@@ -394,7 +401,7 @@ jobs:
       - name: Set up Bazel
         uses: './.github/actions/set-up-bazel'
         with:
-          debug: ${{inputs.debug}}
+          debug: ${{runner.debug == '1'}}
 
       - name: Install google-perftools for tcmalloc
         run: |
@@ -403,7 +410,7 @@ jobs:
 
       - name: Run TCMalloc tests
         env:
-          PERFTOOLS_VERBOSE: ${{inputs.debug && 1}}
+          PERFTOOLS_VERBOSE: ${{runner.debug == '1' && 1 || ''}}
         run: bazel test --config=tcmalloc ${{env.common_args}}
 
       - name: Run memory sanitizer tests
@@ -423,14 +430,16 @@ jobs:
       - yaml-lint
     runs-on: ubuntu-24.04-x64-16-core
     timeout-minutes: 60
-    env:
-      # The next environment variable is used by Docker.
-      BUILDKIT_PROGRESS: ${{inputs.debug && 'plain'}}
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           submodules: recursive
+
+      - name: Configure Docker BuildKit for debug mode
+        if: runner.debug == '1'
+        run: echo "BUILDKIT_PROGRESS=plain" >> "$GITHUB_ENV"
 
       - name: Build Docker images
         run: |
