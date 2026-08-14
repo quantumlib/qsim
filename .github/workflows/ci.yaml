@@ -263,7 +263,7 @@ jobs:
         # On GitHub Windows runners, Bazel ends up finding a different "python3"
         # binary than what's installed by setup-python unless we tell Bazel what
         # to use. Here we do that by setting PYTHON_BIN_PATH.
-        run:
+        run: |
           $pythonPath = (Get-Command python).Source -replace '\\', '/'
           bash -x dev_tools/test_libs.sh ${{runner.debug == '1' && '--config=verbose' || ''}} --action_env PYTHON_BIN_PATH="$pythonPath"
         shell: pwsh
