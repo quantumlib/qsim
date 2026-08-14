@@ -34,13 +34,6 @@ else()
     message(STATUS "${MSG_PREFIX} did not detect Apple Silicon")
 endif()
 
-# SSE/AVX pybind modules use x86 intrinsics; only build them on x86.
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i386|i486|i586|i686)$")
-    set(QSIM_X86 TRUE)
-else()
-    set(QSIM_X86 FALSE)
-endif()
-
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
     message(STATUS "${MSG_PREFIX} found CUDA compiler "
@@ -109,7 +102,8 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     endif()
 endif()
 
-if(QSIM_X86)
+# SSE/AVX pybind modules use x86 intrinsics; only build them on x86.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i386|i486|i586|i686)$")
     add_subdirectory(pybind_interface/sse)
     add_subdirectory(pybind_interface/avx512)
     add_subdirectory(pybind_interface/avx2)
