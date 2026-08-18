@@ -180,7 +180,9 @@ inline void ApplyBitPairSwaps(
   const auto floats_per_chunk_span = plan.FloatsPerChunkSpan();
   const auto num_chunk_spans = plan.NumChunkSpans();
 
-#pragma omp parallel for schedule(dynamic, 32)
+  // Static scheduling divides spans deterministically across threads, avoiding
+  // atomic dispatch lock contention and preserving hardware prefetch streams.
+#pragma omp parallel for schedule(static)
   for (int64_t span_index = 0; span_index < num_chunk_spans; ++span_index) {
     const auto first_chunk = plan.FirstChunkOfSpan(span_index);
     const auto partner_chunk = plan.PartnerChunk(first_chunk);
