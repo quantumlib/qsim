@@ -16,8 +16,8 @@
 
 namespace py = pybind11;
 
-#ifdef _WIN32
-//  Windows
+#if defined(_WIN32) && (defined(_M_IX86) || defined(_M_X64))
+//  Windows with cpuid
 #include <intrin.h>
 #define cpuid(info, x)    __cpuidex(info, x, 0)
 
@@ -35,7 +35,7 @@ enum Instructions { AVX512F = 0, AVX2 = 1, SSE4_1 = 2, BASIC = 3};
 int detect_instructions() {
   Instructions instr = BASIC;
 
-  #if !defined(__aarch64__) || !defined(__APPLE__)
+  #if (defined(_WIN32) && (defined(_M_IX86) || defined(_M_X64))) || defined(__x86_64__) || defined(__i386__)
   // Existing x86/x86_64 specific instruction set detection logic
   int info[4];
   cpuid(info, 0);
