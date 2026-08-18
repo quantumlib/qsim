@@ -253,7 +253,8 @@ class QSimGateBatchRunner final {
         layout_(layout),
         gate_batch_planner_(partition_.num_state_qubits,
                             partition_.block_qubits, chunk_qubits_) {
-    assert(partition_.block_qubits >= chunk_qubits_);
+    assert(partition_.block_qubits >=
+           std::min(chunk_qubits_, partition_.num_state_qubits));
     assert(layout_.NumQubits() == partition_.num_state_qubits);
   }
 
