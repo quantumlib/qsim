@@ -419,10 +419,10 @@ class QSimGateBatchRunner final {
     static constexpr unsigned kMinRemapSlots = 2;
 
     // Lowest eviction position allowed in a multi-block gate batch: swap-pass
-    // spans are 2^(floor - chunk_qubits) chunks, so floor 11 keeps every
-    // span at least 16 KiB for float states and at streaming bandwidth.
+    // spans are 2^(floor - chunk_qubits) chunks, so floor 9 keeps every
+    // span at least 4 KiB for float states and at streaming bandwidth.
     // See RemapSlotCapacity.
-    static constexpr unsigned kMinEvictionFloor = 11;
+    static constexpr unsigned kMinEvictionFloor = 9;
 
     // Starting any remapping incurs a full-state pass. Additional pairs share
     // that pass and therefore carry a smaller marginal cost. With these
