@@ -10,8 +10,12 @@
 
 #include <limits>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/cooperative_for.h"
+#include "../lib/cpu_thread_topology.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
@@ -27,6 +31,7 @@ struct Options {
   unsigned maxtime = std::numeric_limits<unsigned>::max();
   unsigned seed = 1;
   unsigned num_threads = 1;
+  unsigned inner_threads = 1;
   unsigned max_fused_size = 3;
   unsigned block_qubits = 19;
   unsigned verbosity = 0;
@@ -35,10 +40,11 @@ struct Options {
 Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_gate_batch -c circuit "
                            "-d maxtime -s seed -t threads "
-                           "-f max_fused_size -l block_qubits -v verbosity\n";
+                           "-f max_fused_size -l block_qubits "
+                           "-i inner_threads -v verbosity\n";
   Options opt;
   int k;
-  while ((k = getopt(argc, argv, "c:d:s:t:f:l:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:l:i:v:")) != -1) {
     switch (k) {
       case 'c': opt.circuit_file = optarg; break;
       case 'd': opt.maxtime = std::atoi(optarg); break;
@@ -46,6 +52,7 @@ Options GetOptions(int argc, char* argv[]) {
       case 't': opt.num_threads = std::atoi(optarg); break;
       case 'f': opt.max_fused_size = std::atoi(optarg); break;
       case 'l': opt.block_qubits = std::atoi(optarg); break;
+      case 'i': opt.inner_threads = std::atoi(optarg); break;
       case 'v': opt.verbosity = std::atoi(optarg); break;
       default: qsim::IO::errorf(usage); exit(1);
     }
@@ -76,6 +83,22 @@ int main(int argc, char* argv[]) {
   using namespace qsim;
 
   auto opt = GetOptions(argc, argv);
+  std::vector<unsigned> team_thread_cpus;
+  if (opt.inner_threads > 1) {
+#ifndef _OPENMP
+    IO::errorf("cannot configure SMT teams: OpenMP is not enabled.\n");
+    return 1;
+#else
+    std::string topology_error;
+    const auto topology = CpuThreadTopology::Discover();
+    if (!topology.BuildTeamCpuOrder(opt.num_threads, opt.inner_threads,
+                                    team_thread_cpus, topology_error)) {
+      IO::errorf("cannot configure SMT teams: %s.\n",
+                 topology_error.c_str());
+      return 1;
+    }
+#endif
+  }
 
 #ifdef _OPENMP
   omp_set_num_threads(opt.num_threads);
@@ -100,7 +123,7 @@ int main(int argc, char* argv[]) {
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Fuser = MultiQubitGateFuser<IO>;
-  using SeqSimulator = qsim::Simulator<SequentialFor>;
+  using SeqSimulator = qsim::Simulator<CooperativeFor>;
   using Runner = QSimGateBatchRunner<IO, Fuser, Factory, SeqSimulator>;
 
   StateSpace state_space = Factory(opt.num_threads).CreateStateSpace();
@@ -115,6 +138,8 @@ int main(int argc, char* argv[]) {
   param.max_fused_size = opt.max_fused_size;
   param.block_qubits = opt.block_qubits;
   param.num_threads = opt.num_threads;
+  param.inner_threads = opt.inner_threads;
+  param.team_thread_cpus = std::move(team_thread_cpus);
   param.verbosity = opt.verbosity;
 
   if (Runner::Run(param, Factory(opt.num_threads), circuit, state)) {
