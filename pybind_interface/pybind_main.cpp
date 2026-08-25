@@ -30,7 +30,6 @@
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io.h"
 #include "../lib/qtrajectory.h"
-#include "../lib/run_qsimh.h"
 
 using namespace qsim;
 
@@ -1029,53 +1028,4 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
   }
 
   return result_bits;
-}
-
-// Method for running the hybrid simulator.
-
-std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
-  using HybridSimulator = HybridSimulator<IO, For>;
-  using Runner = QSimHRunner<IO, MultiQubitGateFuser<IO>, HybridSimulator>;
-
-  Circuit<Factory::Operation> circuit;
-  std::vector<Bitstring> bitstrings;
-  Runner::Parameter param;
-  py::list dense_parts;
-
-  try {
-    circuit = getCircuit(options);
-    bitstrings = getBitstrings(options, circuit.num_qubits);
-    dense_parts = ParseOptions<py::list>(options, "k\0");
-    param.prefix = ParseOptions<uint64_t>(options, "w\0");
-    param.num_prefix_gatexs = ParseOptions<unsigned>(options, "p\0");
-    param.num_root_gatexs = ParseOptions<unsigned>(options, "r\0");
-    param.num_threads = ParseOptions<unsigned>(options, "t\0");
-    param.max_fused_size = ParseOptions<unsigned>(options, "f\0");
-    param.verbosity = ParseOptions<unsigned>(options, "v\0");
-
-    std::vector<unsigned> parts(circuit.num_qubits, 0);
-    for (auto i : dense_parts) {
-      unsigned idx = i.cast<unsigned>();
-      if (idx >= circuit.num_qubits) {
-        IO::errorf("Invalid arguments are provided for arg k.\n");
-        return {};
-      }
-      parts[i.cast<unsigned>()] = 1;
-    }
-
-    // Define container for amplitudes
-    std::vector<std::complex<float>> amplitudes(bitstrings.size(), 0);
-
-    Factory factory(options);
-
-    if (Runner::Run(param, factory, circuit, parts, bitstrings, amplitudes)) {
-      return amplitudes;
-    }
-  } catch (const std::invalid_argument &exp) {
-    IO::errorf("%s", exp.what());
-    return {};
-  }
-
-  IO::errorf("qsimh simulation of the circuit errored out.\n");
-  return {};
 }

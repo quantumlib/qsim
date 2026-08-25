@@ -54,7 +54,6 @@ def main(unused_argv):
                 "qsim_circuit",
                 "qsimc",
                 "qsim_simulator",
-                "qsimh_simulator",
             ]
         },
     )

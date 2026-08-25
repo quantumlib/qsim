@@ -1,8 +1,8 @@
 # The MPS Simulator
 
 qsim includes a Matrix Product State (MPS) simulator alongside its standard
-state-vector and hybrid Schrödinger-Feynman simulators. While the full
-state-vector simulator (`qsim`) stores the entire quantum state in memory — which
+state-vector simulator. While the full state-vector simulator (`qsim`) stores
+the entire quantum state in memory — which
 grows exponentially with the number of qubits — the MPS simulator takes a
 different approach that can be much more memory-efficient for certain kinds of
 circuits.
@@ -145,8 +145,8 @@ The MPS simulator is actively developed but not yet complete. As of now:
 | Circuit has low entanglement (1D, shallow QAOA, etc.) | MPS |
 | You want exact results for any circuit | qsim (state-vector) |
 | Many qubits, low depth | MPS |
-| Deep random circuits | qsim or qsimh |
-| You need a Python interface | qsim or qsimh (via qsimcirq) |
+| Deep random circuits | qsim |
+| You need a Python interface | qsim (via qsimcirq) |
 
 ## Further reading
 
