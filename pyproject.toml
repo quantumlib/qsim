@@ -42,7 +42,7 @@ requires = [
 name = "qsimcirq"
 description = "High-performance quantum circuit simulator for C++ and Python."
 authors = [
-    { name = "The qsim Developers", email = "quantum-oss-maintainers@google.com" }
+    { name = "The qsim/qsimh Developers", email = "qsim-qsimh-dev@googlegroups.com" }
 ]
 maintainers = [
     { name = "Google Quantum AI", email = "quantum-oss-maintainers@google.com" }

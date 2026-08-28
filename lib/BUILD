@@ -40,6 +40,7 @@ cc_library(
         "gate_appl.h",
         "gates_cirq.h",
         "gates_qsim.h",
+        "hybrid.h",
         "io.h",
         "io_file.h",
         "matrix.h",
@@ -50,6 +51,7 @@ cc_library(
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
+        "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
         "simulator.h",
@@ -115,6 +117,7 @@ cuda_library(
         "gate_appl.h",
         "gates_cirq.h",
         "gates_qsim.h",
+        "hybrid.h",
         "io.h",
         "io_file.h",
         "matrix.h",
@@ -125,6 +128,7 @@ cuda_library(
         "parfor.h",
         "qtrajectory.h",
         "run_qsim.h",
+        "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
         "simmux_gpu.h",
@@ -187,6 +191,7 @@ cuda_library(
         "gate_appl.h",
         "gates_cirq.h",
         "gates_qsim.h",
+        "hybrid.h",
         "io.h",
         "io_file.h",
         "matrix.h",
@@ -199,6 +204,7 @@ cuda_library(
         "qtrajectory.h",
         "run_custatevecex.h",
         "run_qsim.h",
+        "run_qsimh.h",
         "seqfor.h",
         "simmux.h",
         "simmux_gpu.h",
@@ -291,6 +297,50 @@ cc_library(
         "unitaryspace_avx.h",
         "unitaryspace_basic.h",
         "unitaryspace_sse.h",
+        "util.h",
+        "util_cpu.h",
+        "vectorspace.h",
+    ],
+)
+
+# Library to run qsimh with qsim circuit parser and parallel `for`
+cc_library(
+    name = "run_qsimh_lib",
+    hdrs = [
+        "bits.h",
+        "channel.h",
+        "circuit.h",
+        "circuit_qsim_parser.h",
+        "expect.h",
+        "formux.h",
+        "fuser.h",
+        "fuser_basic.h",
+        "fuser_mqubit.h",
+        "gate.h",
+        "gate_appl.h",
+        "gates_qsim.h",
+        "hybrid.h",
+        "io.h",
+        "io_file.h",
+        "matrix.h",
+        "operation.h",
+        "operation_base.h",
+        "parfor.h",
+        "run_qsimh.h",
+        "seqfor.h",
+        "simmux.h",
+        "simulator.h",
+        "simulator_avx.h",
+        "simulator_avx512.h",
+        "simulator_basic.h",
+        "simulator_neon.h",
+        "simulator_sse.h",
+        "statespace.h",
+        "statespace_avx.h",
+        "statespace_avx512.h",
+        "statespace_basic.h",
+        "statespace_neon.h",
+        "statespace_sse.h",
         "util.h",
         "util_cpu.h",
         "vectorspace.h",
@@ -500,7 +550,7 @@ cc_library(
     ],
 )
 
-### Helper libraries to run qsim ###
+### Helper libraries to run qsim and qsimh ###
 
 cc_library(
     name = "run_qsim",
@@ -510,6 +560,17 @@ cc_library(
         ":gate",
         ":gate_appl",
         ":operation_base",
+        ":util",
+    ],
+)
+
+cc_library(
+    name = "run_qsimh",
+    hdrs = ["run_qsimh.h"],
+    deps = [
+        ":circuit",
+        ":hybrid",
+        ":operation",
         ":util",
     ],
 )
@@ -761,6 +822,18 @@ cc_library(
         ":simulator_basic",
         ":simulator_neon",
         ":simulator_sse",
+    ],
+)
+
+# Hybrid simulator
+cc_library(
+    name = "hybrid",
+    hdrs = ["hybrid.h"],
+    deps = [
+        ":gate",
+        ":gate_appl",
+        ":gates_cirq",
+        ":gates_qsim",
     ],
 )
 

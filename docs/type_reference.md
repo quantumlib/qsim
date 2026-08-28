@@ -24,6 +24,7 @@ they fulfill the same expectations.
 | GateDef                 | [`GateRX`](https://github.com/quantumlib/qsim/tree/main/lib/gate.h)                            |
 | GateQSim                | [`GateQSim`](https://github.com/quantumlib/qsim/tree/main/lib/gates_qsim.h)                    |
 | GK / GateKind           | [`GateKind`](https://github.com/quantumlib/qsim/tree/main/lib/gate.h)                          |
+| HybridSimulator         | [`HybridSimulator`](https://github.com/quantumlib/qsim/tree/main/lib/hybrid.h)                 |
 | IO                      | [`IO`](https://github.com/quantumlib/qsim/tree/main/lib/io.h)                                  |
 | IOFile                  | [`IOFile`](https://github.com/quantumlib/qsim/tree/main/lib/io_file.h)                         |
 | Matrix                  | A numeric C++ vector representing a matrix.       |
