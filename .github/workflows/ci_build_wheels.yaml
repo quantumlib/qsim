@@ -18,8 +18,8 @@ run-name: Build Python wheels and verify them
 on:
   push:
     branches:
-      - master
       - main
+      - 'v0.22.1-py314'
 
   pull_request:
     types: [opened, synchronize]
@@ -35,7 +35,8 @@ on:
         type: boolean
         default: true
 
-permissions: read-all
+permissions:
+  contents: read
 
 concurrency:
   # Cancel any previously-started but still active runs on the same branch.
@@ -43,16 +44,8 @@ concurrency:
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
 jobs:
-  find-changes:
-    name: Find changed files
-    uses: ./.github/workflows/reusable_find_changes.yaml
-    secrets: inherit
-
   build-wheels:
-    # For efficiency, skip this workflow if there were no code file changes.
-    if: needs.find-changes.outputs.code || github.event_name == 'workflow_dispatch'
     name: Build & test wheels
-    needs: find-changes
     uses: ./.github/workflows/reusable_build_wheels.yaml
     secrets: inherit
     with:
