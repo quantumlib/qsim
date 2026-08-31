@@ -86,9 +86,6 @@ jobs:
           os=${{matrix.conf.os}}
           echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
 
-      - name: Build source distribution (sdist)
-        run: python3 -m build --sdist --outdir wheelhouse
-
       - if: startsWith(matrix.conf.os, 'ubuntu')
         name: Determine the number of threads to use (Linux)
         run: echo "num_threads=$(( $(nproc) - 1 ))" >> "$GITHUB_ENV"
@@ -101,6 +98,9 @@ jobs:
         name: Determine the number of threads to use (Windows)
         shell: bash
         run: echo "num_threads=$(( NUMBER_OF_PROCESSORS - 1 ))" >> "$GITHUB_ENV"
+
+      - name: Build source distribution (sdist)
+        run: python3 -m build --sdist --outdir wheelhouse
 
       - name: Build and test wheels
         env:
