@@ -1,6 +1,7 @@
-include requirements.txt
-include dev-requirements.txt
 include CMakeLists.txt
+include dev-requirements.txt
+include requirements.txt
 
-graft pybind_interface
 graft lib
+graft pybind_interface
+graft qsimcirq_tests
