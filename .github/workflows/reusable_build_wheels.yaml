@@ -80,7 +80,10 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
-          pip install cibuildwheel==2.23.3
+          pip install cibuildwheel build
+
+      - name: Build source distribution (sdist)
+        run: python3 -m build --sdist --outdir wheelhouse
 
       - if: startsWith(matrix.conf.os, 'ubuntu')
         name: Determine the number of threads to use (Linux)
