@@ -52,10 +52,10 @@ jobs:
       fail-fast: false
       matrix:
         conf: [
-          {os: ubuntu-24.04,   arch: x86_64},
-          {os: macos-14,       arch: arm64},
-          {os: macos-15,       arch: arm64},
-          {os: windows-2025,   arch: AMD64},
+          {os: ubuntu-22.04-x64-8-core, arch: x86_64},
+          {os: macos-14,                arch: arm64},
+          {os: macos-15,                arch: arm64},
+          {os: windows-2022-x64-8-core, arch: AMD64},
         ]
     steps:
       - name: Check out a copy of the git repository
