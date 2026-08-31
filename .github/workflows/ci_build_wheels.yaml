@@ -55,7 +55,6 @@ jobs:
           {os: ubuntu-24.04,   arch: x86_64},
           {os: macos-14,       arch: arm64},
           {os: macos-15,       arch: arm64},
-          {os: macos-15-intel, arch: x86_64},
           {os: windows-2025,   arch: AMD64},
         ]
     steps:
@@ -80,6 +79,13 @@ jobs:
           pip install -r dev-requirements.txt
           pip install cibuildwheel build
 
+      - if: startsWith(matrix.conf.os, 'macos')
+        name: Set CMake MACOSX_DEPLOYMENT_TARGET value on MacOS
+        run: |
+          set -x
+          os=${{matrix.conf.os}}
+          echo MACOSX_DEPLOYMENT_TARGET=${os: -2} >> "$GITHUB_ENV"
+
       - name: Build source distribution (sdist)
         run: python3 -m build --sdist --outdir wheelhouse
 
@@ -98,7 +104,6 @@ jobs:
 
       - name: Build and test wheels
         env:
-          MACOSX_DEPLOYMENT_TARGET: '11.0'
           # Note: additional cibuildwheel settings are in pyproject.toml.
           CIBW_BUILD: 'cp310* cp311* cp312* cp313* cp314-*'
           CIBW_ARCHS: ${{matrix.conf.arch}}
