@@ -17,7 +17,12 @@ test-extras = "dev"
 dependency-versions = "latest"
 # Due to package & module name conflict, temporarily move it away to run tests:
 before-test = "mv {package}/qsimcirq /tmp"
-test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py && mv /tmp/qsimcirq {package}"
+test-command = "pytest -s -v {package}/qsimcirq_tests/qsimcirq_test.py; mv /tmp/qsimcirq {package}"
+# Help increase the chances that pip will find binary wheels for NumPy.
+# See https://cibuildwheel.pypa.io/en/stable/faq/#building-with-numpy
+environment.PIP_PREFER_BINARY = "1"
+environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/"
+environment.PIP_PRERELEASE = "allow"
 
 [tool.cibuildwheel.macos]
 before-build = "brew install -q libomp llvm@19 && brew unlink libomp && brew unlink llvm@19 && brew link --force libomp && brew link --force llvm@19"
@@ -27,3 +32,9 @@ repair-wheel-command = "delocate-listdeps {wheel} && delocate-wheel --verbose --
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = "*musllinux*"
+
+[[tool.cibuildwheel.overrides]]
+select = ["cp314*"]
+inherit.environment = "append"
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
