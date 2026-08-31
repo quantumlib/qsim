@@ -106,6 +106,7 @@ jobs:
           CIBW_ARCHS: ${{matrix.conf.arch}}
           CIBW_BUILD_VERBOSITY: ${{inputs.debug && 1 || ''}}
           CMAKE_BUILD_PARALLEL_LEVEL: ${{env.num_threads}}
+          CMAKE_MESSAGE_LOG_LEVEL: DEBUG
         run: |
           cibuildwheel --output-dir wheelhouse
 
