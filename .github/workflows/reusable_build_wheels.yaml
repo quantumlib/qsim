@@ -102,7 +102,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: '11.0'
           # Note: additional cibuildwheel settings are in pyproject.toml.
-          CIBW_BUILD: 'cp310* cp311* cp312* cp313*'
+          CIBW_BUILD: 'cp310* cp311* cp312* cp313* cp314-*'
           CIBW_ARCHS: ${{matrix.conf.arch}}
           CIBW_BUILD_VERBOSITY: ${{inputs.debug && 1 || ''}}
           # Color codes make the raw logs hard to read. (CMake uses CLICOLOR.)
