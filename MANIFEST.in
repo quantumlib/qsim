@@ -37,7 +37,6 @@ prune check
 prune circuits
 prune dev_tools
 prune docs
-prune eigen
 prune install
 prune jupyter
 prune tests
