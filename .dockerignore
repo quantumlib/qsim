@@ -12,39 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Ignore this in case the user previously did a "pip install -e ."
-qsimcirq.egg-info
-
-# Additional generic things to ignore.
+**/*~
 **/*.bak
 **/*.DS_Store
 **/*.log
-**/*.py,cover
 **/*.pyc
 **/*.swp
 **/*.tmp
 **/*.whl
-**/.*_cache/
+**/*.egg
+**/*.egg-info/
+**/*_cache/
 **/.git/
 **/.ipynb_checkpoints/
 **/__pycache__/
-*.cover
-*.coverage
-*.coverage.*
-*.egg
-*.egg-info/
-*~
-.coverage
+
+# Coverage & test artifacts.
+**/*.cover
+**/*.py,cover
+**/.coverage*
+coverage.xml
+
+# Environments & IDEs.
 .dockerignore
-.env*
 .github/
 .idea/
 .venv/
 .vscode/
+venv/
+
+# Build outputs & tool caches.
 bazel-*
 build/
-coverage.xml
 dist/
-env/
 jupyter_kernel.lock
-venv/
