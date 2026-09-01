@@ -12,56 +12,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-**/*.bak
-**/*.egg
-**/*.egg-info/
-**/*.log
-**/*.pyc
-**/*.swp
-**/*.tmp
-**/*.whl
-**/*_cache/
-**/*~
-**/.DS_Store
-**/.git/
-**/.ipynb_checkpoints/
-**/__pycache__/
-
 # Coverage & test artifacts.
 **/*.cover
 **/*.py,cover
-**/.coverage*
+**/.coverage
+**/.coverage.*
 **/coverage.xml
 
 # Environments & IDEs.
 .dockerignore
 .env*
+.git/
 .github/
 .idea/
+.python-version
 .venv/
 .vscode/
 env/
 venv/
 
 # Build outputs & tool caches.
-**/cmake_install.cmake
+**/.*_cache
+**/.ipynb_checkpoints/
+**/__pycache__/
 **/CMakeCache.txt
 **/CMakeFiles/
-**/jupyter_kernel.lock
-*.tar.gz
-.eggs/
 bazel-*
 build/
 dist/
 eigen/
 
-# Native compilation artifacts.
+# Compilation artifacts.
 **/*.a
 **/*.dll
-**/*.dSYM/
 **/*.dylib
+**/*.exe
+**/*.lib
 **/*.mod
 **/*.o
-**/*.pyd
+**/*.obj
+**/*.py[cod]
 **/*.so
 **/*.x
+
+# Local PyPI config files.
+.pypirc
+
+# Miscellaneous other files.
+**/*.bak
+**/*.egg
+**/*.egg-info/
+**/*.log
+**/*.swp
+**/*.tmp
+**/*.whl
+**/.DS_Store
+**/.gemini/
