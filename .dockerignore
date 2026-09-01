@@ -35,14 +35,26 @@ coverage.xml
 
 # Environments & IDEs.
 .dockerignore
+.env*
 .github/
 .idea/
 .venv/
 .vscode/
+env/
 venv/
 
 # Build outputs & tool caches.
+.eggs/
 bazel-*
 build/
 dist/
 jupyter_kernel.lock
+CMakeCache.txt
+**/CMakeFiles/
+
+# Native compilation artifacts.
+**/*.o
+**/*.a
+**/*.so
+**/*.dylib
+**/*.dll
