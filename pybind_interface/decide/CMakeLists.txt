@@ -39,6 +39,8 @@ if(APPLE)
     )
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 include(../GetPybind11.cmake)
 
 # Configure based on the detected platform

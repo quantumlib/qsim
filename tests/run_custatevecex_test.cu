@@ -24,7 +24,6 @@
 #include "gtest/gtest.h"
 
 #include "../lib/circuit_qsim_parser.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
 #include "../lib/multiprocess_custatevecex.h"
 #include "../lib/run_custatevecex.h"
@@ -82,11 +81,11 @@ struct Factory {
 
 TEST(RunQSimTest, QSimRunner1) {
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 27);
+  EXPECT_EQ(circuit.ops.size(), 27);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
@@ -120,11 +119,11 @@ TEST(RunQSimTest, QSimRunner1) {
 
 TEST(RunQSimTest, QSimRunner2) {
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 27);
+  EXPECT_EQ(circuit.ops.size(), 27);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
@@ -176,11 +175,11 @@ R"(2
 
 TEST(RunQSimTest, QSimSampler) {
   std::stringstream ss(sample_circuit_string);
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
-  EXPECT_EQ(circuit.gates.size(), 11);
+  EXPECT_EQ(circuit.ops.size(), 11);
 
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;

@@ -20,29 +20,27 @@
 #include <utility>
 #include <vector>
 
-#include "gate.h"
 #include "fuser.h"
+#include "gate.h"
+#include "operation.h"
+#include "operation_base.h"
 
 namespace qsim {
 
 /**
- * Stateless object with methods for aggregating `Gate`s into `GateFused`.
- * Measurement gates with equal times are fused together.
- * User-defined controlled gates (controlled_by.size() > 0) and gates acting on
- * more than two qubits are not fused.
- * The template parameter Gate can be Gate type or a pointer to Gate type.
+ * Stateless object with methods for aggregating matrix `Gate`s into
+ * `FusedGate`s. Measurement gates with equal times are fused together.
+ * Non-matrix gates (such as user-defined controlled gates) and matrix-gates
+ * acting on more than two qubits are not fused.
  * This class is deprecated. It is recommended to use MultiQubitGateFuser
  * from fuser_mqubit.h.
  */
-template <typename IO, typename Gate>
-class BasicGateFuser final : public Fuser<IO, Gate> {
+template <typename IO>
+class BasicGateFuser final : public Fuser<IO> {
  private:
-  using Base = Fuser<IO, Gate>;
-  using RGate = typename Base::RGate;
+  using Base = Fuser<IO>;
 
  public:
-  using GateFused = qsim::GateFused<RGate>;
-
   /**
    * User-specified parameters for gate fusion.
    * BasicGateFuser does not use any parameters.
@@ -53,352 +51,432 @@ class BasicGateFuser final : public Fuser<IO, Gate> {
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused. To respect specific time boundaries while
-   * fusing gates, use the other version of this method below.
+   * two-qubit matrix gates (represented by the Gate struct) are fused.
+   * To respect specific time boundaries while fusing gates, use the other
+   * version of this method below.
    * @param param Options for gate fusion.
-   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
-   * @param gates The gates (or pointers to the gates) to be fused.
-   *   Gate times of the gates that act on the same qubits should be ordered.
-   *   Gates that are out of time order should not cross the time boundaries
-   *   set by measurement gates.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by
+   *   operations.
+   * @param ops Operations to be fused. Operation times for gates acting
+   *   on the same qubits must be ordered. Operations that are out of time
+   *   order must not cross the time boundaries set by `times_to_split_at`
+   *   or by measurement gates.
    * @param fuse_matrix If true, multiply gate matrices together.
-   * @return A vector of fused gate objects. Each element is a set of gates
-   *   acting on a specific pair of qubits which can be applied as a group.
+   * @return A vector of fused operations. Each element is a variant
+   *   containing:
+   *   - A `FusedGate` object for merged gates.
+   *   - A `Measurement` object (representing a fused measurement).
+   *   - A `const Operation*` pointing to the original operation if it was not
+   *     eligible for fusion (e.g., multi-controlled gates).
+   *   Note: The input operation container must outlive the returned vector,
+   *   as the variant may hold pointers to the original operations.
    */
-  static std::vector<GateFused> FuseGates(const Parameter& param,
-                                          unsigned max_qubit1,
-                                          const std::vector<Gate>& gates,
-                                          bool fuse_matrix = true) {
-    return FuseGates(
-        param, max_qubit1, gates.cbegin(), gates.cend(), {}, fuse_matrix);
+  template <typename Operation>
+  static auto FuseGates(const Parameter& param, unsigned max_qubit1,
+                        const std::vector<Operation>& ops,
+                        bool fuse_matrix = true) {
+    return FuseGates<Operation>(
+        param, max_qubit1, ops.cbegin(), ops.cend(), {}, fuse_matrix);
   }
 
   /**
    * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused.
+   * two-qubit matrix gates (represented by the Gate struct) are fused.
    * @param param Options for gate fusion.
-   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
-   * @param gates The gates (or pointers to the gates) to be fused.
-   *   Gate times of the gates that act on the same qubits should be ordered.
-   *   Gates that are out of time order should not cross the time boundaries
-   *   set by `times_to_split_at` or by measurement gates.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by
+   *   operations.
+   * @param ops Operations to be fused. Operation times for gates acting
+   *   on the same qubits must be ordered. Operations that are out of time
+   *   order must not cross the time boundaries set by `times_to_split_at`
+   *   or by measurement gates.
    * @param times_to_split_at Ordered list of time steps (boundaries) at which
-   *   to separate fused gates. Each element of the output will contain gates
-   *   from a single 'window' in this list.
+   *   to separate fused gates. Each element of the output contains gates
+   *   from a single 'window' defined by this list.
    * @param fuse_matrix If true, multiply gate matrices together.
-   * @return A vector of fused gate objects. Each element is a set of gates
-   *   acting on a specific pair of qubits which can be applied as a group.
+   * @return A vector of fused operations. Each element is a variant
+   *   containing:
+   *   - A `FusedGate` object for merged gates.
+   *   - A `Measurement` object (representing a fused measurement).
+   *   - A `const Operation*` pointing to the original operation if it was not
+   *     eligible for fusion (e.g., multi-controlled gates).
+   *   Note: The input operation container must outlive the returned vector,
+   *   as the variant may hold pointers to the original operations.
    */
-  static std::vector<GateFused> FuseGates(
-      const Parameter& param,
-      unsigned max_qubit1, const std::vector<Gate>& gates,
+  template <typename Operation>
+  static auto FuseGates(const Parameter& param, unsigned max_qubit1,
+                        const std::vector<Operation>& ops,
+                        const std::vector<unsigned>& times_to_split_at,
+                        bool fuse_matrix = true) {
+    return FuseGates<Operation>(param, max_qubit1, ops.cbegin(), ops.cend(),
+                                times_to_split_at, fuse_matrix);
+  }
+
+  /**
+   * Stores sets of gates that can be applied together. Only one- and
+   * two-qubit matrix gates (represented by the Gate struct) are fused.
+   * To respect specific time boundaries while fusing gates, use the other
+   * version of this method below.
+   * @param param Options for gate fusion.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by
+   *   operations.
+   * @param obeg, oend The iterator range [obeg, oend) of operations
+   *   to be fused. Operation times for gates acting on the same qubits
+   *   must be ordered. Operations that are out of time order must
+   *   not cross the time boundaries set by `times_to_split_at` or
+   *   by measurement gates.
+   * @param fuse_matrix If true, multiply gate matrices together.
+   * @return A vector of fused operations. Each element is a variant
+   *   containing:
+   *   - A `FusedGate` object for merged gates.
+   *   - A `Measurement` object (representing a fused measurement).
+   *   - A `const Operation*` pointing to the original operation if it was not
+   *     eligible for fusion (e.g., multi-controlled gates).
+   *   Note: The input operation container must outlive the returned vector,
+   *   as the variant may hold pointers to the original operations.
+   */
+  template <typename Operation>
+  static auto FuseGates(
+      const Parameter& param, unsigned max_qubit1,
+      typename std::vector<Operation>::const_iterator obeg,
+      typename std::vector<Operation>::const_iterator oend,
+      bool fuse_matrix = true) {
+    return FuseGates<Operation>(
+        param, max_qubit1, obeg, oend, {}, fuse_matrix);
+  }
+
+  /**
+   * Stores sets of gates that can be applied together. Only one- and
+   * two-qubit matrix gates (represented by the Gate struct) are fused.
+   * @param param Options for gate fusion.
+   * @param max_qubit1 The maximum qubit index (plus one) acted on by
+   *   operations.
+   * @param obeg, oend The iterator range [obeg, oend) of operations
+   *   to be fused. Operation times for gates acting on the same qubits
+   *   must be ordered. Operations that are out of time order must
+   *   not cross the time boundaries set by `times_to_split_at` or
+   *   by measurement gates.
+   * @param times_to_split_at Ordered list of time steps (boundaries) at which
+   *   to separate fused gates. Each element of the output contains gates
+   *   from a single 'window' defined by this list.
+   * @param fuse_matrix If true, multiply gate matrices together.
+   * @return A vector of fused operations. Each element is a variant
+   *   containing:
+   *   - A `FusedGate` object for merged gates.
+   *   - A `Measurement` object (representing a fused measurement).
+   *   - A `const Operation*` pointing to the original operation if it was not
+   *     eligible for fusion (e.g., multi-controlled gates).
+   *   Note: The input operation container must outlive the returned vector,
+   *   as the variant may hold pointers to the original operations.
+   */
+  template <typename OperationP>
+  static auto FuseGates(
+      const Parameter& param, unsigned max_qubit1,
+      typename std::vector<OperationP>::const_iterator obeg,
+      typename std::vector<OperationP>::const_iterator oend,
       const std::vector<unsigned>& times_to_split_at,
       bool fuse_matrix = true) {
-    return FuseGates(param, max_qubit1, gates.cbegin(), gates.cend(),
-                     times_to_split_at, fuse_matrix);
-  }
+    using Operation = std::remove_pointer_t<OperationP>;
+    using fp_type = OpFpType<Operation>;
+    using Gate = qsim::Gate<fp_type>;
+    using ControlledGate = qsim::ControlledGate<fp_type>;
+    using DecomposedGate = qsim::DecomposedGate<fp_type>;
+    using FusedGate = qsim::FusedGate<fp_type>;
+    using OperationF = std::variant<FusedGate, Measurement, const Operation*>;
 
-  /**
-   * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused. To respect specific time boundaries while
-   * fusing gates, use the other version of this method below.
-   * @param param Options for gate fusion.
-   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
-   * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
-   *   (or pointers to gates) in. Gate times of the gates that act on the same
-   *   qubits should be ordered. Gates that are out of time order should not
-   *   cross the time boundaries set by measurement gates.
-   * @param fuse_matrix If true, multiply gate matrices together.
-   * @return A vector of fused gate objects. Each element is a set of gates
-   *   acting on a specific pair of qubits which can be applied as a group.
-   */
-  static std::vector<GateFused> FuseGates(
-      const Parameter& param, unsigned max_qubit1,
-      typename std::vector<Gate>::const_iterator gfirst,
-      typename std::vector<Gate>::const_iterator glast,
-      bool fuse_matrix = true) {
-    return FuseGates(param, max_qubit1, gfirst, glast, {}, fuse_matrix);
-  }
+    std::vector<OperationF> fused_ops;
 
-  /**
-   * Stores sets of gates that can be applied together. Only one- and
-   * two-qubit gates will get fused.
-   * @param param Options for gate fusion.
-   * @param max_qubit1 The maximum qubit index (plus one) acted on by 'gates'.
-   * @param gfirst, glast The iterator range [gfirst, glast) to fuse gates
-   *   (or pointers to gates) in. Gate times of the gates that act on the same
-   *   qubits should be ordered. Gates that are out of time order should not
-   *   cross the time boundaries set by `times_to_split_at` or by measurement
-   *   gates.
-   * @param times_to_split_at Ordered list of time steps (boundaries) at which
-   *   to separate fused gates. Each element of the output will contain gates
-   *   from a single 'window' in this list.
-   * @param fuse_matrix If true, multiply gate matrices together.
-   * @return A vector of fused gate objects. Each element is a set of gates
-   *   acting on a specific pair of qubits which can be applied as a group.
-   */
-  static std::vector<GateFused> FuseGates(
-      const Parameter& param, unsigned max_qubit1,
-      typename std::vector<Gate>::const_iterator gfirst,
-      typename std::vector<Gate>::const_iterator glast,
-      const std::vector<unsigned>& times_to_split_at,
-      bool fuse_matrix = true) {
-    std::vector<GateFused> gates_fused;
+    if (obeg >= oend) return fused_ops;
 
-    if (gfirst >= glast) return gates_fused;
+    std::size_t num_ops = oend - obeg;
 
-    std::size_t num_gates = glast - gfirst;
-
-    gates_fused.reserve(num_gates);
+    fused_ops.reserve(num_ops);
 
     // Merge with measurement gate times to separate fused gates at.
-    auto times =
-        Base::MergeWithMeasurementTimes(gfirst, glast, times_to_split_at);
+    auto times = Base::template MergeWithMeasurementTimes<OperationP>(
+        obeg, oend, times_to_split_at);
 
     // Map to keep track of measurement gates with equal times.
-    std::map<unsigned, std::vector<const RGate*>> measurement_gates;
+    std::map<unsigned, std::vector<const Operation*>> measurement_gates;
 
-    // Sequence of top level gates the other gates get fused to.
-    std::vector<const RGate*> gates_seq;
+    // Sequence of top level operations the other gates get fused to.
+    std::vector<const Operation*> ops_seq;
 
     // Sequence of zero-qubit gates.
-    std::vector<const RGate*> gates_seq0;
+    std::vector<const Operation*> ops_seq0;
 
-    // Lattice of gates: qubits "hyperplane" and time direction.
-    std::vector<std::vector<const RGate*>> gates_lat(max_qubit1);
+    // Lattice of operations: qubits "hyperplane" and time direction.
+    std::vector<std::vector<const Operation*>> ops_lat(max_qubit1);
 
-    // Current unfused gate.
-    auto gate_it = gfirst;
+    // Current unfused operation.
+    auto op_it = obeg;
 
-    std::size_t last_fused_gate_index = 0;
+    std::size_t last_fused_op_index = 0;
 
+    // Iterate over time windows.
     for (std::size_t l = 0; l < times.size(); ++l) {
-      gates_seq.resize(0);
-      gates_seq.reserve(num_gates);
+      ops_seq.resize(0);
+      ops_seq.reserve(num_ops);
 
-      gates_seq0.resize(0);
-      gates_seq0.reserve(num_gates);
+      ops_seq0.resize(0);
+      ops_seq0.reserve(num_ops);
 
       for (unsigned k = 0; k < max_qubit1; ++k) {
-        gates_lat[k].resize(0);
-        gates_lat[k].reserve(128);
+        ops_lat[k].resize(0);
+        ops_lat[k].reserve(128);
       }
 
-      // Fill gates_seq and gates_lat in.
-      for (; gate_it < glast; ++gate_it) {
-        const auto& gate = Base::GateToConstRef(*gate_it);
+      // Iterate over input operations and fill ops_seq and ops_lat in.
+      for (; op_it < oend; ++op_it) {
+        const auto& op = Base::OperationToConstRef(*op_it);
+        const auto& bop = OpBaseOperation(op);
 
-        if (gate.time > times[l]) break;
+        if (bop.time > times[l]) break;
 
-        if (!ValidateGate(gate, max_qubit1, gates_lat)) {
-          gates_fused.resize(0);
-          return gates_fused;
+        if (!ValidateOp(op, bop, max_qubit1, ops_lat)) {
+          fused_ops.resize(0);
+          return fused_ops;
         }
 
-        if (gate.kind == gate::kMeasurement) {
-          auto& mea_gates_at_time = measurement_gates[gate.time];
+        if (OpGetAlternative<Measurement>(op)) {
+          auto& mea_gates_at_time = measurement_gates[bop.time];
           if (mea_gates_at_time.size() == 0) {
-            gates_seq.push_back(&gate);
+            ops_seq.push_back(&op);
             mea_gates_at_time.reserve(max_qubit1);
           }
 
-          mea_gates_at_time.push_back(&gate);
-        } else if (gate.controlled_by.size() > 0 || gate.qubits.size() > 2) {
-          for (auto q : gate.qubits) {
-            gates_lat[q].push_back(&gate);
-          }
-          for (auto q : gate.controlled_by) {
-            gates_lat[q].push_back(&gate);
-          }
-          gates_seq.push_back(&gate);
-        } else if (gate.qubits.size() == 1) {
-          gates_lat[gate.qubits[0]].push_back(&gate);
-          if (gate.unfusible) {
-            gates_seq.push_back(&gate);
-          }
-        } else if (gate.qubits.size() == 2) {
-          gates_lat[gate.qubits[0]].push_back(&gate);
-          gates_lat[gate.qubits[1]].push_back(&gate);
-          gates_seq.push_back(&gate);
+          mea_gates_at_time.push_back(&op);
         } else {
-          gates_seq0.push_back(&gate);
+          for (auto q : bop.qubits) {
+            ops_lat[q].push_back(&op);
+          }
+
+          if (const auto* pg = OpGetAlternative<ControlledGate>(op)) {
+            for (auto q : pg->controlled_by) {
+              ops_lat[q].push_back(&op);
+            }
+          }
+
+          bool is_gate = OpGetAlternative<Gate>(op) != nullptr;
+
+          if (is_gate && bop.qubits.size() == 0) {
+            ops_seq0.push_back(&op);
+          } else if (!is_gate || bop.qubits.size() != 1) {
+            ops_seq.push_back(&op);
+          }
         }
       }
 
       std::vector<unsigned> last(max_qubit1, 0);
 
-      const RGate* delayed_measurement_gate = nullptr;
+      const Operation* deferred_measurement = nullptr;
 
       // Fuse gates.
-      for (auto pgate : gates_seq) {
-        if (pgate->kind == gate::kMeasurement) {
-          delayed_measurement_gate = pgate;
-        } else if (pgate->qubits.size() > 2
-                   || pgate->controlled_by.size() > 0) {
+      for (auto pop : ops_seq) {
+        const auto& qubits = OpQubits(*pop);
+
+        if (OpGetAlternative<Measurement>(*pop)) {
+          deferred_measurement = pop;
+        } else if (const auto* pg = OpGetAlternative<DecomposedGate>(*pop)) {
+          unsigned q0 = qubits[0];
+          FusedGate fgate{pg->kind, pg->time, {q0}, pg, {}, {}};
+
+          last[q0] = Advance(last[q0], ops_lat[q0], fgate.gates);
+
+          // Here pop == ops_lat[q0][last[q0]].
+
+          fgate.gates.push_back(pg);
+          last[q0] = Advance(last[q0] + 1, ops_lat[q0], fgate.gates);
+
+          fused_ops.push_back(std::move(fgate));
+        } else if (!OpGetAlternative<Gate>(*pop) || qubits.size() > 2) {
           // Multi-qubit or controlled gate.
 
-          for (auto q : pgate->qubits) {
+          for (auto q : qubits) {
             unsigned l = last[q];
-            if (gates_lat[q][l] != pgate) {
-              last[q] = AddOrphanedQubit(q, l, gates_lat, gates_fused);
+            if (ops_lat[q][l] != pop) {
+              last[q] = AddOrphanedQubit(q, l, ops_lat, fused_ops);
             }
             ++last[q];
           }
 
-          for (auto q : pgate->controlled_by) {
-            unsigned l = last[q];
-            if (gates_lat[q][l] != pgate) {
-              last[q] = AddOrphanedQubit(q, l, gates_lat, gates_fused);
+          if (const auto* pg = OpGetAlternative<ControlledGate>(*pop)) {
+            for (auto q : pg->controlled_by) {
+              unsigned l = last[q];
+              if (ops_lat[q][l] != pop) {
+                last[q] = AddOrphanedQubit(q, l, ops_lat, fused_ops);
+              }
+              ++last[q];
             }
-            ++last[q];
           }
 
-          gates_fused.push_back({pgate->kind, pgate->time, pgate->qubits,
-                                 pgate, {pgate}, {}});
-        } else if (pgate->qubits.size() == 1) {
-          unsigned q0 = pgate->qubits[0];
+          fused_ops.push_back(pop);
+        } else {
+          // Two-qubit gate.
 
-          GateFused gate_f = {pgate->kind, pgate->time, {q0}, pgate, {}, {}};
+          unsigned q0 = qubits[0];
+          unsigned q1 = qubits[1];
 
-          last[q0] = Advance(last[q0], gates_lat[q0], gate_f.gates);
-          gate_f.gates.push_back(gates_lat[q0][last[q0]]);
-          last[q0] = Advance(last[q0] + 1, gates_lat[q0], gate_f.gates);
+          const auto& gate = *OpGetAlternative<Gate>(*pop);
 
-          gates_fused.push_back(std::move(gate_f));
-        } else if (pgate->qubits.size() == 2) {
-          unsigned q0 = pgate->qubits[0];
-          unsigned q1 = pgate->qubits[1];
+          if (Done(last[q0], gate.time, ops_lat[q0])) continue;
 
-          if (Done(last[q0], pgate->time, gates_lat[q0])) continue;
-
-          GateFused gate_f =
-              {pgate->kind, pgate->time, {q0, q1}, pgate, {}, {}};
+          FusedGate fgate = {gate.kind, gate.time, {q0, q1}, &gate, {}, {}};
 
           do {
-            last[q0] = Advance(last[q0], gates_lat[q0], gate_f.gates);
-            last[q1] = Advance(last[q1], gates_lat[q1], gate_f.gates);
-            // Here gates_lat[q0][last[q0]] == gates_lat[q1][last[q1]].
+            last[q0] = Advance(last[q0], ops_lat[q0], fgate.gates);
+            last[q1] = Advance(last[q1], ops_lat[q1], fgate.gates);
 
-            gate_f.gates.push_back(gates_lat[q0][last[q0]]);
+            // Here ops_lat[q0][last[q0]] == ops_lat[q1][last[q1]].
 
-            last[q0] = Advance(last[q0] + 1, gates_lat[q0], gate_f.gates);
-            last[q1] = Advance(last[q1] + 1, gates_lat[q1], gate_f.gates);
-          } while (NextGate(last[q0], gates_lat[q0], last[q1], gates_lat[q1]));
+            const auto& gate2 = *OpGetAlternative<Gate>(*ops_lat[q0][last[q0]]);
+            fgate.gates.push_back(&gate2);
 
-          gates_fused.push_back(std::move(gate_f));
+            last[q0] = Advance(last[q0] + 1, ops_lat[q0], fgate.gates);
+            last[q1] = Advance(last[q1] + 1, ops_lat[q1], fgate.gates);
+          } while (NextGate(last[q0], ops_lat[q0], last[q1], ops_lat[q1]));
+
+          fused_ops.push_back(std::move(fgate));
         }
       }
 
       for (unsigned q = 0; q < max_qubit1; ++q) {
         auto l = last[q];
-        if (l == gates_lat[q].size()) continue;
+        if (l == ops_lat[q].size()) continue;
 
         // Orphaned qubit.
-        AddOrphanedQubit(q, l, gates_lat, gates_fused);
+        AddOrphanedQubit(q, l, ops_lat, fused_ops);
       }
 
-      if (delayed_measurement_gate != nullptr) {
-        auto pgate = delayed_measurement_gate;
+      if (deferred_measurement != nullptr) {
+        const auto& mea_gates_at_time =
+            measurement_gates[OpTime(*deferred_measurement)];
 
-        const auto& mea_gates_at_time = measurement_gates[pgate->time];
+        if (mea_gates_at_time.size() == 1) {
+          fused_ops.push_back(deferred_measurement);
+        } else {
+          Measurement mfused =
+              *OpGetAlternative<Measurement>(*deferred_measurement);
 
-        GateFused gate_f = {pgate->kind, pgate->time, {}, pgate, {}, {}};
-        gate_f.gates.reserve(mea_gates_at_time.size());
+          // Fuse measurement gates with equal times.
+          for (const auto* pop : mea_gates_at_time) {
+            if (pop == deferred_measurement) continue;
 
-        // Fuse measurement gates with equal times.
+            const auto& qs = OpQubits(*pop);
+            mfused.qubits.insert(mfused.qubits.end(), qs.begin(), qs.end());
+          }
 
-        for (const auto* pgate : mea_gates_at_time) {
-          gate_f.qubits.insert(gate_f.qubits.end(),
-                               pgate->qubits.begin(), pgate->qubits.end());
-          gate_f.gates.push_back(pgate);
+          fused_ops.push_back(std::move(mfused));
         }
-
-        gates_fused.push_back(std::move(gate_f));
       }
 
-      if (gates_seq0.size() != 0) {
-        Base::FuseZeroQubitGates(gates_seq0, [](const RGate* g) { return g; },
-                                 last_fused_gate_index, gates_fused);
+      if (ops_seq0.size() != 0) {
+        Base::FuseZeroQubitGates(ops_seq0, [](const Operation* g) { return g; },
+                                 last_fused_op_index, fused_ops);
       }
 
-      if (gate_it == glast) break;
+      if (op_it == oend) break;
 
-      last_fused_gate_index = gates_fused.size();
+      last_fused_op_index = fused_ops.size();
     }
 
     if (fuse_matrix) {
-      for (auto& gate_f : gates_fused) {
-        if (gate_f.kind != gate::kMeasurement && gate_f.kind != gate::kDecomp) {
-          CalculateFusedMatrix(gate_f);
+      for (auto& op : fused_ops) {
+        if (auto* pg = OpGetAlternative<FusedGate>(op)) {
+          if (!pg->ParentIsDecomposed()) {
+            CalculateFusedMatrix(*pg);
+          }
         }
       }
     }
 
-    return gates_fused;
+    return fused_ops;
   }
 
  private:
-  static unsigned Advance(unsigned k, const std::vector<const RGate*>& wl,
-                          std::vector<const RGate*>& gates) {
-    while (k < wl.size() && wl[k]->qubits.size() == 1
-           && wl[k]->controlled_by.size() == 0 && !wl[k]->unfusible) {
-      gates.push_back(wl[k++]);
+  template <typename Operation, typename PGate>
+  static unsigned Advance(unsigned k, const std::vector<const Operation*>& wl,
+                          std::vector<PGate>& gates) {
+    using Gate = qsim::Gate<OpFpType<Operation>>;
+
+    while (k < wl.size()) {
+      if (const auto* pg = OpGetAlternative<Gate>(*wl[k])) {
+        if (pg->qubits.size() == 1) {
+          gates.push_back(pg);
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+      ++k;
     }
 
     return k;
   }
 
+  template <typename Operation>
   static bool Done(
-      unsigned k, unsigned t, const std::vector<const RGate*>& wl) {
-    return k >= wl.size() || wl[k]->time > t;
+      unsigned k, unsigned t, const std::vector<const Operation*>& wl) {
+    return k >= wl.size() || OpTime(*wl[k]) > t;
   }
 
-  static bool NextGate(unsigned k1, const std::vector<const RGate*>& wl1,
-                       unsigned k2, const std::vector<const RGate*>& wl2) {
-    return k1 < wl1.size() && k2 < wl2.size() && wl1[k1] == wl2[k2]
-        && wl1[k1]->qubits.size() < 3 && wl1[k1]->controlled_by.size() == 0;
+  template <typename Operation>
+  static bool NextGate(unsigned k1, const std::vector<const Operation*>& wl1,
+                       unsigned k2, const std::vector<const Operation*>& wl2) {
+    return k1 < wl1.size() && k2 < wl2.size()
+        && wl1[k1] == wl2[k2] && OpQubits(*wl1[k1]).size() < 3
+        && OpGetAlternative<Gate<OpFpType<Operation>>>(*wl1[k1]);
   }
 
-  template <typename GatesLat>
+  template <typename OpsLat, typename OperationF>
   static unsigned AddOrphanedQubit(unsigned q, unsigned k,
-                                   const GatesLat& gates_lat,
-                                   std::vector<GateFused>& gates_fused) {
-    auto pgate = gates_lat[q][k];
+                                   const OpsLat& ops_lat,
+                                   std::vector<OperationF>& fused_ops) {
+    using FusedGate = std::variant_alternative_t<0, OperationF>;
+    using fp_type = typename FusedGate::fp_type;
+    using Gate = qsim::Gate<fp_type>;
 
-    GateFused gate_f = {pgate->kind, pgate->time, {q}, pgate, {}, {}};
-    gate_f.gates.push_back(pgate);
+    const auto& gate1 = *OpGetAlternative<Gate>(*ops_lat[q][k]);
 
-    k = Advance(k + 1, gates_lat[q], gate_f.gates);
+    FusedGate fgate{gate1.kind, gate1.time, {q}, &gate1, {}, {}};
+    fgate.gates.push_back(&gate1);
 
-    gates_fused.push_back(std::move(gate_f));
+    k = Advance(k + 1, ops_lat[q], fgate.gates);
+
+    fused_ops.push_back(std::move(fgate));
 
     return k;
   }
 
-  template <typename Gate2, typename GatesLat>
-  static bool ValidateGate(const Gate2& gate, unsigned max_qubit1,
-                           const GatesLat& gates_lat) {
-    for (unsigned q : gate.qubits) {
+  template <typename OpsLat, typename Operation, typename BaseOperation>
+  static bool ValidateOp(const Operation& op, const BaseOperation& bop,
+                         unsigned max_qubit1, const OpsLat& ops_lat) {
+    using ControlledGate = qsim::ControlledGate<OpFpType<Operation>>;
+
+    for (unsigned q : bop.qubits) {
       if (q >= max_qubit1) {
         IO::errorf("fuser: gate qubit %u is out of range "
                    "(should be smaller than %u).\n", q, max_qubit1);
         return false;
       }
-      if (!gates_lat[q].empty() && gate.time <= gates_lat[q].back()->time) {
-        IO::errorf("fuser: gate at time %u is out of time order.\n", gate.time);
+      if (!ops_lat[q].empty() && bop.time <= OpTime(*ops_lat[q].back())) {
+        IO::errorf("fuser: gate at time %u is out of time order.\n", bop.time);
         return false;
       }
     }
 
-    for (unsigned q : gate.controlled_by) {
-      if (q >= max_qubit1) {
-        IO::errorf("fuser: gate qubit %u is out of range "
-                   "(should be smaller than %u).\n", q, max_qubit1);
-        return false;
-      }
-      if (!gates_lat[q].empty() && gate.time <= gates_lat[q].back()->time) {
-        IO::errorf("fuser: gate at time %u is out of time order.\n", gate.time);
-        return false;
+    if (const auto& pg = OpGetAlternative<ControlledGate>(op)) {
+      for (unsigned q : pg->controlled_by) {
+        if (q >= max_qubit1) {
+          IO::errorf("fuser: gate qubit %u is out of range "
+                     "(should be smaller than %u).\n", q, max_qubit1);
+          return false;
+        }
+        if (!ops_lat[q].empty() && bop.time <= OpTime(*ops_lat[q].back())) {
+          IO::errorf(
+              "fuser: gate at time %u is out of time order.\n", bop.time);
+          return false;
+        }
       }
     }
 

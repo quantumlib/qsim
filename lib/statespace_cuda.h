@@ -36,7 +36,7 @@ namespace qsim {
 /**
  * Object containing context and routines for CUDA state-vector manipulations.
  * State is a vectorized sequence of 32 real components followed by 32
- * imaginary components. 32 floating numbers can be proccessed in parallel by
+ * imaginary components. 32 floating numbers can be processed in parallel by
  * a single warp. It is not recommended to use `GetAmpl` and `SetAmpl`.
  */
 template <typename FP = float>

@@ -31,7 +31,7 @@ TEST(ExpectTest, ExpectationValue) {
   using StateSpace = Simulator<For>::StateSpace;
   using State = StateSpace::State;
   using fp_type = StateSpace::fp_type;
-  using Fuser = MultiQubitGateFuser<IO, GateQSim<fp_type>>;
+  using Fuser = MultiQubitGateFuser<IO>;
 
   unsigned num_qubits = 16;
   unsigned depth = 16;
@@ -97,7 +97,7 @@ TEST(ExpectTest, ExpectationValue) {
   State tmp_state = state_space.Null();
 
   for (unsigned k = 1; k <= 6; ++k) {
-    std::vector<OpString<GateQSim<fp_type>>> strings;
+    std::vector<OpString<fp_type>> strings;
     strings.reserve(num_qubits);
 
     for (unsigned i = 0; i <= num_qubits - k; ++i) {
@@ -139,7 +139,7 @@ TEST(ExpectTest, ExpectationValue) {
   double w_re = 0.7;
   double w_im = 0.3;
 
-  std::vector<OpString<GateQSim<fp_type>>> strings = {{{w_re, w_im}, {}}};
+  std::vector<OpString<fp_type>> strings = {{{w_re, w_im}, {}}};
 
   auto evala = ExpectationValue<IO, Fuser>(param, strings, state_space,
                                            simulator, state, tmp_state);

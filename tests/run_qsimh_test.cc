@@ -24,8 +24,8 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_basic.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
 #include "../lib/run_qsimh.h"
 #include "../lib/simulator_basic.h"
 
@@ -116,15 +116,15 @@ struct Factory {
 
 TEST(RunQSimHTest, QSimHRunner) {
   std::stringstream ss(circuit_string);
-  Circuit<GateQSim<Factory::fp_type>> circuit;
+  Circuit<Operation<Factory::fp_type>> circuit;
 
   EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
-  EXPECT_EQ(circuit.gates.size(), 63);
+  EXPECT_EQ(circuit.ops.size(), 63);
 
-  using HybridSimulator =
-      HybridSimulator<IO, GateQSim<Factory::fp_type>, BasicGateFuser, For>;
-  using Runner = QSimHRunner<IO, HybridSimulator>;
+  using Fuser = BasicGateFuser<IO>;
+  using HybridSimulator = HybridSimulator<IO, For>;
+  using Runner = QSimHRunner<IO, Fuser, HybridSimulator>;
 
   Runner::Parameter param;
   param.prefix = 0;
@@ -183,9 +183,9 @@ TEST(RunQSimHTest, CirqGates) {
   auto circuit = CirqCircuit1::GetCircuit<Factory::fp_type>(false);
   const auto& expected_results = CirqCircuit1::expected_results0;
 
-  using HybridSimulator = HybridSimulator<IO, Cirq::GateCirq<Factory::fp_type>,
-                                          BasicGateFuser, For>;
-  using Runner = QSimHRunner<IO, HybridSimulator>;
+  using Fuser = BasicGateFuser<IO>;
+  using HybridSimulator = HybridSimulator<IO, For>;
+  using Runner = QSimHRunner<IO, Fuser, HybridSimulator>;
 
   Runner::Parameter param;
   param.prefix = 0;

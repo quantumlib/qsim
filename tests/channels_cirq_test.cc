@@ -20,10 +20,12 @@
 
 #include "../lib/channels_cirq.h"
 #include "../lib/circuit.h"
+#include "../lib/circuit_noisy.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gates_cirq.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
 #include "../lib/qtrajectory.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
@@ -52,11 +54,12 @@ using StateSpace = Simulator::StateSpace;
 using State = StateSpace::State;
 using fp_type = StateSpace::fp_type;
 using Gate = Cirq::GateCirq<fp_type>;
-using Fuser = MultiQubitGateFuser<IO, const Gate*>;
+using Operation = Operation<fp_type>;
+using Fuser = MultiQubitGateFuser<IO>;
 using Runner = QSimRunner<IO, Fuser, Factory<For>>;
-using QTSimulator = QuantumTrajectorySimulator<IO, Gate, Runner>;
+using QTSimulator = QuantumTrajectorySimulator<IO, Runner>;
 
-Circuit<Gate> CleanCircuit() {
+Circuit<Operation> CleanCircuit() {
   using Hd = Cirq::H<fp_type>;
   using IS = Cirq::ISWAP<fp_type>;
   using Rx = Cirq::rx<fp_type>;
@@ -74,12 +77,12 @@ Circuit<Gate> CleanCircuit() {
       Ry::Create(4, 0, 0.4),
       Rx::Create(4, 1, 0.7),
       IS::Create(5, 0, 1),
-      gate::Measurement<Gate>::Create(6, {0, 1}),
+      CreateMeasurement(6, {0, 1}),
     },
   };
 }
 
-void RunBatch(const NoisyCircuit<Gate>& ncircuit,
+void RunBatch(const Circuit<Operation>& ncircuit,
               const std::vector<double>& expected_results,
               unsigned num_reps = 25000) {
   unsigned num_qubits = 2;
@@ -109,23 +112,25 @@ void RunBatch(const NoisyCircuit<Gate>& ncircuit,
 }
 
 template <typename ChannelFactory>
-inline NoisyCircuit<Gate> MakeNoisy2(
-    const std::vector<Gate>& gates, const ChannelFactory& channel_factory) {
-  NoisyCircuit<Gate> ncircuit;
+inline Circuit<Operation> MakeNoisy2(
+    const std::vector<Operation>& ops, const ChannelFactory& channel_factory) {
+  Circuit<Operation> ncircuit;
 
   ncircuit.num_qubits = 2;
-  ncircuit.channels.reserve(2 * gates.size());
+  ncircuit.ops.reserve(2 * ops.size());
 
   unsigned prev_time = 0;
 
-  for (const auto& gate : gates) {
-    if (gate.time > prev_time) {
-      ncircuit.channels.push_back(
-          channel_factory.Create(2 * prev_time + 1, {0, 1}));
-      prev_time = gate.time;
+  for (const auto& op : ops) {
+    unsigned time = OpTime(op);
+
+    if (time > prev_time) {
+      ncircuit.ops.push_back(channel_factory.Create(2 * prev_time + 1, {0, 1}));
+      prev_time = time;
     }
 
-    ncircuit.channels.push_back(MakeChannelFromGate(2 * gate.time, gate));
+    ncircuit.ops.push_back(op);
+    OpBaseOperation(ncircuit.ops.back()).time *= 2;
   }
 
   return ncircuit;
@@ -188,7 +193,7 @@ for key, val in sorted(res.histogram(key='m').items()):
   auto ncircuit = MakeNoisy(circuit, channel);
   RunBatch(ncircuit, expected_results);
 
-  auto ncircuit2 = MakeNoisy2(circuit.gates, channel);
+  auto ncircuit2 = MakeNoisy2(circuit.ops, channel);
   RunBatch(ncircuit2, expected_results);
 }
 
@@ -234,7 +239,7 @@ for key, val in sorted(res.histogram(key='m').items()):
   auto ncircuit = MakeNoisy(circuit, channel);
   RunBatch(ncircuit, expected_results);
 
-  auto ncircuit2 = MakeNoisy2(circuit.gates, channel);
+  auto ncircuit2 = MakeNoisy2(circuit.ops, channel);
   RunBatch(ncircuit2, expected_results);
 }
 

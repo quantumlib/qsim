@@ -37,7 +37,7 @@ TEST(UnitarySpaceAVX512Test, GetEntry) {
   TestSetEntry<UnitarySpaceAVX512<For>>();
 }
 
-}  // namspace
+}  // namespace
 }  // namespace unitary
 }  // namespace qsim
 

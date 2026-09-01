@@ -22,6 +22,7 @@
 #include "circuit.h"
 #include "gate.h"
 #include "gate_appl.h"
+#include "operation_base.h"
 #include "util.h"
 
 namespace qsim {
@@ -60,7 +61,8 @@ struct QSimRunner final {
   template <typename Circuit, typename MeasurementFunc>
   static bool Run(const Parameter& param, const Factory& factory,
                   const Circuit& circuit, MeasurementFunc measure) {
-    return Run(param, factory, {circuit.gates.back().time}, circuit, measure);
+    unsigned time = OpTime(circuit.ops.back());
+    return Run(param, factory, {time}, circuit, measure);
   }
 
   /**
@@ -103,10 +105,11 @@ struct QSimRunner final {
       t0 = GetTime();
     }
 
-    auto fused_gates = Fuser::FuseGates(param, circuit.num_qubits,
-                                        circuit.gates, times_to_measure_at);
+    const auto& ops = Operations<Circuit>::get(circuit);
+    auto fused_ops = Fuser::FuseGates(param, circuit.num_qubits,
+                                      ops, times_to_measure_at);
 
-    if (fused_gates.size() == 0 && circuit.gates.size() > 0) {
+    if (fused_ops.size() == 0 && circuit.ops.size() > 0) {
       return false;
     }
 
@@ -121,14 +124,13 @@ struct QSimRunner final {
 
     unsigned cur_time_index = 0;
 
-    // Apply fused gates.
-    for (std::size_t i = 0; i < fused_gates.size(); ++i) {
+    // Apply fused operations.
+    for (std::size_t i = 0; i < fused_ops.size(); ++i) {
       if (param.verbosity > 3) {
         t1 = GetTime();
       }
 
-      if (!ApplyFusedGate(state_space, simulator, fused_gates[i], rgen,
-                          state)) {
+      if (!ApplyGate(state_space, simulator, fused_ops[i], rgen, state)) {
         IO::errorf("measurement failed.\n");
         return false;
       }
@@ -141,7 +143,7 @@ struct QSimRunner final {
 
       unsigned t = times_to_measure_at[cur_time_index];
 
-      if (i == fused_gates.size() - 1 || t < fused_gates[i + 1].time) {
+      if (i == fused_ops.size() - 1 || t < OpTime(fused_ops[i + 1])) {
         // Call back to perform measurements.
         measure(cur_time_index, state_space, state);
         ++cur_time_index;
@@ -240,16 +242,14 @@ struct QSimRunner final {
       t0 = GetTime();
     }
 
-    using Gates = detail::Gates<Circuit>;
-    const auto& gates = Gates::get(circuit);
+    const auto& ops = Operations<Circuit>::get(circuit);
+    auto fused_ops = Fuser::FuseGates(param, state.num_qubits(), ops);
 
-    auto fused_gates = Fuser::FuseGates(param, state.num_qubits(), gates);
-
-    if (fused_gates.size() == 0 && gates.size() > 0) {
+    if (fused_ops.size() == 0 && ops.size() > 0) {
       return false;
     }
 
-    measure_results.reserve(fused_gates.size());
+    measure_results.reserve(fused_ops.size());
 
     if (param.verbosity > 1) {
       t1 = GetTime();
@@ -260,14 +260,14 @@ struct QSimRunner final {
       t0 = GetTime();
     }
 
-    // Apply fused gates.
-    for (std::size_t i = 0; i < fused_gates.size(); ++i) {
+    // Apply fused operations.
+    for (std::size_t i = 0; i < fused_ops.size(); ++i) {
       if (param.verbosity > 3) {
         t1 = GetTime();
       }
 
-      if (!ApplyFusedGate(state_space, simulator, fused_gates[i], rgen, state,
-                          measure_results)) {
+      if (!ApplyGate(state_space, simulator, fused_ops[i], rgen, state,
+                     measure_results)) {
         IO::errorf("measurement failed.\n");
         return false;
       }

@@ -36,7 +36,7 @@ TEST(UnitarySpaceSSETest, GetEntry) {
   TestSetEntry<UnitarySpaceSSE<For>>();
 }
 
-}  // namspace
+}  // namespace
 }  // namespace unitary
 }  // namespace qsim
 

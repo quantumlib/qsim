@@ -16,6 +16,7 @@
 
 #include "gtest/gtest.h"
 
+#include "../lib/gate.h"
 #include "../lib/gates_qsim.h"
 
 namespace qsim {
@@ -329,13 +330,13 @@ TEST(GatesQsimTest, GateCP) {
 TEST(GatesQsimTest, GateMeasurement) {
   unsigned time = 5;
   std::vector<unsigned> qubits = {3, 2, 4, 0, 7, 5, 1};
-  auto gate = gate::Measurement<GateQSim<float>>::Create(time, qubits);
+  auto mea = CreateMeasurement(time, qubits);
 
-  EXPECT_EQ(gate.time, time);
-  EXPECT_EQ(gate.qubits.size(), qubits.size());
+  EXPECT_EQ(mea.time, time);
+  EXPECT_EQ(mea.qubits.size(), qubits.size());
 
   for (std::size_t i = 0; i < qubits.size(); ++i) {
-    EXPECT_EQ(gate.qubits[i], qubits[i]);
+    EXPECT_EQ(mea.qubits[i], qubits[i]);
   }
 }
 

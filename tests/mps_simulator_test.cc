@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../lib/mps_simulator.h"
+#include <vector>
+
+#include "gtest/gtest.h"
 
 #include "../lib/formux.h"
+#include "../lib/fuser.h"
+#include "../lib/gate.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_cirq.h"
-#include "../lib/gates_qsim.h"
-#include "gtest/gtest.h"
+#include "../lib/mps_simulator.h"
 
 namespace qsim {
 
@@ -818,22 +821,21 @@ TEST(MPSSimulator, ApplyFusedGateLeft) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto gate1 = GateCZ<float>::Create(2, 0, 1);
-  auto gate2 = GateHd<float>::Create(0, 0);
-  auto gate3 = GateHd<float>::Create(0, 1);
+  auto gate1 = Cirq::CZ<float>::Create(2, 0, 1);
+  auto gate2 = Cirq::H<float>::Create(0, 0);
+  auto gate3 = Cirq::H<float>::Create(0, 1);
 
-  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {0, 1}, &gate1,
-                                    {&gate2, &gate3}, {}};
+  FusedGate<float> fgate1{Cirq::kCZ, 2, {0, 1}, &gate1, {&gate2, &gate3}, {}};
   CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(3, 4);
   ss.SetStateZero(mps);
-  ApplyFusedGate(sim, fgate1, mps);
+  ApplyGate(sim, fgate1, mps);
 
   float wf[32];
   float ground_truth[] = {0.5, 0., 0., 0., 0.5, 0., 0., 0.,
                           0.5, 0., 0., 0., 0.5, 0., 0., 0.};
   ss.ToWaveFunction(mps, wf);
-  for (int i = 0; i < 16; i++) {
+  for (unsigned i = 0; i < 16; ++i) {
     EXPECT_NEAR(wf[i], ground_truth[i], 1e-4);
   }
 }
@@ -844,7 +846,7 @@ TEST(MPSSimulator, ApplyFusedGateRight) {
   //   |     |     |
   //   |   +-+-----+-+
   //   |   |FusedGate|
-  //   |   +-+-----+-+ 
+  //   |   +-+-----+-+
   //   |     |     |
   // +-+-+ +-+-+ +-+-+
   // | 0 +-+ 1 +-+ 2 |
@@ -853,22 +855,21 @@ TEST(MPSSimulator, ApplyFusedGateRight) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto gate1 = GateCZ<float>::Create(2, 1, 2);
-  auto gate2 = GateHd<float>::Create(0, 1);
-  auto gate3 = GateHd<float>::Create(0, 2);
+  auto gate1 = Cirq::CZ<float>::Create(2, 1, 2);
+  auto gate2 = Cirq::H<float>::Create(0, 1);
+  auto gate3 = Cirq::H<float>::Create(0, 2);
 
-  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {1, 2}, &gate1,
-                                    {&gate2, &gate3}, {}};
+  FusedGate<float> fgate1{Cirq::kCZ, 2, {1, 2}, &gate1, {&gate2, &gate3}, {}};
   CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(3, 4);
   ss.SetStateZero(mps);
-  ApplyFusedGate(sim, fgate1, mps);
+  ApplyGate(sim, fgate1, mps);
 
   float wf[32];
   float ground_truth[] = {0.5, 0., 0.5, 0., 0.5, 0., 0.5, 0.,
                           0., 0., 0., 0., 0., 0., 0., 0.};
   ss.ToWaveFunction(mps, wf);
-  for (int i = 0; i < 16; i++) {
+  for (unsigned i = 0; i < 16; ++i) {
     EXPECT_NEAR(wf[i], ground_truth[i], 1e-4);
   }
 }
@@ -888,16 +889,15 @@ TEST(MPSSimulator, ApplyFusedGateMiddle) {
   using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
   auto ss = MPSStateSpace(1);
 
-  auto gate1 = GateCZ<float>::Create(2, 1, 2);
-  auto gate2 = GateHd<float>::Create(0, 1);
-  auto gate3 = GateHd<float>::Create(0, 2);
+  auto gate1 = Cirq::CZ<float>::Create(2, 1, 2);
+  auto gate2 = Cirq::H<float>::Create(0, 1);
+  auto gate3 = Cirq::H<float>::Create(0, 2);
 
-  GateFused<GateQSim<float>> fgate1{kGateCZ, 2, {1, 2}, &gate1,
-                                    {&gate2, &gate3}, {}};
+  FusedGate<float> fgate1{Cirq::kCZ, 2, {1, 2}, &gate1, {&gate2, &gate3}, {}};
   CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(4, 4);
   ss.SetStateZero(mps);
-  ApplyFusedGate(sim, fgate1, mps);
+  ApplyGate(sim, fgate1, mps);
 
   float wf[64];
   float ground_truth[] = {0.5, 0., 0., 0., 0.5, 0., 0., 0.,
@@ -905,7 +905,7 @@ TEST(MPSSimulator, ApplyFusedGateMiddle) {
                           0., 0., 0., 0., 0., 0., 0., 0.,
                           0., 0., 0., 0., 0., 0., 0., 0.};
   ss.ToWaveFunction(mps, wf);
-  for (int i = 0; i < 32; i++) {
+  for (unsigned i = 0; i < 32; ++i) {
     EXPECT_NEAR(wf[i], ground_truth[i], 1e-4);
   }
 }

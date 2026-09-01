@@ -25,8 +25,8 @@
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
-#include "../lib/gates_qsim.h"
 #include "../lib/io_file.h"
+#include "../lib/operation.h"
 #include "../lib/run_qsim.h"
 #include "../lib/simmux.h"
 #include "../lib/util.h"
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<GateQSim<float>> circuit;
+  Circuit<Operation<float>> circuit;
   unsigned maxtime = opt.times.back();
   if (!CircuitQsimParser<IOFile>::FromFile(maxtime, opt.circuit_file,
                                            circuit)) {
@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
   using Simulator = Factory::Simulator;
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
-  using Fuser = MultiQubitGateFuser<IO, GateQSim<float>>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
 
   auto measure = [&opt, &circuit](

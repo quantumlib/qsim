@@ -36,6 +36,8 @@ if(APPLE)
     )
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 include(../GetPybind11.cmake)
 pybind11_add_module(qsim_basic pybind_main_basic.cpp)
 

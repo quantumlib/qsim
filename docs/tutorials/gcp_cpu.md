@@ -120,7 +120,7 @@ and run your code.
       When your connection is ready, Colab displays a green checkmark beside the
       Connected (Local) drop-down menu.
 
-      <img src="../images/colab_connected.png" alt="Google Colab Local Runtime connection windo" style="width: 62%" class="screenshot">
+      <img src="../images/colab_connected.png" alt="Google Colab Local Runtime connection window" style="width: 62%" class="screenshot">
 
       The code cells in your notebook now execute on your VM instead of your local
       computer.

@@ -36,7 +36,7 @@ TEST(UnitarySpaceBasicTest, GetEntry) {
   TestSetEntry<UnitarySpaceBasic<For, float>>();
 }
 
-}  // namspace
+}  // namespace
 }  // namespace unitary
 }  // namespace qsim
 

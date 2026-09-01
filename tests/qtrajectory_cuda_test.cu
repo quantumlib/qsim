@@ -45,7 +45,7 @@ struct Factory {
 
 TEST(QTrajectoryCUDATest, BitFlip) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);
@@ -54,7 +54,7 @@ TEST(QTrajectoryCUDATest, BitFlip) {
 
 TEST(QTrajectoryCUDATest, GenDump) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);
@@ -63,7 +63,7 @@ TEST(QTrajectoryCUDATest, GenDump) {
 
 TEST(QTrajectoryCUDATest, ReusingResults) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);
@@ -72,7 +72,7 @@ TEST(QTrajectoryCUDATest, ReusingResults) {
 
 TEST(QTrajectoryCUDATest, CollectKopStat) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);
@@ -81,7 +81,7 @@ TEST(QTrajectoryCUDATest, CollectKopStat) {
 
 TEST(QTrajectoryCUDATest, CleanCircuit) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);
@@ -90,7 +90,7 @@ TEST(QTrajectoryCUDATest, CleanCircuit) {
 
 TEST(QTrajectoryCUDATest, InitialState) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);
@@ -99,7 +99,7 @@ TEST(QTrajectoryCUDATest, InitialState) {
 
 TEST(QTrajectoryCUDATest, UncomputeFinalState) {
   using Factory = qsim::Factory<float>;
-  using Fuser = MultiQubitGateFuser<IO, const Cirq::GateCirq<float>*>;
+  using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimRunner<IO, Fuser, Factory>;
   Factory::StateSpace::Parameter param;
   Factory factory(param);

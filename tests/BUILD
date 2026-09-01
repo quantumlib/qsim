@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
 
 # Options for testing different simulator types.
 avx_copts = [
     "-mavx2",
     "-mfma",
-]
+] + gsframe_copts
 
-avx512_copts = ["-march=native"]
+avx512_copts = ["-march=native"] + gsframe_copts
 
-sse_copts = ["-msse4"]
+sse_copts = ["-msse4"] + gsframe_copts
 
 windows_copts = [
     "/arch:AVX",
@@ -82,10 +85,12 @@ cc_test(
     deps = [
         "//lib:channels_cirq",
         "//lib:circuit",
+        "//lib:circuit_noisy",
         "//lib:formux",
         "//lib:fuser_mqubit",
         "//lib:gates_cirq",
         "//lib:io",
+        "//lib:operation",
         "//lib:qtrajectory",
         "//lib:run_qsim",
         "//lib:simulator",
@@ -103,7 +108,9 @@ cc_test(
     }),
     deps = [
         "//lib:circuit_qsim_parser",
-        "//lib:gates_qsim",
+        "//lib:gate",
+        "//lib:operation",
+        "//lib:operation_base",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -128,6 +135,18 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "fuser_testfixture",
+    testonly = 1,
+    hdrs = ["fuser_testfixture.h"],
+    deps = [
+        "//lib:gate",
+        "//lib:operation",
+        "//lib:operation_base",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "fuser_basic_test",
     size = "small",
@@ -137,9 +156,12 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
+        ":fuser_testfixture",
         "//lib:circuit_qsim_parser",
         "//lib:fuser_basic",
-        "//lib:gates_qsim",
+        "//lib:gate",
+        "//lib:operation",
+        "//lib:operation_base",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -153,11 +175,15 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
+        ":fuser_testfixture",
         "//lib:formux",
+        "//lib:fuser",
         "//lib:fuser_mqubit",
         "//lib:gate",
         "//lib:gate_appl",
         "//lib:matrix",
+        "//lib:operation",
+        "//lib:operation_base",
         "//lib:simulator",
         "@com_google_googletest//:gtest_main",
     ],
@@ -170,6 +196,7 @@ cc_library(
     deps = [
         "//lib:circuit",
         "//lib:gates_cirq",
+        "//lib:operation",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -183,6 +210,7 @@ cc_test(
         "//conditions:default": [],
     }),
     deps = [
+        "//lib:gate",
         "//lib:gates_qsim",
         "@com_google_googletest//:gtest_main",
     ],
@@ -200,9 +228,9 @@ cc_library(
         "//lib:circuit_qsim_parser",
         "//lib:formux",
         "//lib:fuser_basic",
-        "//lib:gates_qsim",
         "//lib:hybrid",
         "//lib:io",
+        "//lib:operation",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -238,6 +266,22 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "operation_test",
+    size = "small",
+    srcs = ["operation_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "//lib:gate",
+        "//lib:operation",
+        "//lib:operation_base",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "qtrajectory_testfixture",
     testonly = 1,
@@ -249,12 +293,16 @@ cc_library(
     deps = [
         "//lib:channel",
         "//lib:channels_cirq",
+        "//lib:circuit",
         "//lib:circuit_noisy",
         "//lib:expect",
         "//lib:fuser_mqubit",
+        "//lib:gate",
         "//lib:gate_appl",
         "//lib:gates_cirq",
         "//lib:io",
+        "//lib:operation",
+        "//lib:operation_base",
         "//lib:qtrajectory",
         "@com_google_googletest//:gtest_main",
     ],
@@ -291,7 +339,13 @@ cc_test(
     }),
     deps = [
         ":gates_cirq_testfixture",
-        "//lib:run_qsim_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:formux",
+        "//lib:fuser_basic",
+        "//lib:io",
+        "//lib:operation",
+        "//lib:run_qsim",
+        "//lib:simulator",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -306,7 +360,13 @@ cc_test(
     }),
     deps = [
         ":gates_cirq_testfixture",
-        "//lib:run_qsimh_lib",
+        "//lib:circuit_qsim_parser",
+        "//lib:formux",
+        "//lib:fuser_basic",
+        "//lib:io",
+        "//lib:operation",
+        "//lib:run_qsimh",
+        "//lib:simulator_basic",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -321,10 +381,12 @@ cc_library(
     }),
     deps = [
         "//lib:expect",
+        "//lib:fuser",
         "//lib:fuser_mqubit",
         "//lib:gate_appl",
         "//lib:gates_qsim",
         "//lib:io",
+        "//lib:operation",
         "//lib:util_cpu",
         "@com_google_googletest//:gtest_main",
     ],
@@ -414,6 +476,7 @@ cc_library(
         "//lib:fuser_basic",
         "//lib:gates_qsim",
         "//lib:io",
+        "//lib:operation",
         "//lib:run_qsim",
         "@com_google_googletest//:gtest_main",
     ],
@@ -584,6 +647,7 @@ cc_library(
     }),
     deps = [
         "//lib:fuser",
+        "//lib:gate",
         "//lib:gate_appl",
         "//lib:gates_cirq",
         "@com_google_googletest//:gtest_main",
@@ -701,9 +765,10 @@ cc_test(
     }),
     deps = [
         "//lib:formux",
+        "//lib:fuser",
+        "//lib:gate",
         "//lib:gate_appl",
         "//lib:gates_cirq",
-        "//lib:gates_qsim",
         "//lib:mps_simulator",
         "@com_google_googletest//:gtest_main",
     ],

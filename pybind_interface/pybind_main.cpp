@@ -14,10 +14,12 @@
 
 #include "pybind_main.h"
 
-#include <complex>
-#include <sstream>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <complex>
+#include <map>
+#include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -34,17 +36,9 @@ using namespace qsim;
 
 namespace {
 
-Circuit<Factory::Gate> getCircuit(const py::dict &options) {
+Circuit<Factory::Operation> getCircuit(const py::dict &options) {
   try {
-    return options["c\0"].cast<Circuit<Factory::Gate>>();
-  } catch (const std::invalid_argument &exp) {
-    throw;
-  }
-}
-
-NoisyCircuit<Factory::Gate> getNoisyCircuit(const py::dict &options) {
-  try {
-    return options["c\0"].cast<NoisyCircuit<Factory::Gate>>();
+    return options["c\0"].cast<Circuit<Factory::Operation>>();
   } catch (const std::invalid_argument &exp) {
     throw;
   }
@@ -70,9 +64,9 @@ std::vector<Bitstring> getBitstrings(const py::dict &options, int num_qubits) {
 }  // namespace
 
 Factory::Gate create_gate(const qsim::Cirq::GateKind gate_kind,
-                                  const unsigned time,
-                                  const std::vector<unsigned>& qubits,
-                                  const std::map<std::string, float>& params) {
+                          const unsigned time,
+                          const std::vector<unsigned>& qubits,
+                          const std::map<std::string, float>& params) {
   switch (gate_kind) {
     case Cirq::kI1:
       return Cirq::I1<float>::Create(time, qubits[0]);
@@ -189,11 +183,6 @@ Factory::Gate create_gate(const qsim::Cirq::GateKind gate_kind,
       return Cirq::CCZ<float>::Create(time, qubits[0], qubits[1], qubits[2]);
     case Cirq::kCCX:
       return Cirq::CCX<float>::Create(time, qubits[0], qubits[1], qubits[2]);
-    case Cirq::kMeasurement: {
-      std::vector<unsigned> qubits_ = qubits;
-      return gate::Measurement<Factory::Gate>::Create(
-        time, std::move(qubits_));
-      }
     // Matrix gates are handled in the add_matrix methods below.
     default:
       throw std::invalid_argument("GateKind not supported.");
@@ -201,8 +190,8 @@ Factory::Gate create_gate(const qsim::Cirq::GateKind gate_kind,
 }
 
 Factory::Gate create_diagonal_gate(const unsigned time,
-                                           const std::vector<unsigned>& qubits,
-                                           const std::vector<float>& angles) {
+                                   const std::vector<unsigned>& qubits,
+                                   const std::vector<float>& angles) {
   switch (qubits.size()) {
   case 2:
     return Cirq::TwoQubitDiagonalGate<float>::Create(
@@ -217,8 +206,8 @@ Factory::Gate create_diagonal_gate(const unsigned time,
 }
 
 Factory::Gate create_matrix_gate(const unsigned time,
-                                         const std::vector<unsigned>& qubits,
-                                         const std::vector<float>& matrix) {
+                                 const std::vector<unsigned>& qubits,
+                                 const std::vector<float>& matrix) {
   switch (qubits.size()) {
   case 0:
     // Global phase gate.
@@ -241,81 +230,44 @@ Factory::Gate create_matrix_gate(const unsigned time,
 void add_gate(const qsim::Cirq::GateKind gate_kind, const unsigned time,
               const std::vector<unsigned>& qubits,
               const std::map<std::string, float>& params,
-              Circuit<Factory::Gate>* circuit) {
-  circuit->gates.push_back(create_gate(gate_kind, time, qubits, params));
+              Circuit<Factory::Operation>* circuit) {
+  circuit->ops.push_back(create_gate(gate_kind, time, qubits, params));
 }
 
 void add_diagonal_gate(const unsigned time, const std::vector<unsigned>& qubits,
                        const std::vector<float>& angles,
-                       Circuit<Factory::Gate>* circuit) {
-  circuit->gates.push_back(create_diagonal_gate(time, qubits, angles));
+                       Circuit<Factory::Operation>* circuit) {
+  circuit->ops.push_back(create_diagonal_gate(time, qubits, angles));
 }
 
-void add_matrix_gate(const unsigned time,
-                     const std::vector<unsigned>& qubits,
+void add_matrix_gate(const unsigned time, const std::vector<unsigned>& qubits,
                      const std::vector<float>& matrix,
-                     Circuit<Factory::Gate>* circuit) {
-  circuit->gates.push_back(create_matrix_gate(time, qubits, matrix));
+                     Circuit<Factory::Operation>* circuit) {
+  circuit->ops.push_back(create_matrix_gate(time, qubits, matrix));
+}
+
+void add_measurement(const unsigned time, const std::vector<unsigned>& qubits,
+                     Circuit<Factory::Operation>* circuit) {
+  circuit->ops.push_back(CreateMeasurement(time, qubits));
 }
 
 void control_last_gate(const std::vector<unsigned>& qubits,
                        const std::vector<unsigned>& values,
-                       Circuit<Factory::Gate>* circuit) {
-  MakeControlledGate(qubits, values, circuit->gates.back());
-}
-
-template <typename Gate>
-Channel<Gate> create_single_gate_channel(Gate gate) {
-  auto gate_kind = KrausOperator<Gate>::kNormal;
-  if (gate.kind == gate::kMeasurement) {
-    gate_kind = KrausOperator<Gate>::kMeasurement;
-  }
-  return {{gate_kind, 1, 1.0, {gate}}};
-}
-
-void add_gate_channel(const qsim::Cirq::GateKind gate_kind, const unsigned time,
-                      const std::vector<unsigned>& qubits,
-                      const std::map<std::string, float>& params,
-                      NoisyCircuit<Factory::Gate>* ncircuit) {
-  ncircuit->channels.push_back(create_single_gate_channel(
-    create_gate(gate_kind, time, qubits, params)));
-}
-
-void add_diagonal_gate_channel(const unsigned time,
-                               const std::vector<unsigned>& qubits,
-                               const std::vector<float>& angles,
-                               NoisyCircuit<Factory::Gate>* ncircuit) {
-  ncircuit->channels.push_back(create_single_gate_channel(
-    create_diagonal_gate(time, qubits, angles)));
-}
-
-void add_matrix_gate_channel(const unsigned time,
-                             const std::vector<unsigned>& qubits,
-                             const std::vector<float>& matrix,
-                             NoisyCircuit<Factory::Gate>* ncircuit) {
-  ncircuit->channels.push_back(create_single_gate_channel(
-    create_matrix_gate(time, qubits, matrix)));
-}
-
-void control_last_gate_channel(const std::vector<unsigned>& qubits,
-                               const std::vector<unsigned>& values,
-                               NoisyCircuit<Factory::Gate>* ncircuit) {
-  if (ncircuit->channels.back().size() > 1) {
-    throw std::invalid_argument(
-        "Control cannot be added to noisy channels.");
-  }
-  for (Factory::Gate& op : ncircuit->channels.back()[0].ops) {
-    MakeControlledGate(qubits, values, op);
-  }
+                       Circuit<Factory::Operation>* circuit) {
+  auto& lop = circuit->ops.back();
+  lop = OpGetAlternative<Factory::Gate>(lop)->ControlledBy(qubits, values);
 }
 
 void add_channel(const unsigned time,
                  const std::vector<unsigned>& qubits,
                  const std::vector<std::tuple<float, std::vector<float>, bool>>&
                      prob_matrix_unitary_triples,
-                 NoisyCircuit<Factory::Gate>* ncircuit) {
+                 Circuit<Factory::Operation>* ncircuit) {
   // Adds a channel to the noisy circuit.
-  Channel<Factory::Gate> channel;
+
+  std::set<unsigned> qubits_set;
+  Channel<float> channel{{kChannel, time, {}}, {}};
+
   // prob_matrix_unitary_triples contains triples with these elements:
   //   0. The lower-bound probability of applying the matrix.
   //   1. The matrix to be applied.
@@ -325,33 +277,42 @@ void add_channel(const unsigned time,
     const std::vector<float>& mat = std::get<1>(triple);
     bool is_unitary = std::get<2>(triple);
     Factory::Gate gate = create_matrix_gate(time, qubits, mat);
-    channel.emplace_back(KrausOperator<Factory::Gate>{
-      KrausOperator<Factory::Gate>::kNormal, is_unitary, prob, {gate}
-    });
+
+    for (auto q : gate.qubits) {
+      qubits_set.insert(q);
+    }
+
+    channel.kops.push_back(KrausOperator<float>{is_unitary, prob, {gate}});
     if (!is_unitary) {
-      channel.back().CalculateKdKMatrix();
+      channel.kops.back().CalculateKdKMatrix();
     }
   }
-  ncircuit->channels.push_back(channel);
+
+  channel.qubits.reserve(qubits_set.size());
+  for (auto it = qubits_set.begin(); it != qubits_set.end(); ++it) {
+    channel.qubits.push_back(*it);
+  }
+
+  ncircuit->ops.push_back(channel);
 }
 
-void add_gate_to_opstring(const Cirq::GateKind gate_kind,
+void add_gate_to_opstring(const qsim::Cirq::GateKind gate_kind,
                           const std::vector<unsigned>& qubits,
-                          OpString<Factory::Gate>* opstring) {
+                          OpString<float>* opstring) {
   static std::map<std::string, float> params;
   opstring->ops.push_back(create_gate(gate_kind, 0, qubits, params));
 }
 
 void add_matrix_gate_to_opstring(const std::vector<unsigned>& qubits,
                                  const std::vector<float>& matrix,
-                                 OpString<Factory::Gate>* opstring) {
+                                 OpString<float>* opstring) {
   opstring->ops.push_back(create_matrix_gate(0, qubits, matrix));
 }
 
 // Methods for simulating amplitudes.
 
 std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
-  Circuit<Factory::Gate> circuit;
+  Circuit<Factory::Operation> circuit;
   std::vector<Bitstring> bitstrings;
   try {
     circuit = getCircuit(options);
@@ -405,11 +366,11 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
 }
 
 std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
-  NoisyCircuit<Factory::Gate> ncircuit;
+  Circuit<Factory::Operation> ncircuit;
   unsigned num_qubits;
   std::vector<Bitstring> bitstrings;
   try {
-    ncircuit = getNoisyCircuit(options);
+    ncircuit = getCircuit(options);
     num_qubits = ncircuit.num_qubits;
     bitstrings = getBitstrings(options, num_qubits);
   } catch (const std::invalid_argument &exp) {
@@ -532,7 +493,7 @@ class SimulatorHelper {
   static std::vector<std::complex<double>> simulate_expectation_values(
       const py::dict &options,
       const std::vector<std::tuple<
-                            std::vector<OpString<Factory::Gate>>,
+                            std::vector<OpString<float>>,
                             unsigned>>& opsums_and_qubit_counts,
       bool is_noisy, const StateType& input_state) {
     auto helper = SimulatorHelper(options, is_noisy);
@@ -570,7 +531,7 @@ class SimulatorHelper {
   simulate_moment_expectation_values(
       const py::dict &options,
       const std::vector<std::tuple<uint64_t, std::vector<
-          std::tuple<std::vector<OpString<Factory::Gate>>,
+          std::tuple<std::vector<OpString<float>>,
                      unsigned>>>>& opsums_and_qubit_counts,
       bool is_noisy, const StateType& input_state) {
     auto helper = SimulatorHelper(options, is_noisy);
@@ -640,7 +601,7 @@ class SimulatorHelper {
 
     try {
       if (is_noisy) {
-        ncircuit = getNoisyCircuit(options);
+        ncircuit = getCircuit(options);
         num_qubits = ncircuit.num_qubits;
         noisy_reps = ParseOptions<unsigned>(options, "r\0");
       } else {
@@ -730,18 +691,18 @@ class SimulatorHelper {
       Simulator simulator = factory.CreateSimulator();
       StateSpace state_space = factory.CreateStateSpace();
 
-      result = NoisyRunner::RunOnce(
+      result = NoisyRunner::RunOnce<Factory::Operation>(
         params, ncircuit.num_qubits,
-        ncircuit.channels.begin() + begin,
-        ncircuit.channels.begin() + end,
+        ncircuit.ops.begin() + begin,
+        ncircuit.ops.begin() + end,
         seed, state_space, simulator, state, stat
       );
     } else {
-      Circuit<Factory::Gate> subcircuit;
+      Circuit<Factory::Operation> subcircuit;
       subcircuit.num_qubits = circuit.num_qubits;
-      subcircuit.gates = std::vector<Factory::Gate>(
-        circuit.gates.begin() + begin,
-        circuit.gates.begin() + end
+      subcircuit.ops = std::vector<Factory::Operation>(
+        circuit.ops.begin() + begin,
+        circuit.ops.begin() + end
       );
       result = Runner::Run(get_params(), factory, subcircuit, state);
     }
@@ -764,11 +725,11 @@ class SimulatorHelper {
   }
 
   std::vector<std::complex<double>> get_expectation_value(
-      const std::vector<std::tuple<std::vector<OpString<Factory::Gate>>,
+      const std::vector<std::tuple<std::vector<OpString<float>>,
                                    unsigned>>& opsums_and_qubit_counts) {
     Simulator simulator = factory.CreateSimulator();
     StateSpace state_space = factory.CreateStateSpace();
-    using Fuser = MultiQubitGateFuser<IO, Factory::Gate>;
+    using Fuser = MultiQubitGateFuser<IO>;
 
     std::vector<std::complex<double>> results;
     results.reserve(opsums_and_qubit_counts.size());
@@ -797,8 +758,8 @@ class SimulatorHelper {
 
   bool is_noisy;
   // Only one of these will be populated, as specified by is_noisy.
-  Circuit<Factory::Gate> circuit;
-  NoisyCircuit<Factory::Gate> ncircuit;
+  Circuit<Factory::Operation> circuit;
+  Circuit<Factory::Operation> ncircuit;
 
   Factory factory;
   State state;
@@ -841,7 +802,7 @@ py::array_t<float> qtrajectory_simulate_fullstate(
 std::vector<std::complex<double>> qsim_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<OpString<Factory::Gate>>,
+                          std::vector<OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     uint64_t input_state) {
   return SimulatorHelper::simulate_expectation_values(
@@ -851,7 +812,7 @@ std::vector<std::complex<double>> qsim_simulate_expectation_values(
 std::vector<std::complex<double>> qsim_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<OpString<Factory::Gate>>,
+                          std::vector<OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
   return SimulatorHelper::simulate_expectation_values(
@@ -862,7 +823,7 @@ std::vector<std::vector<std::complex<double>>>
 qsim_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
-      std::tuple<std::vector<OpString<Factory::Gate>>, unsigned>
+      std::tuple<std::vector<OpString<float>>, unsigned>
     >>>& opsums_and_qubit_counts,
     uint64_t input_state) {
   return SimulatorHelper::simulate_moment_expectation_values(
@@ -873,7 +834,7 @@ std::vector<std::vector<std::complex<double>>>
 qsim_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
-      std::tuple<std::vector<OpString<Factory::Gate>>, unsigned>
+      std::tuple<std::vector<OpString<float>>, unsigned>
     >>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
   return SimulatorHelper::simulate_moment_expectation_values(
@@ -883,7 +844,7 @@ qsim_simulate_moment_expectation_values(
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<OpString<Factory::Gate>>,
+                          std::vector<OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     uint64_t input_state) {
   return SimulatorHelper::simulate_expectation_values(
@@ -893,7 +854,7 @@ std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
 std::vector<std::complex<double>> qtrajectory_simulate_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<
-                          std::vector<OpString<Factory::Gate>>,
+                          std::vector<OpString<float>>,
                           unsigned>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
   return SimulatorHelper::simulate_expectation_values(
@@ -904,7 +865,7 @@ std::vector<std::vector<std::complex<double>>>
 qtrajectory_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
-      std::tuple<std::vector<OpString<Factory::Gate>>, unsigned>
+      std::tuple<std::vector<OpString<float>>, unsigned>
     >>>& opsums_and_qubit_counts,
     uint64_t input_state) {
   return SimulatorHelper::simulate_moment_expectation_values(
@@ -915,7 +876,7 @@ std::vector<std::vector<std::complex<double>>>
 qtrajectory_simulate_moment_expectation_values(
     const py::dict &options,
     const std::vector<std::tuple<uint64_t, std::vector<
-      std::tuple<std::vector<OpString<Factory::Gate>>, unsigned>
+      std::tuple<std::vector<OpString<float>>, unsigned>
     >>>& opsums_and_qubit_counts,
     const py::array_t<float> &input_vector) {
   return SimulatorHelper::simulate_moment_expectation_values(
@@ -935,7 +896,7 @@ std::vector<uint64_t> qtrajectory_sample_final(
 }
 
 std::vector<unsigned> qsim_sample(const py::dict &options) {
-  Circuit<Factory::Gate> circuit;
+  Circuit<Factory::Operation> circuit;
   try {
     circuit = getCircuit(options);
   } catch (const std::invalid_argument &exp) {
@@ -991,9 +952,9 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
 }
 
 std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
-  NoisyCircuit<Factory::Gate> ncircuit;
+  Circuit<Factory::Operation> ncircuit;
   try {
-    ncircuit = getNoisyCircuit(options);
+    ncircuit = getCircuit(options);
   } catch (const std::invalid_argument &exp) {
     IO::errorf("%s", exp.what());
     return {};
@@ -1029,13 +990,13 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
       // Converts stat (which matches the MeasurementResult 'bits' field) into
       // bitstrings matching the MeasurementResult 'bitstring' field.
       unsigned idx = 0;
-      for (const auto& channel : ncircuit.channels) {
-        if (channel[0].kind != gate::kMeasurement)
-          continue;
-        for (const auto& op : channel[0].ops) {
+      for (const auto& op : ncircuit.ops) {
+        if (const auto* pg = OpGetAlternative<Measurement>(op)) {
           std::vector<unsigned> bitstring;
+          bitstring.reserve(pg->qubits.size());
+
           uint64_t val = stat.samples[idx];
-          for (const auto& q : op.qubits) {
+          for (const auto& q : pg->qubits) {
             bitstring.push_back((val >> q) & 1);
           }
           results.push_back(bitstring);
@@ -1073,11 +1034,10 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
 // Method for running the hybrid simulator.
 
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
-  using HybridSimulator = HybridSimulator<IO, Factory::Gate,
-                                          MultiQubitGateFuser, For>;
-  using Runner = QSimHRunner<IO, HybridSimulator>;
+  using HybridSimulator = HybridSimulator<IO, For>;
+  using Runner = QSimHRunner<IO, MultiQubitGateFuser<IO>, HybridSimulator>;
 
-  Circuit<Factory::Gate> circuit;
+  Circuit<Factory::Operation> circuit;
   std::vector<Bitstring> bitstrings;
   Runner::Parameter param;
   py::list dense_parts;

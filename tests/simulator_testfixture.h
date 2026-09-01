@@ -23,10 +23,12 @@
 #include "gtest/gtest.h"
 
 #include "../lib/expect.h"
+#include "../lib/fuser.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gate_appl.h"
 #include "../lib/gates_qsim.h"
 #include "../lib/io.h"
+#include "../lib/operation.h"
 #include "../lib/util_cpu.h"
 
 namespace qsim {
@@ -224,10 +226,10 @@ void TestApplyGate5(const Factory& factory) {
   auto gate25 = GateRX<fp_type>::Create(11, 4, 0.3);
   auto gate26 = GateGPh<fp_type>::Create(12, -1, 0);
 
-  GateFused<GateQSim<fp_type>> fgate1{kGateCZ, 2, {0, 1},  &gate11,
+  FusedGate<fp_type> fgate1{kGateCZ, 2, {0, 1},  &gate11,
       {&gate1, &gate2, &gate6, &gate7, &gate11, &gate12, &gate13}, {}};
   CalculateFusedMatrix(fgate1);
-  ApplyFusedGate(simulator, fgate1, state);
+  ApplyGate(simulator, fgate1, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 
@@ -246,10 +248,10 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), 0.5, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate2{kGateIS, 4, {1, 2}, &gate14,
+  FusedGate<fp_type> fgate2{kGateIS, 4, {1, 2}, &gate14,
       {&gate3, &gate8, &gate14, &gate15, &gate16}, {}};
   CalculateFusedMatrix(fgate2);
-  ApplyFusedGate(simulator, fgate2, state);
+  ApplyGate(simulator, fgate2, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 
@@ -268,10 +270,10 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), 0, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate3{kGateCNot, 6, {2, 3}, &gate17,
+  FusedGate<fp_type> fgate3{kGateCNot, 6, {2, 3}, &gate17,
       {&gate4, &gate9, &gate17, &gate18, &gate19},{}};
   CalculateFusedMatrix(fgate3);
-  ApplyFusedGate(simulator, fgate3, state);
+  ApplyGate(simulator, fgate3, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 
@@ -290,10 +292,10 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), 0.00031570, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate4{kGateFS, 8, {3, 4}, &gate20,
+  FusedGate<fp_type> fgate4{kGateFS, 8, {3, 4}, &gate20,
       {&gate5, &gate10, &gate20, &gate21, &gate22}, {}};
   CalculateFusedMatrix(fgate4);
-  ApplyFusedGate(simulator, fgate4, state);
+  ApplyGate(simulator, fgate4, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 
@@ -312,10 +314,10 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), -0.00987822, 1e-6);
   }
 
-  GateFused<GateQSim<fp_type>> fgate5{kGateCP, 10, {0, 1}, &gate23,
+  FusedGate<fp_type> fgate5{kGateCP, 10, {0, 1}, &gate23,
       {&gate23, &gate26}, {}};
   CalculateFusedMatrix(fgate5);
-  ApplyFusedGate(simulator, fgate5, state);
+  ApplyGate(simulator, fgate5, state);
 
   EXPECT_NEAR(state_space.Norm(state), 1, 1e-6);
 
@@ -360,12 +362,12 @@ void TestCircuitWithControlledGates(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
-  using Gate = GateQSim<fp_type>;
+  using Operation = qsim::Operation<fp_type>;
 
   unsigned num_qubits = 7;
   unsigned size = 1 << (num_qubits - 1);
 
-  std::vector<Gate> gates;
+  std::vector<Operation> gates;
   gates.reserve(128);
 
   gates.push_back(GateHd<fp_type>::Create(0, 0));
@@ -767,12 +769,12 @@ void TestCircuitWithControlledGatesDagger(const Factory& factory) {
   using Simulator = typename Factory::Simulator;
   using StateSpace = typename Simulator::StateSpace;
   using fp_type = typename StateSpace::fp_type;
-  using Gate = GateQSim<fp_type>;
+  using Operation = qsim::Operation<fp_type>;
 
   unsigned num_qubits = 7;
   unsigned size = 1 << (num_qubits - 1);
 
-  std::vector<Gate> gates;
+  std::vector<Operation> gates;
   gates.reserve(128);
 
   gates.push_back(GateHd<fp_type>::Create(0, 0));
@@ -1475,7 +1477,7 @@ void TestExpectationValue2(const Factory& factory) {
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using Fuser = MultiQubitGateFuser<IO, GateQSim<fp_type>>;
+  using Fuser = MultiQubitGateFuser<IO>;
 
   unsigned num_qubits = 16;
   unsigned depth = 16;
@@ -1591,7 +1593,7 @@ for k in range(1, 7):
   };
 
   for (unsigned k = 1; k <= 6; ++k) {
-    std::vector<OpString<GateQSim<fp_type>>> strings;
+    std::vector<OpString<fp_type>> strings;
     strings.reserve(num_qubits);
 
     for (unsigned i = 0; i <= num_qubits - k; ++i) {
