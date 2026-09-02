@@ -38,8 +38,8 @@ CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc
 
-BASE_CXXFLAGS := -std=c++17
-BASE_NVCCFLAGS := -std c++17 -Wno-deprecated-gpu-targets
+BASE_CXXFLAGS := -std=c++20
+BASE_NVCCFLAGS := -std c++20 -Wno-deprecated-gpu-targets
 BASE_HIPCCFLAGS :=
 
 CXXFLAGS := $(BASE_CXXFLAGS) $(CXXFLAGS)
