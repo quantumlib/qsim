@@ -131,11 +131,6 @@ enable = ["cpython-prerelease"]
 before-test = "pip install --group dev"
 # import-mode=importlib prevents local source shadowing when importing qsimcirq.
 test-command = "pytest --import-mode=importlib -n auto -s -v {package}/qsimcirq_tests/qsimcirq_test.py"
-# Help increase the chances that pip will find binary wheels for NumPy.
-# See https://cibuildwheel.pypa.io/en/stable/faq/#building-with-numpy
-environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/"
-environment.PIP_PRERELEASE = "allow"
-environment.PIP_PREFER_BINARY = "1"
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
@@ -148,6 +143,11 @@ select = ["cp314*"]
 inherit.environment = "append"
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
+# Help increase the chances that pip will find binary wheels for NumPy.
+# See https://cibuildwheel.pypa.io/en/stable/faq/#building-with-numpy
+environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/"
+environment.PIP_PRERELEASE = "allow"
+environment.PIP_PREFER_BINARY = "1"
 
 [tool.cibuildwheel.macos]
 before-build = """
