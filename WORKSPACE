@@ -32,6 +32,40 @@ http_archive(
     url = "https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip",
 )
 
+# Hermetic Python toolchain and pinned PyPI dependencies.
+
+http_archive(
+    name = "rules_python",
+    sha256 = "ca77768989a7f311186a29747e3e95c936a41dffac779aff6b443db22290d913",
+    strip_prefix = "rules_python-0.36.0",
+    url = "https://github.com/bazel-contrib/rules_python/releases/download/0.36.0/rules_python-0.36.0.tar.gz",
+)
+
+load(
+    "@rules_python//python:repositories.bzl",
+    "py_repositories",
+    "python_register_toolchains",
+)
+
+py_repositories()
+
+python_register_toolchains(
+    name = "python_3_11",
+    python_version = "3.11.9",
+)
+
+load("@rules_python//python:pip.bzl", "pip_parse")
+
+pip_parse(
+    name = "pip",
+    python_interpreter_target = "@python_3_11_host//:python",
+    requirements_lock = "//third_party:requirements_lock.txt",
+)
+
+load("@pip//:requirements.bzl", "install_deps")
+
+install_deps()
+
 # Required for testing compatibility with TF Quantum:
 # https://github.com/tensorflow/quantum
 http_archive(
@@ -41,21 +75,12 @@ http_archive(
     url = "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.13.0.zip",
 )
 
-load("@org_tensorflow//tensorflow:workspace3.bzl", "tf_workspace3")
+# qsim uses TensorFlow's CUDA repository rule, but does not directly depend on
+# TensorFlow build targets. Avoid TensorFlow's broader workspace initialization,
+# which runs a host-Python NumPy probe.
+load("@org_tensorflow//third_party/gpus:cuda_configure.bzl", "cuda_configure")
 
-tf_workspace3()
-
-load("@org_tensorflow//tensorflow:workspace2.bzl", "tf_workspace2")
-
-tf_workspace2()
-
-load("@org_tensorflow//tensorflow:workspace1.bzl", "tf_workspace1")
-
-tf_workspace1()
-
-load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
-
-tf_workspace0()
+cuda_configure(name = "local_config_cuda")
 
 load("//dev_tools:compiler_probe.bzl", "compiler_probe")
 
