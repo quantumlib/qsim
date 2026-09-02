@@ -136,7 +136,6 @@ test-command = "pytest --import-mode=importlib -n auto -s -v {package}/qsimcirq_
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "*musllinux*"
 
 [[tool.cibuildwheel.overrides]]
 # For Python 3.14, have to use a more recent manylinux image.
@@ -144,6 +143,7 @@ select = ["cp314*"]
 inherit.environment = "append"
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
+skip = ["*musllinux*", "*manylinux_i686*"]
 # Help increase the chances that pip will find binary wheels for NumPy.
 # See https://cibuildwheel.pypa.io/en/stable/faq/#building-with-numpy
 environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/"
