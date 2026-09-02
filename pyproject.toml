@@ -126,6 +126,7 @@ dependencies = {file = ["requirements.txt"] }
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
+skip = ["*musllinux*", "*manylinux_i686*"]
 dependency-versions = "latest"
 enable = ["cpython-prerelease"]
 environment.PIP_PREFER_BINARY = "1"
@@ -136,7 +137,6 @@ test-command = "pytest --import-mode=importlib -n auto -s -v {package}/qsimcirq_
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = ["*musllinux*", "*manylinux_i686*"]
 
 [[tool.cibuildwheel.overrides]]
 # For Python 3.14, have to use a more recent manylinux image.
