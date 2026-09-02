@@ -63,4 +63,7 @@ namespace qsim {
   inline void ClearFlushToZeroAndDenormalsAreZeros() {}
 }
 
+// Enable zero-copy device state-vector bindings (issue #836).
+#define QSIM_DEVICE_STATE_BINDINGS
+
 #include "../pybind_main.cpp"
