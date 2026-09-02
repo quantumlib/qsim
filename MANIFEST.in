@@ -51,15 +51,6 @@ exclude WORKSPACE
 # Exclude repository dotfiles.
 global-exclude .*
 
-# Exclude build artifacts.
-global-exclude *.a
-global-exclude *.dll
-global-exclude *.dylib
-global-exclude *.exe
-global-exclude *.lib
-global-exclude *.mod
-global-exclude *.o
-global-exclude *.obj
-global-exclude *.py[cod]
-global-exclude *.so
-global-exclude *.x
+# Exclude build artifacts. Putting the list on one line avoids multiple
+# warnings for patterns that don't match on the current platform.
+global-exclude *.a *.dll *.dylib *.exe *.lib *.mod *.o *.obj *.py[cod] *.so *.x
