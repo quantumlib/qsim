@@ -19,3 +19,7 @@
 
 # Not in .gitignore because it's a git submodule. Tell Gemini to ignore it.
 /tests/googletest/
+
+# The next one (for Emacs versioned backups) _should_ be covered by *~ in our
+# .gitignore, but Gemini currently doesn't seem to interpret *~ that way.
+*.~*~

@@ -38,12 +38,9 @@ ipython_config.py
 .cache/
 .dmypy.json
 .mypy_cache/
-.nox/
 .pytest_cache/
 .python-version
-.pytype/
 .ruff_cache/
-.tox/
 __pycache__/
 build/
 coverage.xml
