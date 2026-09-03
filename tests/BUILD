@@ -202,6 +202,28 @@ cc_library(
 )
 
 cc_test(
+    name = "gate_appl_test",
+    size = "small",
+    srcs = ["gate_appl_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "//lib:fuser",
+        "//lib:gate",
+        "//lib:gate_appl",
+        "//lib:gates_qsim",
+        "//lib:matrix",
+        "//lib:operation",
+        "//lib:operation_base",
+        "//lib:seqfor",
+        "//lib:simulator_basic",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "gates_qsim_test",
     size = "small",
     srcs = ["gates_qsim_test.cc"],
