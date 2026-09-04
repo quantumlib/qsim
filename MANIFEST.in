@@ -1,5 +1,56 @@
-# Thanks to setuptools-scm, the source distribution (sdist) will already include
-# all files tracked by git. Here we exclude some that are unsuitable.
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-recursive-exclude .github *
-recursive-exclude dev_tools/ci *
+# Include root build files, metadata, and license.
+include CITATION.cff
+include CMakeLists.txt
+include LICENSE
+include pyproject.toml
+include README.md
+include requirements.txt
+include setup.py
+
+# Include C++ sources and Pybind interfaces required for building.
+graft lib
+graft pybind_interface
+
+# Include Python package sources and tests.
+graft qsimcirq
+graft qsimcirq_tests
+
+# Prune repository, environment, and other dirs not meant for distribution.
+prune .gemini
+prune .github
+prune apps
+prune check
+prune circuits
+prune dev_tools
+prune docs
+prune install
+prune jupyter
+prune tests
+prune third_party
+
+# Exclude dev and container config files.
+exclude Dockerfile
+exclude docker-compose.yml
+exclude Makefile
+exclude WORKSPACE
+
+# Exclude repository dotfiles.
+global-exclude .*
+
+# Exclude build artifacts. Putting the list on one line avoids multiple
+# warnings for patterns that don't match on the current platform.
+global-exclude *.a *.dll *.dylib *.exe *.lib *.mod *.o *.obj *.py[cod] *.so *.x
