@@ -41,6 +41,9 @@ class StateSpaceBasic :
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
+  // Number of low amplitude-index bits stored inside one state chunk.
+  static constexpr unsigned kChunkQubits = 0;
+
   template <typename... ForArgs>
   explicit StateSpaceBasic(ForArgs&&... args) : Base(args...) {}
 

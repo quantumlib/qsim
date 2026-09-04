@@ -17,6 +17,12 @@
 
 #ifdef _WIN32
   #include <malloc.h>
+#elif defined(__linux__)
+  #include <sys/syscall.h>
+  #include <unistd.h>
+  #include <fstream>
+  #include <sstream>
+  #include <string>
 #endif
 
 #include <cstdint>
@@ -37,6 +43,65 @@ inline void free(void* ptr) {
   ::free(ptr);
 #endif
 }
+
+#if defined(__linux__) && defined(SYS_mbind)
+#ifndef MPOL_INTERLEAVE
+#define MPOL_INTERLEAVE 3
+#endif
+
+inline bool ParseNodeRange(const std::string& str, unsigned long* nodemask,
+                           unsigned max_bits, unsigned& num_nodes_found) {
+  std::stringstream ss(str);
+  std::string item;
+  num_nodes_found = 0;
+  while (std::getline(ss, item, ',')) {
+    if (item.empty()) continue;
+    size_t dash = item.find('-');
+    if (dash == std::string::npos) {
+      unsigned node = std::stoul(item);
+      if (node < max_bits) {
+        nodemask[node / (8 * sizeof(unsigned long))] |=
+            (1UL << (node % (8 * sizeof(unsigned long))));
+        num_nodes_found++;
+      }
+    } else {
+      unsigned start = std::stoul(item.substr(0, dash));
+      unsigned end = std::stoul(item.substr(dash + 1));
+      for (unsigned node = start; node <= end && node < max_bits; ++node) {
+        nodemask[node / (8 * sizeof(unsigned long))] |=
+            (1UL << (node % (8 * sizeof(unsigned long))));
+        num_nodes_found++;
+      }
+    }
+  }
+  return num_nodes_found > 0;
+}
+
+inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
+  if (ptr == nullptr || size < 2 * 1024 * 1024) return;
+
+  unsigned long nodemask[16] = {0};
+  constexpr unsigned max_bits = sizeof(nodemask) * 8;
+  unsigned num_nodes = 0;
+
+  for (const char* path : {"/sys/devices/system/node/has_cpu",
+                           "/sys/devices/system/node/has_memory",
+                           "/sys/devices/system/node/online"}) {
+    std::ifstream file(path);
+    if (file.is_open()) {
+      std::string content;
+      if (file >> content &&
+          ParseNodeRange(content, nodemask, max_bits, num_nodes)) {
+        break;
+      }
+    }
+  }
+
+  if (num_nodes >= 2) {
+    syscall(SYS_mbind, ptr, size, MPOL_INTERLEAVE, nodemask, max_bits, 0);
+  }
+}
+#endif
 
 }  // namespace detail
 
@@ -94,6 +159,9 @@ class VectorSpace {
     #else
       void* p = nullptr;
       if (posix_memalign(&p, 64, size) == 0) {
+        #if defined(__linux__) && defined(SYS_mbind)
+        detail::ApplyNumaInterleave(p, size);
+        #endif
         return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
       } else {
         return Null();
