@@ -349,7 +349,7 @@ std::vector<std::complex<float>> qsim_simulate(const py::dict &options) {
     param.verbosity = ParseOptions<unsigned>(options, "v\0");
     param.seed = ParseOptions<unsigned>(options, "s\0");
 
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
 
     Factory factory(options);
     Runner::Run(param, factory, circuit, measure);
@@ -405,7 +405,7 @@ std::vector<std::complex<float>> qtrajectory_simulate(const py::dict &options) {
       }
     };
 
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
 
     if (!NoisyRunner::RunBatch(param, ncircuit, seed, seed + 1, state_space,
                                simulator, measure)) {
@@ -648,7 +648,7 @@ class SimulatorHelper {
 
   template <typename StateType>
   bool simulate(const StateType& input_state) {
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
     init_state(input_state);
     bool result = false;
 
@@ -669,7 +669,7 @@ class SimulatorHelper {
   }
 
   bool simulate_subcircuit(uint64_t begin, uint64_t end) {
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
     bool result = false;
 
     if (is_noisy) {
@@ -698,7 +698,7 @@ class SimulatorHelper {
   }
 
   std::vector<uint64_t> sample(uint64_t num_samples) {
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
     StateSpace state_space = factory.CreateStateSpace();
     return state_space.Sample(state, num_samples, seed);
   }
@@ -715,7 +715,7 @@ class SimulatorHelper {
   std::vector<std::complex<double>> get_expectation_value(
       const std::vector<std::tuple<std::vector<OpString<float>>,
                                    unsigned>>& opsums_and_qubit_counts) {
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
     Simulator simulator = factory.CreateSimulator();
     StateSpace state_space = factory.CreateStateSpace();
     using Fuser = MultiQubitGateFuser<IO>;
@@ -918,7 +918,7 @@ std::vector<unsigned> qsim_sample(const py::dict &options) {
     State state = state_space.Create(circuit.num_qubits);
     state_space.SetStateZero(state);
 
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
 
     if (!Runner::Run(param, factory, circuit, state, results)) {
       IO::errorf("qsim sampling of the circuit errored out.\n");
@@ -994,7 +994,7 @@ std::vector<unsigned> qtrajectory_sample(const py::dict &options) {
       }
     };
 
-    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_state_guard(denormals_are_zeros);
+    ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(denormals_are_zeros);
 
     if (!NoisyRunner::RunBatch(param, ncircuit, seed, seed + 1,
                                state_space, simulator, measure)) {
