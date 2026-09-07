@@ -50,8 +50,15 @@ namespace qsim {
     StateSpace::Parameter ss_params;
   };
 
+  inline void GetMXCSRControlFlags() {}
+  inline void SetMXCSRControlFlags(unsigned value) {}
   inline void SetFlushToZeroAndDenormalsAreZeros() {}
   inline void ClearFlushToZeroAndDenormalsAreZeros() {}
+
+  class ScopedFlushToZeroAndDenormalsAreZeros {
+   public:
+    explicit ScopedFlushToZeroAndDenormalsAreZeros(bool denormals_are_zeros) {}
+  };
 }
 
 #include "../pybind_main.cpp"

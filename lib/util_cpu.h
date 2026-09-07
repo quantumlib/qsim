@@ -21,6 +21,22 @@
 
 namespace qsim {
 
+// Gets the current MXCSR control flags.
+inline unsigned GetMXCSRControlFlags() {
+#ifdef __SSE2__
+  return _mm_getcsr();
+#else
+  return 0;
+#endif
+}
+
+// Sets the MXCSR control flags to a specific value.
+inline void SetMXCSRControlFlags(unsigned value) {
+#ifdef __SSE2__
+  _mm_setcsr(value);
+#endif
+}
+
 // This function sets flush-to-zero and denormals-are-zeros MXCSR control
 // flags. This prevents rare cases of performance slowdown potentially at
 // the cost of a tiny precision loss.
@@ -37,6 +53,38 @@ inline void ClearFlushToZeroAndDenormalsAreZeros() {
   _mm_setcsr(_mm_getcsr() & ~unsigned{0x8040});
 #endif
 }
+
+// RAII guard for the flush-to-zero and denormals-are-zeros MXCSR control flags.
+class ScopedFlushToZeroAndDenormalsAreZeros {
+ public:
+  explicit ScopedFlushToZeroAndDenormalsAreZeros(bool denormals_are_zeros)
+      : original_flags_(GetMXCSRControlFlags()) {
+    if (denormals_are_zeros) {
+      SetFlushToZeroAndDenormalsAreZeros();
+    } else {
+      ClearFlushToZeroAndDenormalsAreZeros();
+    }
+  }
+
+  ~ScopedFlushToZeroAndDenormalsAreZeros() {
+    SetMXCSRControlFlags(original_flags_);
+  }
+
+  // Prevent copying.
+  ScopedFlushToZeroAndDenormalsAreZeros(
+      const ScopedFlushToZeroAndDenormalsAreZeros&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros& operator=(
+      const ScopedFlushToZeroAndDenormalsAreZeros&) = delete;
+
+  // Prevent moving
+  ScopedFlushToZeroAndDenormalsAreZeros(
+      ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros& operator=(
+      ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
+
+ private:
+  unsigned original_flags_;
+};
 
 }  // namespace qsim
 

@@ -59,8 +59,15 @@ namespace qsim {
     custatevecHandle_t custatevec_handle;
   };
 
+  inline void GetMXCSRControlFlags() {}
+  inline void SetMXCSRControlFlags(unsigned value) {}
   inline void SetFlushToZeroAndDenormalsAreZeros() {}
   inline void ClearFlushToZeroAndDenormalsAreZeros() {}
+
+  class ScopedFlushToZeroAndDenormalsAreZeros {
+   public:
+    explicit ScopedFlushToZeroAndDenormalsAreZeros(bool denormals_are_zeros) {}
+  };
 }
 
 #include "../pybind_main.cpp"
