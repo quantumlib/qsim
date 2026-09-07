@@ -15,7 +15,6 @@
 import ctypes
 
 import cirq
-import pytest
 
 import qsimcirq
 
