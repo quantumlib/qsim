@@ -73,9 +73,11 @@ namespace gate_batch_internal {
 // Internal scheduling representation of one raw circuit gate.
 template <typename FP>
 struct PendingGate {
-  PendingGate(std::vector<unsigned> qubits, Matrix<FP> gate_matrix)
+  PendingGate(std::vector<unsigned> qubits, Matrix<FP> gate_matrix,
+              bool diagonal)
       : logical_qubits(std::move(qubits)),
-        matrix(std::move(gate_matrix)) {}
+        matrix(std::move(gate_matrix)),
+        is_diagonal(diagonal) {}
 
   bool IsPending() const { return !applied_; }
   void MarkApplied() { applied_ = true; }
@@ -83,6 +85,10 @@ struct PendingGate {
 
   std::vector<unsigned> logical_qubits;  // ascending
   Matrix<FP> matrix;
+
+  // Diagonal gates commute with each other, so an overlapping pair of them
+  // imposes no ordering constraint on the planner.
+  bool is_diagonal = false;
 
  private:
   bool applied_ = false;
@@ -237,6 +243,27 @@ class QSimGateBatchRunner final {
     unsigned block_qubits = 19;
     unsigned num_threads = 1;
     unsigned inner_threads = 1;
+
+    // Lowest eviction position allowed in a multi-block gate batch. Swap-pass
+    // spans are 2^(floor - chunk_qubits) chunks, so floor 9 keeps every span
+    // at least 4 KiB for float states and at streaming bandwidth. Lowering it
+    // widens the remap budget at the cost of shorter, more scattered spans.
+    unsigned min_eviction_floor = 9;
+
+    // Seed the fixed zone [chunk_qubits, eviction_floor) with the most-used
+    // logical qubits before the first gate batch. Free, because the all-zero
+    // initial state is permutation-invariant.
+    bool place_hot_qubits = true;
+
+    // How many pending gates beyond the first get to seed their own candidate
+    // qubit set. Planning is a negligible fraction of runtime, so this buys
+    // batch size almost for free.
+    unsigned max_gate_seeds = 64;
+
+    // Treat an overlap between two diagonal gates as non-blocking. Exact, not
+    // an approximation: diagonal matrices commute.
+    bool commute_diagonal_gates = false;
+
     std::vector<unsigned> team_thread_cpus;
   };
 
@@ -283,7 +310,9 @@ class QSimGateBatchRunner final {
         seq_sim_(1),
         layout_(layout),
         gate_batch_planner_(partition_.num_state_qubits,
-                            partition_.block_qubits, chunk_qubits_) {
+                            partition_.block_qubits, chunk_qubits_,
+                            param.min_eviction_floor, param.max_gate_seeds,
+                            param.commute_diagonal_gates) {
     assert(partition_.block_qubits >=
            std::min(chunk_qubits_, partition_.num_state_qubits));
     assert(layout_.NumQubits() == partition_.num_state_qubits);
@@ -390,6 +419,23 @@ class QSimGateBatchRunner final {
 
   // ======== Pending-gate preparation ========
 
+  // Checked on the matrix rather than the gate kind so parameterized and
+  // already-fused diagonal gates are recognized too.
+  static bool IsDiagonalMatrix(const Matrix<fp_type>& matrix,
+                               std::size_t arity) {
+    const std::size_t dim = std::size_t{1} << arity;
+    if (matrix.size() < 2 * dim * dim) return false;
+
+    for (std::size_t row = 0; row < dim; ++row) {
+      for (std::size_t col = 0; col < dim; ++col) {
+        if (row == col) continue;
+        const std::size_t k = 2 * (row * dim + col);
+        if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
+      }
+    }
+    return true;
+  }
+
   // The proposal starts from the raw circuit: every gate becomes one
   // pending gate, verbatim (qubit order normalized). All fusion is deferred
   // to the per-batch fuser. Controlled gates, measurements, and channels
@@ -410,8 +456,10 @@ class QSimGateBatchRunner final {
       auto logical_qubits = raw_gate->qubits;
       auto matrix = raw_gate->matrix;
       NormalizeGateQubitOrder(logical_qubits, matrix);
+      const bool diagonal =
+          IsDiagonalMatrix(matrix, logical_qubits.size());
       pending_gates_.emplace_back(std::move(logical_qubits),
-                                  std::move(matrix));
+                                  std::move(matrix), diagonal);
     }
     return true;
   }
@@ -433,16 +481,21 @@ class QSimGateBatchRunner final {
   class GateBatchPlanner {
    public:
     GateBatchPlanner(unsigned num_state_qubits, unsigned block_qubits,
-                     unsigned chunk_qubits)
+                     unsigned chunk_qubits, unsigned min_eviction_floor,
+                     unsigned max_gate_seeds, bool commute_diagonal_gates)
         : num_logical_qubits_(num_state_qubits),
           block_qubits_(block_qubits),
           chunk_qubits_(chunk_qubits),
-          is_qubit_blocked_(num_state_qubits) {}
+          min_eviction_floor_(min_eviction_floor),
+          max_gate_seeds_(max_gate_seeds),
+          commute_diagonal_gates_(commute_diagonal_gates),
+          is_qubit_blocked_(num_state_qubits),
+          is_qubit_blocked_for_diagonal_(num_state_qubits) {}
 
     GateBatchPlan PlanNextGateBatch(const std::vector<PendingGate>& gates,
                                     const QubitLayout& layout) {
       std::vector<GateBatchPlan> candidate_plans;
-      candidate_plans.reserve(2 + kMaxGateSeeds);
+      candidate_plans.reserve(2 + max_gate_seeds_);
 
       // First-fit greedy candidate.
       candidate_plans.push_back(PlanGateBatchFromQubitSet(
@@ -472,19 +525,9 @@ class QSimGateBatchRunner final {
     unsigned EvictionFloor() const { return ComputeEvictionFloor(); }
 
    private:
-    // How many pending gates beyond the first (which already leads the
-    // greedy baseline) get to seed their own candidate qubit set.
-    static constexpr unsigned kMaxGateSeeds = 4;
-
     // Keep enough remap positions for an ordinary two-qubit gate even when
-    // the block is too small to reach kMinEvictionFloor.
+    // the block is too small to reach min_eviction_floor.
     static constexpr unsigned kMinRemapSlots = 2;
-
-    // Lowest eviction position allowed in a multi-block gate batch: swap-pass
-    // spans are 2^(floor - chunk_qubits) chunks, so floor 9 keeps every
-    // span at least 4 KiB for float states and at streaming bandwidth.
-    // See RemapSlotCapacity.
-    static constexpr unsigned kMinEvictionFloor = 9;
 
     // Starting any remapping incurs a full-state pass. Additional pairs share
     // that pass and therefore carry a smaller marginal cost. With these
@@ -502,7 +545,7 @@ class QSimGateBatchRunner final {
     // Positions below the eviction floor are fixed residents and join a set
     // for free. Positions at or above it consume one remap slot: a low
     // resident protects a potential victim, while a high qubit requires a
-    // victim. Keeping the floor at kMinEvictionFloor makes every remap span
+    // victim. Keeping the floor at min_eviction_floor makes every remap span
     // at least 16 KiB for the default L=19. Small blocks retain at least two
     // remap slots so an ordinary two-qubit gate can make progress.
     unsigned RemapSlotCapacity() const {
@@ -515,8 +558,8 @@ class QSimGateBatchRunner final {
       const auto full = block_qubits_ > chunk_qubits_
                             ? block_qubits_ - chunk_qubits_
                             : 0u;
-      const auto depth_capped = block_qubits_ > kMinEvictionFloor
-                                    ? block_qubits_ - kMinEvictionFloor
+      const auto depth_capped = block_qubits_ > min_eviction_floor_
+                                    ? block_qubits_ - min_eviction_floor_
                                     : 0u;
       const auto capacity =
           std::min(full, std::max(depth_capped, kMinRemapSlots));
@@ -540,14 +583,14 @@ class QSimGateBatchRunner final {
       return qubit_set;
     }
 
-    // Gate indices of the next kMaxGateSeeds pending gates after the
+    // Gate indices of the next max_gate_seeds pending gates after the
     // first pending one.
     std::vector<std::size_t> CollectSeedGateIndices(
         const std::vector<PendingGate>& gates) const {
       std::vector<std::size_t> seeds;
       bool skipped_first_pending = false;
       for (std::size_t idx = 0;
-           idx < gates.size() && seeds.size() < kMaxGateSeeds; ++idx) {
+           idx < gates.size() && seeds.size() < max_gate_seeds_; ++idx) {
         if (!gates[idx].IsPending()) continue;
         if (!skipped_first_pending) {
           skipped_first_pending = true;
@@ -574,9 +617,9 @@ class QSimGateBatchRunner final {
       ClearBlockedQubits();
       for (const PendingGate& gate : gates) {
         if (!gate.IsPending()) continue;
-        if (AnyQubitBlocked(gate.logical_qubits) ||
+        if (AnyQubitBlocked(gate) ||
             !TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
-          BlockQubits(gate.logical_qubits);
+          BlockQubits(gate);
         }
       }
     }
@@ -594,14 +637,14 @@ class QSimGateBatchRunner final {
       for (std::size_t idx = 0; idx < gates.size(); ++idx) {
         const PendingGate& gate = gates[idx];
         if (!gate.IsPending()) continue;
-        if (!AnyQubitBlocked(gate.logical_qubits) &&
+        if (!AnyQubitBlocked(gate) &&
             QubitSetContainsAll(gate.logical_qubits, qubit_set)) {
           plan.gate_indices.push_back(idx);
           for (unsigned q : gate.logical_qubits) {
             plan.uses_qubit[q] = 1;
           }
         } else {
-          BlockQubits(gate.logical_qubits);
+          BlockQubits(gate);
         }
       }
 
@@ -663,22 +706,42 @@ class QSimGateBatchRunner final {
 
     void ClearBlockedQubits() {
       std::fill(is_qubit_blocked_.begin(), is_qubit_blocked_.end(), 0);
+      std::fill(is_qubit_blocked_for_diagonal_.begin(),
+                is_qubit_blocked_for_diagonal_.end(), 0);
     }
 
-    bool AnyQubitBlocked(const std::vector<unsigned>& qubits) const {
-      return std::any_of(
-          qubits.begin(), qubits.end(),
-          [this](unsigned q) { return is_qubit_blocked_[q]; });
+    bool TreatAsCommuting(const PendingGate& gate) const {
+      return commute_diagonal_gates_ && gate.is_diagonal;
     }
 
-    void BlockQubits(const std::vector<unsigned>& qubits) {
-      for (unsigned q : qubits) is_qubit_blocked_[q] = 1;
+    // A skipped non-diagonal gate is a hard barrier for everything. A skipped
+    // diagonal gate only bars later non-diagonal gates, since it can be
+    // reordered past any other diagonal gate.
+    bool AnyQubitBlocked(const PendingGate& gate) const {
+      const bool commuting = TreatAsCommuting(gate);
+      for (unsigned q : gate.logical_qubits) {
+        if (is_qubit_blocked_[q]) return true;
+        if (!commuting && is_qubit_blocked_for_diagonal_[q]) return true;
+      }
+      return false;
+    }
+
+    void BlockQubits(const PendingGate& gate) {
+      const bool commuting = TreatAsCommuting(gate);
+      for (unsigned q : gate.logical_qubits) {
+        if (!commuting) is_qubit_blocked_[q] = 1;
+        is_qubit_blocked_for_diagonal_[q] = 1;
+      }
     }
 
     unsigned num_logical_qubits_;
     unsigned block_qubits_;
     unsigned chunk_qubits_;
+    unsigned min_eviction_floor_;
+    unsigned max_gate_seeds_;
+    bool commute_diagonal_gates_;
     std::vector<char> is_qubit_blocked_;
+    std::vector<char> is_qubit_blocked_for_diagonal_;
   };
 
   // ======== Gate-batch pipeline ========
@@ -923,7 +986,7 @@ class QSimGateBatchRunner final {
   // remain untouched. Canonical runs restore qubit order at the end.
   void PlaceHotQubitsInFixedZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
-    if (partition_.num_blocks == 1 ||
+    if (!param_.place_hot_qubits || partition_.num_blocks == 1 ||
         eviction_floor <= chunk_qubits_) {
       return;
     }

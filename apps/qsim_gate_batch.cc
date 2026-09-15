@@ -34,6 +34,9 @@ struct Options {
   unsigned inner_threads = 1;
   unsigned max_fused_size = 3;
   unsigned block_qubits = 19;
+  unsigned min_eviction_floor = 9;
+  unsigned max_gate_seeds = 64;
+  unsigned commute_diagonal_gates = 0;
   unsigned verbosity = 0;
 };
 
@@ -41,10 +44,11 @@ Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_gate_batch -c circuit "
                            "-d maxtime -s seed -t threads "
                            "-f max_fused_size -l block_qubits "
+                           "-e min_eviction_floor -x commute_diagonal_gates "
                            "-i inner_threads -v verbosity\n";
   Options opt;
   int k;
-  while ((k = getopt(argc, argv, "c:d:s:t:f:l:i:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:l:e:x:i:v:")) != -1) {
     switch (k) {
       case 'c': opt.circuit_file = optarg; break;
       case 'd': opt.maxtime = std::atoi(optarg); break;
@@ -52,6 +56,8 @@ Options GetOptions(int argc, char* argv[]) {
       case 't': opt.num_threads = std::atoi(optarg); break;
       case 'f': opt.max_fused_size = std::atoi(optarg); break;
       case 'l': opt.block_qubits = std::atoi(optarg); break;
+      case 'e': opt.min_eviction_floor = std::atoi(optarg); break;
+      case 'x': opt.commute_diagonal_gates = std::atoi(optarg); break;
       case 'i': opt.inner_threads = std::atoi(optarg); break;
       case 'v': opt.verbosity = std::atoi(optarg); break;
       default: qsim::IO::errorf(usage); exit(1);
@@ -137,6 +143,10 @@ int main(int argc, char* argv[]) {
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
   param.block_qubits = opt.block_qubits;
+  param.min_eviction_floor = opt.min_eviction_floor;
+  param.place_hot_qubits = true;
+  param.max_gate_seeds = opt.max_gate_seeds;
+  param.commute_diagonal_gates = opt.commute_diagonal_gates != 0;
   param.num_threads = opt.num_threads;
   param.inner_threads = opt.inner_threads;
   param.team_thread_cpus = std::move(team_thread_cpus);
