@@ -116,6 +116,20 @@ cc_test(
 )
 
 cc_test(
+    name = "tiled_runner_test",
+    size = "small",
+    srcs = ["tiled_runner_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "//lib:run_qsim_lib",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "expect_test",
     size = "small",
     srcs = ["expect_test.cc"],

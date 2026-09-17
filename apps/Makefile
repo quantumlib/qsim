@@ -13,8 +13,23 @@ CUSTATEVECEX_TARGETS := $(CUSTATEVECEX_TARGETS:%custatevecex.cu=%custatevecex.x)
 HIP_TARGETS = $(shell find . -maxdepth 1 -name '*cuda.cu')
 HIP_TARGETS := $(HIP_TARGETS:%cuda.cu=%hip.x)
 
+# Keep qsim_base's build unchanged, but enable the backend's cooperative
+# inner-thread mode for the separate tiled executable when the compiler has
+# OpenMP support.
+TILED_OPENMP_FLAGS := $(shell $(CXX) -fopenmp -x c++ -E /dev/null -o /dev/null 2>/dev/null && echo -fopenmp)
+TILED_ARCH_FLAGS := $(shell $(CXX) -march=native -x c++ -E /dev/null -o /dev/null 2>/dev/null && echo -march=native)
+
 .PHONY: qsim
 qsim: $(CXX_TARGETS)
+
+.PHONY: tiled
+tiled: qsim_tiled.x
+
+qsim_tiled.x: override CXXFLAGS += $(TILED_OPENMP_FLAGS) $(TILED_ARCH_FLAGS)
+
+.PHONY: benchmark
+benchmark: qsim_tiled.x qsim_base.x
+	bash ./benchmark_tiled.sh
 
 .PHONY: qsim-cuda
 qsim-cuda: $(CUDA_TARGETS)

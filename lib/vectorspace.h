@@ -17,12 +17,19 @@
 
 #ifdef _WIN32
   #include <malloc.h>
+#elif defined(__linux__)
+  #include <cerrno>
+  #include <linux/mempolicy.h>
+  #include <sys/mman.h>
+  #include <sys/syscall.h>
+  #include <unistd.h>
 #endif
 
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace qsim {
 
@@ -99,6 +106,37 @@ class VectorSpace {
         return Null();
       }
     #endif
+  }
+
+  // Best-effort Linux NUMA allocation.  This deliberately does not depend on
+  // libnuma: systems without NUMA support simply use the normal allocator.
+  // The memory policy is advisory and may be rejected by a container or by a
+  // restricted kernel, in which case the aligned allocation is still useful.
+  static Vector CreateNuma(unsigned num_qubits, unsigned numa_nodes = 0) {
+#if defined(__linux__)
+    auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
+    void* p = nullptr;
+    if (posix_memalign(&p, 4096, size) != 0 || p == nullptr) {
+      return Null();
+    }
+    if (numa_nodes > 1) {
+      constexpr unsigned kBitsPerWord = sizeof(unsigned long) * 8;
+      const unsigned words = (numa_nodes + kBitsPerWord - 1) / kBitsPerWord;
+      std::vector<unsigned long> mask(words, ~0UL);
+      if (numa_nodes % kBitsPerWord) {
+        mask.back() = (1UL << (numa_nodes % kBitsPerWord)) - 1;
+      }
+      // mbind is intentionally best effort.  Its absence must never prevent
+      // the simulator from running.
+      syscall(SYS_mbind, p, size, MPOL_INTERLEAVE, mask.data(),
+              numa_nodes + 1, 0);
+    }
+    return Vector{Pointer{static_cast<fp_type*>(p), &detail::free},
+                  num_qubits};
+#else
+    (void)numa_nodes;
+    return Create(num_qubits);
+#endif
   }
 
   // It is the client's responsibility to make sure that p has at least

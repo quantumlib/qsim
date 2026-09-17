@@ -33,6 +33,21 @@ cc_binary(
 )
 
 cc_binary(
+    name = "qsim_tiled",
+    srcs = ["qsim_tiled.cc"],
+    copts = select({
+        "@platforms//os:linux": (["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []) + ["-fopenmp", "-march=native"],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        "@platforms//os:linux": ["-fopenmp"],
+        "//conditions:default": [],
+    }),
+    data = ["//circuits:circuit_q24"],
+    deps = ["//lib:run_qsim_lib"],
+)
+
+cc_binary(
     name = "qsim_von_neumann",
     srcs = ["qsim_von_neumann.cc"],
     copts = gsframe_copts,

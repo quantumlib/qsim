@@ -16,4 +16,10 @@ exports_files([
     "circuit_q24",
     "circuit_q30",
     "circuit_q40",
+    "circuit_q2_tiled_test",
+    "circuit_q4_tiled_test",
+    "circuit_q2_tiled_measurement_test",
+    "circuit_q2_tiled_control_test",
+    "circuit_q4_tiled_control_test",
+    "circuit_q4_tiled_measurement_test",
 ])

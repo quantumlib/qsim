@@ -151,6 +151,14 @@ all: $(TARGETS)
 qsim:
 	$(MAKE) -C apps/ qsim
 
+.PHONY: tiled
+tiled:
+	$(MAKE) -C apps/ tiled
+
+.PHONY: benchmark-tiled
+benchmark-tiled:
+	$(MAKE) -C apps/ benchmark
+
 .PHONY: qsim-cuda
 qsim-cuda:
 	$(MAKE) -C apps/ qsim-cuda
