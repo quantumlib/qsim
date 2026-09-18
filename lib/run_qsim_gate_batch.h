@@ -70,6 +70,8 @@ namespace qsim {
 
 namespace gate_batch_internal {
 
+// ======== Plain records ========
+
 // Internal scheduling representation of one raw circuit gate.
 template <typename FP>
 struct PendingGate {
@@ -145,6 +147,13 @@ struct BlockPartition {
   int64_t num_blocks;                // 2^(n - L).
 };
 
+// Buffers reused by every gate batch.
+template <typename FP>
+struct GateBatchWorkspace {
+  std::vector<QubitSwap> swap_pairs;
+  std::vector<ExecutableGate<FP>> executable_gates;
+};
+
 // Counters and phase timings accumulated across gate batches. Gate batches
 // and identity-restoration passes are counted separately because only gate
 // batches make circuit progress; restore passes are pure overhead. Timers
@@ -160,32 +169,7 @@ struct SimulationStats {
   double gate_seconds = 0.0;
 };
 
-// Reusable synchronization for the SMT siblings working on one state block.
-// Keep barriers on separate cache lines so independent cores never contend on
-// the same coherence line.
-struct alignas(64) SmtTeamBarrier {
-  void Wait(unsigned team_size) {
-    const auto current_generation = generation.load(std::memory_order_acquire);
-    if (arrivals.fetch_add(1, std::memory_order_acq_rel) + 1 == team_size) {
-      arrivals.store(0, std::memory_order_relaxed);
-      generation.fetch_add(1, std::memory_order_release);
-    } else {
-      while (generation.load(std::memory_order_acquire) ==
-             current_generation) {
-      }
-    }
-  }
-
-  std::atomic<unsigned> arrivals{0};
-  std::atomic<unsigned> generation{0};
-};
-
-// Buffers reused by every gate batch.
-template <typename FP>
-struct GateBatchWorkspace {
-  std::vector<QubitSwap> swap_pairs;
-  std::vector<ExecutableGate<FP>> executable_gates;
-};
+// ======== Gate-batch planning ========
 
 // Logical qubits selected for one gate batch, with eviction-aware remap-slot
 // accounting. Logical qubits resident below the eviction floor join for free.
@@ -214,6 +198,286 @@ struct GateBatchPlan {
   double score = 0.0;
 };
 
+// Chooses the gates for the next gate batch. First-fit selection is greedy
+// maximal, not maximum: an early gate can fill the qubit set and shut out
+// a larger family of later gates. Rather than solve that exactly (it is
+// combinatorial), PlanNextGateBatch tries a bounded set of candidate
+// qubit sets and keeps the best-scoring plan:
+//   - the first-fit greedy set (baseline: never worse than a single
+//     greedy scan, because re-evaluating a finished set can only
+//     admit more gates);
+//   - the currently resident set (a zero-swap batch);
+//   - a set seeded by each of the next few pending gates, for when
+//     the first pending gate is the one poisoning the set.
+// PlanNextGateBatch reads gates and layout but never modifies them.
+template <typename FP>
+class GateBatchPlanner {
+ public:
+  GateBatchPlanner(unsigned num_state_qubits, unsigned block_qubits,
+                   unsigned chunk_qubits, unsigned min_eviction_floor,
+                   unsigned max_gate_seeds, bool commute_diagonal_gates)
+      : num_logical_qubits_(num_state_qubits),
+        block_qubits_(block_qubits),
+        eviction_floor_(ComputeEvictionFloor(num_state_qubits, block_qubits,
+                                             chunk_qubits,
+                                             min_eviction_floor)),
+        max_gate_seeds_(max_gate_seeds),
+        commute_diagonal_gates_(commute_diagonal_gates),
+        is_qubit_blocked_(num_state_qubits),
+        is_qubit_blocked_for_diagonal_(num_state_qubits) {}
+
+  GateBatchPlan PlanNextGateBatch(const std::vector<PendingGate<FP>>& gates,
+                                  const QubitLayout& layout) {
+    GateBatchPlan best_plan;
+    // Ties keep the first candidate, so priority follows evaluation order:
+    // greedy, resident, then seeded plans in circuit order.
+    auto consider = [&](GateBatchQubitSet seed) {
+      GrowQubitSetGreedily(gates, layout, seed);
+      auto plan = EvaluateQubitSet(gates, layout, seed);
+      if (!best_plan.HasGates() || plan.score > best_plan.score) {
+        best_plan = std::move(plan);
+      }
+    };
+
+    // First-fit greedy, then the zero-swap resident set.
+    consider(MakeEmptyQubitSet());
+    consider(MakeResidentQubitSet(layout));
+
+    // One candidate per following pending gate, for when the first pending
+    // gate is the one poisoning the set.
+    unsigned seeds_used = 0;
+    bool skipped_first_pending = false;
+    for (const PendingGate<FP>& gate : gates) {
+      if (gate.applied) continue;
+      if (!skipped_first_pending) {
+        skipped_first_pending = true;
+        continue;
+      }
+      if (seeds_used++ == max_gate_seeds_) break;
+      auto seed = MakeEmptyQubitSet();
+      if (TryAdmitQubits(gate.logical_qubits, layout, seed)) {
+        consider(std::move(seed));
+      }
+    }
+    return best_plan;
+  }
+
+  unsigned EvictionFloor() const { return eviction_floor_; }
+
+ private:
+  // Keep enough remap positions for an ordinary two-qubit gate even when
+  // the block is too small to reach min_eviction_floor.
+  static constexpr unsigned kMinRemapSlots = 2;
+
+  // Starting any remapping incurs a full-state pass. Additional pairs share
+  // that pass and therefore carry a smaller marginal cost. With these
+  // weights, eight pairs offset one additional gate.
+  static constexpr double kSwapPassCost = 0.5;
+  static constexpr double kSwapPairCost = 1.0 / 16.0;
+
+  GateBatchQubitSet MakeEmptyQubitSet() const {
+    GateBatchQubitSet qubit_set;
+    qubit_set.contains_qubit.assign(num_logical_qubits_, 0);
+    qubit_set.remap_slot_capacity = block_qubits_ - eviction_floor_;
+    return qubit_set;
+  }
+
+  // Positions below the eviction floor are fixed residents and join a set
+  // for free. Positions at or above it consume one remap slot: a low
+  // resident protects a potential victim, while a high qubit requires a
+  // victim. Keeping the floor at min_eviction_floor makes every remap span
+  // at least 16 KiB for the default L=19. Small blocks retain at least two
+  // remap slots so an ordinary two-qubit gate can make progress.
+  static unsigned ComputeEvictionFloor(unsigned num_logical_qubits,
+                                       unsigned block_qubits,
+                                       unsigned chunk_qubits,
+                                       unsigned min_eviction_floor) {
+    if (block_qubits == num_logical_qubits) return block_qubits;
+
+    const auto full =
+        block_qubits > chunk_qubits ? block_qubits - chunk_qubits : 0u;
+    const auto depth_capped = block_qubits > min_eviction_floor
+                                  ? block_qubits - min_eviction_floor
+                                  : 0u;
+    const auto capacity =
+        std::min(full, std::max(depth_capped, kMinRemapSlots));
+    return block_qubits - capacity;
+  }
+
+  // The zero-swap candidate: exactly the qubits already resident in
+  // the low block. Its occupancy may exceed the depth-capped capacity;
+  // that is safe because none of these qubits needs a swap (no
+  // evictions happen), and growth beyond them is still capacity-bound.
+  GateBatchQubitSet MakeResidentQubitSet(
+      const QubitLayout& layout) const {
+    auto qubit_set = MakeEmptyQubitSet();
+    for (unsigned q = 0; q < num_logical_qubits_; ++q) {
+      if (layout.PhysicalPositionOf(q) < block_qubits_) {
+        qubit_set.remap_slots_used +=
+            AdditionalRemapSlotsFor(q, qubit_set, layout);
+        qubit_set.contains_qubit[q] = 1;
+      }
+    }
+    return qubit_set;
+  }
+
+  // First-fit growth: scan pending gates in circuit order, admitting
+  // each gate's qubits when they fit and blocking them otherwise (the
+  // same causal rule EvaluateQubitSet applies to the finished set).
+  void GrowQubitSetGreedily(const std::vector<PendingGate<FP>>& gates,
+                            const QubitLayout& layout,
+                            GateBatchQubitSet& qubit_set) {
+    ClearBlockedQubits();
+    for (const PendingGate<FP>& gate : gates) {
+      if (gate.applied) continue;
+      if (AnyQubitBlocked(gate) ||
+          !TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
+        BlockQubits(gate);
+      }
+    }
+  }
+
+  // Exact evaluation of a fixed qubit set: one causal-blocking scan over
+  // the pending gates collects every gate the set can execute, then the
+  // plan is scored.
+  GateBatchPlan EvaluateQubitSet(
+      const std::vector<PendingGate<FP>>& gates, const QubitLayout& layout,
+      const GateBatchQubitSet& qubit_set) {
+    GateBatchPlan plan;
+    plan.uses_qubit.assign(num_logical_qubits_, 0);
+    ClearBlockedQubits();
+
+    for (std::size_t idx = 0; idx < gates.size(); ++idx) {
+      const PendingGate<FP>& gate = gates[idx];
+      if (gate.applied) continue;
+      if (!AnyQubitBlocked(gate) &&
+          QubitSetContainsAll(gate.logical_qubits, qubit_set)) {
+        plan.gate_indices.push_back(idx);
+        for (unsigned q : gate.logical_qubits) {
+          plan.uses_qubit[q] = 1;
+        }
+      } else {
+        BlockQubits(gate);
+      }
+    }
+
+    plan.required_swaps = CountSwapsNeeded(plan, layout);
+    const auto swap_cost =
+        plan.required_swaps == 0
+            ? 0.0
+            : kSwapPassCost + kSwapPairCost * plan.required_swaps;
+    plan.score = double(plan.NumGates()) - swap_cost;
+    return plan;
+  }
+
+  // Remap-slot cost of admitting q. Fixed residents below the eviction
+  // floor cost nothing. A resident in the eviction zone consumes a victim
+  // position by protecting it, and a high qubit consumes one by entering.
+  unsigned AdditionalRemapSlotsFor(
+      unsigned q, const GateBatchQubitSet& qubit_set,
+      const QubitLayout& layout) const {
+    if (qubit_set.Contains(q)) return 0;
+    return layout.PhysicalPositionOf(q) < eviction_floor_ ? 0 : 1;
+  }
+
+  // Admits all of a gate's qubits into the set, or none of them.
+  bool TryAdmitQubits(const std::vector<unsigned>& qubits,
+                      const QubitLayout& layout,
+                      GateBatchQubitSet& qubit_set) const {
+    unsigned additional_remap_slots = 0;
+    for (unsigned q : qubits) {
+      additional_remap_slots +=
+          AdditionalRemapSlotsFor(q, qubit_set, layout);
+    }
+    if (qubit_set.remap_slots_used + additional_remap_slots >
+        qubit_set.remap_slot_capacity) {
+      return false;
+    }
+    for (unsigned q : qubits) qubit_set.contains_qubit[q] = 1;
+    qubit_set.remap_slots_used += additional_remap_slots;
+    return true;
+  }
+
+  static bool QubitSetContainsAll(const std::vector<unsigned>& qubits,
+                                  const GateBatchQubitSet& qubit_set) {
+    return std::all_of(
+        qubits.begin(), qubits.end(),
+        [&qubit_set](unsigned q) { return qubit_set.Contains(q); });
+  }
+
+  unsigned CountSwapsNeeded(const GateBatchPlan& plan,
+                            const QubitLayout& layout) const {
+    unsigned count = 0;
+    for (unsigned q = 0; q < num_logical_qubits_; ++q) {
+      if (plan.UsesQubit(q) &&
+          layout.PhysicalPositionOf(q) >= block_qubits_) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  void ClearBlockedQubits() {
+    std::fill(is_qubit_blocked_.begin(), is_qubit_blocked_.end(), 0);
+    std::fill(is_qubit_blocked_for_diagonal_.begin(),
+              is_qubit_blocked_for_diagonal_.end(), 0);
+  }
+
+  bool TreatAsCommuting(const PendingGate<FP>& gate) const {
+    return commute_diagonal_gates_ && gate.is_diagonal;
+  }
+
+  // A skipped non-diagonal gate is a hard barrier for everything. A skipped
+  // diagonal gate only bars later non-diagonal gates, since it can be
+  // reordered past any other diagonal gate.
+  bool AnyQubitBlocked(const PendingGate<FP>& gate) const {
+    const bool commuting = TreatAsCommuting(gate);
+    for (unsigned q : gate.logical_qubits) {
+      if (is_qubit_blocked_[q]) return true;
+      if (!commuting && is_qubit_blocked_for_diagonal_[q]) return true;
+    }
+    return false;
+  }
+
+  void BlockQubits(const PendingGate<FP>& gate) {
+    const bool commuting = TreatAsCommuting(gate);
+    for (unsigned q : gate.logical_qubits) {
+      if (!commuting) is_qubit_blocked_[q] = 1;
+      is_qubit_blocked_for_diagonal_[q] = 1;
+    }
+  }
+
+  unsigned num_logical_qubits_;
+  unsigned block_qubits_;
+  unsigned eviction_floor_;
+  unsigned max_gate_seeds_;
+  bool commute_diagonal_gates_;
+  std::vector<char> is_qubit_blocked_;
+  std::vector<char> is_qubit_blocked_for_diagonal_;
+};
+
+// ======== Block-execution support ========
+
+// Reusable synchronization for the SMT siblings working on one state block.
+// Keep barriers on separate cache lines so independent cores never contend on
+// the same coherence line.
+struct alignas(64) SmtTeamBarrier {
+  void Wait(unsigned team_size) {
+    const auto current_generation = generation.load(std::memory_order_acquire);
+    if (arrivals.fetch_add(1, std::memory_order_acq_rel) + 1 == team_size) {
+      arrivals.store(0, std::memory_order_relaxed);
+      generation.fetch_add(1, std::memory_order_release);
+    } else {
+      while (generation.load(std::memory_order_acquire) ==
+             current_generation) {
+      }
+    }
+  }
+
+  std::atomic<unsigned> arrivals{0};
+  std::atomic<unsigned> generation{0};
+};
+
 }  // namespace gate_batch_internal
 
 template <typename IO, typename Fuser, typename Factory,
@@ -225,7 +489,6 @@ class QSimGateBatchRunner final {
   using QubitMappedState = qsim::QubitMappedState<State>;
   using fp_type = typename StateSpace::fp_type;
   using SeqStateSpace = typename SeqSimulator::StateSpace;
-
   static_assert(std::is_same_v<fp_type, float>,
                 "QSimGateBatchRunner requires a float state space.");
   static_assert(std::is_same_v<fp_type, typename SeqStateSpace::fp_type>,
@@ -287,12 +550,20 @@ class QSimGateBatchRunner final {
 
  private:
   using PendingGate = gate_batch_internal::PendingGate<fp_type>;
+
   using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
+
   using BlockPartition = gate_batch_internal::BlockPartition<StateSpace>;
+
   using SimulationStats = gate_batch_internal::SimulationStats;
+
   using GateBatchWorkspace =
       gate_batch_internal::GateBatchWorkspace<fp_type>;
+  using GateBatchPlanner =
+      gate_batch_internal::GateBatchPlanner<fp_type>;
+
   using GateBatchQubitSet = gate_batch_internal::GateBatchQubitSet;
+
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
 
   QSimGateBatchRunner(const Parameter& param, unsigned num_qubits,
@@ -313,6 +584,8 @@ class QSimGateBatchRunner final {
            std::min(chunk_qubits_, partition_.num_state_qubits));
     assert(layout_.NumQubits() == partition_.num_state_qubits);
   }
+
+  // ======== Drivers ========
 
   template <typename Circuit>
   bool SimulateCircuit(const Circuit& circuit, bool restore_qubit_order) {
@@ -343,383 +616,6 @@ class QSimGateBatchRunner final {
     LogSimulationSummary(simulation_start);
     return true;
   }
-
-  // ======== Phase timing ========
-
-  double StartPhaseTimer() const {
-    return param_.verbosity > 1 ? GetTime() : 0.0;
-  }
-
-  void AccumulatePhaseSeconds(double start, double& seconds) const {
-    if (param_.verbosity > 1) seconds += GetTime() - start;
-  }
-
-  void LogPreparationTime(double prepare_start) const {
-    if (param_.verbosity <= 1) return;
-    IO::messagef("prepare time is %g seconds.\n",
-                 GetTime() - prepare_start);
-  }
-
-  bool ValidateThreadTeams() const {
-    if (param_.inner_threads <= 1) return true;
-    if (param_.num_threads == 0 ||
-        param_.num_threads % param_.inner_threads != 0) {
-      IO::errorf("qsim_gate_batch: num_threads must be divisible by "
-                 "inner_threads.\n");
-      return false;
-    }
-    if (param_.team_thread_cpus.size() != param_.num_threads) {
-      IO::errorf("qsim_gate_batch: SMT mode requires one CPU assignment "
-                 "per thread.\n");
-      return false;
-    }
-    return true;
-  }
-
-  void LogThreadTeams() const {
-    if (param_.verbosity <= 1 || param_.inner_threads <= 1) return;
-    for (unsigned thread = 0; thread < param_.num_threads;
-         thread += param_.inner_threads) {
-      const auto team = thread / param_.inner_threads;
-      for (unsigned lane = 0; lane < param_.inner_threads; ++lane) {
-        IO::messagef("SMT team %u lane %u: CPU %u\n", team, lane,
-                     param_.team_thread_cpus[thread + lane]);
-      }
-    }
-  }
-
-  void LogAdaptiveBlockSize() const {
-    if (param_.verbosity > 1 &&
-        partition_.block_qubits != partition_.requested_block_qubits) {
-      IO::messagef("adaptive block size: L=%u reduced to L=%u, producing "
-                   "%lld state blocks for %u threads.\n",
-                   partition_.requested_block_qubits,
-                   partition_.block_qubits,
-                   static_cast<long long>(partition_.num_blocks),
-                   param_.num_threads);
-    }
-  }
-
-  // ======== Shared gate utilities ========
-
-  // Sorts a gate's qubits ascending, permuting `matrix` to match.
-  static void NormalizeGateQubitOrder(std::vector<unsigned>& qubits,
-                                      Matrix<fp_type>& matrix) {
-    if (qubits.size() < 2) return;
-    auto permutation = NormalToGateOrderPermutation(qubits);
-    if (!permutation.empty()) {
-      MatrixShuffle(permutation, unsigned(qubits.size()), matrix);
-      std::sort(qubits.begin(), qubits.end());
-    }
-  }
-
-  // ======== Pending-gate preparation ========
-
-  // Checked on the matrix rather than the gate kind so parameterized and
-  // already-fused diagonal gates are recognized too.
-  static bool IsDiagonalMatrix(const Matrix<fp_type>& matrix,
-                               std::size_t arity) {
-    const std::size_t dim = std::size_t{1} << arity;
-    if (matrix.size() < 2 * dim * dim) return false;
-
-    for (std::size_t row = 0; row < dim; ++row) {
-      for (std::size_t col = 0; col < dim; ++col) {
-        if (row == col) continue;
-        const std::size_t k = 2 * (row * dim + col);
-        if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
-      }
-    }
-    return true;
-  }
-
-  // The proposal starts from the raw circuit: every gate becomes one
-  // pending gate, verbatim (qubit order normalized). All fusion is deferred
-  // to the per-batch fuser. Controlled gates, measurements, and channels
-  // are not supported.
-  template <typename Circuit>
-  bool PreparePendingGates(const Circuit& circuit) {
-    pending_gates_.reserve(circuit.ops.size());
-
-    for (const auto& operation : circuit.ops) {
-      const auto* raw_gate =
-          OpGetAlternative<Gate<fp_type>>(operation);
-      if (raw_gate == nullptr) {
-        IO::errorf("qsim_gate_batch: unsupported operation "
-                   "(controlled gate or measurement).\n");
-        return false;
-      }
-
-      auto logical_qubits = raw_gate->qubits;
-      auto matrix = raw_gate->matrix;
-      NormalizeGateQubitOrder(logical_qubits, matrix);
-      const bool diagonal =
-          IsDiagonalMatrix(matrix, logical_qubits.size());
-      pending_gates_.emplace_back(std::move(logical_qubits),
-                                  std::move(matrix), diagonal);
-    }
-    return true;
-  }
-
-  // ======== Gate-batch planning ========
-
-  // Chooses the gates for the next gate batch. First-fit selection is greedy
-  // maximal, not maximum: an early gate can fill the qubit set and shut out
-  // a larger family of later gates. Rather than solve that exactly (it is
-  // combinatorial), PlanNextGateBatch tries a bounded set of candidate
-  // qubit sets and keeps the best-scoring plan:
-  //   - the first-fit greedy set (baseline: never worse than a single
-  //     greedy scan, because re-evaluating a finished set can only
-  //     admit more gates);
-  //   - the currently resident set (a zero-swap batch);
-  //   - a set seeded by each of the next few pending gates, for when
-  //     the first pending gate is the one poisoning the set.
-  // PlanNextGateBatch reads gates and layout but never modifies them.
-  class GateBatchPlanner {
-   public:
-    GateBatchPlanner(unsigned num_state_qubits, unsigned block_qubits,
-                     unsigned chunk_qubits, unsigned min_eviction_floor,
-                     unsigned max_gate_seeds, bool commute_diagonal_gates)
-        : num_logical_qubits_(num_state_qubits),
-          block_qubits_(block_qubits),
-          eviction_floor_(ComputeEvictionFloor(num_state_qubits, block_qubits,
-                                               chunk_qubits,
-                                               min_eviction_floor)),
-          max_gate_seeds_(max_gate_seeds),
-          commute_diagonal_gates_(commute_diagonal_gates),
-          is_qubit_blocked_(num_state_qubits),
-          is_qubit_blocked_for_diagonal_(num_state_qubits) {}
-
-    GateBatchPlan PlanNextGateBatch(const std::vector<PendingGate>& gates,
-                                    const QubitLayout& layout) {
-      GateBatchPlan best_plan;
-      // Ties keep the first candidate, so priority follows evaluation order:
-      // greedy, resident, then seeded plans in circuit order.
-      auto consider = [&](GateBatchQubitSet seed) {
-        GrowQubitSetGreedily(gates, layout, seed);
-        auto plan = EvaluateQubitSet(gates, layout, seed);
-        if (!best_plan.HasGates() || plan.score > best_plan.score) {
-          best_plan = std::move(plan);
-        }
-      };
-
-      // First-fit greedy, then the zero-swap resident set.
-      consider(MakeEmptyQubitSet());
-      consider(MakeResidentQubitSet(layout));
-
-      // One candidate per following pending gate, for when the first pending
-      // gate is the one poisoning the set.
-      unsigned seeds_used = 0;
-      bool skipped_first_pending = false;
-      for (const PendingGate& gate : gates) {
-        if (gate.applied) continue;
-        if (!skipped_first_pending) {
-          skipped_first_pending = true;
-          continue;
-        }
-        if (seeds_used++ == max_gate_seeds_) break;
-        auto seed = MakeEmptyQubitSet();
-        if (TryAdmitQubits(gate.logical_qubits, layout, seed)) {
-          consider(std::move(seed));
-        }
-      }
-      return best_plan;
-    }
-
-    unsigned EvictionFloor() const { return eviction_floor_; }
-
-   private:
-    // Keep enough remap positions for an ordinary two-qubit gate even when
-    // the block is too small to reach min_eviction_floor.
-    static constexpr unsigned kMinRemapSlots = 2;
-
-    // Starting any remapping incurs a full-state pass. Additional pairs share
-    // that pass and therefore carry a smaller marginal cost. With these
-    // weights, eight pairs offset one additional gate.
-    static constexpr double kSwapPassCost = 0.5;
-    static constexpr double kSwapPairCost = 1.0 / 16.0;
-
-    GateBatchQubitSet MakeEmptyQubitSet() const {
-      GateBatchQubitSet qubit_set;
-      qubit_set.contains_qubit.assign(num_logical_qubits_, 0);
-      qubit_set.remap_slot_capacity = block_qubits_ - eviction_floor_;
-      return qubit_set;
-    }
-
-    // Positions below the eviction floor are fixed residents and join a set
-    // for free. Positions at or above it consume one remap slot: a low
-    // resident protects a potential victim, while a high qubit requires a
-    // victim. Keeping the floor at min_eviction_floor makes every remap span
-    // at least 16 KiB for the default L=19. Small blocks retain at least two
-    // remap slots so an ordinary two-qubit gate can make progress.
-    static unsigned ComputeEvictionFloor(unsigned num_logical_qubits,
-                                         unsigned block_qubits,
-                                         unsigned chunk_qubits,
-                                         unsigned min_eviction_floor) {
-      if (block_qubits == num_logical_qubits) return block_qubits;
-
-      const auto full =
-          block_qubits > chunk_qubits ? block_qubits - chunk_qubits : 0u;
-      const auto depth_capped = block_qubits > min_eviction_floor
-                                    ? block_qubits - min_eviction_floor
-                                    : 0u;
-      const auto capacity =
-          std::min(full, std::max(depth_capped, kMinRemapSlots));
-      return block_qubits - capacity;
-    }
-
-    // The zero-swap candidate: exactly the qubits already resident in
-    // the low block. Its occupancy may exceed the depth-capped capacity;
-    // that is safe because none of these qubits needs a swap (no
-    // evictions happen), and growth beyond them is still capacity-bound.
-    GateBatchQubitSet MakeResidentQubitSet(
-        const QubitLayout& layout) const {
-      auto qubit_set = MakeEmptyQubitSet();
-      for (unsigned q = 0; q < num_logical_qubits_; ++q) {
-        if (layout.PhysicalPositionOf(q) < block_qubits_) {
-          qubit_set.remap_slots_used +=
-              AdditionalRemapSlotsFor(q, qubit_set, layout);
-          qubit_set.contains_qubit[q] = 1;
-        }
-      }
-      return qubit_set;
-    }
-
-    // First-fit growth: scan pending gates in circuit order, admitting
-    // each gate's qubits when they fit and blocking them otherwise (the
-    // same causal rule EvaluateQubitSet applies to the finished set).
-    void GrowQubitSetGreedily(const std::vector<PendingGate>& gates,
-                              const QubitLayout& layout,
-                              GateBatchQubitSet& qubit_set) {
-      ClearBlockedQubits();
-      for (const PendingGate& gate : gates) {
-        if (gate.applied) continue;
-        if (AnyQubitBlocked(gate) ||
-            !TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
-          BlockQubits(gate);
-        }
-      }
-    }
-
-    // Exact evaluation of a fixed qubit set: one causal-blocking scan over
-    // the pending gates collects every gate the set can execute, then the
-    // plan is scored.
-    GateBatchPlan EvaluateQubitSet(
-        const std::vector<PendingGate>& gates, const QubitLayout& layout,
-        const GateBatchQubitSet& qubit_set) {
-      GateBatchPlan plan;
-      plan.uses_qubit.assign(num_logical_qubits_, 0);
-      ClearBlockedQubits();
-
-      for (std::size_t idx = 0; idx < gates.size(); ++idx) {
-        const PendingGate& gate = gates[idx];
-        if (gate.applied) continue;
-        if (!AnyQubitBlocked(gate) &&
-            QubitSetContainsAll(gate.logical_qubits, qubit_set)) {
-          plan.gate_indices.push_back(idx);
-          for (unsigned q : gate.logical_qubits) {
-            plan.uses_qubit[q] = 1;
-          }
-        } else {
-          BlockQubits(gate);
-        }
-      }
-
-      plan.required_swaps = CountSwapsNeeded(plan, layout);
-      const auto swap_cost =
-          plan.required_swaps == 0
-              ? 0.0
-              : kSwapPassCost + kSwapPairCost * plan.required_swaps;
-      plan.score = double(plan.NumGates()) - swap_cost;
-      return plan;
-    }
-
-    // Remap-slot cost of admitting q. Fixed residents below the eviction
-    // floor cost nothing. A resident in the eviction zone consumes a victim
-    // position by protecting it, and a high qubit consumes one by entering.
-    unsigned AdditionalRemapSlotsFor(
-        unsigned q, const GateBatchQubitSet& qubit_set,
-        const QubitLayout& layout) const {
-      if (qubit_set.Contains(q)) return 0;
-      return layout.PhysicalPositionOf(q) < eviction_floor_ ? 0 : 1;
-    }
-
-    // Admits all of a gate's qubits into the set, or none of them.
-    bool TryAdmitQubits(const std::vector<unsigned>& qubits,
-                        const QubitLayout& layout,
-                        GateBatchQubitSet& qubit_set) const {
-      unsigned additional_remap_slots = 0;
-      for (unsigned q : qubits) {
-        additional_remap_slots +=
-            AdditionalRemapSlotsFor(q, qubit_set, layout);
-      }
-      if (qubit_set.remap_slots_used + additional_remap_slots >
-          qubit_set.remap_slot_capacity) {
-        return false;
-      }
-      for (unsigned q : qubits) qubit_set.contains_qubit[q] = 1;
-      qubit_set.remap_slots_used += additional_remap_slots;
-      return true;
-    }
-
-    static bool QubitSetContainsAll(const std::vector<unsigned>& qubits,
-                                    const GateBatchQubitSet& qubit_set) {
-      return std::all_of(
-          qubits.begin(), qubits.end(),
-          [&qubit_set](unsigned q) { return qubit_set.Contains(q); });
-    }
-
-    unsigned CountSwapsNeeded(const GateBatchPlan& plan,
-                              const QubitLayout& layout) const {
-      unsigned count = 0;
-      for (unsigned q = 0; q < num_logical_qubits_; ++q) {
-        if (plan.UsesQubit(q) &&
-            layout.PhysicalPositionOf(q) >= block_qubits_) {
-          ++count;
-        }
-      }
-      return count;
-    }
-
-    void ClearBlockedQubits() {
-      std::fill(is_qubit_blocked_.begin(), is_qubit_blocked_.end(), 0);
-      std::fill(is_qubit_blocked_for_diagonal_.begin(),
-                is_qubit_blocked_for_diagonal_.end(), 0);
-    }
-
-    bool TreatAsCommuting(const PendingGate& gate) const {
-      return commute_diagonal_gates_ && gate.is_diagonal;
-    }
-
-    // A skipped non-diagonal gate is a hard barrier for everything. A skipped
-    // diagonal gate only bars later non-diagonal gates, since it can be
-    // reordered past any other diagonal gate.
-    bool AnyQubitBlocked(const PendingGate& gate) const {
-      const bool commuting = TreatAsCommuting(gate);
-      for (unsigned q : gate.logical_qubits) {
-        if (is_qubit_blocked_[q]) return true;
-        if (!commuting && is_qubit_blocked_for_diagonal_[q]) return true;
-      }
-      return false;
-    }
-
-    void BlockQubits(const PendingGate& gate) {
-      const bool commuting = TreatAsCommuting(gate);
-      for (unsigned q : gate.logical_qubits) {
-        if (!commuting) is_qubit_blocked_[q] = 1;
-        is_qubit_blocked_for_diagonal_[q] = 1;
-      }
-    }
-
-    unsigned num_logical_qubits_;
-    unsigned block_qubits_;
-    unsigned eviction_floor_;
-    unsigned max_gate_seeds_;
-    bool commute_diagonal_gates_;
-    std::vector<char> is_qubit_blocked_;
-    std::vector<char> is_qubit_blocked_for_diagonal_;
-  };
-
-  // ======== Gate-batch pipeline ========
 
   // Executes one complete gate batch following the proposal's loop body.
   // Returns the number of gates applied; 0 signals failure (fuser error, or
@@ -774,105 +670,65 @@ class QSimGateBatchRunner final {
     return plan.NumGates();
   }
 
-  // ======== Gate-batch diagnostics ========
+  // ======== Phase 1: pending-gate preparation ========
 
-  // The last pair holds the lowest eviction position; a low floor means
-  // short scattered spans in the swap pass (see qubit_remap.h).
-  void LogGateBatchSwapSummary(const GateBatchPlan& plan) const {
-    if (param_.verbosity <= 2 ||
-        gate_batch_workspace_.swap_pairs.empty()) {
-      return;
+  // Sorts a gate's qubits ascending, permuting `matrix` to match.
+  static void NormalizeGateQubitOrder(std::vector<unsigned>& qubits,
+                                      Matrix<fp_type>& matrix) {
+    if (qubits.size() < 2) return;
+    auto permutation = NormalToGateOrderPermutation(qubits);
+    if (!permutation.empty()) {
+      MatrixShuffle(permutation, unsigned(qubits.size()), matrix);
+      std::sort(qubits.begin(), qubits.end());
     }
-
-    IO::messagef("gate batch %u: %u gates, %u swaps, evict floor %u\n",
-                 simulation_stats_.num_gate_batches,
-                 unsigned(plan.NumGates()),
-                 unsigned(gate_batch_workspace_.swap_pairs.size()),
-                 gate_batch_workspace_.swap_pairs.back().first);
   }
 
-  // The planned gate batch before any remapping: every planned gate with its
-  // logical qubits, then every distinct qubit the batch uses with its
-  // current physical position; '*' marks qubits outside the block that
-  // the remap is about to swap in.
-  void LogPlannedGateBatch(const GateBatchPlan& plan) const {
-    if (param_.verbosity <= 3) return;
+  // Checked on the matrix rather than the gate kind so parameterized and
+  // already-fused diagonal gates are recognized too.
+  static bool IsDiagonalMatrix(const Matrix<fp_type>& matrix,
+                               std::size_t arity) {
+    const std::size_t dim = std::size_t{1} << arity;
+    if (matrix.size() < 2 * dim * dim) return false;
 
-    IO::messagef("gate batch %u plan: %u gates, %u swaps needed\n  gates:",
-                 simulation_stats_.num_gate_batches,
-                 unsigned(plan.NumGates()),
-                 plan.required_swaps);
-    for (std::size_t idx : plan.gate_indices) {
-      const PendingGate& gate = pending_gates_[idx];
-      IO::messagef(" #%u[", unsigned(idx));
-      for (std::size_t i = 0; i < gate.Arity(); ++i) {
-        IO::messagef(i == 0 ? "q%u" : ",q%u",
-                     gate.logical_qubits[i]);
+    for (std::size_t row = 0; row < dim; ++row) {
+      for (std::size_t col = 0; col < dim; ++col) {
+        if (row == col) continue;
+        const std::size_t k = 2 * (row * dim + col);
+        if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
       }
-      IO::messagef("]");
     }
-    IO::messagef("\n  qubits:");
-    for (unsigned q = 0; q < unsigned(plan.uses_qubit.size()); ++q) {
-      if (!plan.UsesQubit(q)) continue;
-      const auto position = layout_.PhysicalPositionOf(q);
-      IO::messagef(" q%u@p%u%s", q, position,
-                   position >= partition_.block_qubits ? "*" : "");
-    }
-    IO::messagef("\n");
+    return true;
   }
 
-  // The remap just applied (the layout is already updated): each
-  // transposition as "incoming qubit, its new<-old position, outgoing
-  // qubit", then the low-block layout the batch's gates will use.
-  void LogAppliedRemap() const {
-    if (param_.verbosity <= 3) return;
+  // The proposal starts from the raw circuit: every gate becomes one
+  // pending gate, verbatim (qubit order normalized). All fusion is deferred
+  // to the per-batch fuser. Controlled gates, measurements, and channels
+  // are not supported.
+  template <typename Circuit>
+  bool PreparePendingGates(const Circuit& circuit) {
+    pending_gates_.reserve(circuit.ops.size());
 
-    IO::messagef("  swaps:");
-    if (gate_batch_workspace_.swap_pairs.empty()) IO::messagef(" none");
-    for (const QubitSwap& pair : gate_batch_workspace_.swap_pairs) {
-      IO::messagef(" [q%u in p%u<-p%u, q%u out]",
-                   layout_.LogicalQubitAt(pair.first), pair.first,
-                   pair.second, layout_.LogicalQubitAt(pair.second));
-    }
-    IO::messagef("\n  block:");
-    for (unsigned p = 0; p < partition_.block_qubits; ++p) {
-      IO::messagef(" q%u", layout_.LogicalQubitAt(p));
-    }
-    IO::messagef("\n");
-  }
-
-  // Extends the layout so every qubit the plan uses lands in physical
-  // positions [0, L), recording the transpositions to apply. Eviction
-  // walks down from L-1, skipping positions that hold used qubits; the
-  // planner's slot accounting guarantees it never reaches the pinned
-  // lane positions.
-  void BuildBatchSwapPairs(const GateBatchPlan& plan) {
-    gate_batch_workspace_.swap_pairs.clear();
-    unsigned evict_position = partition_.block_qubits - 1;
-
-    for (unsigned q = 0; q < unsigned(plan.uses_qubit.size()); ++q) {
-      if (!plan.UsesQubit(q)) continue;
-      const auto current_position = layout_.PhysicalPositionOf(q);
-      if (current_position < partition_.block_qubits) continue;
-
-      while (plan.UsesQubit(layout_.LogicalQubitAt(evict_position))) {
-        --evict_position;
+    for (const auto& operation : circuit.ops) {
+      const auto* raw_gate =
+          OpGetAlternative<Gate<fp_type>>(operation);
+      if (raw_gate == nullptr) {
+        IO::errorf("qsim_gate_batch: unsupported operation "
+                   "(controlled gate or measurement).\n");
+        return false;
       }
-      gate_batch_workspace_.swap_pairs.emplace_back(evict_position,
-                                                     current_position);
-      layout_.SwapPositions(evict_position, current_position);
-      --evict_position;
+
+      auto logical_qubits = raw_gate->qubits;
+      auto matrix = raw_gate->matrix;
+      NormalizeGateQubitOrder(logical_qubits, matrix);
+      const bool diagonal =
+          IsDiagonalMatrix(matrix, logical_qubits.size());
+      pending_gates_.emplace_back(std::move(logical_qubits),
+                                  std::move(matrix), diagonal);
     }
+    return true;
   }
 
-  // Applies the transpositions to the state in one involution pass.
-  void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
-    const auto swap_start = StartPhaseTimer();
-    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, chunk_qubits_,
-                      swap_pairs);
-    AccumulatePhaseSeconds(swap_start, simulation_stats_.swap_seconds);
-    simulation_stats_.num_swaps += unsigned(swap_pairs.size());
-  }
+  // ======== Phase 2: hot-qubit placement ========
 
   // Scores qubits by gate participation, weighted by gate arity.
   std::vector<uint64_t> ComputeQubitUsageScores() const {
@@ -941,21 +797,6 @@ class QSimGateBatchRunner final {
     return swap_pairs;
   }
 
-  void LogFixedZonePlacement(const std::vector<uint64_t>& usage_scores,
-                             unsigned eviction_floor,
-                             std::size_t num_initial_swaps) const {
-    if (param_.verbosity <= 1) return;
-
-    IO::messagef("fixed hot zone [%u,%u):", chunk_qubits_,
-                 eviction_floor);
-    for (unsigned p = chunk_qubits_; p < eviction_floor; ++p) {
-      const auto q = layout_.LogicalQubitAt(p);
-      IO::messagef(" q%u(%llu)", q,
-                   static_cast<unsigned long long>(usage_scores[q]));
-    }
-    IO::messagef("; %u initial swaps.\n", unsigned(num_initial_swaps));
-  }
-
   // Places the most frequently used logical qubits outside the in-chunk
   // physical zone [chunk_qubits, eviction_floor). In-chunk positions
   // remain untouched. Canonical runs restore qubit order at the end.
@@ -977,6 +818,43 @@ class QSimGateBatchRunner final {
     LogFixedZonePlacement(usage_scores, eviction_floor, swap_pairs.size());
     ApplySwapsToState(swap_pairs);
   }
+
+  // ======== Phase 3: qubit remapping ========
+
+  // Extends the layout so every qubit the plan uses lands in physical
+  // positions [0, L), recording the transpositions to apply. Eviction
+  // walks down from L-1, skipping positions that hold used qubits; the
+  // planner's slot accounting guarantees it never reaches the pinned
+  // lane positions.
+  void BuildBatchSwapPairs(const GateBatchPlan& plan) {
+    gate_batch_workspace_.swap_pairs.clear();
+    unsigned evict_position = partition_.block_qubits - 1;
+
+    for (unsigned q = 0; q < unsigned(plan.uses_qubit.size()); ++q) {
+      if (!plan.UsesQubit(q)) continue;
+      const auto current_position = layout_.PhysicalPositionOf(q);
+      if (current_position < partition_.block_qubits) continue;
+
+      while (plan.UsesQubit(layout_.LogicalQubitAt(evict_position))) {
+        --evict_position;
+      }
+      gate_batch_workspace_.swap_pairs.emplace_back(evict_position,
+                                                     current_position);
+      layout_.SwapPositions(evict_position, current_position);
+      --evict_position;
+    }
+  }
+
+  // Applies the transpositions to the state in one involution pass.
+  void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
+    const auto swap_start = StartPhaseTimer();
+    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, chunk_qubits_,
+                      swap_pairs);
+    AccumulatePhaseSeconds(swap_start, simulation_stats_.swap_seconds);
+    simulation_stats_.num_swaps += unsigned(swap_pairs.size());
+  }
+
+  // ======== Phase 4: fusion ========
 
   // Rebuilds the plan's pending gates as ordinary gates on PHYSICAL
   // qubits, with fresh sequential times, so the standard fuser can
@@ -1005,14 +883,6 @@ class QSimGateBatchRunner final {
           0, time++, std::move(physical_qubits), {},
           std::move(physical_matrix), false};
       batch_operations.push_back(Op{std::move(physical_gate)});
-    }
-  }
-
-  // Deferred until fusion has succeeded, so a failed batch leaves the
-  // schedule untouched.
-  void MarkGatesApplied(const GateBatchPlan& plan) {
-    for (std::size_t idx : plan.gate_indices) {
-      pending_gates_[idx].applied = true;
     }
   }
 
@@ -1076,6 +946,16 @@ class QSimGateBatchRunner final {
         std::move(executable_gate));
     return true;
   }
+
+  // Deferred until fusion has succeeded, so a failed batch leaves the
+  // schedule untouched.
+  void MarkGatesApplied(const GateBatchPlan& plan) {
+    for (std::size_t idx : plan.gate_indices) {
+      pending_gates_[idx].applied = true;
+    }
+  }
+
+  // ======== Phase 5: block execution ========
 
   template <bool kCooperative>
   static void ExecuteGatesOnBlock(
@@ -1207,7 +1087,7 @@ class QSimGateBatchRunner final {
     }
   }
 
-  // ======== Final cleanup ========
+  // ======== Phase 6: cleanup ========
 
   void RestoreIdentityQubitOrder() {
     std::vector<QubitSwap> swap_pairs;
@@ -1218,7 +1098,143 @@ class QSimGateBatchRunner final {
     }
   }
 
-  // ======== Reporting ========
+  // ======== Phase timing ========
+
+  double StartPhaseTimer() const {
+    return param_.verbosity > 1 ? GetTime() : 0.0;
+  }
+
+  void AccumulatePhaseSeconds(double start, double& seconds) const {
+    if (param_.verbosity > 1) seconds += GetTime() - start;
+  }
+
+  bool ValidateThreadTeams() const {
+    if (param_.inner_threads <= 1) return true;
+    if (param_.num_threads == 0 ||
+        param_.num_threads % param_.inner_threads != 0) {
+      IO::errorf("qsim_gate_batch: num_threads must be divisible by "
+                 "inner_threads.\n");
+      return false;
+    }
+    if (param_.team_thread_cpus.size() != param_.num_threads) {
+      IO::errorf("qsim_gate_batch: SMT mode requires one CPU assignment "
+                 "per thread.\n");
+      return false;
+    }
+    return true;
+  }
+
+  // ======== Diagnostics ========
+
+  void LogAdaptiveBlockSize() const {
+    if (param_.verbosity > 1 &&
+        partition_.block_qubits != partition_.requested_block_qubits) {
+      IO::messagef("adaptive block size: L=%u reduced to L=%u, producing "
+                   "%lld state blocks for %u threads.\n",
+                   partition_.requested_block_qubits,
+                   partition_.block_qubits,
+                   static_cast<long long>(partition_.num_blocks),
+                   param_.num_threads);
+    }
+  }
+
+  void LogThreadTeams() const {
+    if (param_.verbosity <= 1 || param_.inner_threads <= 1) return;
+    for (unsigned thread = 0; thread < param_.num_threads;
+         thread += param_.inner_threads) {
+      const auto team = thread / param_.inner_threads;
+      for (unsigned lane = 0; lane < param_.inner_threads; ++lane) {
+        IO::messagef("SMT team %u lane %u: CPU %u\n", team, lane,
+                     param_.team_thread_cpus[thread + lane]);
+      }
+    }
+  }
+
+  void LogPreparationTime(double prepare_start) const {
+    if (param_.verbosity <= 1) return;
+    IO::messagef("prepare time is %g seconds.\n",
+                 GetTime() - prepare_start);
+  }
+
+  void LogFixedZonePlacement(const std::vector<uint64_t>& usage_scores,
+                             unsigned eviction_floor,
+                             std::size_t num_initial_swaps) const {
+    if (param_.verbosity <= 1) return;
+
+    IO::messagef("fixed hot zone [%u,%u):", chunk_qubits_,
+                 eviction_floor);
+    for (unsigned p = chunk_qubits_; p < eviction_floor; ++p) {
+      const auto q = layout_.LogicalQubitAt(p);
+      IO::messagef(" q%u(%llu)", q,
+                   static_cast<unsigned long long>(usage_scores[q]));
+    }
+    IO::messagef("; %u initial swaps.\n", unsigned(num_initial_swaps));
+  }
+
+  // The planned gate batch before any remapping: every planned gate with its
+  // logical qubits, then every distinct qubit the batch uses with its
+  // current physical position; '*' marks qubits outside the block that
+  // the remap is about to swap in.
+  void LogPlannedGateBatch(const GateBatchPlan& plan) const {
+    if (param_.verbosity <= 3) return;
+
+    IO::messagef("gate batch %u plan: %u gates, %u swaps needed\n  gates:",
+                 simulation_stats_.num_gate_batches,
+                 unsigned(plan.NumGates()),
+                 plan.required_swaps);
+    for (std::size_t idx : plan.gate_indices) {
+      const PendingGate& gate = pending_gates_[idx];
+      IO::messagef(" #%u[", unsigned(idx));
+      for (std::size_t i = 0; i < gate.Arity(); ++i) {
+        IO::messagef(i == 0 ? "q%u" : ",q%u",
+                     gate.logical_qubits[i]);
+      }
+      IO::messagef("]");
+    }
+    IO::messagef("\n  qubits:");
+    for (unsigned q = 0; q < unsigned(plan.uses_qubit.size()); ++q) {
+      if (!plan.UsesQubit(q)) continue;
+      const auto position = layout_.PhysicalPositionOf(q);
+      IO::messagef(" q%u@p%u%s", q, position,
+                   position >= partition_.block_qubits ? "*" : "");
+    }
+    IO::messagef("\n");
+  }
+
+  // The last pair holds the lowest eviction position; a low floor means
+  // short scattered spans in the swap pass (see qubit_remap.h).
+  void LogGateBatchSwapSummary(const GateBatchPlan& plan) const {
+    if (param_.verbosity <= 2 ||
+        gate_batch_workspace_.swap_pairs.empty()) {
+      return;
+    }
+
+    IO::messagef("gate batch %u: %u gates, %u swaps, evict floor %u\n",
+                 simulation_stats_.num_gate_batches,
+                 unsigned(plan.NumGates()),
+                 unsigned(gate_batch_workspace_.swap_pairs.size()),
+                 gate_batch_workspace_.swap_pairs.back().first);
+  }
+
+  // The remap just applied (the layout is already updated): each
+  // transposition as "incoming qubit, its new<-old position, outgoing
+  // qubit", then the low-block layout the batch's gates will use.
+  void LogAppliedRemap() const {
+    if (param_.verbosity <= 3) return;
+
+    IO::messagef("  swaps:");
+    if (gate_batch_workspace_.swap_pairs.empty()) IO::messagef(" none");
+    for (const QubitSwap& pair : gate_batch_workspace_.swap_pairs) {
+      IO::messagef(" [q%u in p%u<-p%u, q%u out]",
+                   layout_.LogicalQubitAt(pair.first), pair.first,
+                   pair.second, layout_.LogicalQubitAt(pair.second));
+    }
+    IO::messagef("\n  block:");
+    for (unsigned p = 0; p < partition_.block_qubits; ++p) {
+      IO::messagef(" q%u", layout_.LogicalQubitAt(p));
+    }
+    IO::messagef("\n");
+  }
 
   void LogSimulationSummary(double simulation_start) const {
     if (param_.verbosity == 0) return;
