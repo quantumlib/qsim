@@ -248,7 +248,7 @@ class QSimGateBatchRunner final {
     // spans are 2^(floor - chunk_qubits) chunks, so floor 9 keeps every span
     // at least 4 KiB for float states and at streaming bandwidth. Lowering it
     // widens the remap budget at the cost of shorter, more scattered spans.
-    unsigned min_eviction_floor = 9;
+    unsigned min_eviction_floor = 5;
 
     // Seed the fixed zone [chunk_qubits, eviction_floor) with the most-used
     // logical qubits before the first gate batch. Free, because the all-zero

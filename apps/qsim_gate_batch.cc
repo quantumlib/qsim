@@ -34,7 +34,7 @@ struct Options {
   unsigned inner_threads = 1;
   unsigned max_fused_size = 3;
   unsigned block_qubits = 19;
-  unsigned min_eviction_floor = 9;
+  unsigned min_eviction_floor = 5;
   unsigned max_gate_seeds = 64;
   unsigned commute_diagonal_gates = 0;
   unsigned verbosity = 0;
