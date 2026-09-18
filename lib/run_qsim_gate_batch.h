@@ -494,32 +494,29 @@ class QSimGateBatchRunner final {
 
     GateBatchPlan PlanNextGateBatch(const std::vector<PendingGate>& gates,
                                     const QubitLayout& layout) {
-      std::vector<GateBatchPlan> candidate_plans;
-      candidate_plans.reserve(2 + max_gate_seeds_);
-
-      // First-fit greedy candidate.
-      candidate_plans.push_back(PlanGateBatchFromQubitSet(
-          gates, layout, MakeEmptyQubitSet()));
-
-      // Zero-swap resident candidate.
-      candidate_plans.push_back(PlanGateBatchFromQubitSet(
-          gates, layout, MakeResidentQubitSet(layout)));
+      std::vector<GateBatchQubitSet> seeds;
+      seeds.reserve(2 + max_gate_seeds_);
+      seeds.push_back(MakeEmptyQubitSet());
+      seeds.push_back(MakeResidentQubitSet(layout));
 
       for (std::size_t seed_idx : CollectSeedGateIndices(gates)) {
-        auto qubit_set = MakeEmptyQubitSet();
+        auto seed = MakeEmptyQubitSet();
         if (!TryAdmitQubits(gates[seed_idx].logical_qubits,
-                            layout, qubit_set)) {
+                            layout, seed)) {
           continue;
         }
-        // Candidate seeded by a later pending gate.
-        candidate_plans.push_back(PlanGateBatchFromQubitSet(
-            gates, layout, std::move(qubit_set)));
+        seeds.push_back(std::move(seed));
       }
 
-      // max_element returns the first maximum, so ties preserve candidate
-      // priority: greedy, resident, then seeded plans in circuit order.
-      return std::move(*std::max_element(
-          candidate_plans.begin(), candidate_plans.end()));
+      GateBatchPlan best_plan;
+      for (auto& seed : seeds) {
+        auto plan = PlanGateBatchFromQubitSet(
+            gates, layout, std::move(seed));
+        if (!best_plan.HasGates() || plan.score > best_plan.score) {
+          best_plan = std::move(plan);
+        }
+      }
+      return best_plan;
     }
 
     unsigned EvictionFloor() const { return ComputeEvictionFloor(); }
