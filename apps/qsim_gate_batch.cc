@@ -45,10 +45,11 @@ Options GetOptions(int argc, char* argv[]) {
                            "-d maxtime -s seed -t threads "
                            "-f max_fused_size -l block_qubits "
                            "-e min_eviction_floor -x commute_diagonal_gates "
+                           "-g max_gate_seeds "
                            "-i inner_threads -v verbosity\n";
   Options opt;
   int k;
-  while ((k = getopt(argc, argv, "c:d:s:t:f:l:e:x:i:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:l:e:x:g:i:v:")) != -1) {
     switch (k) {
       case 'c': opt.circuit_file = optarg; break;
       case 'd': opt.maxtime = std::atoi(optarg); break;
@@ -58,6 +59,7 @@ Options GetOptions(int argc, char* argv[]) {
       case 'l': opt.block_qubits = std::atoi(optarg); break;
       case 'e': opt.min_eviction_floor = std::atoi(optarg); break;
       case 'x': opt.commute_diagonal_gates = std::atoi(optarg); break;
+      case 'g': opt.max_gate_seeds = std::atoi(optarg); break;
       case 'i': opt.inner_threads = std::atoi(optarg); break;
       case 'v': opt.verbosity = std::atoi(optarg); break;
       default: qsim::IO::errorf(usage); exit(1);
