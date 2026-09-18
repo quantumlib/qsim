@@ -494,22 +494,22 @@ class QSimGateBatchRunner final {
 
     GateBatchPlan PlanNextGateBatch(const std::vector<PendingGate>& gates,
                                     const QubitLayout& layout) {
-      std::vector<GateBatchQubitSet> seeds;
-      seeds.reserve(2 + max_gate_seeds_);
-      seeds.push_back(MakeEmptyQubitSet());
-      seeds.push_back(MakeResidentQubitSet(layout));
+      std::vector<GateBatchQubitSet> candidate_seeds;
+      candidate_seeds.reserve(2 + max_gate_seeds_);
+      candidate_seeds.push_back(MakeEmptyQubitSet());
+      candidate_seeds.push_back(MakeResidentQubitSet(layout));
 
-      for (std::size_t seed_idx : CollectSeedGateIndices(gates)) {
+      for (std::size_t candidate_gate_idx : CollectSeedGateIndices(gates)) {
         auto seed = MakeEmptyQubitSet();
-        if (!TryAdmitQubits(gates[seed_idx].logical_qubits,
+        if (!TryAdmitQubits(gates[candidate_gate_idx].logical_qubits,
                             layout, seed)) {
           continue;
         }
-        seeds.push_back(std::move(seed));
+        candidate_seeds.push_back(std::move(seed));
       }
 
       GateBatchPlan best_plan;
-      for (auto& seed : seeds) {
+      for (auto& seed : candidate_seeds) {
         auto plan = PlanGateBatchFromQubitSet(
             gates, layout, std::move(seed));
         if (!best_plan.HasGates() || plan.score > best_plan.score) {
