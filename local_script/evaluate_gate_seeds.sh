@@ -1,6 +1,8 @@
 #!/bin/bash
 # Compare gate-batch lookahead budgets without changing the planner.
 # Usage: ./local_script/evaluate_gate_seeds.sh [circuit] [threads]
+# Each run always includes the empty and resident candidates; this varies
+# only the number of additional later-gate lookahead seeds.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -15,7 +17,7 @@ if [ ! -x "$BIN" ]; then
 fi
 
 echo "circuit=$CIRCUIT threads=$THREADS block_qubits=19 fused=3 floor=5 commute=1"
-printf '%-8s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n' seeds total_s batches executable swaps plan_s swap_s gate_s
+printf '%-16s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n' lookahead_seeds total_s batches executable swaps plan_s swap_s gate_s
 
 for seeds in 0 1 8 64; do
   output=$(OMP_NUM_THREADS="$THREADS" "$BIN" \
@@ -29,5 +31,5 @@ for seeds in 0 1 8 64; do
   plan_s=$(printf '%s\n' "$breakdown" | awk '{print $1}')
   swap_s=$(printf '%s\n' "$breakdown" | awk '{print $2}')
   gate_s=$(printf '%s\n' "$breakdown" | awk '{print $3}')
-  printf '%-8s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n' "$seeds" "$total" "$batches" "$executable" "$swaps" "$plan_s" "$swap_s" "$gate_s"
+  printf '%-16s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n' "$seeds" "$total" "$batches" "$executable" "$swaps" "$plan_s" "$swap_s" "$gate_s"
 done
