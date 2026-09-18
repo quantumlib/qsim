@@ -478,6 +478,28 @@ struct alignas(64) SmtTeamBarrier {
   std::atomic<unsigned> generation{0};
 };
 
+// Where one OpenMP thread sits in the SMT team grid. Threads left over when
+// the thread count is not divisible by the team size are inactive; normal SMT
+// use is an exact 2-way split.
+struct SmtTeamRole {
+  unsigned team_size;
+  unsigned num_teams;
+  unsigned team_id;
+  unsigned lane;
+  bool active;
+};
+
+inline SmtTeamRole AssignSmtTeamRole(unsigned inner_threads,
+                                     unsigned num_threads,
+                                     unsigned thread_id) {
+  const unsigned team_size =
+      std::max(1u, std::min(inner_threads, num_threads));
+  const unsigned num_teams = num_threads / team_size;
+  const unsigned team_id = thread_id / team_size;
+  return {team_size, num_teams, team_id, thread_id % team_size,
+          team_id < num_teams};
+}
+
 }  // namespace gate_batch_internal
 
 template <typename IO, typename Fuser, typename Factory,
@@ -995,6 +1017,7 @@ class QSimGateBatchRunner final {
     }
   }
 
+#ifdef _OPENMP
   // Each team cooperates on one state block. Team members must synchronize
   // between gates because each gate consumes the preceding gate's output.
   static bool ExecuteSmtBlockTeams(
@@ -1003,17 +1026,6 @@ class QSimGateBatchRunner final {
       unsigned num_threads, unsigned inner_threads,
       const std::vector<unsigned>& team_thread_cpus,
       SeqSimulator& seq_sim) {
-#ifndef _OPENMP
-    (void) executable_gates;
-    (void) state_data;
-    (void) partition;
-    (void) num_threads;
-    (void) inner_threads;
-    (void) team_thread_cpus;
-    (void) seq_sim;
-    IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
-    return false;
-#else
     const int64_t num_blocks = partition.num_blocks;
     const auto floats_per_block = partition.floats_per_block;
     const auto block_qubits = partition.block_qubits;
@@ -1024,37 +1036,25 @@ class QSimGateBatchRunner final {
 
 #pragma omp parallel num_threads(num_threads)
     {
-      const auto actual_threads = unsigned(omp_get_num_threads());
       const auto thread_id = unsigned(omp_get_thread_num());
-      const auto team_size =
-          std::max(1u, std::min(inner_threads, actual_threads));
-      const auto num_teams = actual_threads / team_size;
-      const auto team_id = thread_id / team_size;
-      const auto team_thread_id = thread_id % team_size;
+      const auto role = gate_batch_internal::AssignSmtTeamRole(
+          inner_threads, unsigned(omp_get_num_threads()), thread_id);
 
-      // If the requested thread count is not divisible by the team size,
-      // leave the excess threads idle. Normal SMT use is an exact 2-way
-      // split.
-      const bool active = team_id < num_teams;
-      if (active &&
+      if (role.active &&
           !PinCurrentThreadToCpu(team_thread_cpus[thread_id])) {
         affinity_succeeded.store(false, std::memory_order_relaxed);
       }
 
 #pragma omp barrier
 
-      if (affinity_succeeded.load(std::memory_order_relaxed)) {
-        for (int64_t block_base = 0; block_base < num_blocks;
-             block_base += num_teams) {
-          const auto block = block_base + team_id;
-          const bool has_block = active && block < num_blocks;
-          if (has_block) {
-            fp_type* block_data =
-                state_data + uint64_t(block) * floats_per_block;
-            ExecuteGatesOnBlock<true>(
-                executable_gates, block_data, block_qubits, team_size,
-                team_thread_id, &team_barriers[team_id], seq_sim);
-          }
+      if (role.active && affinity_succeeded.load(std::memory_order_relaxed)) {
+        for (int64_t block = role.team_id; block < num_blocks;
+             block += role.num_teams) {
+          fp_type* block_data =
+              state_data + uint64_t(block) * floats_per_block;
+          ExecuteGatesOnBlock<true>(
+              executable_gates, block_data, block_qubits, role.team_size,
+              role.lane, &team_barriers[role.team_id], seq_sim);
         }
       }
     }
@@ -1064,8 +1064,8 @@ class QSimGateBatchRunner final {
       return false;
     }
     return true;
-#endif
   }
+#endif
 
   // The proposal's inner loops: for every block i, apply every fused gate to
   // the block while it is cache-resident. Blocks or SMT block teams run in
@@ -1080,11 +1080,16 @@ class QSimGateBatchRunner final {
       ExecuteIndependentBlocks(executable_gates, state_data, partition,
                                num_threads, seq_sim);
       return true;
-    } else {
-      return ExecuteSmtBlockTeams(
-          executable_gates, state_data, partition, num_threads,
-          inner_threads, team_thread_cpus, seq_sim);
     }
+#ifdef _OPENMP
+    return ExecuteSmtBlockTeams(
+        executable_gates, state_data, partition, num_threads,
+        inner_threads, team_thread_cpus, seq_sim);
+#else
+    (void) team_thread_cpus;
+    IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
+    return false;
+#endif
   }
 
   // ======== Phase 6: cleanup ========
