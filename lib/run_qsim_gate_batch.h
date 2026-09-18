@@ -79,8 +79,6 @@ struct PendingGate {
         matrix(std::move(gate_matrix)),
         is_diagonal(diagonal) {}
 
-  bool IsPending() const { return !applied_; }
-  void MarkApplied() { applied_ = true; }
   std::size_t Arity() const { return logical_qubits.size(); }
 
   std::vector<unsigned> logical_qubits;  // ascending
@@ -90,8 +88,9 @@ struct PendingGate {
   // imposes no ordering constraint on the planner.
   bool is_diagonal = false;
 
- private:
-  bool applied_ = false;
+  // Set once the gate has executed, and only after its batch has fully
+  // succeeded. Planning scans skip these.
+  bool applied = false;
 };
 
 // A fused (or passthrough) gate ready to execute inside a state block.
@@ -207,9 +206,6 @@ struct GateBatchPlan {
   std::size_t NumGates() const { return gate_indices.size(); }
   bool UsesQubit(unsigned logical_qubit) const {
     return uses_qubit[logical_qubit];
-  }
-  bool operator<(const GateBatchPlan& other) const {
-    return score < other.score;
   }
 
   std::vector<std::size_t> gate_indices;
@@ -485,8 +481,9 @@ class QSimGateBatchRunner final {
                      unsigned max_gate_seeds, bool commute_diagonal_gates)
         : num_logical_qubits_(num_state_qubits),
           block_qubits_(block_qubits),
-          chunk_qubits_(chunk_qubits),
-          min_eviction_floor_(min_eviction_floor),
+          eviction_floor_(ComputeEvictionFloor(num_state_qubits, block_qubits,
+                                               chunk_qubits,
+                                               min_eviction_floor)),
           max_gate_seeds_(max_gate_seeds),
           commute_diagonal_gates_(commute_diagonal_gates),
           is_qubit_blocked_(num_state_qubits),
@@ -494,32 +491,41 @@ class QSimGateBatchRunner final {
 
     GateBatchPlan PlanNextGateBatch(const std::vector<PendingGate>& gates,
                                     const QubitLayout& layout) {
-      std::vector<GateBatchQubitSet> candidate_seeds;
-      candidate_seeds.reserve(2 + max_gate_seeds_);
-      candidate_seeds.push_back(MakeEmptyQubitSet());
-      candidate_seeds.push_back(MakeResidentQubitSet(layout));
-
-      for (std::size_t candidate_gate_idx : CollectSeedGateIndices(gates)) {
-        auto seed = MakeEmptyQubitSet();
-        if (!TryAdmitQubits(gates[candidate_gate_idx].logical_qubits,
-                            layout, seed)) {
-          continue;
-        }
-        candidate_seeds.push_back(std::move(seed));
-      }
-
       GateBatchPlan best_plan;
-      for (auto& seed : candidate_seeds) {
-        auto plan = PlanGateBatchFromQubitSet(
-            gates, layout, std::move(seed));
+      // Ties keep the first candidate, so priority follows evaluation order:
+      // greedy, resident, then seeded plans in circuit order.
+      auto consider = [&](GateBatchQubitSet seed) {
+        GrowQubitSetGreedily(gates, layout, seed);
+        auto plan = EvaluateQubitSet(gates, layout, seed);
         if (!best_plan.HasGates() || plan.score > best_plan.score) {
           best_plan = std::move(plan);
+        }
+      };
+
+      // First-fit greedy, then the zero-swap resident set.
+      consider(MakeEmptyQubitSet());
+      consider(MakeResidentQubitSet(layout));
+
+      // One candidate per following pending gate, for when the first pending
+      // gate is the one poisoning the set.
+      unsigned seeds_used = 0;
+      bool skipped_first_pending = false;
+      for (const PendingGate& gate : gates) {
+        if (gate.applied) continue;
+        if (!skipped_first_pending) {
+          skipped_first_pending = true;
+          continue;
+        }
+        if (seeds_used++ == max_gate_seeds_) break;
+        auto seed = MakeEmptyQubitSet();
+        if (TryAdmitQubits(gate.logical_qubits, layout, seed)) {
+          consider(std::move(seed));
         }
       }
       return best_plan;
     }
 
-    unsigned EvictionFloor() const { return ComputeEvictionFloor(); }
+    unsigned EvictionFloor() const { return eviction_floor_; }
 
    private:
     // Keep enough remap positions for an ordinary two-qubit gate even when
@@ -535,7 +541,7 @@ class QSimGateBatchRunner final {
     GateBatchQubitSet MakeEmptyQubitSet() const {
       GateBatchQubitSet qubit_set;
       qubit_set.contains_qubit.assign(num_logical_qubits_, 0);
-      qubit_set.remap_slot_capacity = RemapSlotCapacity();
+      qubit_set.remap_slot_capacity = block_qubits_ - eviction_floor_;
       return qubit_set;
     }
 
@@ -545,22 +551,20 @@ class QSimGateBatchRunner final {
     // victim. Keeping the floor at min_eviction_floor makes every remap span
     // at least 16 KiB for the default L=19. Small blocks retain at least two
     // remap slots so an ordinary two-qubit gate can make progress.
-    unsigned RemapSlotCapacity() const {
-      return block_qubits_ - ComputeEvictionFloor();
-    }
+    static unsigned ComputeEvictionFloor(unsigned num_logical_qubits,
+                                         unsigned block_qubits,
+                                         unsigned chunk_qubits,
+                                         unsigned min_eviction_floor) {
+      if (block_qubits == num_logical_qubits) return block_qubits;
 
-    unsigned ComputeEvictionFloor() const {
-      if (block_qubits_ == num_logical_qubits_) return block_qubits_;
-
-      const auto full = block_qubits_ > chunk_qubits_
-                            ? block_qubits_ - chunk_qubits_
-                            : 0u;
-      const auto depth_capped = block_qubits_ > min_eviction_floor_
-                                    ? block_qubits_ - min_eviction_floor_
+      const auto full =
+          block_qubits > chunk_qubits ? block_qubits - chunk_qubits : 0u;
+      const auto depth_capped = block_qubits > min_eviction_floor
+                                    ? block_qubits - min_eviction_floor
                                     : 0u;
       const auto capacity =
           std::min(full, std::max(depth_capped, kMinRemapSlots));
-      return block_qubits_ - capacity;
+      return block_qubits - capacity;
     }
 
     // The zero-swap candidate: exactly the qubits already resident in
@@ -580,31 +584,6 @@ class QSimGateBatchRunner final {
       return qubit_set;
     }
 
-    // Gate indices of the next max_gate_seeds pending gates after the
-    // first pending one.
-    std::vector<std::size_t> CollectSeedGateIndices(
-        const std::vector<PendingGate>& gates) const {
-      std::vector<std::size_t> seeds;
-      bool skipped_first_pending = false;
-      for (std::size_t idx = 0;
-           idx < gates.size() && seeds.size() < max_gate_seeds_; ++idx) {
-        if (!gates[idx].IsPending()) continue;
-        if (!skipped_first_pending) {
-          skipped_first_pending = true;
-          continue;
-        }
-        seeds.push_back(idx);
-      }
-      return seeds;
-    }
-
-    GateBatchPlan PlanGateBatchFromQubitSet(
-        const std::vector<PendingGate>& gates, const QubitLayout& layout,
-        GateBatchQubitSet qubit_set) {
-      GrowQubitSetGreedily(gates, layout, qubit_set);
-      return EvaluateQubitSet(gates, layout, qubit_set);
-    }
-
     // First-fit growth: scan pending gates in circuit order, admitting
     // each gate's qubits when they fit and blocking them otherwise (the
     // same causal rule EvaluateQubitSet applies to the finished set).
@@ -613,7 +592,7 @@ class QSimGateBatchRunner final {
                               GateBatchQubitSet& qubit_set) {
       ClearBlockedQubits();
       for (const PendingGate& gate : gates) {
-        if (!gate.IsPending()) continue;
+        if (gate.applied) continue;
         if (AnyQubitBlocked(gate) ||
             !TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
           BlockQubits(gate);
@@ -633,7 +612,7 @@ class QSimGateBatchRunner final {
 
       for (std::size_t idx = 0; idx < gates.size(); ++idx) {
         const PendingGate& gate = gates[idx];
-        if (!gate.IsPending()) continue;
+        if (gate.applied) continue;
         if (!AnyQubitBlocked(gate) &&
             QubitSetContainsAll(gate.logical_qubits, qubit_set)) {
           plan.gate_indices.push_back(idx);
@@ -661,7 +640,7 @@ class QSimGateBatchRunner final {
         unsigned q, const GateBatchQubitSet& qubit_set,
         const QubitLayout& layout) const {
       if (qubit_set.Contains(q)) return 0;
-      return layout.PhysicalPositionOf(q) < ComputeEvictionFloor() ? 0 : 1;
+      return layout.PhysicalPositionOf(q) < eviction_floor_ ? 0 : 1;
     }
 
     // Admits all of a gate's qubits into the set, or none of them.
@@ -733,8 +712,7 @@ class QSimGateBatchRunner final {
 
     unsigned num_logical_qubits_;
     unsigned block_qubits_;
-    unsigned chunk_qubits_;
-    unsigned min_eviction_floor_;
+    unsigned eviction_floor_;
     unsigned max_gate_seeds_;
     bool commute_diagonal_gates_;
     std::vector<char> is_qubit_blocked_;
@@ -1034,7 +1012,7 @@ class QSimGateBatchRunner final {
   // schedule untouched.
   void MarkGatesApplied(const GateBatchPlan& plan) {
     for (std::size_t idx : plan.gate_indices) {
-      pending_gates_[idx].MarkApplied();
+      pending_gates_[idx].applied = true;
     }
   }
 
