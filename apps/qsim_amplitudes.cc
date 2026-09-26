@@ -167,9 +167,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  if (opt.denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  }
+  ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(opt.denormals_are_zeros);
 
   struct Factory {
     Factory(unsigned num_threads) : num_threads(num_threads) {}

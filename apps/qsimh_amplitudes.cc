@@ -185,9 +185,7 @@ int main(int argc, char* argv[]) {
   }
   auto parts = GetParts(circuit.num_qubits, opt.part1);
 
-  if (opt.denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  }
+  ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(opt.denormals_are_zeros);
 
   std::vector<Bitstring> bitstrings;
   auto num_qubits = circuit.num_qubits;

@@ -773,3 +773,17 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "util_cpu_test",
+    size = "small",
+    srcs = ["util_cpu_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": [],
+    }),
+    deps = [
+        "//lib:util_cpu",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
