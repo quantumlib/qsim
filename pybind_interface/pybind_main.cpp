@@ -506,8 +506,9 @@ class SimulatorHelper {
 #ifdef __NVCC__
     ScopedCudaDevice guard(owning_device_);
 #endif
-    state = StateSpace::Null();
-    scratch = StateSpace::Null();
+    // Release the states now; in nvcc builds the owning device is current.
+    destroy_state(state);
+    destroy_state(scratch);
   }
 
   template <typename StateType>
@@ -728,6 +729,14 @@ class SimulatorHelper {
       // If this triggers, is_valid is false.
       IO::errorf("%s", exp.what());
     }
+  }
+
+  // Destroys the given state immediately, releasing its memory. Moving it into
+  // a temporary is used instead of assigning StateSpace::Null() because the
+  // cuStateVecEx vector's move assignment does not free the state it
+  // overwrites.
+  static void destroy_state(State& s) {
+    State doomed(std::move(s));
   }
 
   void init_state(uint64_t input_state) {

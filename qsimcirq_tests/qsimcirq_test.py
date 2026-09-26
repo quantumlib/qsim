@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import cirq
 import numpy as np
 import pytest
@@ -1645,6 +1647,57 @@ def test_device_state_vector_free():
         _ = device_state.__cuda_array_interface__
     with pytest.raises(RuntimeError, match="has been freed"):
         _ = device_state.num_qubits
+
+
+def _total_free_device_memory(cupy):
+    """Returns the free memory summed over all visible devices, in bytes."""
+    total = 0
+    for device_id in range(cupy.cuda.runtime.getDeviceCount()):
+        with cupy.cuda.Device(device_id):
+            cupy.cuda.runtime.deviceSynchronize()
+            total += cupy.cuda.runtime.memGetInfo()[0]
+    return total
+
+
+@pytest.mark.parametrize("use_device_array", [False, True])
+@pytest.mark.parametrize(
+    "gpu_mode, module_name",
+    [(0, "qsim_gpu"), (1, "qsim_custatevec"), (2, "qsim_custatevecex")],
+)
+def test_gpu_simulation_releases_device_memory(gpu_mode, module_name, use_device_array):
+    if getattr(qsimcirq, module_name) is None:
+        pytest.skip(f"qsimcirq.{module_name} is not available for testing.")
+    if int(os.environ.get("PYTEST_XDIST_WORKER_COUNT", "1")) > 1:
+        # Free device memory is shared by all processes using the GPU, so
+        # other test workers would disturb the measurement.
+        pytest.skip("Needs exclusive use of the GPU; run without pytest -n.")
+    cupy = pytest.importorskip("cupy")
+
+    num_qubits = 20
+    state_bytes = np.dtype(np.complex64).itemsize * 2**num_qubits
+    circuit = _build_asymmetric_entangled_circuit(cirq.LineQubit.range(num_qubits))
+    options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=gpu_mode)
+    sim = qsimcirq.QSimSimulator(qsim_options=options)
+
+    def run_once():
+        if use_device_array:
+            _, device_state, _ = sim.simulate_into_device_array(circuit)
+            device_state.free()
+        else:
+            sim.simulate(circuit)
+
+    # The first run lets the backend finish its one-time initialization.
+    run_once()
+    free_before = _total_free_device_memory(cupy)
+    num_runs = 10
+    for _ in range(num_runs):
+        run_once()
+    lost = free_before - _total_free_device_memory(cupy)
+    # Fails if the runs leak half a state or more each, on average.
+    assert lost < num_runs * state_bytes // 2, (
+        f"{lost} B of device memory lost over {num_runs} runs; "
+        f"one state is {state_bytes} B."
+    )
 
 
 def test_cirq_qsim_gpu_noisy_simulate_into_device_array():
