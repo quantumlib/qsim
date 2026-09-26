@@ -838,7 +838,7 @@ class QSimGateBatchRunner final {
   void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
     const double swap_start = GetTime();
     ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, chunk_qubits_,
-                      swap_pairs);
+                      swap_pairs, param_.num_threads);
     simulation_stats_.swap_seconds += GetTime() - swap_start;
     simulation_stats_.num_swaps += unsigned(swap_pairs.size());
   }

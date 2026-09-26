@@ -1,4 +1,4 @@
-// Qubit remapping for cache-blocked simulation (refactoring plan, Step 1).
+// Qubit remapping for cache-blocked simulation.
 //
 // In-place, single-pass application of a set of DISJOINT qubit-position
 // transpositions (an involution) to a state stored in a chunked SIMD
@@ -22,10 +22,6 @@
 // the bit pairs whose two bits differ, and swaps the two spans (each span
 // is swapped exactly once via the partner > self check; spans whose pair
 // bits all match are fixed points and are skipped).
-//
-// Reading guide: ApplyBitPairSwaps (the only public entry point) is
-// BitSwapPlan construction followed by a parallel loop of
-//   FirstChunkOfSpan -> PartnerChunk -> SwapChunkSpans.
 
 #ifndef QUBIT_REMAP_H_
 #define QUBIT_REMAP_H_
@@ -44,109 +40,39 @@ using QubitSwap = std::pair<unsigned, unsigned>;
 namespace remap_internal {
 
 // One amplitude-bit swap translated to chunk-index bit positions.
-class ChunkBitSwap {
- public:
-  ChunkBitSwap(unsigned first_amplitude_bit, unsigned second_amplitude_bit,
-               unsigned chunk_qubits) {
-    assert(first_amplitude_bit >= chunk_qubits);
-    assert(second_amplitude_bit >= chunk_qubits);
-    lower_chunk_bit_ =
-        std::min(first_amplitude_bit, second_amplitude_bit) - chunk_qubits;
-    upper_chunk_bit_ =
-        std::max(first_amplitude_bit, second_amplitude_bit) - chunk_qubits;
-    flip_mask_ = (uint64_t{1} << lower_chunk_bit_) |
-                 (uint64_t{1} << upper_chunk_bit_);
-  }
-
-  unsigned LowerChunkBit() const { return lower_chunk_bit_; }
-
-  // A bit-position swap moves the chunk only when the two bits differ.
-  bool ChangesChunkIndex(uint64_t chunk_index) const {
-    return ((chunk_index >> lower_chunk_bit_) & 1) !=
-           ((chunk_index >> upper_chunk_bit_) & 1);
-  }
-
-  uint64_t FlipMask() const { return flip_mask_; }
-
- private:
-  unsigned lower_chunk_bit_;
-  unsigned upper_chunk_bit_;
-  uint64_t flip_mask_;
+struct ChunkBitSwap {
+  unsigned lower_bit;
+  unsigned upper_bit;
+  uint64_t flip_mask;  // Both bits set.
 };
 
-// Precomputed chunk geometry for applying a set of disjoint qubit swaps.
-class BitSwapPlan {
- public:
-  BitSwapPlan(unsigned num_qubits, unsigned chunk_qubits,
-              const std::vector<QubitSwap>& qubit_swaps)
-      : floats_per_chunk_(uint64_t{2} << chunk_qubits),
-        chunk_index_bits_(num_qubits - chunk_qubits),
-        chunk_span_bits_(chunk_index_bits_) {
-    assert(num_qubits >= chunk_qubits);
-#ifndef NDEBUG
-    std::vector<char> is_qubit_swapped(num_qubits, 0);
-#endif
-    chunk_bit_swaps_.reserve(qubit_swaps.size());
-    for (const QubitSwap& qubit_swap : qubit_swaps) {
-      assert(qubit_swap.first < num_qubits);
-      assert(qubit_swap.second < num_qubits);
-      assert(qubit_swap.first != qubit_swap.second);
-#ifndef NDEBUG
-      assert(!is_qubit_swapped[qubit_swap.first]);
-      assert(!is_qubit_swapped[qubit_swap.second]);
-      is_qubit_swapped[qubit_swap.first] = 1;
-      is_qubit_swapped[qubit_swap.second] = 1;
-#endif
-      AddQubitSwap(qubit_swap, chunk_qubits);
+// True when the swaps are pairwise-disjoint transpositions of distinct
+// positions in [chunk_qubits, num_qubits).
+inline bool IsDisjointSwapSet(const std::vector<QubitSwap>& qubit_swaps,
+                              unsigned num_qubits, unsigned chunk_qubits) {
+  std::vector<char> is_swapped(num_qubits, 0);
+  for (const auto& [first, second] : qubit_swaps) {
+    if (first == second) return false;
+    for (unsigned position : {first, second}) {
+      if (position < chunk_qubits || position >= num_qubits) return false;
+      if (is_swapped[position]) return false;
+      is_swapped[position] = 1;
     }
   }
+  return true;
+}
 
-  // Floats in one chunk (2^chunk_qubits amplitudes, 2 floats each).
-  uint64_t FloatsPerChunk() const { return floats_per_chunk_; }
-
-  // Amplitudes move in contiguous spans of 2^chunk_span_bits chunks.
-  uint64_t FloatsPerChunkSpan() const {
-    return floats_per_chunk_ << chunk_span_bits_;
-  }
-
-  int64_t NumChunkSpans() const {
-    return int64_t{1} << (chunk_index_bits_ - chunk_span_bits_);
-  }
-
-  uint64_t FirstChunkOfSpan(int64_t span_index) const {
-    return uint64_t(span_index) << chunk_span_bits_;
-  }
-
-  // Applies every chunk-bit swap to find the involution partner. A chunk
-  // whose paired bits all match maps to itself.
-  uint64_t PartnerChunk(uint64_t chunk_index) const {
-    auto partner_chunk = chunk_index;
-    for (const ChunkBitSwap& bit_swap : chunk_bit_swaps_) {
-      if (bit_swap.ChangesChunkIndex(chunk_index)) {
-        partner_chunk ^= bit_swap.FlipMask();
-      }
+// The chunk each chunk exchanges with: every swapped bit pair whose two bits
+// differ is flipped. A chunk whose paired bits all match maps to itself.
+inline uint64_t PartnerChunk(uint64_t chunk,
+                             const std::vector<ChunkBitSwap>& bit_swaps) {
+  auto partner = chunk;
+  for (const ChunkBitSwap& bit_swap : bit_swaps) {
+    if (((chunk >> bit_swap.lower_bit) ^ (chunk >> bit_swap.upper_bit)) & 1) {
+      partner ^= bit_swap.flip_mask;
     }
-    return partner_chunk;
   }
-
- private:
-  void AddQubitSwap(const QubitSwap& qubit_swap, unsigned chunk_qubits) {
-    chunk_bit_swaps_.emplace_back(qubit_swap.first, qubit_swap.second,
-                                  chunk_qubits);
-    chunk_span_bits_ = std::min(
-        chunk_span_bits_, chunk_bit_swaps_.back().LowerChunkBit());
-  }
-
-  uint64_t floats_per_chunk_;
-  std::vector<ChunkBitSwap> chunk_bit_swaps_;
-  unsigned chunk_index_bits_;
-  unsigned chunk_span_bits_;
-};
-
-// First float of the chunk with this index.
-inline float* FirstFloatOfChunk(float* state, uint64_t floats_per_chunk,
-                                uint64_t chunk_index) {
-  return state + floats_per_chunk * chunk_index;
+  return partner;
 }
 
 // Swap two contiguous chunk spans. Compilers vectorize this to SIMD-width
@@ -166,34 +92,45 @@ inline void SwapChunkSpans(float* __restrict first_span,
 // Applies all `qubit_swaps` transpositions of amplitude-bit positions to the
 // state, in place, in a single pass. The pairs must be disjoint and every
 // position must be >= chunk_qubits (see layout comment above).
-inline void ApplyBitPairSwaps(
-    float* state, unsigned num_qubits, unsigned chunk_qubits,
-    const std::vector<QubitSwap>& qubit_swaps) {
+inline void ApplyBitPairSwaps(float* state, unsigned num_qubits,
+                              unsigned chunk_qubits,
+                              const std::vector<QubitSwap>& qubit_swaps,
+                              unsigned num_threads) {
   namespace ri = remap_internal;
 
-  if (qubit_swaps.empty()) {
-    return;
+  if (qubit_swaps.empty()) return;
+  assert(ri::IsDisjointSwapSet(qubit_swaps, num_qubits, chunk_qubits));
+
+  // Amplitudes move in contiguous spans of 2^span_bits chunks, where
+  // span_bits is the lowest swapped chunk-index bit.
+  std::vector<ri::ChunkBitSwap> bit_swaps;
+  bit_swaps.reserve(qubit_swaps.size());
+  unsigned span_bits = num_qubits - chunk_qubits;
+  for (const auto& [first, second] : qubit_swaps) {
+    const unsigned lower = std::min(first, second) - chunk_qubits;
+    const unsigned upper = std::max(first, second) - chunk_qubits;
+    bit_swaps.push_back(
+        {lower, upper, (uint64_t{1} << lower) | (uint64_t{1} << upper)});
+    span_bits = std::min(span_bits, lower);
   }
 
-  const auto plan = ri::BitSwapPlan(num_qubits, chunk_qubits, qubit_swaps);
-  const auto floats_per_chunk = plan.FloatsPerChunk();
-  const auto floats_per_chunk_span = plan.FloatsPerChunkSpan();
-  const auto num_chunk_spans = plan.NumChunkSpans();
+  const uint64_t floats_per_chunk = uint64_t{2} << chunk_qubits;
+  const uint64_t floats_per_span = floats_per_chunk << span_bits;
+  const int64_t num_spans =
+      int64_t{1} << (num_qubits - chunk_qubits - span_bits);
 
   // Static scheduling divides spans deterministically across threads, avoiding
   // atomic dispatch lock contention and preserving hardware prefetch streams.
-#pragma omp parallel for schedule(static)
-  for (int64_t span_index = 0; span_index < num_chunk_spans; ++span_index) {
-    const auto first_chunk = plan.FirstChunkOfSpan(span_index);
-    const auto partner_chunk = plan.PartnerChunk(first_chunk);
+#pragma omp parallel for schedule(static) num_threads(num_threads)
+  for (int64_t span = 0; span < num_spans; ++span) {
+    const uint64_t chunk = uint64_t(span) << span_bits;
+    const uint64_t partner = ri::PartnerChunk(chunk, bit_swaps);
 
     // Each moved pair is visited from both sides; act on one of them
     // (fixed points have partner == chunk and fall through).
-    if (partner_chunk > first_chunk) {
-      ri::SwapChunkSpans(
-          ri::FirstFloatOfChunk(state, floats_per_chunk, first_chunk),
-          ri::FirstFloatOfChunk(state, floats_per_chunk, partner_chunk),
-          floats_per_chunk_span);
+    if (partner > chunk) {
+      ri::SwapChunkSpans(state + chunk * floats_per_chunk,
+                         state + partner * floats_per_chunk, floats_per_span);
     }
   }
 }
