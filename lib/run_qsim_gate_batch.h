@@ -196,7 +196,6 @@ struct GateBatchPlan {
 
   std::vector<std::size_t> gate_indices;
   std::vector<char> uses_qubit;
-  unsigned required_swaps = 0;
   double score = 0.0;
 };
 
@@ -366,11 +365,10 @@ class GateBatchPlanner {
       }
     }
 
-    plan.required_swaps = CountSwapsNeeded(plan, layout);
+    const auto required_swaps = CountSwapsNeeded(plan, layout);
     const auto swap_cost =
-        plan.required_swaps == 0
-            ? 0.0
-            : kSwapPassCost + kSwapPairCost * plan.required_swaps;
+        required_swaps == 0 ? 0.0
+                            : kSwapPassCost + kSwapPairCost * required_swaps;
     plan.score = double(plan.NumGates()) - swap_cost;
     return plan;
   }
@@ -667,13 +665,10 @@ class QSimGateBatchRunner final {
                  block_qubits);
       return 0;
     }
-    LogPlannedGateBatch(plan);
 
     // select_qubits_for_swap + swap_low_and_high_qubits
     BuildSwapsBelow(plan.uses_qubit, block_qubits,
                     gate_batch_workspace_.swap_pairs);
-    LogGateBatchSwapSummary(plan);
-    LogAppliedRemap();
     ApplySwapsToState(gate_batch_workspace_.swap_pairs);
 
     // fused_low_gates = fuse(low_gates)
@@ -1091,71 +1086,6 @@ class QSimGateBatchRunner final {
                    static_cast<unsigned long long>(usage_scores[q]));
     }
     IO::messagef("; %u initial swaps.\n", unsigned(num_initial_swaps));
-  }
-
-  // The planned gate batch before any remapping: every planned gate with its
-  // logical qubits, then every distinct qubit the batch uses with its
-  // current physical position; '*' marks qubits outside the block that
-  // the remap is about to swap in.
-  void LogPlannedGateBatch(const GateBatchPlan& plan) const {
-    if (param_.verbosity <= 3) return;
-
-    IO::messagef("gate batch %u plan: %u gates, %u swaps needed\n  gates:",
-                 simulation_stats_.num_gate_batches,
-                 unsigned(plan.NumGates()),
-                 plan.required_swaps);
-    for (std::size_t idx : plan.gate_indices) {
-      const PendingGate& gate = pending_gates_[idx];
-      IO::messagef(" #%u[", unsigned(idx));
-      for (std::size_t i = 0; i < gate.Arity(); ++i) {
-        IO::messagef(i == 0 ? "q%u" : ",q%u",
-                     gate.logical_qubits[i]);
-      }
-      IO::messagef("]");
-    }
-    IO::messagef("\n  qubits:");
-    for (unsigned q = 0; q < unsigned(plan.uses_qubit.size()); ++q) {
-      if (!plan.UsesQubit(q)) continue;
-      const auto position = layout_.PhysicalPositionOf(q);
-      IO::messagef(" q%u@p%u%s", q, position,
-                   position >= partition_.block_qubits ? "*" : "");
-    }
-    IO::messagef("\n");
-  }
-
-  // The last pair holds the lowest eviction position; a low floor means
-  // short scattered spans in the swap pass (see qubit_remap.h).
-  void LogGateBatchSwapSummary(const GateBatchPlan& plan) const {
-    if (param_.verbosity <= 2 ||
-        gate_batch_workspace_.swap_pairs.empty()) {
-      return;
-    }
-
-    IO::messagef("gate batch %u: %u gates, %u swaps, evict floor %u\n",
-                 simulation_stats_.num_gate_batches,
-                 unsigned(plan.NumGates()),
-                 unsigned(gate_batch_workspace_.swap_pairs.size()),
-                 gate_batch_workspace_.swap_pairs.back().first);
-  }
-
-  // The remap just applied (the layout is already updated): each
-  // transposition as "incoming qubit, its new<-old position, outgoing
-  // qubit", then the low-block layout the batch's gates will use.
-  void LogAppliedRemap() const {
-    if (param_.verbosity <= 3) return;
-
-    IO::messagef("  swaps:");
-    if (gate_batch_workspace_.swap_pairs.empty()) IO::messagef(" none");
-    for (const QubitSwap& pair : gate_batch_workspace_.swap_pairs) {
-      IO::messagef(" [q%u in p%u<-p%u, q%u out]",
-                   layout_.LogicalQubitAt(pair.first), pair.first,
-                   pair.second, layout_.LogicalQubitAt(pair.second));
-    }
-    IO::messagef("\n  block:");
-    for (unsigned p = 0; p < partition_.block_qubits; ++p) {
-      IO::messagef(" q%u", layout_.LogicalQubitAt(p));
-    }
-    IO::messagef("\n");
   }
 
   void LogSimulationSummary(double simulation_start) const {
