@@ -34,6 +34,7 @@ prune third_party
 exclude CITATION.cff
 exclude CODE_OF_CONDUCT.md
 exclude CONTRIBUTING.md
+exclude MANIFEST.in
 exclude SUPPORT.md
 exclude WORKSPACE
 
