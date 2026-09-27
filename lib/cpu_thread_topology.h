@@ -28,12 +28,6 @@
 
 namespace qsim {
 
-struct CpuCore {
-  unsigned package_id;
-  unsigned core_id;
-  std::vector<unsigned> logical_cpus;
-};
-
 class CpuThreadTopology {
  public:
   static CpuThreadTopology Discover() {
@@ -61,10 +55,10 @@ class CpuThreadTopology {
       cores[{package_id, core_id}].push_back(cpu);
     }
 
-    for (auto& [core, logical_cpus] : cores) {
+    for (auto& entry : cores) {
+      auto& logical_cpus = entry.second;
       std::sort(logical_cpus.begin(), logical_cpus.end());
-      topology.cores_.push_back(
-          CpuCore{core.first, core.second, std::move(logical_cpus)});
+      topology.cores_.push_back(std::move(logical_cpus));
     }
 #else
     topology.error_ = "automatic CPU topology discovery requires Linux";
@@ -87,11 +81,10 @@ class CpuThreadTopology {
       return false;
     }
 
-    const auto num_teams = num_threads / threads_per_team;
-    for (const auto& core : cores_) {
-      if (core.logical_cpus.size() < threads_per_team) continue;
+    for (const auto& logical_cpus : cores_) {
+      if (logical_cpus.size() < threads_per_team) continue;
       for (unsigned lane = 0; lane < threads_per_team; ++lane) {
-        thread_cpus.push_back(core.logical_cpus[lane]);
+        thread_cpus.push_back(logical_cpus[lane]);
       }
       if (thread_cpus.size() == num_threads) return true;
     }
@@ -112,7 +105,8 @@ class CpuThreadTopology {
   }
 #endif
 
-  std::vector<CpuCore> cores_;
+  // Sorted logical CPUs of each physical core, in (package, core) order.
+  std::vector<std::vector<unsigned>> cores_;
   std::string error_;
 };
 
