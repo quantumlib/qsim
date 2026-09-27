@@ -822,12 +822,11 @@ class QSimGateBatchRunner final {
       candidates.push_back(q);
     }
     assert(count <= candidates.size());
-    std::partial_sort(candidates.begin(), candidates.begin() + count,
-                      candidates.end(),
-                      [&scores](unsigned a, unsigned b) {
-                        return scores[a] != scores[b]
-                                   ? scores[a] > scores[b] : a < b;
-                      });
+    // Stable, so equal scores keep ascending qubit order.
+    std::stable_sort(candidates.begin(), candidates.end(),
+                     [&scores](unsigned a, unsigned b) {
+                       return scores[a] > scores[b];
+                     });
     candidates.resize(count);
     return candidates;
   }
