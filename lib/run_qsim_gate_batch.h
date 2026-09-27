@@ -498,7 +498,7 @@ struct alignas(64) SmtTeamBarrier {
 // Where one OpenMP thread sits in the SMT team grid. Threads left over when
 // the thread count is not divisible by the team size are inactive; normal SMT
 // use is an exact 2-way split.
-struct SmtTeamRole {
+struct SmtTeamAssignment {
   unsigned team_size;
   unsigned num_teams;
   unsigned team_id;
@@ -506,9 +506,11 @@ struct SmtTeamRole {
   bool active;
 };
 
-inline SmtTeamRole AssignSmtTeamRole(unsigned inner_threads,
-                                     unsigned num_threads,
-                                     unsigned thread_id) {
+// Assigns OpenMP thread thread_id of num_threads to a team of
+// inner_threads SMT siblings.
+inline SmtTeamAssignment AssignSmtTeam(unsigned inner_threads,
+                                       unsigned num_threads,
+                                       unsigned thread_id) {
   const auto team_size = std::max(1u, std::min(inner_threads, num_threads));
   const auto num_teams = num_threads / team_size;
   const auto team_id = thread_id / team_size;
@@ -1012,14 +1014,14 @@ class QSimGateBatchRunner final {
 
 #pragma omp parallel num_threads(param_.num_threads)
     {
-      const auto role = gate_batch_internal::AssignSmtTeamRole(
+      const auto assignment = gate_batch_internal::AssignSmtTeam(
           param_.inner_threads, gate_batch_internal::ParallelThreadCount(),
           gate_batch_internal::ParallelThreadId());
-      if (role.active) {
-        for (int64_t block = role.team_id; block < partition_.num_blocks;
-             block += role.num_teams) {
-          ExecuteGatesOnBlock(block, role.team_size, role.lane,
-                              &team_barriers[role.team_id]);
+      if (assignment.active) {
+        for (int64_t block = assignment.team_id;
+             block < partition_.num_blocks; block += assignment.num_teams) {
+          ExecuteGatesOnBlock(block, assignment.team_size, assignment.lane,
+                              &team_barriers[assignment.team_id]);
         }
       }
     }
