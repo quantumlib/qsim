@@ -87,12 +87,6 @@ inline unsigned ParallelThreadId() { return 0; }
 // Internal scheduling representation of one raw circuit gate.
 template <typename FP>
 struct PendingGate {
-  PendingGate(std::vector<unsigned> qubits, Matrix<FP> gate_matrix,
-              bool diagonal)
-      : logical_qubits(std::move(qubits)),
-        matrix(std::move(gate_matrix)),
-        is_diagonal(diagonal) {}
-
   std::size_t Arity() const { return logical_qubits.size(); }
 
   std::vector<unsigned> logical_qubits;  // ascending
@@ -137,11 +131,8 @@ struct BlockPartition {
                                     unsigned requested_block_qubits,
                                     unsigned num_threads,
                                     unsigned min_block_qubits) {
-    unsigned parallel_bits = 0;
-    for (auto threads = std::max(num_threads, 1u); threads > 1;
-         threads >>= 1) {
-      ++parallel_bits;
-    }
+    unsigned parallel_bits = 0;  // floor(log2(num_threads))
+    while ((2u << parallel_bits) <= num_threads) ++parallel_bits;
 
     const auto parallel_block_qubits =
         state_qubits > parallel_bits ? state_qubits - parallel_bits : 0u;
@@ -756,8 +747,8 @@ class QSimGateBatchRunner final {
       NormalizeGateQubitOrder(logical_qubits, matrix);
       const bool diagonal =
           IsDiagonalMatrix(matrix, logical_qubits.size());
-      pending_gates_.emplace_back(std::move(logical_qubits),
-                                  std::move(matrix), diagonal);
+      pending_gates_.push_back(
+          {std::move(logical_qubits), std::move(matrix), diagonal});
     }
     return true;
   }
@@ -878,7 +869,7 @@ class QSimGateBatchRunner final {
       // Synthetic gate: kind is irrelevant outside qsimh; sequential
       // times satisfy the fuser's ordering contract.
       auto physical_gate = Gate<fp_type>{
-          0, time++, std::move(physical_qubits), {},
+          {0, time++, std::move(physical_qubits)}, {},
           std::move(physical_matrix), false};
       batch_operations.push_back(Op{std::move(physical_gate)});
     }
