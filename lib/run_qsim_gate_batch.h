@@ -873,7 +873,7 @@ class QSimGateBatchRunner final {
         --victim;
       } while (is_wanted[layout_.LogicalQubitAt(victim)]);
       swaps.emplace_back(victim, position);
-      layout_.SwapPositions(victim, position);
+      layout_.SwapPhysicalPositions(victim, position);
     }
   }
 
