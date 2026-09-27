@@ -20,11 +20,12 @@
 #include <string>
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/classical_control_util.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
-#include "../lib/run_qsim.h"
+#include "../lib/run_qsim_deprecated.h"
 #include "../lib/simulator_cuda.h"
 
 struct Options {
@@ -114,11 +115,8 @@ int main(int argc, char* argv[]) {
 
   using fp_type = float;
 
-  Circuit<Operation<fp_type>> circuit;
-  if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
-                                           circuit)) {
-    return 1;
-  }
+  auto cstr = cc::ReadFile(opt.circuit_file);
+  auto circuit = CircuitQSimParser<fp_type>::Run(cstr, opt.maxtime);
 
   struct Factory {
     using Simulator = qsim::SimulatorCUDA<fp_type>;

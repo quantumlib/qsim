@@ -21,7 +21,7 @@
 
 namespace qsim {
 
-TEST(GatesQsimTest, GateRX) {
+TEST(GatesQSimTest, GateRX) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
@@ -45,7 +45,7 @@ TEST(GatesQsimTest, GateRX) {
   EXPECT_FLOAT_EQ(gate.matrix[7], 0);
 }
 
-TEST(GatesQsimTest, GateRY) {
+TEST(GatesQSimTest, GateRY) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
@@ -69,7 +69,7 @@ TEST(GatesQsimTest, GateRY) {
   EXPECT_FLOAT_EQ(gate.matrix[7], 0);
 }
 
-TEST(GatesQsimTest, GateRZ) {
+TEST(GatesQSimTest, GateRZ) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit = 11;
@@ -93,7 +93,7 @@ TEST(GatesQsimTest, GateRZ) {
   EXPECT_FLOAT_EQ(gate.matrix[7], -s);
 }
 
-TEST(GatesQsimTest, GateRXY) {
+TEST(GatesQSimTest, GateRXY) {
   float theta = 0.84;
   float phi = 0.42;
   unsigned time = 7;
@@ -120,7 +120,7 @@ TEST(GatesQsimTest, GateRXY) {
   EXPECT_FLOAT_EQ(gate.matrix[7], 0);
 }
 
-TEST(GatesQsimTest, GateFS) {
+TEST(GatesQSimTest, GateFS) {
   float theta = 0.84;
   float phi = 0.42;
   unsigned time = 7;
@@ -241,7 +241,7 @@ TEST(GatesQsimTest, GateFS) {
   EXPECT_NEAR(schmidt_decomp[3][1][7], 0.16863659, 1e-6);
 }
 
-TEST(GatesQsimTest, GateCP) {
+TEST(GatesQSimTest, GateCP) {
   float phi = 0.42;
   unsigned time = 7;
   unsigned qubit0 = 11;
@@ -327,7 +327,7 @@ TEST(GatesQsimTest, GateCP) {
   EXPECT_FLOAT_EQ(schmidt_decomp[1][1][7], -sp);
 }
 
-TEST(GatesQsimTest, GateMeasurement) {
+TEST(GatesQSimTest, GateMeasurement) {
   unsigned time = 5;
   std::vector<unsigned> qubits = {3, 2, 4, 0, 7, 5, 1};
   auto mea = CreateMeasurement(time, qubits);
