@@ -759,6 +759,7 @@ class QSimGateBatchRunner final {
   static bool IsDiagonalMatrix(const Matrix<fp_type>& matrix,
                                std::size_t arity) {
     const std::size_t dim = std::size_t{1} << arity;
+    // Row-major complex entries, stored as (real, imaginary) float pairs.
     if (matrix.size() < 2 * dim * dim) return false;
 
     for (std::size_t row = 0; row < dim; ++row) {
