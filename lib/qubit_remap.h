@@ -46,10 +46,9 @@
 #include <utility>
 #include <vector>
 
-namespace qsim {
+#include "qubit_layout.h"
 
-// A transposition of two amplitude-index bit positions.
-using QubitSwap = std::pair<unsigned, unsigned>;
+namespace qsim {
 
 namespace remap_internal {
 
