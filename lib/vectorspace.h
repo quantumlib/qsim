@@ -49,29 +49,23 @@ inline void free(void* ptr) {
 #define MPOL_INTERLEAVE 3
 #endif
 
+// Sets the nodemask bits of a Linux node list such as "0-3,8".
 inline bool ParseNodeRange(const std::string& str, unsigned long* nodemask,
                            unsigned max_bits, unsigned& num_nodes_found) {
+  constexpr unsigned kBitsPerWord = 8 * sizeof(unsigned long);
   std::stringstream ss(str);
   std::string item;
   num_nodes_found = 0;
   while (std::getline(ss, item, ',')) {
     if (item.empty()) continue;
-    size_t dash = item.find('-');
-    if (dash == std::string::npos) {
-      unsigned node = std::stoul(item);
-      if (node < max_bits) {
-        nodemask[node / (8 * sizeof(unsigned long))] |=
-            (1UL << (node % (8 * sizeof(unsigned long))));
-        num_nodes_found++;
-      }
-    } else {
-      unsigned start = std::stoul(item.substr(0, dash));
-      unsigned end = std::stoul(item.substr(dash + 1));
-      for (unsigned node = start; node <= end && node < max_bits; ++node) {
-        nodemask[node / (8 * sizeof(unsigned long))] |=
-            (1UL << (node % (8 * sizeof(unsigned long))));
-        num_nodes_found++;
-      }
+    // A single node "n" is the range "n-n"; stoul stops at the dash.
+    const size_t dash = item.find('-');
+    const unsigned start = std::stoul(item);
+    const unsigned end =
+        dash == std::string::npos ? start : std::stoul(item.substr(dash + 1));
+    for (unsigned node = start; node <= end && node < max_bits; ++node) {
+      nodemask[node / kBitsPerWord] |= 1UL << (node % kBitsPerWord);
+      num_nodes_found++;
     }
   }
   return num_nodes_found > 0;
