@@ -568,7 +568,7 @@ cc_library(
     name = "run_qsim_gate_batch",
     hdrs = [
         "cpu_thread_topology.h",
-        "qubit_mapped_state.h",
+        "qubit_layout.h",
         "qubit_remap.h",
         "run_qsim_gate_batch.h",
     ],

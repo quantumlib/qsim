@@ -74,7 +74,7 @@
 
 #include "gate.h"
 #include "cpu_thread_topology.h"
-#include "qubit_mapped_state.h"
+#include "qubit_layout.h"
 #include "matrix.h"
 #include "operation_base.h"
 #include "qubit_remap.h"
