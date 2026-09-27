@@ -602,6 +602,8 @@ class QSimGateBatchRunner final {
 
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
 
+  using SmtTeamBarrier = gate_batch_internal::SmtTeamBarrier;
+
   QSimGateBatchRunner(const Parameter& param, unsigned num_qubits,
                       State& state, QubitLayout& layout)
       : param_(param),
@@ -695,12 +697,7 @@ class QSimGateBatchRunner final {
 
     // for i in 0..(2^num_high_qubits): apply all fused gates to block i
     const double gates_start = GetTime();
-    if (!ExecuteGateBatchOnBlocks(
-            gate_batch_workspace_.executable_gates, state_data_, partition_,
-            param_.num_threads, param_.inner_threads,
-            param_.team_thread_cpus, seq_sim_)) {
-      return 0;
-    }
+    if (!ExecuteGateBatchOnBlocks()) return 0;
     simulation_stats_.gate_seconds += GetTime() - gates_start;
 
     ++simulation_stats_.num_gate_batches;
@@ -958,82 +955,58 @@ class QSimGateBatchRunner final {
 
   // ======== Step 5: block execution ========
 
-  template <bool kCooperative>
-  static void ExecuteGatesOnBlock(
-      const std::vector<ExecutableGate>& executable_gates,
-      fp_type* block_data, unsigned block_qubits, unsigned team_size,
-      unsigned team_thread_id,
-      gate_batch_internal::SmtTeamBarrier* team_barrier,
-      SeqSimulator& seq_sim) {
+  // Applies every executable gate to one state block. A team splits each
+  // gate among its members, who meet at the barrier before the next gate
+  // because each gate consumes the preceding gate's output.
+  void ExecuteGatesOnBlock(int64_t block, unsigned team_size = 1,
+                           unsigned team_thread_id = 0,
+                           SmtTeamBarrier* team_barrier = nullptr) const {
     CooperativeFor::Configure(team_size, team_thread_id);
-    auto block_view = SeqStateSpace::Create(block_data, block_qubits);
+    fp_type* block_data =
+        state_data_ + uint64_t(block) * partition_.floats_per_block;
+    auto block_view =
+        SeqStateSpace::Create(block_data, partition_.block_qubits);
 
-    for (const ExecutableGate& gate : executable_gates) {
-      seq_sim.ApplyGate(gate.physical_qubits, gate.matrix.data(), block_view);
-      if constexpr (kCooperative) {
-        assert(team_barrier != nullptr);
-        team_barrier->Wait(team_size);
-      }
+    for (const ExecutableGate& gate : gate_batch_workspace_.executable_gates) {
+      seq_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(), block_view);
+      if (team_barrier != nullptr) team_barrier->Wait(team_size);
     }
   }
 
   // Unit-sized dynamic scheduling balances independent state blocks across
   // cores without adding synchronization to the per-gate loop.
-  static void ExecuteIndependentBlocks(
-      const std::vector<ExecutableGate>& executable_gates,
-      fp_type* state_data, const BlockPartition& partition,
-      unsigned num_threads, SeqSimulator& seq_sim) {
-    const int64_t num_blocks = partition.num_blocks;
-    const auto floats_per_block = partition.floats_per_block;
-    const auto block_qubits = partition.block_qubits;
-
-#pragma omp parallel for schedule(dynamic, 1) num_threads(num_threads)
-    for (int64_t block = 0; block < num_blocks; ++block) {
-      fp_type* block_data =
-          state_data + uint64_t(block) * floats_per_block;
-      ExecuteGatesOnBlock<false>(executable_gates, block_data, block_qubits,
-                                 1, 0, nullptr, seq_sim);
+  void ExecuteIndependentBlocks() const {
+#pragma omp parallel for schedule(dynamic, 1) num_threads(param_.num_threads)
+    for (int64_t block = 0; block < partition_.num_blocks; ++block) {
+      ExecuteGatesOnBlock(block);
     }
   }
 
-  // Each team cooperates on one state block. Team members must synchronize
-  // between gates because each gate consumes the preceding gate's output.
-  static bool ExecuteSmtBlockTeams(
-      const std::vector<ExecutableGate>& executable_gates,
-      fp_type* state_data, const BlockPartition& partition,
-      unsigned num_threads, unsigned inner_threads,
-      const std::vector<unsigned>& team_thread_cpus,
-      SeqSimulator& seq_sim) {
-    const int64_t num_blocks = partition.num_blocks;
-    const auto floats_per_block = partition.floats_per_block;
-    const auto block_qubits = partition.block_qubits;
-
+  // Each team of SMT siblings cooperates on one state block at a time.
+  bool ExecuteSmtBlockTeams() const {
     auto team_barriers =
-        std::make_unique<gate_batch_internal::SmtTeamBarrier[]>(num_threads);
+        std::make_unique<SmtTeamBarrier[]>(param_.num_threads);
     std::atomic<bool> affinity_succeeded{true};
 
-#pragma omp parallel num_threads(num_threads)
+#pragma omp parallel num_threads(param_.num_threads)
     {
       const auto thread_id = gate_batch_internal::ParallelThreadId();
       const auto role = gate_batch_internal::AssignSmtTeamRole(
-          inner_threads, gate_batch_internal::ParallelThreadCount(),
+          param_.inner_threads, gate_batch_internal::ParallelThreadCount(),
           thread_id);
 
-      if (role.active &&
-          !PinCurrentThreadToCpu(team_thread_cpus[thread_id])) {
+      const auto cpu = param_.team_thread_cpus[thread_id];
+      if (role.active && !PinCurrentThreadToCpu(cpu)) {
         affinity_succeeded.store(false, std::memory_order_relaxed);
       }
 
 #pragma omp barrier
 
       if (role.active && affinity_succeeded.load(std::memory_order_relaxed)) {
-        for (int64_t block = role.team_id; block < num_blocks;
+        for (int64_t block = role.team_id; block < partition_.num_blocks;
              block += role.num_teams) {
-          fp_type* block_data =
-              state_data + uint64_t(block) * floats_per_block;
-          ExecuteGatesOnBlock<true>(
-              executable_gates, block_data, block_qubits, role.team_size,
-              role.lane, &team_barriers[role.team_id], seq_sim);
+          ExecuteGatesOnBlock(block, role.team_size, role.lane,
+                              &team_barriers[role.team_id]);
         }
       }
     }
@@ -1048,20 +1021,10 @@ class QSimGateBatchRunner final {
   // The proposal's inner loops: for every block i, apply every fused gate to
   // the block while it is cache-resident. Blocks or SMT block teams run in
   // parallel.
-  static bool ExecuteGateBatchOnBlocks(
-      const std::vector<ExecutableGate>& executable_gates,
-      fp_type* state_data, const BlockPartition& partition,
-      unsigned num_threads, unsigned inner_threads,
-      const std::vector<unsigned>& team_thread_cpus,
-      SeqSimulator& seq_sim) {
-    if (inner_threads <= 1) {
-      ExecuteIndependentBlocks(executable_gates, state_data, partition,
-                               num_threads, seq_sim);
-      return true;
-    }
-    return ExecuteSmtBlockTeams(
-        executable_gates, state_data, partition, num_threads,
-        inner_threads, team_thread_cpus, seq_sim);
+  bool ExecuteGateBatchOnBlocks() const {
+    if (param_.inner_threads > 1) return ExecuteSmtBlockTeams();
+    ExecuteIndependentBlocks();
+    return true;
   }
 
   // ======== Step 6: cleanup ========
