@@ -48,11 +48,9 @@ class QubitLayout {
     return physical_to_logical_[physical_position];
   }
 
-  const std::vector<unsigned>& LogicalToPhysical() const {
-    return logical_to_physical_;
-  }
-
-  uint64_t PhysicalIndexOf(uint64_t logical_index) const {
+  // Maps a logical amplitude index to the index where that amplitude is
+  // stored: each set bit q moves to PhysicalPositionOf(q).
+  uint64_t PhysicalAmplitudeIndex(uint64_t logical_index) const {
     uint64_t physical_index = 0;
     for (unsigned q = 0; q < NumQubits(); ++q) {
       if ((logical_index >> q) & 1) {
@@ -111,7 +109,8 @@ struct QubitMappedState {
 
   template <typename StateSpace>
   auto GetAmpl(const StateSpace& state_space, uint64_t logical_index) const {
-    return state_space.GetAmpl(state, layout.PhysicalIndexOf(logical_index));
+    return state_space.GetAmpl(state,
+                               layout.PhysicalAmplitudeIndex(logical_index));
   }
 
   State state;
