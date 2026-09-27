@@ -24,7 +24,7 @@
 //       first-fit scan, the qubits already resident, and a few sets
 //       seeded from upcoming gates - and keep the best.
 //     Remap the batch's qubits into physical positions [0, block_qubits)
-//       with one pass of disjoint transpositions (BuildBatchSwapPairs,
+//       with one pass of disjoint transpositions (BuildSwapsBelow,
 //       ApplySwapsToState). The low chunk_qubits positions are pinned and
 //       never swapped; every other qubit draws from a bounded remap budget
 //       (GateBatchPlanner::RemapSlotCapacity).
@@ -676,7 +676,8 @@ class QSimGateBatchRunner final {
     LogPlannedGateBatch(plan);
 
     // select_qubits_for_swap + swap_low_and_high_qubits
-    BuildBatchSwapPairs(plan);
+    BuildSwapsBelow(plan.uses_qubit, block_qubits,
+                    gate_batch_workspace_.swap_pairs);
     LogGateBatchSwapSummary(plan);
     LogAppliedRemap();
     ApplySwapsToState(gate_batch_workspace_.swap_pairs);
@@ -796,43 +797,6 @@ class QSimGateBatchRunner final {
     return candidates;
   }
 
-  // Builds disjoint swaps that put the selected logical qubits in the fixed
-  // physical zone and updates layout to match the state permutation.
-  std::vector<QubitSwap>
-  BuildFixedZonePlacementSwaps(const std::vector<unsigned>& fixed_qubits,
-                               unsigned eviction_floor) {
-    std::vector<char> is_fixed_qubit(layout_.NumQubits(), 0);
-    for (unsigned q : fixed_qubits) is_fixed_qubit[q] = 1;
-
-    std::vector<unsigned> victim_positions;
-    std::vector<unsigned> incoming_qubits;
-    victim_positions.reserve(fixed_qubits.size());
-    incoming_qubits.reserve(fixed_qubits.size());
-
-    for (unsigned p = chunk_qubits_; p < eviction_floor; ++p) {
-      if (!is_fixed_qubit[layout_.LogicalQubitAt(p)]) {
-        victim_positions.push_back(p);
-      }
-    }
-    for (unsigned q : fixed_qubits) {
-      if (layout_.PhysicalPositionOf(q) >= eviction_floor) {
-        incoming_qubits.push_back(q);
-      }
-    }
-
-    assert(victim_positions.size() == incoming_qubits.size());
-    std::vector<QubitSwap> swap_pairs;
-    swap_pairs.reserve(victim_positions.size());
-    for (std::size_t i = 0; i < victim_positions.size(); ++i) {
-      const auto victim_position = victim_positions[i];
-      const auto incoming_position =
-          layout_.PhysicalPositionOf(incoming_qubits[i]);
-      swap_pairs.emplace_back(victim_position, incoming_position);
-      layout_.SwapPositions(victim_position, incoming_position);
-    }
-    return swap_pairs;
-  }
-
   // Places the most frequently used logical qubits outside the in-chunk
   // physical zone [chunk_qubits, eviction_floor). In-chunk positions
   // remain untouched. Canonical runs restore qubit order at the end.
@@ -843,41 +807,42 @@ class QSimGateBatchRunner final {
       return;
     }
 
-    const auto num_fixed_qubits =
-        eviction_floor - chunk_qubits_;
     const auto usage_scores = ComputeQubitUsageScores();
-    const auto fixed_qubits =
-        SelectHighestScoringQubits(usage_scores, chunk_qubits_,
-                                   num_fixed_qubits);
-    auto swap_pairs =
-        BuildFixedZonePlacementSwaps(fixed_qubits, eviction_floor);
+    std::vector<char> is_hot(layout_.NumQubits(), 0);
+    for (unsigned q : SelectHighestScoringQubits(
+             usage_scores, chunk_qubits_, eviction_floor - chunk_qubits_)) {
+      is_hot[q] = 1;
+    }
+
+    auto& swap_pairs = gate_batch_workspace_.swap_pairs;
+    BuildSwapsBelow(is_hot, eviction_floor, swap_pairs);
     LogFixedZonePlacement(usage_scores, eviction_floor, swap_pairs.size());
     ApplySwapsToState(swap_pairs);
   }
 
   // ======== Phase 3: qubit remapping ========
 
-  // Extends the layout so every qubit the plan uses lands in physical
-  // positions [0, L), recording the transpositions to apply. Eviction
-  // walks down from L-1, skipping positions that hold used qubits; the
-  // planner's slot accounting guarantees it never reaches the pinned
-  // lane positions.
-  void BuildBatchSwapPairs(const GateBatchPlan& plan) {
-    gate_batch_workspace_.swap_pairs.clear();
-    unsigned evict_position = partition_.block_qubits - 1;
+  // Moves every wanted logical qubit into a physical position below
+  // `limit`, recording the transpositions in `swaps` and updating the
+  // layout to match. Victims are taken from limit-1 downward, skipping
+  // positions that already hold a wanted qubit; the caller guarantees
+  // enough victims above the pinned lane positions.
+  void BuildSwapsBelow(const std::vector<char>& is_wanted, unsigned limit,
+                       std::vector<QubitSwap>& swaps) {
+    swaps.clear();
+    unsigned victim = limit;
 
-    for (unsigned q = 0; q < unsigned(plan.uses_qubit.size()); ++q) {
-      if (!plan.UsesQubit(q)) continue;
-      const auto current_position = layout_.PhysicalPositionOf(q);
-      if (current_position < partition_.block_qubits) continue;
+    for (unsigned q = 0; q < unsigned(is_wanted.size()); ++q) {
+      if (!is_wanted[q]) continue;
+      const auto position = layout_.PhysicalPositionOf(q);
+      if (position < limit) continue;
 
-      while (plan.UsesQubit(layout_.LogicalQubitAt(evict_position))) {
-        --evict_position;
-      }
-      gate_batch_workspace_.swap_pairs.emplace_back(evict_position,
-                                                     current_position);
-      layout_.SwapPositions(evict_position, current_position);
-      --evict_position;
+      do {
+        assert(victim > chunk_qubits_);
+        --victim;
+      } while (is_wanted[layout_.LogicalQubitAt(victim)]);
+      swaps.emplace_back(victim, position);
+      layout_.SwapPositions(victim, position);
     }
   }
 
