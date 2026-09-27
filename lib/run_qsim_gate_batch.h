@@ -114,7 +114,7 @@ struct PendingGate {
   bool applied = false;
 };
 
-// A fused (or passthrough) gate ready to execute inside a state block.
+// A fused gate ready to execute inside a state block.
 template <typename FP>
 struct ExecutableGate {
   std::vector<unsigned> physical_qubits;  // ascending
@@ -638,28 +638,27 @@ class QSimGateBatchRunner final {
   using GateBatchPlanner =
       gate_batch_internal::GateBatchPlanner<fp_type>;
 
-  using GateBatchQubitSet = gate_batch_internal::GateBatchQubitSet;
-
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
 
   using SmtTeamBarrier = gate_batch_internal::SmtTeamBarrier;
+
+  // Low amplitude-index bits that select a SIMD lane.
+  static constexpr unsigned kLaneQubits = StateSpace::kLaneQubits;
 
   QSimGateBatchRunner(const Parameter& param, unsigned num_qubits,
                       State& state, QubitLayout& layout)
       : param_(param),
         partition_(num_qubits, param.block_qubits, param.num_threads,
-                   std::max(StateSpace::kLaneQubits,
-                            param.max_fused_size)),
+                   std::max(kLaneQubits, param.max_fused_size)),
         state_data_(state.get()),
-        lane_qubits_(StateSpace::kLaneQubits),
         seq_sim_(1),
         layout_(layout),
         gate_batch_planner_(partition_.num_state_qubits,
-                            partition_.block_qubits, lane_qubits_,
+                            partition_.block_qubits, kLaneQubits,
                             param.min_eviction_floor, param.max_gate_seeds,
                             param.commute_diagonal_gates) {
     assert(partition_.block_qubits >=
-           std::min(lane_qubits_, partition_.num_state_qubits));
+           std::min(kLaneQubits, partition_.num_state_qubits));
     assert(layout_.NumQubits() == partition_.num_state_qubits);
   }
 
@@ -838,14 +837,14 @@ class QSimGateBatchRunner final {
   void PlaceHotQubitsInFixedZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
     if (!param_.place_hot_qubits || partition_.num_blocks == 1 ||
-        eviction_floor <= lane_qubits_) {
+        eviction_floor <= kLaneQubits) {
       return;
     }
 
     const auto usage_scores = ComputeQubitUsageScores();
     std::vector<char> is_hot(layout_.NumQubits(), 0);
     for (unsigned q : SelectHighestScoringQubits(
-             usage_scores, lane_qubits_, eviction_floor - lane_qubits_)) {
+             usage_scores, kLaneQubits, eviction_floor - kLaneQubits)) {
       is_hot[q] = 1;
     }
 
@@ -873,7 +872,7 @@ class QSimGateBatchRunner final {
       if (position < limit) continue;
 
       do {
-        assert(victim > lane_qubits_);
+        assert(victim > kLaneQubits);
         --victim;
       } while (is_wanted[layout_.LogicalQubitAt(victim)]);
       swaps.emplace_back(victim, position);
@@ -884,7 +883,7 @@ class QSimGateBatchRunner final {
   // Applies the transpositions to the state in one involution pass.
   void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
     const double swap_start = GetTime();
-    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, lane_qubits_,
+    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, kLaneQubits,
                       swap_pairs, param_.num_threads);
     simulation_stats_.swap_seconds += GetTime() - swap_start;
     simulation_stats_.num_swaps += unsigned(swap_pairs.size());
@@ -1115,9 +1114,9 @@ class QSimGateBatchRunner final {
                              std::size_t num_initial_swaps) const {
     if (param_.verbosity <= 1) return;
 
-    IO::messagef("fixed hot zone [%u,%u):", lane_qubits_,
+    IO::messagef("fixed hot zone [%u,%u):", kLaneQubits,
                  eviction_floor);
-    for (unsigned p = lane_qubits_; p < eviction_floor; ++p) {
+    for (unsigned p = kLaneQubits; p < eviction_floor; ++p) {
       const auto q = layout_.LogicalQubitAt(p);
       IO::messagef(" q%u(%llu)", q,
                    static_cast<unsigned long long>(usage_scores[q]));
@@ -1154,7 +1153,6 @@ class QSimGateBatchRunner final {
   const Parameter& param_;
   const BlockPartition partition_;
   fp_type* const state_data_;
-  const unsigned lane_qubits_;  // Low amplitude bits that select a SIMD lane.
   SeqSimulator seq_sim_;
   std::vector<PendingGate> pending_gates_;
   QubitLayout& layout_;
