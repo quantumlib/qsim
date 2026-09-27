@@ -12,26 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Include root build files, metadata, and license.
-include CITATION.cff
-include CMakeLists.txt
-include LICENSE
-include pyproject.toml
-include README.md
-include requirements.txt
-include setup.py
+# This file controls what's packaged into a Python sdist. It must include the
+# minimum needed to build qsimcirq on users's computers using CMake. Note we
+# use setuptools-scm, which adds every committed file automatically, so the
+# sdist is really "everything committed minus the prune/exclude lines."
 
-# Include C++ sources and Pybind interfaces required for building.
-graft lib
-graft pybind_interface
-
-# Include Python package sources and tests.
-graft qsimcirq
-graft qsimcirq_tests
-
-# Prune repository, environment, and other dirs not meant for distribution.
-prune .gemini
-prune .github
+# Prune repository, environment, and other things not meant for distribution.
+global-exclude .*
+prune **/.*
 prune apps
 prune check
 prune circuits
@@ -42,15 +30,14 @@ prune jupyter
 prune tests
 prune third_party
 
-# Exclude dev and container config files.
-exclude Dockerfile
-exclude docker-compose.yml
-exclude Makefile
+# Exclude other unnecessary things.
+exclude CITATION.cff
+exclude CODE_OF_CONDUCT.md
+exclude CONTRIBUTING.md
+exclude SUPPORT.md
 exclude WORKSPACE
 
-# Exclude repository dotfiles.
-global-exclude .*
-
-# Exclude build artifacts. Putting the list on one line avoids multiple
-# warnings for patterns that don't match on the current platform.
-global-exclude *.a *.dll *.dylib *.exe *.lib *.mod *.o *.obj *.py[cod] *.so *.x
+global-exclude BUILD
+global-exclude docker-compose.yml
+global-exclude Dockerfile
+global-exclude Makefile
