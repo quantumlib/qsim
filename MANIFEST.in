@@ -17,8 +17,21 @@
 # use setuptools-scm, which adds every committed file automatically, so the
 # sdist is really "everything committed minus the prune/exclude lines."
 
-# Prune repository, environment, and other things not meant for distribution.
-global-exclude .*
+exclude .*
+exclude CITATION.cff
+exclude CODE_OF_CONDUCT.md
+exclude CONTRIBUTING.md
+exclude MANIFEST.in
+exclude SUPPORT.md
+exclude WORKSPACE
+
+# These files also appear in subdirectories, hence need global-exclude.
+global-exclude BUILD
+global-exclude docker-compose.yml
+global-exclude Dockerfile
+global-exclude Makefile
+
+# Directories to exclude.
 prune **/.*
 prune apps
 prune check
@@ -29,16 +42,3 @@ prune install
 prune jupyter
 prune tests
 prune third_party
-
-# Exclude other unnecessary things.
-exclude CITATION.cff
-exclude CODE_OF_CONDUCT.md
-exclude CONTRIBUTING.md
-exclude MANIFEST.in
-exclude SUPPORT.md
-exclude WORKSPACE
-
-global-exclude BUILD
-global-exclude docker-compose.yml
-global-exclude Dockerfile
-global-exclude Makefile
