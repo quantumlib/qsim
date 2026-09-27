@@ -20,9 +20,6 @@
 #elif defined(__linux__)
   #include <sys/syscall.h>
   #include <unistd.h>
-  #include <fstream>
-  #include <sstream>
-  #include <string>
 #endif
 
 #include <cstdint>
@@ -45,55 +42,14 @@ inline void free(void* ptr) {
 }
 
 #if defined(__linux__) && defined(SYS_mbind)
-#ifndef MPOL_INTERLEAVE
-#define MPOL_INTERLEAVE 3
-#endif
-
-// Sets the nodemask bits of a Linux node list such as "0-3,8".
-inline bool ParseNodeRange(const std::string& str, unsigned long* nodemask,
-                           unsigned max_bits, unsigned& num_nodes_found) {
-  constexpr unsigned kBitsPerWord = 8 * sizeof(unsigned long);
-  std::stringstream ss(str);
-  std::string item;
-  num_nodes_found = 0;
-  while (std::getline(ss, item, ',')) {
-    if (item.empty()) continue;
-    // A single node "n" is the range "n-n"; stoul stops at the dash.
-    const size_t dash = item.find('-');
-    const unsigned start = std::stoul(item);
-    const unsigned end =
-        dash == std::string::npos ? start : std::stoul(item.substr(dash + 1));
-    for (unsigned node = start; node <= end && node < max_bits; ++node) {
-      nodemask[node / kBitsPerWord] |= 1UL << (node % kBitsPerWord);
-      num_nodes_found++;
-    }
-  }
-  return num_nodes_found > 0;
-}
-
+// Interleaves the state across every NUMA node this process may use, so all
+// sockets' memory controllers serve it. The kernel limits the mask to the
+// allowed memory nodes (a no-op on one node); on failure, pages keep the
+// default placement. `ptr` must be page-aligned.
 inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
-  if (ptr == nullptr || size < 2 * 1024 * 1024) return;
-
-  unsigned long nodemask[16] = {0};
-  constexpr unsigned max_bits = sizeof(nodemask) * 8;
-  unsigned num_nodes = 0;
-
-  for (const char* path : {"/sys/devices/system/node/has_cpu",
-                           "/sys/devices/system/node/has_memory",
-                           "/sys/devices/system/node/online"}) {
-    std::ifstream file(path);
-    if (file.is_open()) {
-      std::string content;
-      if (file >> content &&
-          ParseNodeRange(content, nodemask, max_bits, num_nodes)) {
-        break;
-      }
-    }
-  }
-
-  if (num_nodes >= 2) {
-    syscall(SYS_mbind, ptr, size, MPOL_INTERLEAVE, nodemask, max_bits, 0);
-  }
+  constexpr int kMpolInterleave = 3;
+  const unsigned long all_nodes = ~0UL;  // Nodes 0-63; maxnode is bits + 1.
+  syscall(SYS_mbind, ptr, size, kMpolInterleave, &all_nodes, 65, 0);
 }
 #endif
 
@@ -152,7 +108,8 @@ class VectorSpace {
       return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
     #else
       void* p = nullptr;
-      if (posix_memalign(&p, 64, size) == 0) {
+      // Page alignment lets ApplyNumaInterleave cover the whole state.
+      if (posix_memalign(&p, 4096, size) == 0) {
         #if defined(__linux__) && defined(SYS_mbind)
         detail::ApplyNumaInterleave(p, size);
         #endif
