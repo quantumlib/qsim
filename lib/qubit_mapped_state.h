@@ -66,7 +66,8 @@ class QubitLayout {
     return physical_to_logical_[position] == position;
   }
 
-  void SwapPositions(unsigned position_a, unsigned position_b) {
+  // Swaps the logical qubits held at two physical positions.
+  void SwapPhysicalPositions(unsigned position_a, unsigned position_b) {
     const auto qubit_a = physical_to_logical_[position_a];
     const auto qubit_b = physical_to_logical_[position_b];
     std::swap(physical_to_logical_[position_a],
@@ -91,7 +92,7 @@ class QubitLayout {
       swaps.emplace_back(position, paired_position);
       position_touched[position] = 1;
       position_touched[paired_position] = 1;
-      SwapPositions(position, paired_position);
+      SwapPhysicalPositions(position, paired_position);
     }
     return !swaps.empty();
   }
