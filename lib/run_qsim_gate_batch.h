@@ -621,6 +621,7 @@ class QSimGateBatchRunner final {
     using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
 
     if (!ValidateThreadTeams()) return false;
+    if (param_.inner_threads > 1 && !PinSmtTeamThreads()) return false;
     LogAdaptiveBlockSize();
     LogThreadTeams();
     const double prepare_start = GetTime();
@@ -688,7 +689,7 @@ class QSimGateBatchRunner final {
 
     // for i in 0..(2^num_high_qubits): apply all fused gates to block i
     const double gates_start = GetTime();
-    if (!ExecuteGateBatchOnBlocks()) return 0;
+    ExecuteGateBatchOnBlocks();
     simulation_stats_.gate_seconds += GetTime() - gates_start;
 
     ++simulation_stats_.num_gate_batches;
@@ -959,27 +960,39 @@ class QSimGateBatchRunner final {
     }
   }
 
-  // Each team of SMT siblings cooperates on one state block at a time.
-  bool ExecuteSmtBlockTeams() const {
-    auto team_barriers =
-        std::make_unique<SmtTeamBarrier[]>(param_.num_threads);
-    std::atomic<bool> affinity_succeeded{true};
+  // Pins each OpenMP worker to its SMT team CPU once per run. Later parallel
+  // regions with the same thread count reuse these pinned workers, because
+  // libgomp and libomp keep their thread pool between regions.
+  bool PinSmtTeamThreads() const {
+    std::atomic<bool> pinned{true};
 
 #pragma omp parallel num_threads(param_.num_threads)
     {
-      const auto thread_id = gate_batch_internal::ParallelThreadId();
+      const auto cpu =
+          param_.team_thread_cpus[gate_batch_internal::ParallelThreadId()];
+      if (!PinCurrentThreadToCpu(cpu)) {
+        pinned.store(false, std::memory_order_relaxed);
+      }
+    }
+
+    if (!pinned.load(std::memory_order_relaxed)) {
+      IO::errorf("qsim_gate_batch: failed to pin an SMT worker to its CPU.\n");
+      return false;
+    }
+    return true;
+  }
+
+  // Each team of SMT siblings cooperates on one state block at a time.
+  void ExecuteSmtBlockTeams() const {
+    auto team_barriers =
+        std::make_unique<SmtTeamBarrier[]>(param_.num_threads);
+
+#pragma omp parallel num_threads(param_.num_threads)
+    {
       const auto role = gate_batch_internal::AssignSmtTeamRole(
           param_.inner_threads, gate_batch_internal::ParallelThreadCount(),
-          thread_id);
-
-      const auto cpu = param_.team_thread_cpus[thread_id];
-      if (role.active && !PinCurrentThreadToCpu(cpu)) {
-        affinity_succeeded.store(false, std::memory_order_relaxed);
-      }
-
-#pragma omp barrier
-
-      if (role.active && affinity_succeeded.load(std::memory_order_relaxed)) {
+          gate_batch_internal::ParallelThreadId());
+      if (role.active) {
         for (int64_t block = role.team_id; block < partition_.num_blocks;
              block += role.num_teams) {
           ExecuteGatesOnBlock(block, role.team_size, role.lane,
@@ -987,21 +1000,17 @@ class QSimGateBatchRunner final {
         }
       }
     }
-
-    if (!affinity_succeeded.load(std::memory_order_relaxed)) {
-      IO::errorf("qsim_gate_batch: failed to pin an SMT worker to its CPU.\n");
-      return false;
-    }
-    return true;
   }
 
   // The proposal's inner loops: for every block i, apply every fused gate to
   // the block while it is cache-resident. Blocks or SMT block teams run in
   // parallel.
-  bool ExecuteGateBatchOnBlocks() const {
-    if (param_.inner_threads > 1) return ExecuteSmtBlockTeams();
-    ExecuteIndependentBlocks();
-    return true;
+  void ExecuteGateBatchOnBlocks() const {
+    if (param_.inner_threads > 1) {
+      ExecuteSmtBlockTeams();
+    } else {
+      ExecuteIndependentBlocks();
+    }
   }
 
   // ======== Step 6: cleanup ========
