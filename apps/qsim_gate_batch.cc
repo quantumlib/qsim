@@ -1,6 +1,6 @@
 // Benchmark app for the proposal-faithful gate-batch runner.
-// -f is the per-batch max_fused_size (0 = apply
-// raw gates without fusing, 2-3 = proposal's suggestion).
+// -f is the per-batch max_fused_size (at least 2; the proposal suggests
+// 2-3).
 
 #include <unistd.h>
 

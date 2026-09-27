@@ -29,7 +29,7 @@
 //       never swapped; every other qubit draws from a bounded remap budget
 //       (GateBatchPlanner::RemapSlotCapacity).
 //     Fuse the batch's gates on physical qubits with the standard fuser
-//       (FuseBatchGates); max_fused_size == 0 disables fusion.
+//       (FuseBatchGates).
 //     Execute every fused gate on every state block, blocks in parallel,
 //       optionally splitting each block across one SMT sibling team
 //       (ExecuteGateBatchOnBlocks).
@@ -618,7 +618,7 @@ class QSimGateBatchRunner final {
   bool SimulateCircuit(const Circuit& circuit, bool restore_qubit_order) {
     using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
 
-    if (!ValidateThreadTeams()) return false;
+    if (!ValidateParameters()) return false;
     if (param_.inner_threads > 1 && !PinSmtTeamThreads()) return false;
     LogAdaptiveBlockSize();
     LogThreadTeams();
@@ -873,47 +873,29 @@ class QSimGateBatchRunner final {
 
   // fuse(low_gates): runs the standard fuser over the batch's physical
   // gates (max_fused_size from param; the proposal suggests 2 or 3) and
-  // copies the results into ExecutableGate records. max_fused_size == 0
-  // is the no-fusion control mode.
+  // copies the fused gates into ExecutableGate records. The copy must happen
+  // while the fuser's input container is still alive (fused ops point into
+  // it). The fuser sorts each fused gate's qubits.
   template <typename Op>
   bool FuseBatchGates(const std::vector<Op>& batch_operations) {
-    gate_batch_workspace_.executable_gates.clear();
-    if (param_.max_fused_size == 0) {
-      return AppendExecutableGates(batch_operations);
-    }
-
     const auto fused_ops =
         Fuser::FuseGates(param_, partition_.block_qubits, batch_operations);
     if (fused_ops.empty() && !batch_operations.empty()) {
       IO::errorf("qsim_gate_batch: fuser failed on a gate batch.\n");
       return false;
     }
-    return AppendExecutableGates(fused_ops);
-  }
 
-  // Copies raw or fused gates into ExecutableGate records. The copy must
-  // happen while the fuser's input container is still alive (fused ops may
-  // point into it). Qubits are already ascending: BuildBatchOperations
-  // normalizes raw gates, and the fuser sorts fused qubits.
-  template <typename Operations>
-  bool AppendExecutableGates(const Operations& operations) {
     auto& executable_gates = gate_batch_workspace_.executable_gates;
-    executable_gates.reserve(operations.size());
-
-    auto append = [&executable_gates](const auto& gate) {
-      assert(std::is_sorted(gate.qubits.begin(), gate.qubits.end()));
-      executable_gates.push_back({gate.qubits, gate.matrix});
-    };
-
-    for (const auto& operation : operations) {
-      if (const auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation)) {
-        append(*fused);
-      } else if (const auto* raw = OpGetAlternative<Gate<fp_type>>(operation)) {
-        append(*raw);
-      } else {
+    executable_gates.clear();
+    executable_gates.reserve(fused_ops.size());
+    for (const auto& operation : fused_ops) {
+      const auto* gate = OpGetAlternative<FusedGate<fp_type>>(operation);
+      if (gate == nullptr) {
         IO::errorf("qsim_gate_batch: unsupported operation in gate batch.\n");
         return false;
       }
+      assert(std::is_sorted(gate->qubits.begin(), gate->qubits.end()));
+      executable_gates.push_back({gate->qubits, gate->matrix});
     }
     return true;
   }
@@ -1021,7 +1003,11 @@ class QSimGateBatchRunner final {
 
   // ======== Validation ========
 
-  bool ValidateThreadTeams() const {
+  bool ValidateParameters() const {
+    if (param_.max_fused_size < 2) {
+      IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
+      return false;
+    }
     if (param_.inner_threads <= 1) return true;
     if (!gate_batch_internal::kHasOpenMP) {
       IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
