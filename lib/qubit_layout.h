@@ -20,9 +20,10 @@
 #include <utility>
 #include <vector>
 
-#include "qubit_remap.h"
-
 namespace qsim {
+
+// A transposition of two amplitude-index bit positions.
+using QubitSwap = std::pair<unsigned, unsigned>;
 
 // Bidirectional logical<->physical qubit map; the two arrays are inverse
 // permutations of each other at all times. "Physical position p" means
