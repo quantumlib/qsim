@@ -14,9 +14,9 @@
 // positions, fuses them, and runs the result on every state block.
 //
 // Algorithm:
-//   Move the most-used logical qubits into the low block up front
-//   (PlaceHotQubitsInFixedZone) - free, since the all-zero initial state
-//   is permutation-invariant.
+//   Move the most-used logical qubits into the fixed low zone up front
+//   (PlaceHotQubitsInFixedZone), at the cost of one swap pass; they then
+//   stay resident for every gate batch.
 //
 //   while gates remain:
 //     Select the next gate batch (GateBatchPlanner::PlanNextGateBatch):
@@ -537,8 +537,8 @@ class QSimGateBatchRunner final {
     unsigned min_eviction_floor = 5;
 
     // Seed the fixed zone [chunk_qubits, eviction_floor) with the most-used
-    // logical qubits before the first gate batch. Free, because the all-zero
-    // initial state is permutation-invariant.
+    // logical qubits before the first gate batch, at the cost of one swap
+    // pass over the state.
     bool place_hot_qubits = true;
 
     // How many pending gates beyond the first get to seed their own candidate
@@ -785,9 +785,9 @@ class QSimGateBatchRunner final {
     return candidates;
   }
 
-  // Places the most frequently used logical qubits outside the in-chunk
-  // physical zone [chunk_qubits, eviction_floor). In-chunk positions
-  // remain untouched. Canonical runs restore qubit order at the end.
+  // Places the most frequently used logical qubits in the fixed zone
+  // [chunk_qubits, eviction_floor), just above the in-chunk lane positions,
+  // which remain untouched. Canonical runs restore qubit order at the end.
   void PlaceHotQubitsInFixedZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
     if (!param_.place_hot_qubits || partition_.num_blocks == 1 ||
