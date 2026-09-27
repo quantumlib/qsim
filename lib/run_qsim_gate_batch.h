@@ -63,6 +63,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <numeric>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -812,23 +813,23 @@ class QSimGateBatchRunner final {
     return scores;
   }
 
-  // Returns the count highest-scoring qubits in deterministic rank order.
-  static std::vector<unsigned> SelectHighestScoringQubits(
+  // Marks the count highest-scoring qubits at or above first_qubit. Among
+  // equal scores, the lower qubit index wins.
+  static std::vector<char> SelectHighestScoringQubits(
       const std::vector<uint64_t>& scores, unsigned first_qubit,
       unsigned count) {
-    std::vector<unsigned> candidates;
-    candidates.reserve(scores.size() - first_qubit);
-    for (unsigned q = first_qubit; q < scores.size(); ++q) {
-      candidates.push_back(q);
-    }
+    std::vector<unsigned> candidates(scores.size() - first_qubit);
+    std::iota(candidates.begin(), candidates.end(), first_qubit);
     assert(count <= candidates.size());
     // Stable, so equal scores keep ascending qubit order.
     std::stable_sort(candidates.begin(), candidates.end(),
                      [&scores](unsigned a, unsigned b) {
                        return scores[a] > scores[b];
                      });
-    candidates.resize(count);
-    return candidates;
+
+    std::vector<char> selected(scores.size(), 0);
+    for (unsigned i = 0; i < count; ++i) selected[candidates[i]] = 1;
+    return selected;
   }
 
   // Places the most frequently used logical qubits in the fixed zone
@@ -842,11 +843,8 @@ class QSimGateBatchRunner final {
     }
 
     const auto usage_scores = ComputeQubitUsageScores();
-    std::vector<char> is_hot(layout_.NumQubits(), 0);
-    for (unsigned q : SelectHighestScoringQubits(
-             usage_scores, kLaneQubits, eviction_floor - kLaneQubits)) {
-      is_hot[q] = 1;
-    }
+    const auto is_hot = SelectHighestScoringQubits(
+        usage_scores, kLaneQubits, eviction_floor - kLaneQubits);
 
     auto& swap_pairs = gate_batch_workspace_.swap_pairs;
     BuildSwapsBelow(is_hot, eviction_floor, swap_pairs);
