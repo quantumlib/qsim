@@ -12,5 +12,75 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Ignore this in case the user previously did a "pip install -e ."
-qsimcirq.egg-info
+# Git metadata (wildcarded because this project uses a git submodule).
+**/.git
+
+# Coverage & test artifacts.
+**/*.benchmarks
+**/*.cover
+**/*.py,cover
+**/.coverage
+**/.coverage.*
+**/coverage.xml
+
+# Environments & IDEs.
+.dockerignore
+.env*
+.gemini*
+.github
+.idea
+.python-version
+.venv
+.vscode
+CirqDevEnv
+env
+venv
+
+# Build outputs & tool caches.
+**/.*_cache
+**/.cache
+**/.eggs
+**/.ipynb_checkpoints
+**/__pycache__
+**/cmake_install.cmake
+**/CMakeCache.txt
+**/CMakeFiles
+bazel-*
+build
+dist
+eigen
+sdist
+wheelhouse
+
+# Compilation artifacts.
+**/*.a
+**/*.dSYM
+**/*.dll
+**/*.dylib
+**/*.exe
+**/*.lib
+**/*.mod
+**/*.o
+**/*.obj
+**/*.out
+**/*.py[cod]
+**/*.so
+**/*.x
+
+# Local PyPI config files.
+.pypirc
+
+# Things that don't need to be in a Docker inage.
+dev_tools/ci
+docs
+
+# Miscellaneous other files.
+**/*~
+**/*.bak
+**/*.egg
+**/*.egg-info
+**/*.log
+**/*.swp
+**/*.tmp
+**/*.whl
+**/.DS_Store
