@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "../lib/circuit_qsim_parser.h"
-#include "../lib/cooperative_for.h"
 #include "../lib/cpu_thread_topology.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
@@ -18,7 +17,6 @@
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
 #include "../lib/run_qsim_gate_batch.h"
-#include "../lib/seqfor.h"
 #include "../lib/simmux.h"
 #include "../lib/util_cpu.h"
 
@@ -118,8 +116,7 @@ int main(int argc, char* argv[]) {
   using StateSpace = Simulator::StateSpace;
   using State = StateSpace::State;
   using Fuser = MultiQubitGateFuser<IO>;
-  using SeqSimulator = qsim::Simulator<CooperativeFor>;
-  using Runner = QSimGateBatchRunner<IO, Fuser, Factory, SeqSimulator>;
+  using Runner = QSimGateBatchRunner<IO, Fuser, Factory>;
 
   StateSpace state_space = Factory(opt.num_threads).CreateStateSpace();
   QubitMappedState<State> state(state_space.Create(circuit.num_qubits));

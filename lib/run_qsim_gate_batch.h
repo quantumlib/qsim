@@ -58,7 +58,6 @@
 #endif
 
 #include "gate.h"
-#include "cooperative_for.h"
 #include "cpu_thread_topology.h"
 #include "qubit_mapped_state.h"
 #include "matrix.h"
@@ -503,23 +502,60 @@ inline SmtTeamRole AssignSmtTeamRole(unsigned inner_threads,
           team_id < num_teams};
 }
 
+// The For of the per-block simulator. Each SMT team member runs its own
+// slice of every kernel loop on the team's shared state block;
+// ExecuteGatesOnBlock sets the member's lane and synchronizes the team
+// between gates. A team of one runs the whole loop.
+struct CooperativeFor {
+  explicit CooperativeFor(unsigned num_threads) { (void) num_threads; }
+
+  static void Configure(unsigned team_size, unsigned team_thread_id) {
+    team_size_ = team_size;
+    team_thread_id_ = team_thread_id;
+  }
+
+  template <typename Function, typename... Args>
+  static void Run(uint64_t size, Function&& func, Args&&... args) {
+    const auto begin = size * team_thread_id_ / team_size_;
+    const auto end = size * (team_thread_id_ + 1) / team_size_;
+    for (uint64_t i = begin; i < end; ++i) {
+      func(team_size_, team_thread_id_, i, args...);
+    }
+  }
+
+ private:
+  inline static thread_local unsigned team_size_ = 1;
+  inline static thread_local unsigned team_thread_id_ = 0;
+};
+
+// Simulator with its For replaced by NewFor, e.g. SimulatorNEON<ParallelFor>
+// becomes SimulatorNEON<CooperativeFor>. Extra template arguments such as
+// SimulatorBasic's float type are kept.
+template <typename Simulator, typename NewFor>
+struct ReplaceFor;
+
+template <template <typename...> class SimulatorT, typename For,
+          typename NewFor, typename... Rest>
+struct ReplaceFor<SimulatorT<For, Rest...>, NewFor> {
+  using type = SimulatorT<NewFor, Rest...>;
+};
+
 }  // namespace gate_batch_internal
 
-template <typename IO, typename Fuser, typename Factory,
-          typename SeqSimulator>
+template <typename IO, typename Fuser, typename Factory>
 class QSimGateBatchRunner final {
  public:
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using QubitMappedState = qsim::QubitMappedState<State>;
   using fp_type = typename StateSpace::fp_type;
+  // Simulates one state block on the calling thread, or on a team of SMT
+  // siblings that split each gate.
+  using SeqSimulator = typename gate_batch_internal::ReplaceFor<
+      typename Factory::Simulator, gate_batch_internal::CooperativeFor>::type;
   using SeqStateSpace = typename SeqSimulator::StateSpace;
   static_assert(std::is_same_v<fp_type, float>,
                 "QSimGateBatchRunner requires a float state space.");
-  static_assert(std::is_same_v<fp_type, typename SeqStateSpace::fp_type>,
-                "State spaces must use the same floating-point type.");
-  static_assert(StateSpace::kChunkQubits == SeqStateSpace::kChunkQubits,
-                "State spaces must use the same SIMD chunk layout.");
 
   struct Parameter : public Fuser::Parameter {
     Parameter() { this->max_fused_size = 3; }
@@ -916,7 +952,7 @@ class QSimGateBatchRunner final {
   void ExecuteGatesOnBlock(int64_t block, unsigned team_size = 1,
                            unsigned team_thread_id = 0,
                            SmtTeamBarrier* team_barrier = nullptr) const {
-    CooperativeFor::Configure(team_size, team_thread_id);
+    gate_batch_internal::CooperativeFor::Configure(team_size, team_thread_id);
     fp_type* block_data =
         state_data_ + uint64_t(block) * partition_.floats_per_block;
     auto block_view =
