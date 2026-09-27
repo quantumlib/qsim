@@ -192,7 +192,6 @@ struct GateBatchQubitSet {
 
   std::vector<char> contains_qubit;
   unsigned remap_slots_used = 0;
-  unsigned remap_slot_capacity = 0;
 };
 
 // The outcome of planning one gate batch, built without mutating gates,
@@ -290,8 +289,11 @@ class GateBatchPlanner {
   GateBatchQubitSet MakeEmptyQubitSet() const {
     GateBatchQubitSet qubit_set;
     qubit_set.contains_qubit.assign(num_logical_qubits_, 0);
-    qubit_set.remap_slot_capacity = block_qubits_ - eviction_floor_;
     return qubit_set;
+  }
+
+  unsigned RemapSlotCapacity() const {
+    return block_qubits_ - eviction_floor_;
   }
 
   // Positions below the eviction floor are fixed residents and join a set
@@ -402,7 +404,7 @@ class GateBatchPlanner {
           AdditionalRemapSlotsFor(q, qubit_set, layout);
     }
     if (qubit_set.remap_slots_used + additional_remap_slots >
-        qubit_set.remap_slot_capacity) {
+        RemapSlotCapacity()) {
       return false;
     }
     for (unsigned q : qubits) qubit_set.contains_qubit[q] = 1;
