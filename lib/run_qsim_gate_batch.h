@@ -366,7 +366,7 @@ class GateBatchPlanner {
     ClearBlockedQubits();
 
     for (std::size_t idx = 0; idx < gates.size(); ++idx) {
-      const PendingGate<FP>& gate = gates[idx];
+      const auto& gate = gates[idx];
       if (gate.applied) continue;
       if (!AnyQubitBlocked(gate) &&
           QubitSetContainsAll(gate.logical_qubits, qubit_set)) {
@@ -383,7 +383,7 @@ class GateBatchPlanner {
     const auto swap_cost =
         required_swaps == 0 ? 0.0
                             : kSwapPassCost + kSwapPairCost * required_swaps;
-    plan.score = double(plan.NumGates()) - swap_cost;
+    plan.score = plan.NumGates() - swap_cost;
     return plan;
   }
 
@@ -448,7 +448,7 @@ class GateBatchPlanner {
   // diagonal gate only bars later non-diagonal gates, since it can be
   // reordered past any other diagonal gate.
   bool AnyQubitBlocked(const PendingGate<FP>& gate) const {
-    const bool commuting = TreatAsCommuting(gate);
+    const auto commuting = TreatAsCommuting(gate);
     for (unsigned q : gate.logical_qubits) {
       if (is_qubit_blocked_[q]) return true;
       if (!commuting && is_qubit_blocked_for_diagonal_[q]) return true;
@@ -457,7 +457,7 @@ class GateBatchPlanner {
   }
 
   void BlockQubits(const PendingGate<FP>& gate) {
-    const bool commuting = TreatAsCommuting(gate);
+    const auto commuting = TreatAsCommuting(gate);
     for (unsigned q : gate.logical_qubits) {
       if (!commuting) is_qubit_blocked_[q] = 1;
       is_qubit_blocked_for_diagonal_[q] = 1;
@@ -509,10 +509,9 @@ struct SmtTeamRole {
 inline SmtTeamRole AssignSmtTeamRole(unsigned inner_threads,
                                      unsigned num_threads,
                                      unsigned thread_id) {
-  const unsigned team_size =
-      std::max(1u, std::min(inner_threads, num_threads));
-  const unsigned num_teams = num_threads / team_size;
-  const unsigned team_id = thread_id / team_size;
+  const auto team_size = std::max(1u, std::min(inner_threads, num_threads));
+  const auto num_teams = num_threads / team_size;
+  const auto team_id = thread_id / team_size;
   return {team_size, num_teams, team_id, thread_id % team_size,
           team_id < num_teams};
 }
@@ -673,11 +672,11 @@ class QSimGateBatchRunner final {
     if (param_.inner_threads > 1 && !PinSmtTeamThreads()) return false;
     LogAdaptiveBlockSize();
     LogThreadTeams();
-    const double prepare_start = GetTime();
+    const auto prepare_start = GetTime();
     if (!PreparePendingGates(circuit)) return false;
     LogPreparationTime(prepare_start);
 
-    const double simulation_start = GetTime();
+    const auto simulation_start = GetTime();
     PlaceHotQubitsInFixedZone();
 
     // Op depends on Circuit, so this buffer remains local rather than
@@ -706,7 +705,7 @@ class QSimGateBatchRunner final {
     const auto block_qubits = partition_.block_qubits;
 
     // pick_maximum_number_of_gates_acting_on_low_qubits
-    const double plan_start = GetTime();
+    const auto plan_start = GetTime();
     const auto plan = gate_batch_planner_.PlanNextGateBatch(
         pending_gates_, layout_);
     simulation_stats_.plan_seconds += GetTime() - plan_start;
@@ -723,7 +722,7 @@ class QSimGateBatchRunner final {
     ApplySwapsToState(gate_batch_workspace_.swap_pairs);
 
     // fused_low_gates = fuse(low_gates)
-    const double fuse_start = GetTime();
+    const auto fuse_start = GetTime();
     BuildBatchOperations(plan, batch_operations);
     if (!FuseBatchGates(batch_operations)) {
       return 0;
@@ -734,7 +733,7 @@ class QSimGateBatchRunner final {
     MarkGatesApplied(plan);
 
     // for i in 0..(2^num_high_qubits): apply all fused gates to block i
-    const double gates_start = GetTime();
+    const auto gates_start = GetTime();
     ExecuteGateBatchOnBlocks();
     simulation_stats_.gate_seconds += GetTime() - gates_start;
 
@@ -750,7 +749,7 @@ class QSimGateBatchRunner final {
     if (qubits.size() < 2) return;
     auto permutation = NormalToGateOrderPermutation(qubits);
     if (!permutation.empty()) {
-      MatrixShuffle(permutation, unsigned(qubits.size()), matrix);
+      MatrixShuffle(permutation, qubits.size(), matrix);
       std::sort(qubits.begin(), qubits.end());
     }
   }
@@ -759,14 +758,14 @@ class QSimGateBatchRunner final {
   // already-fused diagonal gates are recognized too.
   static bool IsDiagonalMatrix(const Matrix<fp_type>& matrix,
                                std::size_t arity) {
-    const std::size_t dim = std::size_t{1} << arity;
+    const auto dim = std::size_t{1} << arity;
     // Row-major complex entries, stored as (real, imaginary) float pairs.
     if (matrix.size() < 2 * dim * dim) return false;
 
     for (std::size_t row = 0; row < dim; ++row) {
       for (std::size_t col = 0; col < dim; ++col) {
         if (row == col) continue;
-        const std::size_t k = 2 * (row * dim + col);
+        const auto k = 2 * (row * dim + col);
         if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
       }
     }
@@ -862,9 +861,9 @@ class QSimGateBatchRunner final {
   void BuildSwapsBelow(const std::vector<char>& is_wanted, unsigned limit,
                        std::vector<QubitSwap>& swaps) {
     swaps.clear();
-    unsigned victim = limit;
+    auto victim = limit;
 
-    for (unsigned q = 0; q < unsigned(is_wanted.size()); ++q) {
+    for (unsigned q = 0; q < is_wanted.size(); ++q) {
       if (!is_wanted[q]) continue;
       const auto position = layout_.PhysicalPositionOf(q);
       if (position < limit) continue;
@@ -880,11 +879,11 @@ class QSimGateBatchRunner final {
 
   // Applies the transpositions to the state in one involution pass.
   void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
-    const double swap_start = GetTime();
+    const auto swap_start = GetTime();
     ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, kLaneQubits,
                       swap_pairs, param_.num_threads);
     simulation_stats_.swap_seconds += GetTime() - swap_start;
-    simulation_stats_.num_swaps += unsigned(swap_pairs.size());
+    simulation_stats_.num_swaps += swap_pairs.size();
   }
 
   // ======== Step 4: fusion ========
@@ -900,7 +899,7 @@ class QSimGateBatchRunner final {
 
     unsigned time = 0;
     for (std::size_t idx : plan.gate_indices) {
-      const PendingGate& gate = pending_gates_[idx];
+      const auto& gate = pending_gates_[idx];
 
       std::vector<unsigned> physical_qubits(gate.Arity());
       for (std::size_t i = 0; i < gate.Arity(); ++i) {
@@ -965,8 +964,7 @@ class QSimGateBatchRunner final {
                            unsigned team_thread_id = 0,
                            SmtTeamBarrier* team_barrier = nullptr) const {
     gate_batch_internal::CooperativeFor::Configure(team_size, team_thread_id);
-    fp_type* block_data =
-        state_data_ + uint64_t(block) * partition_.floats_per_block;
+    auto* block_data = state_data_ + block * partition_.floats_per_block;
     auto block_view =
         SeqStateSpace::Create(block_data, partition_.block_qubits);
 

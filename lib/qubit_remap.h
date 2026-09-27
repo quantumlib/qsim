@@ -97,7 +97,7 @@ inline void SwapGroupSpans(float* __restrict first_span,
                            float* __restrict second_span,
                            uint64_t num_floats) {
   for (uint64_t i = 0; i < num_floats; ++i) {
-    float temporary = first_span[i];
+    const auto temporary = first_span[i];
     first_span[i] = second_span[i];
     second_span[i] = temporary;
   }
@@ -121,17 +121,17 @@ inline void ApplyBitPairSwaps(float* state, unsigned num_qubits,
   // span_bits is the lowest swapped group-index bit.
   std::vector<ri::GroupBitSwap> bit_swaps;
   bit_swaps.reserve(qubit_swaps.size());
-  unsigned span_bits = num_qubits - lane_qubits;
+  auto span_bits = num_qubits - lane_qubits;
   for (const auto& [first, second] : qubit_swaps) {
-    const unsigned lower = std::min(first, second) - lane_qubits;
-    const unsigned upper = std::max(first, second) - lane_qubits;
+    const auto lower = std::min(first, second) - lane_qubits;
+    const auto upper = std::max(first, second) - lane_qubits;
     bit_swaps.push_back(
         {lower, upper, (uint64_t{1} << lower) | (uint64_t{1} << upper)});
     span_bits = std::min(span_bits, lower);
   }
 
-  const uint64_t floats_per_group = uint64_t{2} << lane_qubits;
-  const uint64_t floats_per_span = floats_per_group << span_bits;
+  const auto floats_per_group = uint64_t{2} << lane_qubits;
+  const auto floats_per_span = floats_per_group << span_bits;
   const int64_t num_spans =
       int64_t{1} << (num_qubits - lane_qubits - span_bits);
 
@@ -139,8 +139,8 @@ inline void ApplyBitPairSwaps(float* state, unsigned num_qubits,
   // atomic dispatch lock contention and preserving hardware prefetch streams.
 #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int64_t span = 0; span < num_spans; ++span) {
-    const uint64_t group = uint64_t(span) << span_bits;
-    const uint64_t partner = ri::PartnerGroup(group, bit_swaps);
+    const auto group = uint64_t(span) << span_bits;
+    const auto partner = ri::PartnerGroup(group, bit_swaps);
 
     // Each moved pair is visited from both sides; act on one of them
     // (fixed points have partner == group and fall through).

@@ -86,8 +86,8 @@ void PrintAmplitudes(unsigned num_qubits, const StateSpace& state_space,
   static constexpr char const* bits[8] = {
     "000", "001", "010", "011", "100", "101", "110", "111",
   };
-  uint64_t size = std::min(uint64_t{8}, uint64_t{1} << num_qubits);
-  unsigned s = 3 - std::min(unsigned{3}, num_qubits);
+  const auto size = std::min(uint64_t{8}, uint64_t{1} << num_qubits);
+  const auto s = 3 - std::min(unsigned{3}, num_qubits);
   for (uint64_t i = 0; i < size; ++i) {
     auto a = state.GetAmpl(state_space, i);
     qsim::IO::messagef("%s:%16.8g%16.8g%16.8g\n",
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
   using Fuser = MultiQubitGateFuser<IO>;
   using Runner = QSimGateBatchRunner<IO, Fuser, Factory>;
 
-  StateSpace state_space = Factory(opt.num_threads).CreateStateSpace();
+  auto state_space = Factory(opt.num_threads).CreateStateSpace();
   QubitMappedState<State> state(state_space.Create(circuit.num_qubits));
   if (state_space.IsNull(state.state)) {
     IO::errorf("not enough memory: is the number of qubits too large?\n");
