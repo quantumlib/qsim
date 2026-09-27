@@ -70,6 +70,18 @@ namespace qsim {
 
 namespace gate_batch_internal {
 
+// The only OpenMP-dependent code in this file. Without OpenMP the pragmas are
+// ignored, so a parallel region runs once on the calling thread.
+#ifdef _OPENMP
+inline constexpr bool kHasOpenMP = true;
+inline unsigned ParallelThreadCount() { return omp_get_num_threads(); }
+inline unsigned ParallelThreadId() { return omp_get_thread_num(); }
+#else
+inline constexpr bool kHasOpenMP = false;
+inline unsigned ParallelThreadCount() { return 1; }
+inline unsigned ParallelThreadId() { return 0; }
+#endif
+
 // ======== Plain records ========
 
 // Internal scheduling representation of one raw circuit gate.
@@ -1017,7 +1029,6 @@ class QSimGateBatchRunner final {
     }
   }
 
-#ifdef _OPENMP
   // Each team cooperates on one state block. Team members must synchronize
   // between gates because each gate consumes the preceding gate's output.
   static bool ExecuteSmtBlockTeams(
@@ -1036,9 +1047,10 @@ class QSimGateBatchRunner final {
 
 #pragma omp parallel num_threads(num_threads)
     {
-      const auto thread_id = unsigned(omp_get_thread_num());
+      const auto thread_id = gate_batch_internal::ParallelThreadId();
       const auto role = gate_batch_internal::AssignSmtTeamRole(
-          inner_threads, unsigned(omp_get_num_threads()), thread_id);
+          inner_threads, gate_batch_internal::ParallelThreadCount(),
+          thread_id);
 
       if (role.active &&
           !PinCurrentThreadToCpu(team_thread_cpus[thread_id])) {
@@ -1065,7 +1077,6 @@ class QSimGateBatchRunner final {
     }
     return true;
   }
-#endif
 
   // The proposal's inner loops: for every block i, apply every fused gate to
   // the block while it is cache-resident. Blocks or SMT block teams run in
@@ -1081,15 +1092,9 @@ class QSimGateBatchRunner final {
                                num_threads, seq_sim);
       return true;
     }
-#ifdef _OPENMP
     return ExecuteSmtBlockTeams(
         executable_gates, state_data, partition, num_threads,
         inner_threads, team_thread_cpus, seq_sim);
-#else
-    (void) team_thread_cpus;
-    IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
-    return false;
-#endif
   }
 
   // ======== Phase 6: cleanup ========
@@ -1115,6 +1120,10 @@ class QSimGateBatchRunner final {
 
   bool ValidateThreadTeams() const {
     if (param_.inner_threads <= 1) return true;
+    if (!gate_batch_internal::kHasOpenMP) {
+      IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
+      return false;
+    }
     if (param_.num_threads == 0 ||
         param_.num_threads % param_.inner_threads != 0) {
       IO::errorf("qsim_gate_batch: num_threads must be divisible by "
