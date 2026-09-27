@@ -166,10 +166,10 @@ struct GateBatchWorkspace {
   std::vector<ExecutableGate<FP>> executable_gates;
 };
 
-// Counters and phase timings accumulated across gate batches. Gate batches
+// Counters and step timings accumulated across gate batches. Gate batches
 // and identity-restoration passes are counted separately because only gate
-// batches make circuit progress; restore passes are pure overhead. Timers
-// are filled only at verbosity > 1.
+// batches make circuit progress; restore passes are pure overhead. Timings
+// are always collected but reported only at verbosity > 1.
 struct SimulationStats {
   unsigned num_gate_batches = 0;
   unsigned num_restore_passes = 0;
@@ -630,11 +630,11 @@ class QSimGateBatchRunner final {
     if (!ValidateThreadTeams()) return false;
     LogAdaptiveBlockSize();
     LogThreadTeams();
-    const auto prepare_start = StartPhaseTimer();
+    const double prepare_start = GetTime();
     if (!PreparePendingGates(circuit)) return false;
     LogPreparationTime(prepare_start);
 
-    const auto simulation_start = param_.verbosity > 0 ? GetTime() : 0.0;
+    const double simulation_start = GetTime();
     PlaceHotQubitsInFixedZone();
 
     // Op depends on Circuit, so this buffer remains local rather than
@@ -663,10 +663,10 @@ class QSimGateBatchRunner final {
     const auto block_qubits = partition_.block_qubits;
 
     // pick_maximum_number_of_gates_acting_on_low_qubits
-    const auto plan_start = StartPhaseTimer();
+    const double plan_start = GetTime();
     const auto plan = gate_batch_planner_.PlanNextGateBatch(
         pending_gates_, layout_);
-    AccumulatePhaseSeconds(plan_start, simulation_stats_.plan_seconds);
+    simulation_stats_.plan_seconds += GetTime() - plan_start;
     if (!plan.HasGates()) {
       IO::errorf("qsim_gate_batch: a gate does not fit the qubit set "
                  "of %u block qubits; use a larger block_qubits.\n",
@@ -683,31 +683,31 @@ class QSimGateBatchRunner final {
     ApplySwapsToState(gate_batch_workspace_.swap_pairs);
 
     // fused_low_gates = fuse(low_gates)
-    const auto fuse_start = StartPhaseTimer();
+    const double fuse_start = GetTime();
     BuildBatchOperations(plan, batch_operations);
     if (!FuseBatchGates(batch_operations)) {
       return 0;
     }
-    AccumulatePhaseSeconds(fuse_start, simulation_stats_.fuse_seconds);
+    simulation_stats_.fuse_seconds += GetTime() - fuse_start;
     simulation_stats_.num_executable_gates +=
         unsigned(gate_batch_workspace_.executable_gates.size());
     MarkGatesApplied(plan);
 
     // for i in 0..(2^num_high_qubits): apply all fused gates to block i
-    const auto gates_start = StartPhaseTimer();
+    const double gates_start = GetTime();
     if (!ExecuteGateBatchOnBlocks(
             gate_batch_workspace_.executable_gates, state_data_, partition_,
             param_.num_threads, param_.inner_threads,
             param_.team_thread_cpus, seq_sim_)) {
       return 0;
     }
-    AccumulatePhaseSeconds(gates_start, simulation_stats_.gate_seconds);
+    simulation_stats_.gate_seconds += GetTime() - gates_start;
 
     ++simulation_stats_.num_gate_batches;
     return plan.NumGates();
   }
 
-  // ======== Phase 1: pending-gate preparation ========
+  // ======== Step 1: pending-gate preparation ========
 
   // Sorts a gate's qubits ascending, permuting `matrix` to match.
   static void NormalizeGateQubitOrder(std::vector<unsigned>& qubits,
@@ -765,7 +765,7 @@ class QSimGateBatchRunner final {
     return true;
   }
 
-  // ======== Phase 2: hot-qubit placement ========
+  // ======== Step 2: hot-qubit placement ========
 
   // Scores qubits by gate participation, weighted by gate arity.
   std::vector<uint64_t> ComputeQubitUsageScores() const {
@@ -820,7 +820,7 @@ class QSimGateBatchRunner final {
     ApplySwapsToState(swap_pairs);
   }
 
-  // ======== Phase 3: qubit remapping ========
+  // ======== Step 3: qubit remapping ========
 
   // Moves every wanted logical qubit into a physical position below
   // `limit`, recording the transpositions in `swaps` and updating the
@@ -848,14 +848,14 @@ class QSimGateBatchRunner final {
 
   // Applies the transpositions to the state in one involution pass.
   void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
-    const auto swap_start = StartPhaseTimer();
+    const double swap_start = GetTime();
     ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, chunk_qubits_,
                       swap_pairs);
-    AccumulatePhaseSeconds(swap_start, simulation_stats_.swap_seconds);
+    simulation_stats_.swap_seconds += GetTime() - swap_start;
     simulation_stats_.num_swaps += unsigned(swap_pairs.size());
   }
 
-  // ======== Phase 4: fusion ========
+  // ======== Step 4: fusion ========
 
   // Rebuilds the plan's pending gates as ordinary gates on PHYSICAL
   // qubits, with fresh sequential times, so the standard fuser can
@@ -956,7 +956,7 @@ class QSimGateBatchRunner final {
     }
   }
 
-  // ======== Phase 5: block execution ========
+  // ======== Step 5: block execution ========
 
   template <bool kCooperative>
   static void ExecuteGatesOnBlock(
@@ -1064,7 +1064,7 @@ class QSimGateBatchRunner final {
         inner_threads, team_thread_cpus, seq_sim);
   }
 
-  // ======== Phase 6: cleanup ========
+  // ======== Step 6: cleanup ========
 
   void RestoreIdentityQubitOrder() {
     std::vector<QubitSwap> swap_pairs;
@@ -1075,15 +1075,7 @@ class QSimGateBatchRunner final {
     }
   }
 
-  // ======== Phase timing ========
-
-  double StartPhaseTimer() const {
-    return param_.verbosity > 1 ? GetTime() : 0.0;
-  }
-
-  void AccumulatePhaseSeconds(double start, double& seconds) const {
-    if (param_.verbosity > 1) seconds += GetTime() - start;
-  }
+  // ======== Validation ========
 
   bool ValidateThreadTeams() const {
     if (param_.inner_threads <= 1) return true;
