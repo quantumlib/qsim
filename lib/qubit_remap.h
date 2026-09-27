@@ -77,6 +77,8 @@ inline uint64_t PartnerChunk(uint64_t chunk,
 
 // Swap two contiguous chunk spans. Compilers vectorize this to SIMD-width
 // loads and stores; the loop is generally memory-bandwidth-bound.
+// Keep the __restrict loop: std::swap_ranges measured consistently 1-3%
+// slower swap passes.
 inline void SwapChunkSpans(float* __restrict first_span,
                            float* __restrict second_span,
                            uint64_t num_floats) {
