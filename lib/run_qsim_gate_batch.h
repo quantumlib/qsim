@@ -1056,13 +1056,16 @@ class QSimGateBatchRunner final {
       IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
       return false;
     }
+    if (param_.num_threads == 0) {
+      IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
+      return false;
+    }
     if (param_.inner_threads <= 1) return true;
     if (!gate_batch_internal::kHasOpenMP) {
       IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
       return false;
     }
-    if (param_.num_threads == 0 ||
-        param_.num_threads % param_.inner_threads != 0) {
+    if (param_.num_threads % param_.inner_threads != 0) {
       IO::errorf("qsim_gate_batch: num_threads must be divisible by "
                  "inner_threads.\n");
       return false;

@@ -48,8 +48,9 @@ inline void free(void* ptr) {
 // default placement. `ptr` must be page-aligned.
 inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
   constexpr int kMpolInterleave = 3;
-  const unsigned long all_nodes = ~0UL;  // Nodes 0-63; maxnode is bits + 1.
-  syscall(SYS_mbind, ptr, size, kMpolInterleave, &all_nodes, 65, 0);
+  const unsigned long all_nodes = ~0UL;
+  syscall(SYS_mbind, ptr, size, kMpolInterleave, &all_nodes,
+          sizeof(all_nodes) * 8, 0);
 }
 #endif
 
