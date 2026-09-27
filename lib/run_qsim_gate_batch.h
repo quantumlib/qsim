@@ -19,9 +19,9 @@
 //   Circuit: the full program, as an ordered list of raw gates.
 //   State block: a cache-sized slice of 2^block_qubits amplitudes; one
 //                gate batch runs against every state block.
-//   SIMD chunk: the vectorized unit inside a state block - 2^chunk_qubits
-//               complex amplitudes, architecture-dependent width (NEON/SSE:
-//               4, AVX2: 8, AVX512: 16). Remapping moves whole chunks.
+//   Lane group: the vectorized unit inside a state block - 2^lane_qubits
+//               complex amplitudes, one per SIMD lane (NEON/SSE: 4, AVX2: 8,
+//               AVX512: 16). Remapping moves whole lane groups.
 //
 // A gate batch ties this together: the planner selects a compatible set
 // of circuit gates, remaps their logical qubits into physical block
@@ -39,7 +39,7 @@
 //       seeded from upcoming gates - and keep the best.
 //     Remap the batch's qubits into physical positions [0, block_qubits)
 //       with one pass of disjoint transpositions (BuildSwapsBelow,
-//       ApplySwapsToState). The low chunk_qubits positions are pinned and
+//       ApplySwapsToState). The low lane_qubits positions are pinned and
 //       never swapped; every other qubit draws from a bounded remap budget
 //       (GateBatchPlanner::RemapSlotCapacity).
 //     Fuse the batch's gates on physical qubits with the standard fuser
@@ -228,12 +228,12 @@ template <typename FP>
 class GateBatchPlanner {
  public:
   GateBatchPlanner(unsigned num_state_qubits, unsigned block_qubits,
-                   unsigned chunk_qubits, unsigned min_eviction_floor,
+                   unsigned lane_qubits, unsigned min_eviction_floor,
                    unsigned max_gate_seeds, bool commute_diagonal_gates)
       : num_logical_qubits_(num_state_qubits),
         block_qubits_(block_qubits),
         eviction_floor_(ComputeEvictionFloor(num_state_qubits, block_qubits,
-                                             chunk_qubits,
+                                             lane_qubits,
                                              min_eviction_floor)),
         max_gate_seeds_(max_gate_seeds),
         commute_diagonal_gates_(commute_diagonal_gates),
@@ -307,12 +307,12 @@ class GateBatchPlanner {
   // remap slots so an ordinary two-qubit gate can make progress.
   static unsigned ComputeEvictionFloor(unsigned num_logical_qubits,
                                        unsigned block_qubits,
-                                       unsigned chunk_qubits,
+                                       unsigned lane_qubits,
                                        unsigned min_eviction_floor) {
     if (block_qubits == num_logical_qubits) return block_qubits;
 
     const auto full =
-        block_qubits > chunk_qubits ? block_qubits - chunk_qubits : 0u;
+        block_qubits > lane_qubits ? block_qubits - lane_qubits : 0u;
     const auto depth_capped = block_qubits > min_eviction_floor
                                   ? block_qubits - min_eviction_floor
                                   : 0u;
@@ -579,12 +579,13 @@ class QSimGateBatchRunner final {
     unsigned inner_threads = 1;
 
     // Lowest eviction position allowed in a multi-block gate batch. Swap-pass
-    // spans are 2^(floor - chunk_qubits) chunks, so floor 9 keeps every span
-    // at least 4 KiB for float states and at streaming bandwidth. Lowering it
-    // widens the remap budget at the cost of shorter, more scattered spans.
+    // spans are 2^(floor - lane_qubits) lane groups, so floor 9 keeps every
+    // span at least 4 KiB for float states and at streaming bandwidth.
+    // Lowering it widens the remap budget at the cost of shorter, more
+    // scattered spans.
     unsigned min_eviction_floor = 5;
 
-    // Seed the fixed zone [chunk_qubits, eviction_floor) with the most-used
+    // Seed the fixed zone [lane_qubits, eviction_floor) with the most-used
     // logical qubits before the first gate batch, at the cost of one swap
     // pass over the state.
     bool place_hot_qubits = true;
@@ -647,18 +648,18 @@ class QSimGateBatchRunner final {
                       State& state, QubitLayout& layout)
       : param_(param),
         partition_(num_qubits, param.block_qubits, param.num_threads,
-                   std::max(StateSpace::kChunkQubits,
+                   std::max(StateSpace::kLaneQubits,
                             param.max_fused_size)),
         state_data_(state.get()),
-        chunk_qubits_(StateSpace::kChunkQubits),
+        lane_qubits_(StateSpace::kLaneQubits),
         seq_sim_(1),
         layout_(layout),
         gate_batch_planner_(partition_.num_state_qubits,
-                            partition_.block_qubits, chunk_qubits_,
+                            partition_.block_qubits, lane_qubits_,
                             param.min_eviction_floor, param.max_gate_seeds,
                             param.commute_diagonal_gates) {
     assert(partition_.block_qubits >=
-           std::min(chunk_qubits_, partition_.num_state_qubits));
+           std::min(lane_qubits_, partition_.num_state_qubits));
     assert(layout_.NumQubits() == partition_.num_state_qubits);
   }
 
@@ -832,19 +833,19 @@ class QSimGateBatchRunner final {
   }
 
   // Places the most frequently used logical qubits in the fixed zone
-  // [chunk_qubits, eviction_floor), just above the in-chunk lane positions,
+  // [lane_qubits, eviction_floor), just above the lane positions,
   // which remain untouched. Canonical runs restore qubit order at the end.
   void PlaceHotQubitsInFixedZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
     if (!param_.place_hot_qubits || partition_.num_blocks == 1 ||
-        eviction_floor <= chunk_qubits_) {
+        eviction_floor <= lane_qubits_) {
       return;
     }
 
     const auto usage_scores = ComputeQubitUsageScores();
     std::vector<char> is_hot(layout_.NumQubits(), 0);
     for (unsigned q : SelectHighestScoringQubits(
-             usage_scores, chunk_qubits_, eviction_floor - chunk_qubits_)) {
+             usage_scores, lane_qubits_, eviction_floor - lane_qubits_)) {
       is_hot[q] = 1;
     }
 
@@ -872,7 +873,7 @@ class QSimGateBatchRunner final {
       if (position < limit) continue;
 
       do {
-        assert(victim > chunk_qubits_);
+        assert(victim > lane_qubits_);
         --victim;
       } while (is_wanted[layout_.LogicalQubitAt(victim)]);
       swaps.emplace_back(victim, position);
@@ -883,7 +884,7 @@ class QSimGateBatchRunner final {
   // Applies the transpositions to the state in one involution pass.
   void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
     const double swap_start = GetTime();
-    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, chunk_qubits_,
+    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, lane_qubits_,
                       swap_pairs, param_.num_threads);
     simulation_stats_.swap_seconds += GetTime() - swap_start;
     simulation_stats_.num_swaps += unsigned(swap_pairs.size());
@@ -1114,9 +1115,9 @@ class QSimGateBatchRunner final {
                              std::size_t num_initial_swaps) const {
     if (param_.verbosity <= 1) return;
 
-    IO::messagef("fixed hot zone [%u,%u):", chunk_qubits_,
+    IO::messagef("fixed hot zone [%u,%u):", lane_qubits_,
                  eviction_floor);
-    for (unsigned p = chunk_qubits_; p < eviction_floor; ++p) {
+    for (unsigned p = lane_qubits_; p < eviction_floor; ++p) {
       const auto q = layout_.LogicalQubitAt(p);
       IO::messagef(" q%u(%llu)", q,
                    static_cast<unsigned long long>(usage_scores[q]));
@@ -1153,7 +1154,7 @@ class QSimGateBatchRunner final {
   const Parameter& param_;
   const BlockPartition partition_;
   fp_type* const state_data_;
-  const unsigned chunk_qubits_;  // Low amplitude bits inside a state chunk.
+  const unsigned lane_qubits_;  // Low amplitude bits that select a SIMD lane.
   SeqSimulator seq_sim_;
   std::vector<PendingGate> pending_gates_;
   QubitLayout& layout_;
