@@ -890,58 +890,44 @@ class QSimGateBatchRunner final {
   // is the no-fusion control mode.
   template <typename Op>
   bool FuseBatchGates(const std::vector<Op>& batch_operations) {
-    auto& executable_gates =
-        gate_batch_workspace_.executable_gates;
-    executable_gates.clear();
-
+    gate_batch_workspace_.executable_gates.clear();
     if (param_.max_fused_size == 0) {
-      executable_gates.reserve(batch_operations.size());
-      for (const auto& operation : batch_operations) {
-        if (!AppendExecutableGate(operation)) return false;
-      }
-      return true;
+      return AppendExecutableGates(batch_operations);
     }
 
-    auto fused_ops =
+    const auto fused_ops =
         Fuser::FuseGates(param_, partition_.block_qubits, batch_operations);
-    if (fused_ops.size() == 0 && batch_operations.size() > 0) {
+    if (fused_ops.empty() && !batch_operations.empty()) {
       IO::errorf("qsim_gate_batch: fuser failed on a gate batch.\n");
       return false;
     }
-
-    executable_gates.reserve(fused_ops.size());
-    for (const auto& operation : fused_ops) {
-      if (!AppendExecutableGate(operation)) return false;
-    }
-    return true;
+    return AppendExecutableGates(fused_ops);
   }
 
-  // Copies one (possibly fused) operation into an ExecutableGate,
-  // normalizing qubit order. The copy must happen while the fuser's input
-  // container is still alive (fused ops may point into it).
-  template <typename Op>
-  bool AppendExecutableGate(const Op& operation) {
-    const std::vector<unsigned>* physical_qubits = nullptr;
-    const Matrix<fp_type>* matrix = nullptr;
+  // Copies raw or fused gates into ExecutableGate records. The copy must
+  // happen while the fuser's input container is still alive (fused ops may
+  // point into it). Qubits are already ascending: BuildBatchOperations
+  // normalizes raw gates, and the fuser sorts fused qubits.
+  template <typename Operations>
+  bool AppendExecutableGates(const Operations& operations) {
+    auto& executable_gates = gate_batch_workspace_.executable_gates;
+    executable_gates.reserve(operations.size());
 
-    if (const auto* fused_gate =
-            OpGetAlternative<FusedGate<fp_type>>(operation)) {
-      physical_qubits = &fused_gate->qubits;
-      matrix = &fused_gate->matrix;
-    } else if (const auto* raw_gate =
-                   OpGetAlternative<Gate<fp_type>>(operation)) {
-      physical_qubits = &raw_gate->qubits;
-      matrix = &raw_gate->matrix;
-    } else {
-      IO::errorf("qsim_gate_batch: unsupported operation in gate batch.\n");
-      return false;
+    auto append = [&executable_gates](const auto& gate) {
+      assert(std::is_sorted(gate.qubits.begin(), gate.qubits.end()));
+      executable_gates.push_back({gate.qubits, gate.matrix});
+    };
+
+    for (const auto& operation : operations) {
+      if (const auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation)) {
+        append(*fused);
+      } else if (const auto* raw = OpGetAlternative<Gate<fp_type>>(operation)) {
+        append(*raw);
+      } else {
+        IO::errorf("qsim_gate_batch: unsupported operation in gate batch.\n");
+        return false;
+      }
     }
-
-    ExecutableGate executable_gate{*physical_qubits, *matrix};
-    NormalizeGateQubitOrder(executable_gate.physical_qubits,
-                            executable_gate.matrix);
-    gate_batch_workspace_.executable_gates.push_back(
-        std::move(executable_gate));
     return true;
   }
 
