@@ -4,10 +4,6 @@
 
 #include <unistd.h>
 
-#ifdef _OPENMP
-# include <omp.h>
-#endif
-
 #include <limits>
 #include <string>
 #include <utility>
@@ -36,7 +32,7 @@ struct Options {
   unsigned block_qubits = 19;
   unsigned min_eviction_floor = 5;
   unsigned max_gate_seeds = 64;
-  unsigned commute_diagonal_gates = 0;
+  bool commute_diagonal_gates = false;
   unsigned verbosity = 0;
 };
 
@@ -58,7 +54,7 @@ Options GetOptions(int argc, char* argv[]) {
       case 'f': opt.max_fused_size = std::atoi(optarg); break;
       case 'l': opt.block_qubits = std::atoi(optarg); break;
       case 'e': opt.min_eviction_floor = std::atoi(optarg); break;
-      case 'x': opt.commute_diagonal_gates = std::atoi(optarg); break;
+      case 'x': opt.commute_diagonal_gates = std::atoi(optarg) != 0; break;
       case 'g': opt.max_gate_seeds = std::atoi(optarg); break;
       case 'i': opt.inner_threads = std::atoi(optarg); break;
       case 'v': opt.verbosity = std::atoi(optarg); break;
@@ -93,10 +89,6 @@ int main(int argc, char* argv[]) {
   auto opt = GetOptions(argc, argv);
   std::vector<unsigned> team_thread_cpus;
   if (opt.inner_threads > 1) {
-#ifndef _OPENMP
-    IO::errorf("cannot configure SMT teams: OpenMP is not enabled.\n");
-    return 1;
-#else
     std::string topology_error;
     const auto topology = CpuThreadTopology::Discover();
     if (!topology.BuildTeamCpuOrder(opt.num_threads, opt.inner_threads,
@@ -105,12 +97,7 @@ int main(int argc, char* argv[]) {
                  topology_error.c_str());
       return 1;
     }
-#endif
   }
-
-#ifdef _OPENMP
-  omp_set_num_threads(opt.num_threads);
-#endif
 
   Circuit<Operation<float>> circuit;
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
@@ -148,7 +135,7 @@ int main(int argc, char* argv[]) {
   param.min_eviction_floor = opt.min_eviction_floor;
   param.place_hot_qubits = true;
   param.max_gate_seeds = opt.max_gate_seeds;
-  param.commute_diagonal_gates = opt.commute_diagonal_gates != 0;
+  param.commute_diagonal_gates = opt.commute_diagonal_gates;
   param.num_threads = opt.num_threads;
   param.inner_threads = opt.inner_threads;
   param.team_thread_cpus = std::move(team_thread_cpus);
