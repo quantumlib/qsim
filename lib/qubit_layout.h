@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef QUBIT_MAPPED_STATE_H_
-#define QUBIT_MAPPED_STATE_H_
+#ifndef QUBIT_LAYOUT_H_
+#define QUBIT_LAYOUT_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -119,4 +119,4 @@ struct QubitMappedState {
 
 }  // namespace qsim
 
-#endif  // QUBIT_MAPPED_STATE_H_
+#endif  // QUBIT_LAYOUT_H_
