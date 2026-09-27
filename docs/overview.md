@@ -1,7 +1,7 @@
-# qsim and qsimh
+# qsim overview
 
-qsim and qsimh are a collection of C++ libraries for quantum circuit
-simulation. These libraries provide powerful, low-cost tools for
+qsim is a collection of C++ libraries for quantum circuit simulation. These
+libraries provide powerful, low-cost tools for
 researchers to test quantum algorithms before running on quantum hardware.
 
 qsim makes use of AVX/FMA vector operations, OpenMP multithreading, and
@@ -19,15 +19,11 @@ or try the runnable
 
 ## Design
 
-The git repository for qsim includes three libraries for simulation:
+The git repository for qsim includes two libraries for simulation:
 
 -   **qsim** is a Schrödinger state-vector simulator designed to run on a
     single machine. It produces the full state vector as output which,
     for instance, allows users to sample repeatedly from a single execution.
--   **qsimh** is a hybrid Schrödinger-Feynman simulator built for parallel
-    execution on a cluster of machines. It produces amplitudes for
-    user-specified output bitstrings. Compared to qsim, by limiting what it
-    returns, qsimh can simulate more qubits.
 -   **MPS** is a truncated Matrix Product State simulator. Instead of storing
     the full state vector, it represents the quantum state as a chain of
     small tensors — one per qubit — connected by a configurable "bond
@@ -43,14 +39,12 @@ interface to perform the following operations:
 -   Sample results from a circuit. Multiple samples can be generated with
     minimal additional cost for circuits with no intermediate measurements
     (qsim only).
--   Calculate amplitudes for user-specified result bitstrings. With qsimh,
-    this is trivially parallelizable across several machines.
+-   Calculate amplitudes for user-specified result bitstrings (qsim only).
 -   Simulate circuits with low entanglement at reduced memory cost (MPS only,
     C++ only).
 
-Circuits of up to 30 qubits can be simulated in qsim with ~16GB of RAM;
-each additional qubit doubles the RAM requirement. In contrast, careful
-use of qsimh can support 50 qubits or more.
+Circuits of up to 30 qubits can be simulated in qsim with ~16GB of RAM; each
+additional qubit doubles the RAM requirement.
 
 
 [[1]](https://arxiv.org/abs/1601.07195) M. Smelyanskiy, N. P. Sawaya,

@@ -54,8 +54,8 @@ circuits defined in Cirq.
 
 ### Classes
 
-The interface includes QSimSimulator and QSimhSimulator which communicate
-through a Pybind11 interface with qsim. The simulator accepts `cirq.Circuit`
+The interface includes `QSimSimulator`, which communicates through a Pybind11
+interface with qsim. The simulator accepts `cirq.Circuit`
 objects, which it wraps as `QSimCircuit` to enforce architectural constraints
 (such as decomposing to qsim-supported gate sets).
 
@@ -67,8 +67,7 @@ We begin by defining a Cirq circuit which we want to simulate.
 my_circuit = cirq.Circuit()
 ```
 
-This circuit can then be simulated using either `QSimSimulator` or
-`QSimhSimulator`, depending on the desired output.
+This circuit can then be simulated using `QSimSimulator`.
 
 #### QSimSimulator
 
@@ -128,28 +127,6 @@ qsim_options = qsimcirq.QSimOptions(cpu_threads=8, verbosity=0, denormals_are_ze
 my_sim = qsimcirq.QSimSimulator(qsim_options)
 myres = my_sim.simulate(program=my_circuit)
 ```
-
-#### QSimhSimulator
-
-`QSimhSimulator` uses a hybrid Schrödinger-Feynman simulator. This limits it to
-returning amplitudes for specific output bitstrings, but raises its upper
-bound on number of qubits simulated (50+ qubits, depending on circuit depth).
-
-To acquire amplitudes for all output bitstrings of length 2:
-```
-qsimh_options = {
-    'k': [0],
-    'w': 0,
-    'p': 0,
-    'r': 2
-}
-my_sim = qsimcirq.QSimhSimulator(qsimh_options)
-myres = my_sim.compute_amplitudes(program=my_circuit,
-                                  bitstrings=[0b00, 0b01, 0b10, 0b11])
-```
-
-As with `QSimSimulator`, the options follow the flag format for `qsimh_base`
-outlined in the [usage docs](./usage.md).
 
 ## Additional features
 
