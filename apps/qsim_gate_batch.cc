@@ -41,7 +41,7 @@ struct Options {
   unsigned num_threads = 1;
   unsigned inner_threads = 1;
   unsigned max_fused_size = 3;
-  unsigned block_qubits = 19;
+  unsigned tile_qubits = 19;
   unsigned min_eviction_floor = 5;
   unsigned max_gate_seeds = 64;
   bool commute_diagonal_gates = false;
@@ -51,7 +51,7 @@ struct Options {
 Options GetOptions(int argc, char* argv[]) {
   constexpr char usage[] = "usage:\n  ./qsim_gate_batch -c circuit "
                            "-d maxtime -s seed -t threads "
-                           "-f max_fused_size -l block_qubits "
+                           "-f max_fused_size -l tile_qubits "
                            "-e min_eviction_floor -x commute_diagonal_gates "
                            "-g max_gate_seeds "
                            "-i inner_threads -v verbosity\n";
@@ -64,7 +64,7 @@ Options GetOptions(int argc, char* argv[]) {
       case 's': opt.seed = std::atoi(optarg); break;
       case 't': opt.num_threads = std::atoi(optarg); break;
       case 'f': opt.max_fused_size = std::atoi(optarg); break;
-      case 'l': opt.block_qubits = std::atoi(optarg); break;
+      case 'l': opt.tile_qubits = std::atoi(optarg); break;
       case 'e': opt.min_eviction_floor = std::atoi(optarg); break;
       case 'x': opt.commute_diagonal_gates = std::atoi(optarg) != 0; break;
       case 'g': opt.max_gate_seeds = std::atoi(optarg); break;
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
 
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
-  param.block_qubits = opt.block_qubits;
+  param.tile_qubits = opt.tile_qubits;
   param.min_eviction_floor = opt.min_eviction_floor;
   param.place_hot_qubits = true;
   param.max_gate_seeds = opt.max_gate_seeds;

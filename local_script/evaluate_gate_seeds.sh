@@ -16,7 +16,7 @@ if [ ! -x "$BIN" ]; then
   exit 1
 fi
 
-echo "circuit=$CIRCUIT threads=$THREADS block_qubits=19 fused=3 floor=5 commute=1"
+echo "circuit=$CIRCUIT threads=$THREADS tile_qubits=19 fused=3 floor=5 commute=1"
 printf '%-16s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n' lookahead_seeds total_s batches executable swaps plan_s swap_s gate_s
 
 for seeds in 0 1 8 64; do

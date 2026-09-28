@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Qubit remapping for cache-blocked simulation.
+// Qubit remapping for cache-tiled simulation.
 //
 // In-place, single-pass application of a set of DISJOINT qubit-position
 // transpositions (an involution) to a state stored in a SIMD lane-group

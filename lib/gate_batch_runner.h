@@ -18,9 +18,8 @@
 //
 // Data hierarchy:
 //   Circuit: the full program, as an ordered list of raw gates.
-//   State block: a fast-memory-sized slice of 2^block_qubits amplitudes (a
-//                CPU cache block); one gate batch runs against every state
-//                block.
+//   Tile: a fast-memory-sized slice of 2^tile_qubits amplitudes (held in a
+//         CPU cache); one gate batch runs against every tile.
 //   Lane group: the vectorized unit of the state layout - 2^lane_qubits
 //               complex amplitudes, one per SIMD lane (NEON/SSE: 4, AVX2: 8,
 //               AVX512: 16).
@@ -35,14 +34,14 @@
 //       score a bounded set of candidate qubit sets - the greedy
 //       first-fit scan, the qubits already resident, and a few sets
 //       seeded from upcoming gates - and keep the best.
-//     Remap the batch's qubits into physical positions [0, block_qubits)
+//     Remap the batch's qubits into physical positions [0, tile_qubits)
 //       with one pass of disjoint transpositions (BuildSwapsBelow,
 //       Backend::ApplySwaps). The backend's pinned lane positions are never
 //       swapped; every other qubit draws from a bounded remap budget
 //       (GateBatchPlanner::RemapSlotCapacity).
 //     Fuse the batch's gates on physical qubits with the standard fuser
 //       (FuseBatchGates).
-//     Execute every fused gate on every state block (Backend::ExecuteBatch).
+//     Execute every fused gate on every tile (Backend::ExecuteBatch).
 //
 //   Restore identity qubit order with a final sequence of disjoint-
 //   transposition passes (RestoreIdentityQubitOrder).
@@ -55,9 +54,9 @@
 // provide:
 //   using State, StateSpace, fp_type;
 //   struct Parameter;  // backend-specific options, part of the runner's
-//   static constexpr unsigned kDefaultBlockQubits, kDefaultEvictionFloor;
+//   static constexpr unsigned kDefaultTileQubits, kDefaultEvictionFloor;
 //   Backend(const RunnerParameter&, unsigned num_qubits, State&);
-//   unsigned BlockQubits() const;  // effective block size
+//   unsigned TileQubits() const;   // effective tile size
 //   unsigned LaneQubits() const;   // low positions the planner never remaps
 //   bool Prepare();                // validate options, set up threads
 //   void ApplySwaps(const std::vector<QubitSwap>&);
@@ -104,7 +103,7 @@ struct PendingGate {
   bool applied = false;
 };
 
-// A fused gate ready to execute inside a state block.
+// A fused gate ready to execute inside a tile.
 template <typename FP>
 struct ExecutableGate {
   std::vector<unsigned> physical_qubits;  // ascending
@@ -175,12 +174,12 @@ struct GateBatchPlan {
 template <typename FP>
 class GateBatchPlanner {
  public:
-  GateBatchPlanner(unsigned num_state_qubits, unsigned block_qubits,
+  GateBatchPlanner(unsigned num_state_qubits, unsigned tile_qubits,
                    unsigned lane_qubits, unsigned min_eviction_floor,
                    unsigned max_gate_seeds, bool commute_diagonal_gates)
       : num_logical_qubits_(num_state_qubits),
-        block_qubits_(block_qubits),
-        eviction_floor_(ComputeEvictionFloor(num_state_qubits, block_qubits,
+        tile_qubits_(tile_qubits),
+        eviction_floor_(ComputeEvictionFloor(num_state_qubits, tile_qubits,
                                              lane_qubits,
                                              min_eviction_floor)),
         max_gate_seeds_(max_gate_seeds),
@@ -228,7 +227,7 @@ class GateBatchPlanner {
 
  private:
   // Keep enough remap positions for an ordinary two-qubit gate even when
-  // the block is too small to reach min_eviction_floor.
+  // the tile is too small to reach min_eviction_floor.
   static constexpr unsigned kMinRemapSlots = 2;
 
   // Starting any remapping incurs a full-state pass. Additional pairs share
@@ -244,7 +243,7 @@ class GateBatchPlanner {
   }
 
   unsigned RemapSlotCapacity() const {
-    return block_qubits_ - eviction_floor_;
+    return tile_qubits_ - eviction_floor_;
   }
 
   // Positions below the eviction floor are fixed residents and join a set
@@ -252,33 +251,33 @@ class GateBatchPlanner {
   // resident protects a potential victim, while a high qubit requires a
   // victim. Keeping the floor at min_eviction_floor makes every remap span
   // at least 2^(floor + 3) bytes (256 B at floor 5), whatever the lane width.
-  // Small blocks retain at least two remap slots so an ordinary two-qubit
+  // Small tiles retain at least two remap slots so an ordinary two-qubit
   // gate can make progress.
   static unsigned ComputeEvictionFloor(unsigned num_logical_qubits,
-                                       unsigned block_qubits,
+                                       unsigned tile_qubits,
                                        unsigned lane_qubits,
                                        unsigned min_eviction_floor) {
-    if (block_qubits == num_logical_qubits) return block_qubits;
+    if (tile_qubits == num_logical_qubits) return tile_qubits;
 
     const auto full =
-        block_qubits > lane_qubits ? block_qubits - lane_qubits : 0u;
-    const auto depth_capped = block_qubits > min_eviction_floor
-                                  ? block_qubits - min_eviction_floor
+        tile_qubits > lane_qubits ? tile_qubits - lane_qubits : 0u;
+    const auto depth_capped = tile_qubits > min_eviction_floor
+                                  ? tile_qubits - min_eviction_floor
                                   : 0u;
     const auto capacity =
         std::min(full, std::max(depth_capped, kMinRemapSlots));
-    return block_qubits - capacity;
+    return tile_qubits - capacity;
   }
 
   // The zero-swap candidate: exactly the qubits already resident in
-  // the low block. Its occupancy may exceed the depth-capped capacity;
+  // the low tile. Its occupancy may exceed the depth-capped capacity;
   // that is safe because none of these qubits needs a swap (no
   // evictions happen), and growth beyond them is still capacity-bound.
   GateBatchQubitSet MakeResidentQubitSet(
       const QubitLayout& layout) const {
     auto qubit_set = MakeEmptyQubitSet();
     for (unsigned q = 0; q < num_logical_qubits_; ++q) {
-      if (layout.PhysicalPositionOf(q) < block_qubits_) {
+      if (layout.PhysicalPositionOf(q) < tile_qubits_) {
         qubit_set.remap_slots_used +=
             AdditionalRemapSlotsFor(q, qubit_set, layout);
         qubit_set.contains_qubit[q] = 1;
@@ -375,7 +374,7 @@ class GateBatchPlanner {
     unsigned count = 0;
     for (unsigned q = 0; q < num_logical_qubits_; ++q) {
       if (plan.UsesQubit(q) &&
-          layout.PhysicalPositionOf(q) >= block_qubits_) {
+          layout.PhysicalPositionOf(q) >= tile_qubits_) {
         ++count;
       }
     }
@@ -413,7 +412,7 @@ class GateBatchPlanner {
   }
 
   unsigned num_logical_qubits_;
-  unsigned block_qubits_;
+  unsigned tile_qubits_;
   unsigned eviction_floor_;
   unsigned max_gate_seeds_;
   bool commute_diagonal_gates_;
@@ -436,9 +435,9 @@ class GateBatchRunner {
   struct Parameter : public Fuser::Parameter, public Backend::Parameter {
     Parameter() { this->max_fused_size = 3; }
 
-    unsigned block_qubits = Backend::kDefaultBlockQubits;
+    unsigned tile_qubits = Backend::kDefaultTileQubits;
 
-    // Lowest eviction position allowed in a multi-block gate batch. Swap-pass
+    // Lowest eviction position allowed in a multi-tile gate batch. Swap-pass
     // spans are 2^(floor - lane_qubits) lane groups, so a higher floor keeps
     // spans longer; lowering it widens the remap budget.
     unsigned min_eviction_floor = Backend::kDefaultEvictionFloor;
@@ -491,7 +490,7 @@ class GateBatchRunner {
         backend_(param, num_qubits, state),
         lane_qubits_(backend_.LaneQubits()),
         layout_(layout),
-        gate_batch_planner_(num_qubits, backend_.BlockQubits(), lane_qubits_,
+        gate_batch_planner_(num_qubits, backend_.TileQubits(), lane_qubits_,
                             param.min_eviction_floor, param.max_gate_seeds,
                             param.commute_diagonal_gates) {
     assert(layout_.NumQubits() == num_qubits_);
@@ -540,7 +539,7 @@ class GateBatchRunner {
   // corrupts the schedule.
   template <typename Op>
   std::size_t ExecuteNextGateBatch(std::vector<Op>& batch_operations) {
-    const auto block_qubits = backend_.BlockQubits();
+    const auto tile_qubits = backend_.TileQubits();
 
     // pick_maximum_number_of_gates_acting_on_low_qubits
     const auto plan_start = GetTime();
@@ -549,13 +548,13 @@ class GateBatchRunner {
     simulation_stats_.plan_seconds += GetTime() - plan_start;
     if (!plan.HasGates()) {
       IO::errorf("qsim_gate_batch: a gate does not fit the qubit set "
-                 "of %u block qubits; use a larger block_qubits.\n",
-                 block_qubits);
+                 "of %u tile qubits; use a larger tile_qubits.\n",
+                 tile_qubits);
       return 0;
     }
 
     // select_qubits_for_swap + swap_low_and_high_qubits
-    BuildSwapsBelow(plan.uses_qubit, block_qubits,
+    BuildSwapsBelow(plan.uses_qubit, tile_qubits,
                     gate_batch_workspace_.swap_pairs);
     ApplySwapsToState(gate_batch_workspace_.swap_pairs);
 
@@ -570,7 +569,7 @@ class GateBatchRunner {
         gate_batch_workspace_.executable_gates.size();
     MarkGatesApplied(plan);
 
-    // for i in 0..(2^num_high_qubits): apply all fused gates to block i
+    // for i in 0..(2^num_high_qubits): apply all fused gates to tile i
     const auto gates_start = StartTimer();
     backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
     simulation_stats_.gate_seconds += StopTimer(gates_start);
@@ -674,7 +673,7 @@ class GateBatchRunner {
   // which remain untouched. Canonical runs restore qubit order at the end.
   void PlaceHotQubitsInFixedZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
-    if (!param_.place_hot_qubits || backend_.BlockQubits() == num_qubits_ ||
+    if (!param_.place_hot_qubits || backend_.TileQubits() == num_qubits_ ||
         eviction_floor <= lane_qubits_) {
       return;
     }
@@ -763,7 +762,7 @@ class GateBatchRunner {
   // it). The fuser sorts each fused gate's qubits.
   template <typename Op>
   bool FuseBatchGates(const std::vector<Op>& batch_operations) {
-    const auto fused_ops = Fuser::FuseGates(param_, backend_.BlockQubits(),
+    const auto fused_ops = Fuser::FuseGates(param_, backend_.TileQubits(),
                                             batch_operations);
     if (fused_ops.empty() && !batch_operations.empty()) {
       IO::errorf("qsim_gate_batch: fuser failed on a gate batch.\n");

@@ -15,10 +15,10 @@
 // CPU backend of the gate-batched runner (gate_batch_runner.h), and the
 // QSimGateBatchRunner entry point built on it.
 //
-// A state block is 2^block_qubits contiguous amplitudes of the SIMD state
-// space, sized to stay cache-resident. Each gate batch runs every block
-// through a sequential SIMD simulator, blocks in parallel over OpenMP
-// threads, optionally splitting each block across one SMT sibling team.
+// A tile is 2^tile_qubits contiguous amplitudes of the SIMD state
+// space, sized to stay cache-resident. Each gate batch runs every tile
+// through a sequential SIMD simulator, tiles in parallel over OpenMP
+// threads, optionally splitting each tile across one SMT sibling team.
 // Remaps use ApplyBitPairSwaps (qubit_remap.h), which moves whole lane
 // groups, so the SIMD lane positions are pinned.
 
@@ -57,49 +57,49 @@ inline unsigned ParallelThreadCount() { return 1; }
 inline unsigned ParallelThreadId() { return 0; }
 #endif
 
-// Geometry of the cache-blocked state: an n-qubit state is viewed as
-// 2^(n - L) contiguous blocks of 2^L amplitudes.
+// Geometry of the tiled state: an n-qubit state is viewed as
+// 2^(n - L) contiguous tiles of 2^L amplitudes.
 template <typename StateSpace>
-struct BlockPartition {
-  BlockPartition(unsigned state_qubits, unsigned requested_block_qubits,
-                 unsigned num_threads, unsigned min_block_qubits)
+struct TilePartition {
+  TilePartition(unsigned state_qubits, unsigned requested_tile_qubits,
+                unsigned num_threads, unsigned min_tile_qubits)
       : num_state_qubits(state_qubits),
-        requested_block_qubits(
-            std::min(requested_block_qubits, state_qubits)),
-        block_qubits(ChooseBlockQubits(
-            state_qubits, requested_block_qubits, num_threads,
-            min_block_qubits)),
-        floats_per_block(StateSpace::MinSize(block_qubits)),
-        num_blocks(int64_t{1} << (state_qubits - block_qubits)) {}
+        requested_tile_qubits(
+            std::min(requested_tile_qubits, state_qubits)),
+        tile_qubits(ChooseTileQubits(
+            state_qubits, requested_tile_qubits, num_threads,
+            min_tile_qubits)),
+        floats_per_tile(StateSpace::MinSize(tile_qubits)),
+        num_tiles(int64_t{1} << (state_qubits - tile_qubits)) {}
 
   // Use the requested L as an upper bound. For a small state, lower L until
-  // there are at least bit_floor(num_threads) blocks for the outer parallel
+  // there are at least bit_floor(num_threads) tiles for the outer parallel
   // loop. Using bit_floor rather than bit_ceil avoids doubling the number of
   // gate batches and remaps merely to occupy the last few threads.
-  static unsigned ChooseBlockQubits(unsigned state_qubits,
-                                    unsigned requested_block_qubits,
-                                    unsigned num_threads,
-                                    unsigned min_block_qubits) {
+  static unsigned ChooseTileQubits(unsigned state_qubits,
+                                   unsigned requested_tile_qubits,
+                                   unsigned num_threads,
+                                   unsigned min_tile_qubits) {
     unsigned parallel_bits = 0;  // floor(log2(num_threads))
     while ((2u << parallel_bits) <= num_threads) ++parallel_bits;
 
-    const auto parallel_block_qubits =
+    const auto parallel_tile_qubits =
         state_qubits > parallel_bits ? state_qubits - parallel_bits : 0u;
-    const auto minimum = std::min(min_block_qubits, state_qubits);
+    const auto minimum = std::min(min_tile_qubits, state_qubits);
     return std::max(
         minimum,
-        std::min({requested_block_qubits, state_qubits,
-                  parallel_block_qubits}));
+        std::min({requested_tile_qubits, state_qubits,
+                  parallel_tile_qubits}));
   }
 
-  unsigned num_state_qubits;         // n
-  unsigned requested_block_qubits;  // User-specified upper bound for L.
-  unsigned block_qubits;             // Effective L.
-  uint64_t floats_per_block;         // State floats per block (SIMD layout).
-  int64_t num_blocks;                // 2^(n - L).
+  unsigned num_state_qubits;       // n
+  unsigned requested_tile_qubits;  // User-specified upper bound for L.
+  unsigned tile_qubits;            // Effective L.
+  uint64_t floats_per_tile;        // State floats per tile (SIMD layout).
+  int64_t num_tiles;               // 2^(n - L).
 };
 
-// Reusable synchronization for the SMT siblings working on one state block.
+// Reusable synchronization for the SMT siblings working on one tile.
 // Keep barriers on separate cache lines so independent cores never contend on
 // the same coherence line.
 struct alignas(64) SmtTeamBarrier {
@@ -143,9 +143,9 @@ inline SmtTeamAssignment AssignSmtTeam(unsigned inner_threads,
           team_id < num_teams};
 }
 
-// The For of the per-block simulator. Each SMT team member runs its own
-// slice of every kernel loop on the team's shared state block;
-// ExecuteGatesOnBlock sets the member's lane and synchronizes the team
+// The For of the per-tile simulator. Each SMT team member runs its own
+// slice of every kernel loop on the team's shared tile;
+// ExecuteGatesOnTile sets the member's lane and synchronizes the team
 // between gates. A team of one runs the whole loop.
 struct CooperativeFor {
   explicit CooperativeFor(unsigned num_threads) { (void) num_threads; }
@@ -189,7 +189,7 @@ class CpuGateBatchBackend {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  // Simulates one state block on the calling thread, or on a team of SMT
+  // Simulates one tile on the calling thread, or on a team of SMT
   // siblings that split each gate.
   using SeqSimulator = typename gate_batch_internal::ReplaceFor<
       typename Factory::Simulator, gate_batch_internal::CooperativeFor>::type;
@@ -202,7 +202,7 @@ class CpuGateBatchBackend {
     std::vector<unsigned> team_thread_cpus;
   };
 
-  static constexpr unsigned kDefaultBlockQubits = 19;
+  static constexpr unsigned kDefaultTileQubits = 19;
 
   // Swap-pass spans are 2^(floor - lane_qubits) lane groups; 5 was the best
   // trade-off between remap budget and span length on the tested machines.
@@ -213,14 +213,14 @@ class CpuGateBatchBackend {
                       State& state)
       : param_(param),
         verbosity_(param.verbosity),
-        partition_(num_qubits, param.block_qubits, param.num_threads,
+        partition_(num_qubits, param.tile_qubits, param.num_threads,
                    std::max(kLaneQubits, param.max_fused_size)),
         state_data_(state.get()),
         seq_sim_(1) {
-    assert(partition_.block_qubits >= std::min(kLaneQubits, num_qubits));
+    assert(partition_.tile_qubits >= std::min(kLaneQubits, num_qubits));
   }
 
-  unsigned BlockQubits() const { return partition_.block_qubits; }
+  unsigned TileQubits() const { return partition_.tile_qubits; }
 
   // ApplyBitPairSwaps moves whole lane groups, so lanes are never remapped.
   unsigned LaneQubits() const { return kLaneQubits; }
@@ -228,7 +228,7 @@ class CpuGateBatchBackend {
   bool Prepare() {
     if (!ValidateThreads()) return false;
     if (param_.inner_threads > 1 && !PinSmtTeamThreads()) return false;
-    LogAdaptiveBlockSize();
+    LogAdaptiveTileSize();
     LogThreadTeams();
     return true;
   }
@@ -238,51 +238,51 @@ class CpuGateBatchBackend {
                       swaps, param_.num_threads);
   }
 
-  // The proposal's inner loops: for every block i, apply every fused gate to
-  // the block while it is cache-resident. Blocks or SMT block teams run in
+  // The proposal's inner loops: for every tile i, apply every fused gate to
+  // the tile while it is cache-resident. Tiles or SMT tile teams run in
   // parallel.
   void ExecuteBatch(const std::vector<ExecutableGate>& gates) const {
     if (param_.inner_threads > 1) {
-      ExecuteSmtBlockTeams(gates);
+      ExecuteSmtTileTeams(gates);
     } else {
-      ExecuteIndependentBlocks(gates);
+      ExecuteIndependentTiles(gates);
     }
   }
 
   void Synchronize() const {}  // All work finishes before ExecuteBatch returns.
 
  private:
-  using BlockPartition = gate_batch_internal::BlockPartition<StateSpace>;
+  using TilePartition = gate_batch_internal::TilePartition<StateSpace>;
   using SmtTeamBarrier = gate_batch_internal::SmtTeamBarrier;
 
   // Low amplitude-index bits that select a SIMD lane.
   static constexpr unsigned kLaneQubits = StateSpace::kLaneQubits;
 
-  // Applies every executable gate to one state block. A team splits each
+  // Applies every executable gate to one tile. A team splits each
   // gate among its members, who meet at the barrier before the next gate
   // because each gate consumes the preceding gate's output.
-  void ExecuteGatesOnBlock(const std::vector<ExecutableGate>& gates,
-                           int64_t block, unsigned team_size = 1,
-                           unsigned team_thread_id = 0,
-                           SmtTeamBarrier* team_barrier = nullptr) const {
+  void ExecuteGatesOnTile(const std::vector<ExecutableGate>& gates,
+                          int64_t tile, unsigned team_size = 1,
+                          unsigned team_thread_id = 0,
+                          SmtTeamBarrier* team_barrier = nullptr) const {
     gate_batch_internal::CooperativeFor::Configure(team_size, team_thread_id);
-    auto* block_data = state_data_ + block * partition_.floats_per_block;
-    auto block_view =
-        SeqStateSpace::Create(block_data, partition_.block_qubits);
+    auto* tile_data = state_data_ + tile * partition_.floats_per_tile;
+    auto tile_view =
+        SeqStateSpace::Create(tile_data, partition_.tile_qubits);
 
     for (const ExecutableGate& gate : gates) {
-      seq_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(), block_view);
+      seq_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(), tile_view);
       if (team_barrier != nullptr) team_barrier->Wait(team_size);
     }
   }
 
-  // Unit-sized dynamic scheduling balances independent state blocks across
+  // Unit-sized dynamic scheduling balances independent tiles across
   // cores without adding synchronization to the per-gate loop.
-  void ExecuteIndependentBlocks(
+  void ExecuteIndependentTiles(
       const std::vector<ExecutableGate>& gates) const {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(param_.num_threads)
-    for (int64_t block = 0; block < partition_.num_blocks; ++block) {
-      ExecuteGatesOnBlock(gates, block);
+    for (int64_t tile = 0; tile < partition_.num_tiles; ++tile) {
+      ExecuteGatesOnTile(gates, tile);
     }
   }
 
@@ -308,8 +308,8 @@ class CpuGateBatchBackend {
     return true;
   }
 
-  // Each team of SMT siblings cooperates on one state block at a time.
-  void ExecuteSmtBlockTeams(const std::vector<ExecutableGate>& gates) const {
+  // Each team of SMT siblings cooperates on one tile at a time.
+  void ExecuteSmtTileTeams(const std::vector<ExecutableGate>& gates) const {
     auto team_barriers =
         std::make_unique<SmtTeamBarrier[]>(param_.num_threads);
 
@@ -319,11 +319,11 @@ class CpuGateBatchBackend {
           param_.inner_threads, gate_batch_internal::ParallelThreadCount(),
           gate_batch_internal::ParallelThreadId());
       if (assignment.active) {
-        for (int64_t block = assignment.team_id;
-             block < partition_.num_blocks; block += assignment.num_teams) {
-          ExecuteGatesOnBlock(gates, block, assignment.team_size,
-                              assignment.lane,
-                              &team_barriers[assignment.team_id]);
+        for (int64_t tile = assignment.team_id;
+             tile < partition_.num_tiles; tile += assignment.num_teams) {
+          ExecuteGatesOnTile(gates, tile, assignment.team_size,
+                             assignment.lane,
+                             &team_barriers[assignment.team_id]);
         }
       }
     }
@@ -352,13 +352,13 @@ class CpuGateBatchBackend {
     return true;
   }
 
-  void LogAdaptiveBlockSize() const {
+  void LogAdaptiveTileSize() const {
     if (verbosity_ > 1 &&
-        partition_.block_qubits != partition_.requested_block_qubits) {
-      IO::messagef("adaptive block size: L=%u reduced to L=%u, producing "
-                   "%lld state blocks for %u threads.\n",
-                   partition_.requested_block_qubits, partition_.block_qubits,
-                   static_cast<long long>(partition_.num_blocks),
+        partition_.tile_qubits != partition_.requested_tile_qubits) {
+      IO::messagef("adaptive tile size: L=%u reduced to L=%u, producing "
+                   "%lld tiles for %u threads.\n",
+                   partition_.requested_tile_qubits, partition_.tile_qubits,
+                   static_cast<long long>(partition_.num_tiles),
                    param_.num_threads);
     }
   }
@@ -377,7 +377,7 @@ class CpuGateBatchBackend {
 
   const Parameter& param_;
   const unsigned verbosity_;
-  const BlockPartition partition_;
+  const TilePartition partition_;
   fp_type* const state_data_;
   SeqSimulator seq_sim_;
 };
