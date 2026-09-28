@@ -55,6 +55,7 @@
 //   using State, StateSpace, fp_type;
 //   struct Parameter;  // backend-specific options, part of the runner's
 //   static constexpr unsigned kDefaultTileQubits, kDefaultEvictionFloor;
+//   static constexpr unsigned kMaxGateQubits;  // widest gate it can apply
 //   Backend(const RunnerParameter&, unsigned num_qubits, State&);
 //   unsigned TileQubits() const;   // effective tile size
 //   unsigned LaneQubits() const;   // low positions the planner never remaps
@@ -506,6 +507,11 @@ class GateBatchRunner {
       IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
       return false;
     }
+    if (param_.max_fused_size > Backend::kMaxGateQubits) {
+      IO::errorf("qsim_gate_batch: max_fused_size must be at most %u.\n",
+                 Backend::kMaxGateQubits);
+      return false;
+    }
     if (!backend_.Prepare()) return false;
     const auto prepare_start = GetTime();
     if (!PreparePendingGates(circuit)) return false;
@@ -623,6 +629,12 @@ class GateBatchRunner {
       if (raw_gate == nullptr) {
         IO::errorf("qsim_gate_batch: unsupported operation "
                    "(controlled gate or measurement).\n");
+        return false;
+      }
+      if (raw_gate->qubits.size() > Backend::kMaxGateQubits) {
+        IO::errorf("qsim_gate_batch: %zu-qubit gate exceeds the backend "
+                   "limit of %u qubits.\n", raw_gate->qubits.size(),
+                   Backend::kMaxGateQubits);
         return false;
       }
 
