@@ -52,8 +52,16 @@ else()  # means pybind11 has been fetched in GetPybind11.cmake
 endif()
 
 add_library(qsim_cuda MODULE pybind_main_cuda.cpp)
+# nvcc's cudafe++ rewrites C++ anonymous namespaces into named
+# `_GLOBAL__N__<hash>` namespaces with default ELF visibility unless
+# CUDA_VISIBILITY_PRESET hidden is set. Setting hidden visibility prevents
+# internal SimulatorHelper / DeviceStateVector symbols from leaking into
+# .dynsym and matches pybind11's standard module visibility configuration.
 set_target_properties(qsim_cuda PROPERTIES
     CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+    CXX_VISIBILITY_PRESET hidden
+    CUDA_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
