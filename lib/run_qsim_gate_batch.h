@@ -204,6 +204,9 @@ class CpuGateBatchBackend {
 
   static constexpr unsigned kDefaultTileQubits = 19;
 
+  // qsim's CPU simulators apply gates of up to six qubits.
+  static constexpr unsigned kMaxGateQubits = 6;
+
   // Swap-pass spans are 2^(floor - lane_qubits) lane groups; 5 was the best
   // trade-off between remap budget and span length on the tested machines.
   static constexpr unsigned kDefaultEvictionFloor = 5;
