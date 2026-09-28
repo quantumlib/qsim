@@ -109,6 +109,7 @@ struct alignas(64) SmtTeamBarrier {
       arrivals.store(0, std::memory_order_relaxed);
       generation.fetch_add(1, std::memory_order_release);
     } else {
+      // Spin: waits are microseconds; pause/yield measured 1-3% slower.
       while (generation.load(std::memory_order_acquire) ==
              current_generation) {
       }
