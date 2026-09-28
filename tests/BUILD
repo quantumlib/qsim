@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@local_compiler_config//:compiler_config.bzl", "NATIVE_ARCH_ID", "SUPPORTS_GSFRAME")
+load("@local_compiler_config//:compiler_config.bzl", "SUPPORTS_GSFRAME")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
@@ -23,13 +23,7 @@ avx_copts = [
     "-mfma",
 ] + gsframe_copts
 
-# NATIVE_ARCH_ID identifies what -march=native means on the build machine, so
-# that cached objects are only reused on machines with the same instruction set.
-# See dev_tools/compiler_probe.bzl.
-avx512_copts = [
-    "-march=native",
-    "-DQSIM_NATIVE_ARCH_ID=" + NATIVE_ARCH_ID,
-] + gsframe_copts
+avx512_copts = ["-march=native"] + gsframe_copts
 
 sse_copts = ["-msse4"] + gsframe_copts
 
