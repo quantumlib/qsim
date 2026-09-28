@@ -458,9 +458,11 @@ class GateBatchRunner {
     bool commute_diagonal_gates = false;
   };
 
+  // The state must have exactly circuit.num_qubits qubits.
   template <typename Circuit>
   static bool Run(const Parameter& param, const Circuit& circuit,
                   State& state) {
+    if (!SizesMatch(circuit.num_qubits, state.num_qubits())) return false;
     QubitLayout layout(circuit.num_qubits);
     GateBatchRunner runner(param, circuit.num_qubits, state, layout);
     return runner.SimulateCircuit(circuit, true);
@@ -471,6 +473,10 @@ class GateBatchRunner {
   template <typename Circuit>
   static bool Run(const Parameter& param, const Circuit& circuit,
                   QubitMappedState& state) {
+    if (!SizesMatch(circuit.num_qubits, state.state.num_qubits()) ||
+        !SizesMatch(circuit.num_qubits, state.layout.NumQubits())) {
+      return false;
+    }
     GateBatchRunner runner(param, circuit.num_qubits, state.state,
                            state.layout);
     return runner.SimulateCircuit(circuit, false);
@@ -495,6 +501,13 @@ class GateBatchRunner {
                             param.min_eviction_floor, param.max_gate_seeds,
                             param.commute_diagonal_gates) {
     assert(layout_.NumQubits() == num_qubits_);
+  }
+
+  static bool SizesMatch(unsigned circuit_qubits, unsigned state_qubits) {
+    if (circuit_qubits == state_qubits) return true;
+    IO::errorf("qsim_gate_batch: the circuit has %u qubits but the state "
+               "has %u.\n", circuit_qubits, state_qubits);
+    return false;
   }
 
   // ======== Drivers ========
