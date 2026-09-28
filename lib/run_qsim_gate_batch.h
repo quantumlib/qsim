@@ -217,7 +217,7 @@ class CpuGateBatchBackend {
       : param_(param),
         verbosity_(param.verbosity),
         partition_(num_qubits, param.tile_qubits, param.num_threads,
-                   std::max(kLaneQubits, param.max_fused_size)),
+                   MinTileQubits(param.max_fused_size)),
         state_data_(state.get()),
         seq_sim_(1) {
     assert(partition_.tile_qubits >= std::min(kLaneQubits, num_qubits));
@@ -260,6 +260,11 @@ class CpuGateBatchBackend {
 
   // Low amplitude-index bits that select a SIMD lane.
   static constexpr unsigned kLaneQubits = StateSpace::kLaneQubits;
+
+  // Lanes are never remapped, so a gate's qubits must fit above them.
+  static unsigned MinTileQubits(unsigned max_fused_size) {
+    return kLaneQubits + max_fused_size;
+  }
 
   // Applies every executable gate to one tile. A team splits each
   // gate among its members, who meet at the barrier before the next gate
