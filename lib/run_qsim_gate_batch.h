@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -258,8 +259,10 @@ class CpuGateBatchBackend {
   using TilePartition = gate_batch_internal::TilePartition<StateSpace>;
   using SmtTeamBarrier = gate_batch_internal::SmtTeamBarrier;
 
-  // Low amplitude-index bits that select a SIMD lane.
-  static constexpr unsigned kLaneQubits = StateSpace::kLaneQubits;
+  // Low amplitude-index bits that select a SIMD lane. The smallest state is
+  // one lane group: MinSize(0) = 2 * 2^kLaneQubits floats.
+  static inline const unsigned kLaneQubits =
+      std::log2(StateSpace::MinSize(0) / 2);
 
   // Lanes are never remapped, so a gate's qubits must fit above them.
   static unsigned MinTileQubits(unsigned max_fused_size) {
