@@ -41,9 +41,6 @@ class StateSpaceBasic :
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  // Low amplitude-index bits that select a SIMD lane; none for scalars.
-  static constexpr unsigned kLaneQubits = 0;
-
   template <typename... ForArgs>
   explicit StateSpaceBasic(ForArgs&&... args) : Base(args...) {}
 

@@ -74,9 +74,6 @@ class StateSpaceAVX :
   using State = typename Base::State;
   using fp_type = typename Base::fp_type;
 
-  // Low amplitude-index bits that select a SIMD lane (log2 of lane count).
-  static constexpr unsigned kLaneQubits = 3;
-
   template <typename... ForArgs>
   explicit StateSpaceAVX(ForArgs&&... args) : Base(args...) {}
 
