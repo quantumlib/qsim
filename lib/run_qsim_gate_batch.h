@@ -225,6 +225,9 @@ class CpuGateBatchBackend {
   }
 
   unsigned TileQubits() const { return partition_.tile_qubits; }
+  unsigned RequestedTileQubits() const {
+    return partition_.requested_tile_qubits;
+  }
 
   // ApplyBitPairSwaps moves whole lane groups, so lanes are never remapped.
   unsigned LaneQubits() const { return kLaneQubits; }

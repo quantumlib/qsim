@@ -58,6 +58,7 @@
 //   static constexpr unsigned kMaxGateQubits;  // widest gate it can apply
 //   Backend(const RunnerParameter&, unsigned num_qubits, State&);
 //   unsigned TileQubits() const;   // effective tile size
+//   unsigned RequestedTileQubits() const;  // before shrinking for threads
 //   unsigned LaneQubits() const;   // low positions the planner never remaps
 //   bool Prepare();                // validate options, set up threads
 //   void ApplySwaps(const std::vector<QubitSwap>&);
@@ -175,11 +176,15 @@ struct GateBatchPlan {
 template <typename FP>
 class GateBatchPlanner {
  public:
-  GateBatchPlanner(unsigned num_state_qubits, unsigned tile_qubits,
-                   unsigned lane_qubits, unsigned min_eviction_floor,
-                   unsigned max_gate_seeds, bool commute_diagonal_gates)
+  GateBatchPlanner(unsigned num_state_qubits, unsigned requested_tile_qubits,
+                   unsigned tile_qubits, unsigned lane_qubits,
+                   unsigned min_eviction_floor, unsigned max_gate_seeds,
+                   bool commute_diagonal_gates)
       : num_logical_qubits_(num_state_qubits),
+        requested_tile_qubits_(
+            std::min(requested_tile_qubits, num_state_qubits)),
         tile_qubits_(tile_qubits),
+        lane_qubits_(lane_qubits),
         eviction_floor_(ComputeEvictionFloor(num_state_qubits, tile_qubits,
                                              lane_qubits,
                                              min_eviction_floor)),
@@ -207,6 +212,7 @@ class GateBatchPlanner {
 
     // One candidate per following pending gate, for when the first pending
     // gate is the one poisoning the set.
+    const unsigned max_seeds = EffectiveGateSeeds(gates.size());
     unsigned seeds_used = 0;
     bool skipped_first_pending = false;
     for (const PendingGate<FP>& gate : gates) {
@@ -215,7 +221,7 @@ class GateBatchPlanner {
         skipped_first_pending = true;
         continue;
       }
-      if (seeds_used++ == max_gate_seeds_) break;
+      if (seeds_used++ == max_seeds) break;
       auto seed = MakeEmptyQubitSet();
       if (TryAdmitQubits(gate.logical_qubits, layout, seed)) {
         consider(std::move(seed));
@@ -236,6 +242,31 @@ class GateBatchPlanner {
   // weights, eight pairs offset one additional gate.
   static constexpr double kSwapPassCost = 0.5;
   static constexpr double kSwapPairCost = 1.0 / 16.0;
+
+  // When adaptive tiling shrinks tile_qubits below requested_tile_qubits to
+  // keep threads occupied, single-threaded seed scans can exceed parallel
+  // tile execution time. Cap lookahead seeds by both the tile saturation
+  // ratio (2^tile_qubits / 2^requested_tile_qubits) and the ratio of per-tile
+  // SIMD lane groups to the two gate-scan passes per seed.
+  unsigned EffectiveGateSeeds(std::size_t num_pending_gates) const {
+    if (tile_qubits_ >= num_logical_qubits_ || num_pending_gates == 0) {
+      return 0;
+    }
+    if (tile_qubits_ >= requested_tile_qubits_) {
+      return max_gate_seeds_;
+    }
+    const auto tile_shift = requested_tile_qubits_ - tile_qubits_;
+    const unsigned tile_ratio_seeds =
+        tile_shift >= sizeof(unsigned) * 8 ? 0u
+                                           : (max_gate_seeds_ >> tile_shift);
+    const unsigned lane_bits =
+        tile_qubits_ > lane_qubits_ ? tile_qubits_ - lane_qubits_ : 0u;
+    const uint64_t lane_groups_per_tile = uint64_t{1} << lane_bits;
+    const uint64_t scan_work_per_seed = 2 * uint64_t{num_pending_gates};
+    const uint64_t scan_ratio_seeds = lane_groups_per_tile / scan_work_per_seed;
+    return static_cast<unsigned>(
+        std::min<uint64_t>(tile_ratio_seeds, scan_ratio_seeds));
+  }
 
   GateBatchQubitSet MakeEmptyQubitSet() const {
     GateBatchQubitSet qubit_set;
@@ -413,7 +444,9 @@ class GateBatchPlanner {
   }
 
   unsigned num_logical_qubits_;
+  unsigned requested_tile_qubits_;
   unsigned tile_qubits_;
+  unsigned lane_qubits_;
   unsigned eviction_floor_;
   unsigned max_gate_seeds_;
   bool commute_diagonal_gates_;
@@ -497,7 +530,8 @@ class GateBatchRunner {
         backend_(param, num_qubits, state),
         lane_qubits_(backend_.LaneQubits()),
         layout_(layout),
-        gate_batch_planner_(num_qubits, backend_.TileQubits(), lane_qubits_,
+        gate_batch_planner_(num_qubits, backend_.RequestedTileQubits(),
+                            backend_.TileQubits(), lane_qubits_,
                             param.min_eviction_floor, param.max_gate_seeds,
                             param.commute_diagonal_gates) {
     assert(layout_.NumQubits() == num_qubits_);
