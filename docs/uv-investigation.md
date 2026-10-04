@@ -1,4 +1,3 @@
-@'
 # uv Dependency Management Investigation
 
 ## Purpose
