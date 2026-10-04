@@ -218,8 +218,8 @@ jobs:
         # (in a separate workflow) *does* use all the versions.
         os:
           - ubuntu-24.04-x64-8-core
-          - macos-14
           - macos-15
+          - macos-26
           - windows-2025-x64-8-core
         python_version:
           - '3.10'
