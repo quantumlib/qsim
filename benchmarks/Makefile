@@ -15,7 +15,15 @@
 # Requires google-benchmark (https://github.com/google/benchmark) to be
 # installed, e.g. `apt install libbenchmark-dev`.
 
+# Determine the hardware features available in this CPU (as in tests/Makefile).
+# Eigen's SVD is several times faster when vectorized with AVX2/FMA.
+HAVE_AVX2 := $(shell grep -qs avx2 /proc/cpuinfo && echo "true")
+ifneq (,$(HAVE_AVX2))
+    AVX2_FLAGS ?= -mavx2 -mfma
+endif
+
 CXXFLAGS ?= -O3 -std=c++17 -DNDEBUG
+CXXFLAGS += $(AVX2_FLAGS)
 BENCHFLAGS = -lbenchmark -lpthread
 
 BENCH_FILES := $(wildcard *_benchmark.cc)
