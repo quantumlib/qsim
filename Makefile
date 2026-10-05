@@ -191,6 +191,14 @@ custatevecex-tests: | check-cuquantum-root-set
 hip-tests:
 	$(MAKE) -C tests/ hip-tests
 
+.PHONY: benchmarks
+benchmarks: eigen
+	$(MAKE) -C benchmarks/ benchmarks
+
+.PHONY: run-benchmarks
+run-benchmarks: eigen
+	$(MAKE) -C benchmarks/ run-benchmarks
+
 .PHONY: run-cxx-tests
 run-cxx-tests: cxx-tests
 	$(MAKE) -C tests/ run-cxx-tests
@@ -251,6 +259,7 @@ clean:
 	-rm -rf eigen
 	-$(MAKE) -C apps/ clean
 	-$(MAKE) -C tests/ clean
+	-$(MAKE) -C benchmarks/ clean
 	-$(MAKE) -C pybind_interface/ clean
 
 LOCAL_VARS = TARGETS TESTS PYTESTS PYTESTFLAGS CXX CXXFLAGS NVCC NVCCFLAGS $\
