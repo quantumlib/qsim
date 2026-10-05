@@ -86,6 +86,9 @@ void BM_ApplyGate2(benchmark::State& bm_state) {
   auto state = RandomState(num_qubits, bond_dim);
   std::vector<unsigned> qs = {target, target + 1};
 
+  // The gate is applied repeatedly, in place. For the gate and sizes used
+  // here, this gives the same timings as restoring the initial state before
+  // every iteration, so the benchmark does not reset the state.
   for (auto _ : bm_state) {
     sim.ApplyGate(qs, kHHCZ, state);
     benchmark::ClobberMemory();
