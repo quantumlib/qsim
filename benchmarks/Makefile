@@ -17,7 +17,7 @@
 
 # Determine the hardware features available in this CPU (as in tests/Makefile).
 # Eigen's SVD is several times faster when vectorized with AVX2/FMA.
-HAVE_AVX2 := $(shell grep -qs avx2 /proc/cpuinfo && echo "true")
+HAVE_AVX2 := $(shell grep -qs avx2 /proc/cpuinfo && grep -qsw fma /proc/cpuinfo && echo "true")
 ifneq (,$(HAVE_AVX2))
     AVX2_FLAGS ?= -mavx2 -mfma
 endif
