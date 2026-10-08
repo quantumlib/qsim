@@ -71,13 +71,28 @@ struct GateGPh {
   static constexpr unsigned num_qubits = 0;
   static constexpr bool symmetric = true;
 
+  static void UpdateMatrix(fp_type phi, Matrix<fp_type>& m) {
+    fp_type cp = std::cos(phi);
+    fp_type sp = std::sin(phi);
+
+    m[0] = cp; m[1] = sp;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type phi) {
+    fp_type cp = std::cos(phi);
+    fp_type sp = std::sin(phi);
+
+    return {cp, sp};
+  }
+
   static GateQSim<fp_type> Create(unsigned time, fp_type phi) {
-    return Create(time, std::cos(phi), std::sin(phi));
+    return CreateGate<GateQSim<fp_type>, GateGPh>(
+        time, {}, GetMatrix(phi), {phi});
   }
 
   static GateQSim<fp_type> Create(unsigned time, fp_type cp, fp_type sp) {
     return CreateGate<GateQSim<fp_type>, GateGPh>(
-        time, {}, {cp, sp}, {cp, sp});
+        time, {}, {cp, sp}, {std::acos(cp)});
   }
 };
 
@@ -230,13 +245,25 @@ struct GateRX {
   static constexpr unsigned num_qubits = 1;
   static constexpr bool symmetric = true;
 
-  static GateQSim<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
+  static void UpdateMatrix(fp_type phi, Matrix<fp_type>& m) {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
 
+    m[0] = c; m[3] = s; m[5] = s; m[6] = c;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type phi) {
+    fp_type phi2 = -0.5 * phi;
+    fp_type c = std::cos(phi2);
+    fp_type s = std::sin(phi2);
+
+    return {c, 0, 0, s, 0, s, c, 0};
+  }
+
+  static GateQSim<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
     return CreateGate<GateQSim<fp_type>, GateRX>(
-        time, {q0}, {c, 0, 0, s, 0, s, c, 0}, {phi});
+        time, {q0}, GetMatrix(phi), {phi});
   }
 };
 
@@ -251,13 +278,25 @@ struct GateRY {
   static constexpr unsigned num_qubits = 1;
   static constexpr bool symmetric = true;
 
-  static GateQSim<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
+  static void UpdateMatrix(fp_type phi, Matrix<fp_type>& m) {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
 
+    m[0] = c; m[2] = s; m[4] = -s; m[6] = c;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type phi) {
+    fp_type phi2 = -0.5 * phi;
+    fp_type c = std::cos(phi2);
+    fp_type s = std::sin(phi2);
+
+    return {c, 0, s, 0, -s, 0, c, 0};
+  }
+
+  static GateQSim<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
     return CreateGate<GateQSim<fp_type>, GateRY>(
-        time, {q0}, {c, 0, s, 0, -s, 0, c, 0}, {phi});
+        time, {q0}, GetMatrix(phi), {phi});
   }
 };
 
@@ -272,13 +311,25 @@ struct GateRZ {
   static constexpr unsigned num_qubits = 1;
   static constexpr bool symmetric = true;
 
-  static GateQSim<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
+  static void UpdateMatrix(fp_type phi, Matrix<fp_type>& m) {
     fp_type phi2 = -0.5 * phi;
     fp_type c = std::cos(phi2);
     fp_type s = std::sin(phi2);
 
+    m[0] = c; m[1] = s; m[6] = c; m[7] = -s;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type phi) {
+    fp_type phi2 = -0.5 * phi;
+    fp_type c = std::cos(phi2);
+    fp_type s = std::sin(phi2);
+
+    return {c, s, 0, 0, 0, 0, c, -s};
+  }
+
+  static GateQSim<fp_type> Create(unsigned time, unsigned q0, fp_type phi) {
     return CreateGate<GateQSim<fp_type>, GateRZ>(
-        time, {q0}, {c, s, 0, 0, 0, 0, c, -s}, {phi});
+        time, {q0}, GetMatrix(phi), {phi});
   }
 };
 
@@ -292,16 +343,30 @@ struct GateRXY {
   static constexpr unsigned num_qubits = 1;
   static constexpr bool symmetric = true;
 
-  static GateQSim<fp_type> Create(
-      unsigned time, unsigned q0, fp_type theta, fp_type phi) {
+  static void UpdateMatrix(fp_type theta, fp_type phi, Matrix<fp_type>& m) {
     fp_type phi2 = -0.5 * phi;
     fp_type cp = std::cos(phi2);
     fp_type sp = std::sin(phi2);
     fp_type ct = std::cos(theta) * sp;
     fp_type st = std::sin(theta) * sp;
 
+    m[0] = cp; m[2] = st; m[3] = ct; m[4] = -st, m[5] = ct; m[6] = cp;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type theta, fp_type phi) {
+    fp_type phi2 = -0.5 * phi;
+    fp_type cp = std::cos(phi2);
+    fp_type sp = std::sin(phi2);
+    fp_type ct = std::cos(theta) * sp;
+    fp_type st = std::sin(theta) * sp;
+
+    return {cp, 0, st, ct, -st, ct, cp, 0};
+  }
+
+  static GateQSim<fp_type> Create(
+      unsigned time, unsigned q0, fp_type theta, fp_type phi) {
     return CreateGate<GateQSim<fp_type>, GateRXY>(
-        time, {q0}, {cp, 0, st, ct, -st, ct, cp, 0}, {theta, phi});
+        time, {q0}, GetMatrix(theta, phi), {theta, phi});
   }
 };
 
@@ -514,8 +579,7 @@ struct GateFS {
 
   static constexpr fp_type is2 = static_cast<fp_type>(is2_double);
 
-  static GateQSim<fp_type> Create(
-      unsigned time, unsigned q0, unsigned q1, fp_type theta, fp_type phi) {
+  static void UpdateMatrix(fp_type theta, fp_type phi, Matrix<fp_type>& m) {
     if (phi < 0) {
       phi += 2 * 3.141592653589793;
     }
@@ -525,11 +589,29 @@ struct GateFS {
     fp_type cp = std::cos(phi);
     fp_type sp = std::sin(phi);
 
+    m[10] = ct; m[13] = -st; m[19] = -st; m[20] = ct, m[30] = cp; m[31] = -sp;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type theta, fp_type phi) {
+    if (phi < 0) {
+      phi += 2 * 3.141592653589793;
+    }
+
+    fp_type ct = std::cos(theta);
+    fp_type st = std::sin(theta);
+    fp_type cp = std::cos(phi);
+    fp_type sp = std::sin(phi);
+
+    return {1, 0,  0,   0,  0,   0,  0,   0,
+            0, 0, ct,   0,  0, -st,  0,   0,
+            0, 0,  0, -st, ct,   0,  0,   0,
+            0, 0,  0,   0,  0,   0, cp, -sp};
+  }
+
+  static GateQSim<fp_type> Create(
+      unsigned time, unsigned q0, unsigned q1, fp_type theta, fp_type phi) {
     return CreateGate<GateQSim<fp_type>, GateFS>(
-        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, ct, 0, 0, -st, 0, 0,
-                         0, 0, 0, -st, ct, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, cp, -sp}, {theta, phi});
+        time, {q0, q1}, GetMatrix(theta, phi), {theta, phi});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp(
@@ -585,16 +667,27 @@ struct GateCP {
   static constexpr unsigned num_qubits = 2;
   static constexpr bool symmetric = true;
 
-  static GateQSim<fp_type> Create(
-      unsigned time, unsigned q0, unsigned q1, fp_type phi) {
+  static void UpdateMatrix(fp_type phi, Matrix<fp_type>& m) {
     fp_type cp = std::cos(phi);
     fp_type sp = std::sin(phi);
 
+    m[30] = cp; m[31] = -sp;
+  }
+
+  static Matrix<fp_type> GetMatrix(fp_type phi) {
+    fp_type cp = std::cos(phi);
+    fp_type sp = std::sin(phi);
+
+    return {1, 0, 0, 0, 0, 0,  0,   0,
+            0, 0, 1, 0, 0, 0,  0,   0,
+            0, 0, 0, 0, 1, 0,  0,   0,
+            0, 0, 0, 0, 0, 0, cp, -sp};
+  }
+
+  static GateQSim<fp_type> Create(
+      unsigned time, unsigned q0, unsigned q1, fp_type phi) {
     return CreateGate<GateQSim<fp_type>, GateCP>(
-        time, {q0, q1}, {1, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 1, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 1, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, cp, -sp}, {phi});
+        time, {q0, q1}, GetMatrix(phi), {phi});
   }
 
   static schmidt_decomp_type<fp_type> SchmidtDecomp(fp_type phi) {
