@@ -17,6 +17,9 @@
 
 #ifdef _WIN32
   #include <malloc.h>
+#elif defined(__linux__)
+  #include <sys/syscall.h>
+  #include <unistd.h>
 #endif
 
 #include <cstdint>
@@ -37,6 +40,19 @@ inline void free(void* ptr) {
   ::free(ptr);
 #endif
 }
+
+#if defined(__linux__) && defined(SYS_mbind)
+// Interleaves the state across every NUMA node this process may use, so all
+// sockets' memory controllers serve it. The kernel limits the mask to the
+// allowed memory nodes (a no-op on one node); on failure, pages keep the
+// default placement. `ptr` must be page-aligned.
+inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
+  constexpr int kMpolInterleave = 3;
+  const unsigned long all_nodes = ~0UL;
+  syscall(SYS_mbind, ptr, size, kMpolInterleave, &all_nodes,
+          sizeof(all_nodes) * 8, 0);
+}
+#endif
 
 }  // namespace detail
 
@@ -93,7 +109,11 @@ class VectorSpace {
       return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
     #else
       void* p = nullptr;
-      if (posix_memalign(&p, 64, size) == 0) {
+      // Page alignment lets ApplyNumaInterleave cover the whole state.
+      if (posix_memalign(&p, 4096, size) == 0) {
+        #if defined(__linux__) && defined(SYS_mbind)
+        detail::ApplyNumaInterleave(p, size);
+        #endif
         return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
       } else {
         return Null();
