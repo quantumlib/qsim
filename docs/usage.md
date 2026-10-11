@@ -93,7 +93,7 @@ Example:
 qsim_amplitudes reads input files of bitstrings, computes the corresponding
 amplitudes at specified times and writes them to output files.
 
-Bitstring files should contain bitstings (one bitstring per line) in text
+Bitstring files should contain bitstrings (one bitstring per line) in text
 format.
 
 Example:
@@ -125,7 +125,7 @@ Example:
 |`-v verbosity` | verbosity level (0,1,2,3,4,5)|
 
 qsim_qtrajectory_cuda runs on GPUs. qsim_qtrajectory_cuda performs quantum
-trajactory simulations with amplitude damping and phase damping noise channels.
+trajectory simulations with amplitude damping and phase damping noise channels.
 qsim_qtrajectory_cuda calculates observables (operator X at each qubit) at
 specified times.
 

@@ -59,7 +59,7 @@ Simply run `pip3 install qsimcirq`.
 
 ## Help! There's no compatible wheel for my machine!
 
-If existing wheels do no meet your needs, please open an issue with your
+If existing wheels do not meet your needs, please open an issue with your
 machine configuration (i.e., CPU architecture, Python version) and consider
 using the [Docker config](./docker.md) provided in the qsim GitHub repository.
 
