@@ -24,13 +24,13 @@
 **/coverage.xml
 
 # Environments & IDEs.
-.dockerignore
 .env*
 .gemini*
 .github
 .idea
 .python-version
 .venv
+.vs
 .vscode
 CirqDevEnv
 env
@@ -75,7 +75,6 @@ dev_tools/ci
 docs
 
 # Miscellaneous other files.
-**/*~
 **/*.bak
 **/*.egg
 **/*.egg-info
@@ -83,4 +82,7 @@ docs
 **/*.swp
 **/*.tmp
 **/*.whl
+**/*~
+**/.\#*
 **/.DS_Store
+**/\#*\#
