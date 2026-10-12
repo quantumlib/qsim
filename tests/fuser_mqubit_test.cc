@@ -42,13 +42,13 @@ struct IO {
 namespace {
 
 Gate<float> CreateGate(unsigned time, std::vector<unsigned>&& qubits) {
-  return {0, time, std::move(qubits), {}, {}, false};
+  return {{0, time, std::move(qubits)}, {}, {}, false};
 }
 
 ControlledGate<float> CreateControlledGate(
     unsigned time, std::vector<unsigned>&& qubits,
     std::vector<unsigned>&& controlled_by) {
-  return Gate<float>{0, time, std::move(qubits), {}, {}, false}.ControlledBy(
+  return Gate<float>{{0, time, std::move(qubits)}, {}, {}, false}.ControlledBy(
       std::move(controlled_by));
 }
 

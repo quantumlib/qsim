@@ -31,8 +31,6 @@
 
 namespace qsim {
 
-constexpr char provider[] = "run_custatevecex_test";
-
 constexpr char circuit_string[] =
 R"(4
 0 h 0
@@ -80,10 +78,7 @@ struct Factory {
 };
 
 TEST(RunQSimTest, QSimRunner1) {
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<float>> circuit;
-
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
 
@@ -118,10 +113,7 @@ TEST(RunQSimTest, QSimRunner1) {
 }
 
 TEST(RunQSimTest, QSimRunner2) {
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<float>> circuit;
-
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 27);
 
@@ -174,10 +166,7 @@ R"(2
 )";
 
 TEST(RunQSimTest, QSimSampler) {
-  std::stringstream ss(sample_circuit_string);
-  Circuit<Operation<float>> circuit;
-
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
+  auto circuit = CircuitQSimParser<float>::Run(sample_circuit_string, 99);
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.ops.size(), 11);
 

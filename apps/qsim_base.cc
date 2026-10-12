@@ -20,11 +20,12 @@
 #include <string>
 
 #include "../lib/circuit_qsim_parser.h"
+#include "../lib/classical_control_util.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
-#include "../lib/run_qsim.h"
+#include "../lib/run_qsim_deprecated.h"
 #include "../lib/simmux.h"
 #include "../lib/util_cpu.h"
 
@@ -114,11 +115,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  Circuit<Operation<float>> circuit;
-  if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
-                                           circuit)) {
-    return 1;
-  }
+  auto cstr = cc::ReadFile(opt.circuit_file);
+  auto circuit = CircuitQSimParser<float>::Run(cstr, opt.maxtime);
 
   if (opt.denormals_are_zeros) {
     SetFlushToZeroAndDenormalsAreZeros();

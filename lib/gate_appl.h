@@ -37,13 +37,13 @@ inline void ApplyGate(const Simulator& simulator, const Operation& op,
                       typename Simulator::State& state) {
   using FP = typename Simulator::fp_type;
 
-  if (const auto* pg = OpGetAlternative<Gate<FP>>(op)) {
-    simulator.ApplyGate(pg->qubits, pg->matrix.data(), state);
-  } else if (const auto* pg = OpGetAlternative<FusedGate<FP>>(op)) {
-    simulator.ApplyGate(pg->qubits, pg->matrix.data(), state);
-  } else if (const auto* pg = OpGetAlternative<ControlledGate<FP>>(op)) {
-    simulator.ApplyControlledGate(pg->qubits, pg->controlled_by,
-                                  pg->cmask, pg->matrix.data(), state);
+  if (const auto* g = OpGetAlternative<Gate<FP>>(op)) {
+    simulator.ApplyGate(g->qubits, g->matrix.data(), state);
+  } else if (const auto* fg = OpGetAlternative<FusedGate<FP>>(op)) {
+    simulator.ApplyGate(fg->qubits, fg->matrix.data(), state);
+  } else if (const auto* cg = OpGetAlternative<ControlledGate<FP>>(op)) {
+    simulator.ApplyControlledGate(cg->qubits, cg->controlled_by,
+                                  cg->cmask, cg->matrix.data(), state);
   }
 }
 
@@ -61,19 +61,19 @@ inline void ApplyGateDagger(const Simulator& simulator, const Operation& op,
                             typename Simulator::State& state) {
   using FP = typename Simulator::fp_type;
 
-  if (const auto* pg = OpGetAlternative<Gate<FP>>(op)) {
-    auto matrix = pg->matrix;
-    MatrixDagger(unsigned{1} << pg->qubits.size(), matrix);
-    simulator.ApplyGate(pg->qubits, matrix.data(), state);
-  } else if (const auto* pg = OpGetAlternative<FusedGate<FP>>(op)) {
-    auto matrix = pg->matrix;
-    MatrixDagger(unsigned{1} << pg->qubits.size(), matrix);
-    simulator.ApplyGate(pg->qubits, matrix.data(), state);
-  } else if (const auto* pg = OpGetAlternative<ControlledGate<FP>>(op)) {
-    auto matrix = pg->matrix;
-    MatrixDagger(unsigned{1} << pg->qubits.size(), matrix);
-    simulator.ApplyControlledGate(pg->qubits, pg->controlled_by,
-                                  pg->cmask, matrix.data(), state);
+  if (const auto* g = OpGetAlternative<Gate<FP>>(op)) {
+    auto matrix = g->matrix;
+    MatrixDagger(unsigned{1} << g->qubits.size(), matrix);
+    simulator.ApplyGate(g->qubits, matrix.data(), state);
+  } else if (const auto* fg = OpGetAlternative<FusedGate<FP>>(op)) {
+    auto matrix = fg->matrix;
+    MatrixDagger(unsigned{1} << fg->qubits.size(), matrix);
+    simulator.ApplyGate(fg->qubits, matrix.data(), state);
+  } else if (const auto* cg = OpGetAlternative<ControlledGate<FP>>(op)) {
+    auto matrix = cg->matrix;
+    MatrixDagger(unsigned{1} << cg->qubits.size(), matrix);
+    simulator.ApplyControlledGate(cg->qubits, cg->controlled_by,
+                                  cg->cmask, matrix.data(), state);
   }
 }
 
@@ -97,13 +97,14 @@ inline bool ApplyGate(
     const Simulator& simulator, const Operation& op, Rgen& rgen,
     typename Simulator::State& state,
     std::vector<typename Simulator::StateSpace::MeasurementResult>& mresults) {
-  if (const auto* pg = OpGetAlternative<Measurement>(op)) {
-    auto measure_result = state_space.Measure(pg->qubits, rgen, state);
-    if (measure_result.valid) {
-      mresults.push_back(std::move(measure_result));
-    } else {
+  if (const auto* m = OpGetAlternative<Measurement>(op)) {
+    auto mresult = state_space.Measure(m->qubits, rgen, state);
+
+    if (!mresult.valid) {
       return false;
     }
+
+    mresults.push_back(std::move(mresult));
   } else {
     ApplyGate(simulator, op, state);
   }
@@ -126,9 +127,9 @@ template <typename Simulator, typename Operation, typename Rgen>
 inline bool ApplyGate(const typename Simulator::StateSpace& state_space,
                       const Simulator& simulator, const Operation& op,
                       Rgen& rgen, typename Simulator::State& state) {
-  if (const auto* pg = OpGetAlternative<Measurement>(op)) {
-    auto measure_result = state_space.Measure(pg->qubits, rgen, state);
-    if (!measure_result.valid) {
+  if (const auto* m = OpGetAlternative<Measurement>(op)) {
+    auto mresult = state_space.Measure(m->qubits, rgen, state);
+    if (!mresult.valid) {
       return false;
     }
   } else {

@@ -99,6 +99,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
     std::vector<Link<Parent, PGate>*> links;  // Gate "lattice" links.
     uint64_t mask;                            // Qubit mask.
     unsigned visited;
+    bool defer_matrix_computation;
   };
 
   // Possible values for visited in GateF.
@@ -289,6 +290,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
     using Operation = std::remove_pointer_t<OperationP>;
     using fp_type = OpFpType<Operation>;
     using Gate = qsim::Gate<fp_type>;
+    using RuntimeResolvedGate = qsim::RuntimeResolvedGate<fp_type>;
     using ControlledGate = qsim::ControlledGate<fp_type>;
     using FusedGate = qsim::FusedGate<fp_type>;
     using PGate = typename FusedGate::PGate;
@@ -367,12 +369,12 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
         // Fill in auxiliary data structures.
 
-        if (OpGetAlternative<Measurement>(op)) {
+        if (const auto* m = OpGetAlternative<Measurement>(op)) {
           // Measurement gate.
 
           if (last_measurement == nullptr
               || OpTime(*last_measurement->parent) != bop.time) {
-            gates_seq.push_back({&op, {}, {}, {}, 0, kUnfusible});
+            gates_seq.push_back({&op, {}, {}, {}, 0, kUnfusible, false});
             last_measurement = &gates_seq.back();
 
             last_measurement->qubits.reserve(max_qubit1);
@@ -390,12 +392,13 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
           ++stat.num_measurements;
         } else {
-          gates_seq.push_back({&op, {}, {}, {}, 0, kZero});
+          gates_seq.push_back({&op, {}, {}, {}, 0, kZero, false});
           auto& fgate = gates_seq.back();
 
           unsigned num_gate_qubits = bop.qubits.size();
+          bool is_dynamic_gate = OpGetAlternative<RuntimeResolvedGate>(op);
 
-          if (OpGetAlternative<Gate>(op)) {
+          if (OpGetAlternative<Gate>(op) || is_dynamic_gate) {
             // Matrix gates that are fused.
 
             if (max_gate_size < num_gate_qubits) {
@@ -408,6 +411,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
             fgate.links.reserve(size);
             fgate.gates.reserve(4 * size);
             fgate.links.reserve(size);
+            fgate.defer_matrix_computation = is_dynamic_gate;
 
             if (fgates[num_gate_qubits].empty()) {
               fgates[num_gate_qubits].reserve(num_ops);
@@ -451,7 +455,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
       }
 
       // Fuse large gates with smaller gates.
-      FuseGates<Gate>(max_gate_size, fgates);
+      FuseGates(max_gate_size, fgates);
 
       if (max_fused_size > 2) {
         FuseGateSequences(
@@ -487,10 +491,14 @@ class MultiQubitGateFuser final : public Fuser<IO> {
             AddUnfusible(fgate, fused_ops);
           } else {
             // Assume fgate.qubits (gate.qubits) are sorted.
-            const Gate& parent = *OpGetAlternative<Gate>(*fgate.parent);
-            fused_ops.push_back(FusedGate{parent.kind, parent.time,
-                                          std::move(fgate.qubits), &parent,
-                                          std::move(fgate.gates), {}});
+            auto parent = FusedGate::OpToPGate(fgate.parent);
+            const auto& bop =
+                OpBaseOperation(Base::OperationToConstRef(*fgate.parent));
+
+            fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                          std::move(fgate.qubits)}, parent,
+                                          std::move(fgate.gates), {},
+                                          fgate.defer_matrix_computation});
 
             ++stat.num_fused_gates;
           }
@@ -513,7 +521,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
     if (fuse_matrix) {
       for (auto& op : fused_ops) {
         if (auto* pg = OpGetAlternative<FusedGate>(op)) {
-          if (!pg->ParentIsDecomposed()) {
+          if (!pg->defer_matrix_computation && !pg->ParentIsDecomposed()) {
             CalculateFusedMatrix(*pg);
           }
         }
@@ -527,9 +535,11 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
  private:
   // Fuse large gates with smaller gates.
-  template <typename Gate, typename GateF>
+  template <typename GateF>
   static void FuseGates(uint64_t max_gate_size,
                         std::vector<std::vector<GateF*>>& fgates) {
+    using fp_type = typename GateF::fp_type;
+
     // Traverse gates in order of decreasing size.
     for (uint64_t i = 0; i < max_gate_size; ++i) {
       std::size_t pos = 0;
@@ -547,7 +557,7 @@ class MultiQubitGateFuser final : public Fuser<IO> {
         fgate->visited = kFirst;
 
         FusePrev(0, *fgate);
-        fgate->gates.push_back(OpGetAlternative<Gate>(*fgate->parent));
+        fgate->gates.push_back(FusedGate<fp_type>::OpToPGate(fgate->parent));
         FuseNext(0, *fgate);
       }
 
@@ -571,8 +581,6 @@ class MultiQubitGateFuser final : public Fuser<IO> {
                                 std::vector<GateF>& gates_seq, Stat& stat,
                                 std::vector<OperationF>& fused_ops) {
     using FusedGate = std::variant_alternative_t<0, OperationF>;
-    using fp_type = typename FusedGate::fp_type;
-    using Gate = qsim::Gate<fp_type>;
 
     unsigned prev_time = 0;
 
@@ -600,10 +608,13 @@ class MultiQubitGateFuser final : public Fuser<IO> {
       }
 
       if (fgate.qubits.size() >= max_fused_size) {
-        const Gate& parent = *OpGetAlternative<Gate>(*fgate.parent);
-        fused_ops.push_back(FusedGate{parent.kind, parent.time,
-                                      std::move(fgate.qubits), &parent,
-                                      std::move(fgate.gates), {}});
+        auto parent = FusedGate::OpToPGate(fgate.parent);
+        const auto& bop =
+            OpBaseOperation(Base::OperationToConstRef(*fgate.parent));
+        fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                      std::move(fgate.qubits)}, parent,
+                                      std::move(fgate.gates), {},
+                                      fgate.defer_matrix_computation});
 
         fgate.visited = kFinal;
         ++stat.num_fused_gates;
@@ -629,10 +640,13 @@ class MultiQubitGateFuser final : public Fuser<IO> {
         for (auto fgate : scratch.gates) {
           std::sort(fgate->qubits.begin(), fgate->qubits.end());
 
-          const Gate& parent = *OpGetAlternative<Gate>(*fgate->parent);
-          fused_ops.push_back(FusedGate{parent.kind, parent.time,
-                                        std::move(fgate->qubits), &parent,
-                                        std::move(fgate->gates), {}});
+          auto parent = FusedGate::OpToPGate(fgate->parent);
+          const auto& bop =
+              OpBaseOperation(Base::OperationToConstRef(*fgate->parent));
+          fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                        std::move(fgate->qubits)}, parent,
+                                        std::move(fgate->gates), {},
+                                        fgate->defer_matrix_computation});
 
           ++stat.num_fused_gates;
         }
@@ -650,7 +664,6 @@ class MultiQubitGateFuser final : public Fuser<IO> {
                                 std::vector<OperationF>& fused_ops) {
     using FusedGate = std::variant_alternative_t<0, OperationF>;
     using fp_type = typename FusedGate::fp_type;
-    using Gate = qsim::Gate<fp_type>;
 
     for (std::size_t i = 0; i < orphaned_gates.size(); ++i) {
       auto ogate1 = orphaned_gates[i];
@@ -680,6 +693,10 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
           for (auto gate : ogate2->gates) {
             ogate1->gates.push_back(gate);
+
+            if (OpGetAlternative<RuntimeResolvedGate<fp_type>>(gate)) {
+              ogate1->defer_matrix_computation = true;
+            }
           }
         }
 
@@ -692,10 +709,13 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
       std::sort(ogate1->qubits.begin(), ogate1->qubits.end());
 
-      const Gate& parent = *OpGetAlternative<Gate>(*ogate1->parent);
-      fused_ops.push_back(FusedGate{parent.kind, parent.time,
-                                    std::move(ogate1->qubits), &parent,
-                                    std::move(ogate1->gates), {}});
+      auto parent = FusedGate::OpToPGate(ogate1->parent);
+      const auto& bop =
+          OpBaseOperation(Base::OperationToConstRef(*ogate1->parent));
+      fused_ops.push_back(FusedGate{{bop.kind, bop.time,
+                                    std::move(ogate1->qubits)}, parent,
+                                    std::move(ogate1->gates), {},
+                                    ogate1->defer_matrix_computation});
 
       ++stat.num_fused_gates;
     }
@@ -708,18 +728,18 @@ class MultiQubitGateFuser final : public Fuser<IO> {
     using fp_type = typename FusedGate::fp_type;
     using DecomposedGate = qsim::DecomposedGate<fp_type>;
 
-    if (const auto& pg = OpGetAlternative<Measurement>(*fgate.parent)) {
-      if (pg->qubits.size() == fgate.qubits.size()) {
+    if (const auto* m = OpGetAlternative<Measurement>(*fgate.parent)) {
+      if (m->qubits.size() == fgate.qubits.size()) {
         fused_ops.push_back(fgate.parent);
       } else {
-        Measurement mfused = *pg;
+        Measurement mfused = *m;
         mfused.qubits = fgate.qubits;
         fused_ops.push_back(std::move(mfused));
       }
     } else {
       if (const auto* pg = OpGetAlternative<DecomposedGate>(*fgate.parent)) {
         fused_ops.push_back(
-            FusedGate{pg->kind, pg->time, {pg->qubits[0]}, pg, {pg}, {}});
+            FusedGate{{pg->kind, pg->time, {pg->qubits[0]}}, pg, {pg}, {}});
       } else {
         fused_ops.push_back(fgate.parent);
       }
@@ -799,16 +819,28 @@ class MultiQubitGateFuser final : public Fuser<IO> {
 
   template <typename PGate, typename GateF>
   static void AddGatesFromNext(std::vector<PGate>& gates, GateF& fgate) {
+    using fp_type = typename GateF::fp_type;
+
     for (auto gate : gates) {
       fgate.gates.push_back(gate);
+
+      if (OpGetAlternative<RuntimeResolvedGate<fp_type>>(gate)) {
+        fgate.defer_matrix_computation = true;
+      }
     }
   }
 
   template <typename GateF, typename Scratch>
   static void AddGatesFromPrev(unsigned max_fused_size, const GateF& pfgate,
                                Scratch& scratch, GateF& fgate) {
+    using fp_type = typename GateF::fp_type;
+
     for (auto gate : pfgate.gates) {
-        fgate.gates.push_back(gate);
+      fgate.gates.push_back(gate);
+
+      if (OpGetAlternative<RuntimeResolvedGate<fp_type>>(gate)) {
+        fgate.defer_matrix_computation = true;
+      }
     }
 
     for (auto link : pfgate.links) {
@@ -1079,8 +1111,8 @@ class MultiQubitGateFuser final : public Fuser<IO> {
   static void FusePrevOrNext(unsigned pass, Neighbor neighb,
                              GateF<Parent, PGate>& fgate,
                              std::vector<PGate>& gates) {
+    using fp_type = typename GateF<Parent, PGate>::fp_type;
     using Link = Link<Parent, PGate>;
-    using Gate = qsim::Gate<typename GateF<Parent, PGate>::fp_type>;
 
     uint64_t bad_mask = 0;
     auto links = fgate.links;
@@ -1119,11 +1151,18 @@ class MultiQubitGateFuser final : public Fuser<IO> {
           g->visited = pass == 0 ? kFirst : kFinal;
 
           if (pass == 0) {
-            // g->parent must hold the type Gate here.
-            gates.push_back(OpGetAlternative<Gate>(*g->parent));
+            gates.push_back(FusedGate<fp_type>::OpToPGate(g->parent));
+
+            if (OpGetAlternative<RuntimeResolvedGate<fp_type>>(g->parent)) {
+              fgate.defer_matrix_computation = true;
+            }
           } else {
             for (auto gate : g->gates) {
               gates.push_back(gate);
+
+              if (OpGetAlternative<RuntimeResolvedGate<fp_type>>(gate)) {
+                fgate.defer_matrix_computation = true;
+              }
             }
           }
 

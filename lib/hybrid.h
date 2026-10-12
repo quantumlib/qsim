@@ -174,45 +174,45 @@ struct HybridSimulator final {
       case 1:  // Single qubit gates.
         switch (parts[gate.qubits[0]]) {
         case 0:
-          hd.ops0.push_back(Gate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[0]]}, gate.params, gate.matrix});
+          hd.ops0.push_back(Gate{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}}, gate.params, gate.matrix});
           break;
         case 1:
-          hd.ops1.push_back(Gate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[0]]}, gate.params, gate.matrix});
+          hd.ops1.push_back(Gate{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}}, gate.params, gate.matrix});
           break;
         }
         break;
       case 2:  // Two qubit gates.
         switch ((parts[gate.qubits[1]] << 1) | parts[gate.qubits[0]]) {
         case 0:  // Both qubits in part 0.
-          hd.ops0.push_back(Gate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
+          hd.ops0.push_back(Gate{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]}},
               gate.params, gate.matrix});
           break;
         case 1:  // Gate on the cut, qubit 0 in part 1, qubit 1 in part 0.
-          hd.ops0.push_back(DecomposedGate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
-              gate.swapped, &gate, hd.num_gatexs});
-          hd.ops1.push_back(DecomposedGate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
-              gate.swapped, &gate, hd.num_gatexs});
+          hd.ops0.push_back(DecomposedGate{{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[1]]}}, gate.params, {},
+              gate.swapped}, &gate, hd.num_gatexs});
+          hd.ops1.push_back(DecomposedGate{{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}}, gate.params, {},
+              gate.swapped}, &gate, hd.num_gatexs});
 
           ++hd.num_gatexs;
           break;
         case 2:  // Gate on the cut, qubit 0 in part 0, qubit 1 in part 1.
-          hd.ops0.push_back(DecomposedGate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[0]]}, gate.params, {},
-              gate.swapped, &gate, hd.num_gatexs});
-          hd.ops1.push_back(DecomposedGate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[1]]}, gate.params, {},
-              gate.swapped, &gate, hd.num_gatexs});
+          hd.ops0.push_back(DecomposedGate{{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]]}}, gate.params, {},
+              gate.swapped}, &gate, hd.num_gatexs});
+          hd.ops1.push_back(DecomposedGate{{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[1]]}}, gate.params, {},
+              gate.swapped}, &gate, hd.num_gatexs});
 
           ++hd.num_gatexs;
           break;
         case 3:  // Both qubits in part 1.
-          hd.ops1.push_back(Gate{gate.kind, gate.time,
-              {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]},
+          hd.ops1.push_back(Gate{{gate.kind, gate.time,
+              {hd.qubit_map[gate.qubits[0]], hd.qubit_map[gate.qubits[1]]}},
               gate.params, gate.matrix});
           break;
         }
