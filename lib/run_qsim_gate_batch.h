@@ -12,15 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// CPU backend of the gate-batched runner (gate_batch_runner.h), and the
-// QSimGateBatchRunner entry point built on it.
-//
-// A tile is 2^tile_qubits contiguous amplitudes of the SIMD state
-// space, sized to stay cache-resident. Each gate batch runs every tile
-// through a sequential SIMD simulator, tiles in parallel over OpenMP
-// threads, optionally splitting each tile across one SMT sibling team.
-// Remaps use ApplyBitPairSwaps (qubit_remap.h), which moves whole lane
-// groups, so the SIMD lane positions are pinned.
+// CPU backend and entry point for the gate-batched runner.
 
 #ifndef RUN_QSIM_GATE_BATCH_H_
 #define RUN_QSIM_GATE_BATCH_H_
@@ -46,8 +38,6 @@ namespace qsim {
 
 namespace gate_batch_internal {
 
-// The only OpenMP-dependent code in this file. Without OpenMP the pragmas are
-// ignored, so a parallel region runs once on the calling thread.
 #ifdef _OPENMP
 inline constexpr bool kHasOpenMP = true;
 inline unsigned ParallelThreadCount() { return omp_get_num_threads(); }
@@ -58,8 +48,6 @@ inline unsigned ParallelThreadCount() { return 1; }
 inline unsigned ParallelThreadId() { return 0; }
 #endif
 
-// Geometry of the tiled state: an n-qubit state is viewed as
-// 2^(n - L) contiguous tiles of 2^L amplitudes.
 template <typename StateSpace>
 struct TilePartition {
   TilePartition(unsigned state_qubits, unsigned requested_tile_qubits,
@@ -73,10 +61,7 @@ struct TilePartition {
         floats_per_tile(StateSpace::MinSize(tile_qubits)),
         num_tiles(int64_t{1} << (state_qubits - tile_qubits)) {}
 
-  // Use the requested L as an upper bound. For a small state, lower L until
-  // there are at least bit_floor(num_threads) tiles for the outer parallel
-  // loop. Using bit_floor rather than bit_ceil avoids doubling the number of
-  // gate batches and remaps merely to occupy the last few threads.
+  // Lower tile_qubits until there are at least bit_floor(num_threads) tiles.
   static unsigned ChooseTileQubits(unsigned state_qubits,
                                    unsigned requested_tile_qubits,
                                    unsigned num_threads,
@@ -93,16 +78,14 @@ struct TilePartition {
                   parallel_tile_qubits}));
   }
 
-  unsigned num_state_qubits;       // n
-  unsigned requested_tile_qubits;  // User-specified upper bound for L.
-  unsigned tile_qubits;            // Effective L.
-  uint64_t floats_per_tile;        // State floats per tile (SIMD layout).
-  int64_t num_tiles;               // 2^(n - L).
+  unsigned num_state_qubits;
+  unsigned requested_tile_qubits;
+  unsigned tile_qubits;
+  uint64_t floats_per_tile;
+  int64_t num_tiles;
 };
 
-// Reusable synchronization for the SMT siblings working on one tile.
-// Keep barriers on separate cache lines so independent cores never contend on
-// the same coherence line.
+// SMT sibling barrier; keep barriers on separate cache lines.
 struct alignas(64) SmtTeamBarrier {
   void Wait(unsigned team_size) {
     const auto current_generation = generation.load(std::memory_order_acquire);
@@ -121,9 +104,6 @@ struct alignas(64) SmtTeamBarrier {
   std::atomic<unsigned> generation{0};
 };
 
-// Where one OpenMP thread sits in the SMT team grid. Threads left over when
-// the thread count is not divisible by the team size are inactive; normal SMT
-// use is an exact 2-way split.
 struct SmtTeamAssignment {
   unsigned team_size;
   unsigned num_teams;
@@ -132,8 +112,6 @@ struct SmtTeamAssignment {
   bool active;
 };
 
-// Assigns OpenMP thread thread_id of num_threads to a team of
-// inner_threads SMT siblings.
 inline SmtTeamAssignment AssignSmtTeam(unsigned inner_threads,
                                        unsigned num_threads,
                                        unsigned thread_id) {
@@ -144,10 +122,6 @@ inline SmtTeamAssignment AssignSmtTeam(unsigned inner_threads,
           team_id < num_teams};
 }
 
-// The For of the per-tile simulator. Each SMT team member runs its own
-// slice of every kernel loop on the team's shared tile;
-// ExecuteGatesOnTile sets the member's lane and synchronizes the team
-// between gates. A team of one runs the whole loop.
 struct CooperativeFor {
   explicit CooperativeFor(unsigned num_threads) { (void) num_threads; }
 
@@ -170,9 +144,6 @@ struct CooperativeFor {
   inline static thread_local unsigned team_thread_id_ = 0;
 };
 
-// Simulator with its For replaced by NewFor, e.g. SimulatorNEON<ParallelFor>
-// becomes SimulatorNEON<CooperativeFor>. Extra template arguments such as
-// SimulatorBasic's float type are kept.
 template <typename Simulator, typename NewFor>
 struct ReplaceFor;
 
@@ -190,8 +161,6 @@ class CpuGateBatchBackend {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  // Simulates one tile on the calling thread, or on a team of SMT
-  // siblings that split each gate.
   using SeqSimulator = typename gate_batch_internal::ReplaceFor<
       typename Factory::Simulator, gate_batch_internal::CooperativeFor>::type;
   using SeqStateSpace = typename SeqSimulator::StateSpace;
@@ -204,12 +173,8 @@ class CpuGateBatchBackend {
   };
 
   static constexpr unsigned kDefaultTileQubits = 19;
-
-  // qsim's CPU simulators apply gates of up to six qubits.
   static constexpr unsigned kMaxGateQubits = 6;
-
-  // Swap-pass spans are 2^(floor - lane_qubits) lane groups; 5 was the best
-  // trade-off between remap budget and span length on the tested machines.
+  // Floor of 5 balances remap budget against swap-pass span length.
   static constexpr unsigned kDefaultEvictionFloor = 5;
 
   template <typename RunnerParameter>
@@ -229,7 +194,7 @@ class CpuGateBatchBackend {
     return partition_.requested_tile_qubits;
   }
 
-  // ApplyBitPairSwaps moves whole lane groups, so lanes are never remapped.
+  // SIMD lanes are never remapped to preserve lane-group layout.
   unsigned LaneQubits() const { return kLaneQubits; }
 
   bool Prepare() {
@@ -245,9 +210,6 @@ class CpuGateBatchBackend {
                       swaps, param_.num_threads);
   }
 
-  // The proposal's inner loops: for every tile i, apply every fused gate to
-  // the tile while it is cache-resident. Tiles or SMT tile teams run in
-  // parallel.
   void ExecuteBatch(const std::vector<ExecutableGate>& gates) const {
     if (param_.inner_threads > 1) {
       ExecuteSmtTileTeams(gates);
@@ -256,25 +218,19 @@ class CpuGateBatchBackend {
     }
   }
 
-  void Synchronize() const {}  // All work finishes before ExecuteBatch returns.
+  void Synchronize() const {}
 
  private:
   using TilePartition = gate_batch_internal::TilePartition<StateSpace>;
   using SmtTeamBarrier = gate_batch_internal::SmtTeamBarrier;
 
-  // Low amplitude-index bits that select a SIMD lane. The smallest state is
-  // one lane group: MinSize(0) = 2 * 2^kLaneQubits floats.
   static inline const unsigned kLaneQubits =
       std::log2(StateSpace::MinSize(0) / 2);
 
-  // Lanes are never remapped, so a gate's qubits must fit above them.
   static unsigned MinTileQubits(unsigned max_fused_size) {
     return kLaneQubits + max_fused_size;
   }
 
-  // Applies every executable gate to one tile. A team splits each
-  // gate among its members, who meet at the barrier before the next gate
-  // because each gate consumes the preceding gate's output.
   void ExecuteGatesOnTile(const std::vector<ExecutableGate>& gates,
                           int64_t tile, unsigned team_size = 1,
                           unsigned team_thread_id = 0,
@@ -290,8 +246,6 @@ class CpuGateBatchBackend {
     }
   }
 
-  // Unit-sized dynamic scheduling balances independent tiles across
-  // cores without adding synchronization to the per-gate loop.
   void ExecuteIndependentTiles(
       const std::vector<ExecutableGate>& gates) const {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(param_.num_threads)
@@ -300,9 +254,6 @@ class CpuGateBatchBackend {
     }
   }
 
-  // Pins each OpenMP worker to its SMT team CPU once per run. Later parallel
-  // regions with the same thread count reuse these pinned workers, because
-  // libgomp and libomp keep their thread pool between regions.
   bool PinSmtTeamThreads() const {
     std::atomic<bool> pinned{true};
 
@@ -322,7 +273,6 @@ class CpuGateBatchBackend {
     return true;
   }
 
-  // Each team of SMT siblings cooperates on one tile at a time.
   void ExecuteSmtTileTeams(const std::vector<ExecutableGate>& gates) const {
     auto team_barriers =
         std::make_unique<SmtTeamBarrier[]>(param_.num_threads);
@@ -384,7 +334,7 @@ class CpuGateBatchBackend {
       const auto team = thread / param_.inner_threads;
       for (unsigned lane = 0; lane < param_.inner_threads; ++lane) {
         IO::messagef("SMT team %u lane %u: CPU %u\n", team, lane,
-                     param_.team_thread_cpus[thread + lane]);
+             param_.team_thread_cpus[thread + lane]);
       }
     }
   }
@@ -396,8 +346,6 @@ class CpuGateBatchBackend {
   SeqSimulator seq_sim_;
 };
 
-// The CPU gate-batched runner. Keeps qsim's conventional Run signature,
-// whose Factory argument is present only for API compatibility.
 template <typename IO, typename Fuser, typename Factory>
 class QSimGateBatchRunner final
     : public GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>> {

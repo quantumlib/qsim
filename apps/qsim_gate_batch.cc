@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Benchmark app for the proposal-faithful gate-batch runner.
-// -f is the per-batch max_fused_size (at least 2; the proposal suggests
-// 2-3).
+// Benchmark application for the gate-batch runner.
 
 #include <unistd.h>
 

@@ -22,12 +22,9 @@
 
 namespace qsim {
 
-// A transposition of two amplitude-index bit positions.
 using QubitSwap = std::pair<unsigned, unsigned>;
 
-// Bidirectional logical<->physical qubit map; the two arrays are inverse
-// permutations of each other at all times. "Physical position p" means
-// amplitude-index bit p of the state storage.
+// Bidirectional mapping between logical qubits and state storage bit positions.
 class QubitLayout {
  public:
   explicit QubitLayout(unsigned num_qubits)
@@ -49,8 +46,6 @@ class QubitLayout {
     return physical_to_logical_[physical_position];
   }
 
-  // Maps a logical amplitude index to the index where that amplitude is
-  // stored: each set bit q moves to PhysicalPositionOf(q).
   uint64_t PhysicalAmplitudeIndex(uint64_t logical_index) const {
     uint64_t physical_index = 0;
     for (unsigned q = 0; q < NumQubits(); ++q) {
@@ -65,7 +60,6 @@ class QubitLayout {
     return physical_to_logical_[position] == position;
   }
 
-  // Swaps the logical qubits held at two physical positions.
   void SwapPhysicalPositions(unsigned position_a, unsigned position_b) {
     const auto qubit_a = physical_to_logical_[position_a];
     const auto qubit_b = physical_to_logical_[position_b];
@@ -75,7 +69,6 @@ class QubitLayout {
               logical_to_physical_[qubit_b]);
   }
 
-  // Builds one disjoint restoration pass and updates this layout to match.
   bool BuildIdentityRestorationSwaps(std::vector<QubitSwap>& swaps) {
     swaps.clear();
     std::vector<char> position_touched(NumQubits(), 0);
@@ -101,8 +94,6 @@ class QubitLayout {
   std::vector<unsigned> physical_to_logical_;
 };
 
-// Owns physical state storage together with its logical-qubit interpretation.
-// A newly created mapped state starts in canonical one-to-one qubit order.
 template <typename State>
 struct QubitMappedState {
   explicit QubitMappedState(State&& state_storage)
