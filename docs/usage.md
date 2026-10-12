@@ -1,11 +1,10 @@
 # Usage of sample applications
 
-qsim and qsimh are designed to be extensible to a variety of different
-applications. The base versions of each are `qsim_base` and `qsimh_base`;
-sample extensions are provided in
+qsim is designed to be extensible to a variety of different applications. The
+base version is `qsim_base`; sample extensions are provided in
 [apps](https://github.com/quantumlib/qsim/blob/main/apps). To compile the
-code, just run `make qsim`. Binaries of the form `qsim(h)_*.x` will be added
-to the `apps` directory.
+code, just run `make qsim`. Binaries of the form `qsim_*.x` will be added to
+the `apps` directory.
 
 Sample circuits are provided in
 [circuits](https://github.com/quantumlib/qsim/blob/main/circuits).

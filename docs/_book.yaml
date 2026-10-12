@@ -55,6 +55,8 @@ upper_tabs:
          path: /qsim/cirq_interface
        - title: "C++ templates"
          path: /qsim/type_reference
+       - title: "MPS simulator"
+         path: /qsim/mps
        - title: "C++ builds with Bazel"
          path: /qsim/bazel
        - title: "Docker builds"

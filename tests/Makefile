@@ -17,9 +17,10 @@ HAVE_AVX2 := $(shell grep -qs avx2 /proc/cpuinfo && echo "true")
 HAVE_AVX512 := $(shell grep -qs avx512f /proc/cpuinfo && echo "true")
 HAVE_BMI2 := $(shell grep -qs bmi2 /proc/cpuinfo && echo "true")
 HAVE_SSE := $(shell grep -qs sse /proc/cpuinfo && echo "true")
+HAVE_NEON := $(shell $(CXX) -march=native -dM -E - < /dev/null | grep -q "__ARM_NEON" && echo "true")
 
 # Default targets. Always built.
-BASIC_FILES := $(shell ls *.cc | egrep -v '_avx|_sse')
+BASIC_FILES := $(shell ls *.cc | egrep -v '_avx|_sse|_neon')
 
 # Additional flags and targets for non-CUDA cases.
 ifneq (,$(HAVE_AVX2))
@@ -37,10 +38,14 @@ ifneq (,$(HAVE_SSE))
     SSE_FLAGS ?= -msse4
     SSE_FILES := $(wildcard *_sse_test.cc)
 endif
+ifneq (,$(HAVE_NEON))
+    NEON_FLAGS ?= -march=native
+    NEON_FILES := $(wildcard *_neon_test.cc)
+endif
 
-CXX_FILES := $(BASIC_FILES) $(SSE_FILES) $(AVX2_FILES) $(AVX512_FILES)
+CXX_FILES := $(BASIC_FILES) $(SSE_FILES) $(AVX2_FILES) $(AVX512_FILES) $(NEON_FILES)
 CXX_TARGETS := $(CXX_FILES:%.cc=%.x)
-CXXFLAGS += $(SSE_FLAGS) $(AVX2_FLAGS) $(AVX512_FLAGS) $(BMI2_FLAGS)
+CXXFLAGS += $(SSE_FLAGS) $(AVX2_FLAGS) $(AVX512_FLAGS) $(BMI2_FLAGS) $(NEON_FLAGS)
 
 CUDA_FILES := $(wildcard *cuda_test.cu)
 CUDA_TARGETS := $(CUDA_FILES:%cuda_test.cu=%cuda_test.x)
