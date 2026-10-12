@@ -32,7 +32,7 @@ R<sub>x</sub>(&phi;) = e<sup>-i&phi;X/2</sup>                     | time rx qubi
 R<sub>y</sub>(&phi;) = e<sup>-i&phi;Y/2</sup>                     | time ry qubit phi               | 8 ry 8 1.05
 R<sub>z</sub>(&phi;) = e<sup>-i&phi;Z/2</sup>                     | time rz qubit phi               | 9 rz 9 0.79
 R<sub>x,y</sub>(&theta;, &phi;) = e<sup>-i&phi;(cos(&theta;)X/2+sin(&theta;)Y/2)</sup> | time rxy qubit theta phi        | 0 rxy 0 1.05 0.79
-&radic;W = (&radic;i)R<sub>x,y</sub>(&pi;/4, &pi;/2))             | time hz_1_2 qubit               | 1 hz_1_2 1
+&radic;W = (&radic;i)R<sub>x,y</sub>(&pi;/4, &pi;/2)              | time hz_1_2 qubit               | 1 hz_1_2 1
 S                                                                 | time s qubit                    | 2 s 1
 CZ                                                                | time cz qubit1 qubit2           | 2 cz 2 3
 CNOT                                                              | time cnot qubit1 qubit2         | 3 cnot 4 5
@@ -40,7 +40,7 @@ iSwap                                                             | time is qubi
 fSim(&theta;, &phi;)                                              | time fs qubit1 qubit2 theta phi | 5 fs 6 7 3.14 1.57
 CPhase(&phi;)                                                     | time cp qubit1 qubit2 phi       | 6 cp 0 1 0.78
 Identity (1-qubit)                                                | time id1 qubit                  | 7 id1 0
-Identity (2-qubit)                                                | time id2 qubit                  | 8 id2 0 1
+Identity (2-qubit)                                                | time id2 qubit1 qubit2          | 8 id2 0 1
 Measurement (n-qubit)                                             | time m qubit1 qubit2 ...        | 9 m 0 1 2 3
 Controlled Gate                                                   | time c control_qubit1 control_qubit2 ... gate | 10 c 0 1 rx 4 0.5
 
