@@ -70,7 +70,7 @@ wheelhouse
 # Local PyPI config files.
 .pypirc
 
-# Things that don't need to be in a Docker inage.
+# Things that don't need to be in a Docker image.
 dev_tools/ci
 docs
 
