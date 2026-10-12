@@ -1,5 +1,44 @@
-# Thanks to setuptools-scm, the source distribution (sdist) will already include
-# all files tracked by git. Here we exclude some that are unsuitable.
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-recursive-exclude .github *
-recursive-exclude dev_tools/ci *
+# This file controls what's packaged into a Python sdist. It must include the
+# minimum needed to build qsimcirq on users's computers using CMake. Note we
+# use setuptools-scm, which adds every committed file automatically, so the
+# sdist is really "everything committed minus the prune/exclude lines."
+
+exclude .*
+exclude CITATION.cff
+exclude CODE_OF_CONDUCT.md
+exclude CONTRIBUTING.md
+exclude MANIFEST.in
+exclude SUPPORT.md
+exclude WORKSPACE
+
+# These files also appear in subdirectories, hence need global-exclude.
+global-exclude BUILD
+global-exclude docker-compose.yml
+global-exclude Dockerfile
+global-exclude Makefile
+
+# Directories to exclude.
+prune **/.*
+prune apps
+prune check
+prune circuits
+prune dev_tools
+prune docs
+prune install
+prune jupyter
+prune tests
+prune third_party
