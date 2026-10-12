@@ -42,10 +42,7 @@ inline void free(void* ptr) {
 }
 
 #if defined(__linux__) && defined(SYS_mbind)
-// Interleaves the state across every NUMA node this process may use, so all
-// sockets' memory controllers serve it. The kernel limits the mask to the
-// allowed memory nodes (a no-op on one node); on failure, pages keep the
-// default placement. `ptr` must be page-aligned.
+// mbind requires page-aligned memory and covers all allowed NUMA nodes.
 inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
   constexpr int kMpolInterleave = 3;
   const unsigned long all_nodes = ~0UL;

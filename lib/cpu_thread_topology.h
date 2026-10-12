@@ -105,7 +105,6 @@ class CpuThreadTopology {
   }
 #endif
 
-  // Sorted logical CPUs of each physical core, in (package, core) order.
   std::vector<std::vector<unsigned>> cores_;
   std::string error_;
 };
