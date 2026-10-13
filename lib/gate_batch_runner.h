@@ -57,16 +57,17 @@ struct GateBatchWorkspace {
   std::vector<ExecutableGate<FP>> executable_gates;
 };
 
-struct SimulationStats {
-  unsigned num_gate_batches = 0;
-  unsigned num_restore_passes = 0;
-  unsigned num_swaps = 0;
-  unsigned num_executable_gates = 0;
-  double plan_seconds = 0.0;
-  double swap_seconds = 0.0;
-  double fuse_seconds = 0.0;
-  double gate_seconds = 0.0;
-};
+  struct SimulationStats {
+    unsigned num_gate_batches = 0;
+    unsigned num_restore_passes = 0;
+    unsigned num_raw_gates = 0;
+    unsigned num_swaps = 0;
+    unsigned num_executable_gates = 0;
+    double plan_seconds = 0.0;
+    double swap_seconds = 0.0;
+    double fuse_seconds = 0.0;
+    double gate_seconds = 0.0;
+  };
 
 struct GateBatchQubitSet {
   bool Contains(unsigned logical_qubit) const {
@@ -416,6 +417,26 @@ class GateBatchRunner {
       return false;
     }
     if (!backend_.Prepare()) return false;
+    simulation_stats_.num_raw_gates = unsigned(circuit.ops.size());
+
+    if (backend_.TileQubits() == num_qubits_) {
+      if (!ValidateCircuitOperations(circuit)) return false;
+      const auto fuse_start = GetTime();
+      if (!FuseBatchGates(circuit.ops)) return false;
+      simulation_stats_.fuse_seconds += GetTime() - fuse_start;
+      simulation_stats_.num_executable_gates +=
+          gate_batch_workspace_.executable_gates.size();
+      backend_.Synchronize();
+      const auto simulation_start = GetTime();
+      const auto gates_start = StartTimer();
+      backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
+      simulation_stats_.gate_seconds += StopTimer(gates_start);
+      simulation_stats_.num_gate_batches = circuit.ops.empty() ? 0 : 1;
+      backend_.Synchronize();
+      LogSimulationSummary(simulation_start);
+      return true;
+    }
+
     const auto prepare_start = GetTime();
     if (!PreparePendingGates(circuit)) return false;
     LogPreparationTime(prepare_start);
@@ -502,6 +523,26 @@ class GateBatchRunner {
   }
 
   template <typename Circuit>
+  bool ValidateCircuitOperations(const Circuit& circuit) const {
+    for (const auto& operation : circuit.ops) {
+      const auto* raw_gate =
+          OpGetAlternative<Gate<fp_type>>(operation);
+      if (raw_gate == nullptr) {
+        IO::errorf("qsim_gate_batch: unsupported operation "
+                   "(controlled gate or measurement).\n");
+        return false;
+      }
+      if (raw_gate->qubits.size() > Backend::kMaxGateQubits) {
+        IO::errorf("qsim_gate_batch: %zu-qubit gate exceeds the backend "
+                   "limit of %u qubits.\n", raw_gate->qubits.size(),
+                   Backend::kMaxGateQubits);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <typename Circuit>
   bool PreparePendingGates(const Circuit& circuit) {
     pending_gates_.reserve(circuit.ops.size());
 
@@ -524,6 +565,7 @@ class GateBatchRunner {
       auto matrix = raw_gate->matrix;
       NormalizeGateQubitOrder(logical_qubits, matrix);
       const bool diagonal =
+          param_.commute_diagonal_gates &&
           IsDiagonalMatrix(matrix, logical_qubits.size());
       pending_gates_.push_back(
           {std::move(logical_qubits), std::move(matrix), diagonal});
@@ -627,7 +669,7 @@ class GateBatchRunner {
 
   template <typename Op>
   bool FuseBatchGates(const std::vector<Op>& batch_operations) {
-    const auto fused_ops = Fuser::FuseGates(param_, backend_.TileQubits(),
+    auto fused_ops = Fuser::FuseGates(param_, backend_.TileQubits(),
                                             batch_operations);
     if (fused_ops.empty() && !batch_operations.empty()) {
       IO::errorf("qsim_gate_batch: fuser failed on a gate batch.\n");
@@ -638,14 +680,15 @@ class GateBatchRunner {
     executable_gates.clear();
     executable_gates.reserve(fused_ops.size());
     // Fused ops reference input batch_operations, so copying must happen while it is alive.
-    for (const auto& operation : fused_ops) {
-      const auto* gate = OpGetAlternative<FusedGate<fp_type>>(operation);
+    for (auto& operation : fused_ops) {
+      auto* gate = OpGetAlternative<FusedGate<fp_type>>(operation);
       if (gate == nullptr) {
         IO::errorf("qsim_gate_batch: unsupported operation in gate batch.\n");
         return false;
       }
       assert(std::is_sorted(gate->qubits.begin(), gate->qubits.end()));
-      executable_gates.push_back({gate->qubits, gate->matrix});
+      executable_gates.push_back(
+          {std::move(gate->qubits), std::move(gate->matrix)});
     }
     return true;
   }
@@ -705,7 +748,7 @@ class GateBatchRunner {
                  "%u qubit swaps.\n",
                  simulation_stats_.num_gate_batches,
                  simulation_stats_.num_restore_passes,
-                 unsigned(pending_gates_.size()),
+                 simulation_stats_.num_raw_gates,
                  simulation_stats_.num_executable_gates,
                  simulation_stats_.num_swaps);
     if (param_.verbosity > 1) {
