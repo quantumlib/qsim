@@ -114,8 +114,7 @@ class GateBatchPlanner {
                                   const QubitLayout& layout) {
     GateBatchPlan best_plan;
     auto consider = [&](GateBatchQubitSet seed) {
-      GrowQubitSetGreedily(gates, layout, seed);
-      auto plan = EvaluateQubitSet(gates, layout, seed);
+      auto plan = BuildCandidatePlan(gates, layout, seed);
       if (!best_plan.HasGates() || plan.score > best_plan.score) {
         best_plan = std::move(plan);
       }
@@ -208,22 +207,9 @@ class GateBatchPlanner {
     return qubit_set;
   }
 
-  void GrowQubitSetGreedily(const std::vector<PendingGate<FP>>& gates,
-                            const QubitLayout& layout,
-                            GateBatchQubitSet& qubit_set) {
-    ClearBlockedQubits();
-    for (const PendingGate<FP>& gate : gates) {
-      if (gate.applied) continue;
-      if (AnyQubitBlocked(gate) ||
-          !TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
-        BlockQubits(gate);
-      }
-    }
-  }
-
-  GateBatchPlan EvaluateQubitSet(
+  GateBatchPlan BuildCandidatePlan(
       const std::vector<PendingGate<FP>>& gates, const QubitLayout& layout,
-      const GateBatchQubitSet& qubit_set) {
+      GateBatchQubitSet& qubit_set) {
     GateBatchPlan plan;
     plan.uses_qubit.assign(num_logical_qubits_, 0);
     ClearBlockedQubits();
@@ -232,7 +218,7 @@ class GateBatchPlanner {
       const auto& gate = gates[idx];
       if (gate.applied) continue;
       if (!AnyQubitBlocked(gate) &&
-          QubitSetContainsAll(gate.logical_qubits, qubit_set)) {
+          TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
         plan.gate_indices.push_back(idx);
         for (unsigned q : gate.logical_qubits) {
           plan.uses_qubit[q] = 1;
@@ -272,13 +258,6 @@ class GateBatchPlanner {
     for (unsigned q : qubits) qubit_set.contains_qubit[q] = 1;
     qubit_set.remap_slots_used += additional_remap_slots;
     return true;
-  }
-
-  static bool QubitSetContainsAll(const std::vector<unsigned>& qubits,
-                                  const GateBatchQubitSet& qubit_set) {
-    return std::all_of(
-        qubits.begin(), qubits.end(),
-        [&qubit_set](unsigned q) { return qubit_set.Contains(q); });
   }
 
   unsigned CountSwapsNeeded(const GateBatchPlan& plan,
