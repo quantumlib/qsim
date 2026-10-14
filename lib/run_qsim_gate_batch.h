@@ -180,7 +180,7 @@ class CpuGateBatchBackend {
   using SeqSimulator = typename gate_batch_internal::ReplaceFor<
       typename Factory::Simulator, gate_batch_internal::CooperativeFor>::type;
   using SeqStateSpace = typename SeqSimulator::StateSpace;
-  using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
+  using ExecutableGate = FusedGate<fp_type>;
 
   struct Parameter {
     unsigned num_threads = 1;
@@ -259,7 +259,7 @@ class CpuGateBatchBackend {
         SeqStateSpace::Create(tile_data, partition_.tile_qubits);
 
     for (const ExecutableGate& gate : gates) {
-      seq_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(), tile_view);
+      seq_sim_.ApplyGate(gate.qubits, gate.matrix.data(), tile_view);
       if (team_barrier != nullptr) team_barrier->Wait(team_size);
     }
   }
@@ -280,7 +280,7 @@ class CpuGateBatchBackend {
       auto full_view =
           SeqStateSpace::Create(state_data_, partition_.tile_qubits);
       for (const ExecutableGate& gate : gates) {
-        seq_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(), full_view);
+        seq_sim_.ApplyGate(gate.qubits, gate.matrix.data(), full_view);
 #pragma omp barrier
       }
     }
