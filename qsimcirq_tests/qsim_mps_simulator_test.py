@@ -28,14 +28,10 @@ def test_mps_sampler_samples_terminal_measurements():
         cirq.measure(q0, q1, q2, key="m"),
     )
 
-    result = qsimcirq.QSimMPSSimulator(seed=123).run(
-        circuit, repetitions=5
-    )
+    result = qsimcirq.QSimMPSSimulator(seed=123).run(circuit, repetitions=5)
 
     assert result.measurements["m"].shape == (5, 3)
-    np.testing.assert_array_equal(
-        result.measurements["m"], np.tile([1, 0, 0], (5, 1))
-    )
+    np.testing.assert_array_equal(result.measurements["m"], np.tile([1, 0, 0], (5, 1)))
 
 
 def test_mps_sampler_applies_invert_mask():
@@ -47,13 +43,9 @@ def test_mps_sampler_applies_invert_mask():
         cirq.measure(q0, q1, key="m", invert_mask=[True, False]),
     )
 
-    result = qsimcirq.QSimMPSSimulator(seed=123).run(
-        circuit, repetitions=4
-    )
+    result = qsimcirq.QSimMPSSimulator(seed=123).run(circuit, repetitions=4)
 
-    np.testing.assert_array_equal(
-        result.measurements["m"], np.tile([1, 0], (4, 1))
-    )
+    np.testing.assert_array_equal(result.measurements["m"], np.tile([1, 0], (4, 1)))
 
 
 def test_mps_sampler_rejects_nonterminal_measurements():
@@ -108,8 +100,6 @@ def test_mps_sampler_supports_zero_repetitions():
         cirq.measure(q0, key="m"),
     )
 
-    result = qsimcirq.QSimMPSSimulator(seed=123).run(
-        circuit, repetitions=0
-    )
+    result = qsimcirq.QSimMPSSimulator(seed=123).run(circuit, repetitions=0)
 
     assert result.measurements["m"].shape == (0, 1)

@@ -81,9 +81,7 @@ class QSimMPSSimulator(cirq.Sampler):
 
         results = []
         for resolver in cirq.to_resolvers(params):
-            resolved_circuit = cirq.resolve_parameters(
-                unitary_circuit, resolver
-            )
+            resolved_circuit = cirq.resolve_parameters(unitary_circuit, resolver)
 
             # Validate after resolving parameters, so parameterized unitary
             # gates can be accepted when their parameters are resolved.
@@ -101,9 +99,7 @@ class QSimMPSSimulator(cirq.Sampler):
                         f"MPS sampling supports unitary gates only; got {op!r}."
                     )
 
-            translated, _ = qsimc.QSimCircuit(
-                resolved_circuit
-            ).translate_cirq_to_qsim()
+            translated, _ = qsimc.QSimCircuit(resolved_circuit).translate_cirq_to_qsim()
 
             raw_results = qsim.qsim_mps_sample(
                 {"c": translated, "s": int(self._prng.randint(2**31 - 1))},
@@ -123,17 +119,13 @@ class QSimMPSSimulator(cirq.Sampler):
             qubit_map = {qubit: i for i, qubit in enumerate(all_qubits)}
             for key, op in measurements_by_key.items():
                 indices = [qubit_map[qubit] for qubit in op.qubits]
-                invert_mask = np.asarray(
-                    op.gate.full_invert_mask(), dtype=bool
-                )
+                invert_mask = np.asarray(op.gate.full_invert_mask(), dtype=bool)
                 measurement_results[key] = (
                     full_results[:, indices] ^ invert_mask
                 ).astype(np.uint8)
 
             results.append(
-                cirq.ResultDict(
-                    params=resolver, measurements=measurement_results
-                )
+                cirq.ResultDict(params=resolver, measurements=measurement_results)
             )
 
         return results
