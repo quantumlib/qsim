@@ -18,7 +18,7 @@ project(qsim)
 if(MSVC)
     add_compile_options(/arch:AVX512 /openmp)
 else()
-    add_compile_options(-mavx512f -mbmi2 -O3)
+    add_compile_options(-mavx512f -mbmi2 -mfma -O3)
 endif()
 
 if(APPLE)
