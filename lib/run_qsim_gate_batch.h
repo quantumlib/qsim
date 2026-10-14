@@ -32,7 +32,6 @@
 #include "cpu_thread_topology.h"
 #include "gate_batch_runner.h"
 #include "qubit_remap.h"
-#include "seqfor.h"
 #include "util.h"
 
 namespace qsim {
@@ -141,10 +140,18 @@ struct CooperativeFor {
 
   template <typename Function, typename... Args>
   static void Run(uint64_t size, Function&& func, Args&&... args) {
-    const auto begin = size * team_thread_id_ / team_size_;
-    const auto end = size * (team_thread_id_ + 1) / team_size_;
+    const auto team_size = team_size_;
+    if (team_size <= 1) {
+      for (uint64_t i = 0; i < size; ++i) {
+        func(1, 0, i, args...);
+      }
+      return;
+    }
+    const auto team_thread_id = team_thread_id_;
+    const auto begin = size * team_thread_id / team_size;
+    const auto end = size * (team_thread_id + 1) / team_size;
     for (uint64_t i = begin; i < end; ++i) {
-      func(team_size_, team_thread_id_, i, args...);
+      func(team_size, team_thread_id, i, args...);
     }
   }
 
@@ -173,9 +180,6 @@ class CpuGateBatchBackend {
   using SeqSimulator = typename gate_batch_internal::ReplaceFor<
       typename Factory::Simulator, gate_batch_internal::CooperativeFor>::type;
   using SeqStateSpace = typename SeqSimulator::StateSpace;
-  using SingleThreadSimulator = typename gate_batch_internal::ReplaceFor<
-      typename Factory::Simulator, SequentialFor>::type;
-  using SingleThreadStateSpace = typename SingleThreadSimulator::StateSpace;
   using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
 
   struct Parameter {
@@ -197,8 +201,7 @@ class CpuGateBatchBackend {
         partition_(num_qubits, param.tile_qubits, param.num_threads,
                    MinTileQubits(param.max_fused_size), kDefaultTileQubits),
         state_data_(state.get()),
-        seq_sim_(1),
-        single_thread_sim_(1) {
+        seq_sim_(1) {
     assert(partition_.tile_qubits >= std::min(kLaneQubits, num_qubits));
   }
 
@@ -265,12 +268,7 @@ class CpuGateBatchBackend {
     constexpr unsigned kMinParallelQubits = 14;
     if (!gate_batch_internal::kHasOpenMP || param_.num_threads <= 1 ||
         partition_.tile_qubits < kMinParallelQubits) {
-      auto full_view =
-          SingleThreadStateSpace::Create(state_data_, partition_.tile_qubits);
-      for (const ExecutableGate& gate : gates) {
-        single_thread_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(),
-                                     full_view);
-      }
+      ExecuteGatesOnTile(gates, 0);
       return;
     }
 
@@ -292,13 +290,7 @@ class CpuGateBatchBackend {
       const std::vector<ExecutableGate>& gates) const {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(param_.num_threads)
     for (int64_t tile = 0; tile < partition_.num_tiles; ++tile) {
-      auto* tile_data = state_data_ + tile * partition_.floats_per_tile;
-      auto tile_view =
-          SingleThreadStateSpace::Create(tile_data, partition_.tile_qubits);
-      for (const ExecutableGate& gate : gates) {
-        single_thread_sim_.ApplyGate(gate.physical_qubits, gate.matrix.data(),
-                                     tile_view);
-      }
+      ExecuteGatesOnTile(gates, tile);
     }
   }
 
@@ -392,7 +384,6 @@ class CpuGateBatchBackend {
   const TilePartition partition_;
   fp_type* const state_data_;
   SeqSimulator seq_sim_;
-  SingleThreadSimulator single_thread_sim_;
 };
 
 template <typename IO, typename Fuser, typename Factory>
