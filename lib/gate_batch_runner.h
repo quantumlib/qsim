@@ -37,24 +37,18 @@ namespace gate_batch_internal {
 
 template <typename FP>
 struct PendingGate {
-  std::size_t Arity() const { return logical_qubits.size(); }
+  const std::vector<unsigned>& Qubits() const { return gate->qubits; }
+  std::size_t Arity() const { return gate->qubits.size(); }
 
-  std::vector<unsigned> logical_qubits;
-  Matrix<FP> matrix;
+  const Gate<FP>* gate = nullptr;
   bool is_diagonal = false;
   bool applied = false;
 };
 
 template <typename FP>
-struct ExecutableGate {
-  std::vector<unsigned> physical_qubits;
-  Matrix<FP> matrix;
-};
-
-template <typename FP>
 struct GateBatchWorkspace {
   std::vector<QubitSwap> swap_pairs;
-  std::vector<ExecutableGate<FP>> executable_gates;
+  std::vector<FusedGate<FP>> executable_gates;
 };
 
   struct SimulationStats {
@@ -134,7 +128,7 @@ class GateBatchPlanner {
       }
       if (seeds_used++ == max_seeds) break;
       auto seed = MakeEmptyQubitSet();
-      if (TryAdmitQubits(gate.logical_qubits, layout, seed)) {
+      if (TryAdmitQubits(gate.Qubits(), layout, seed)) {
         consider(std::move(seed));
       }
     }
@@ -218,9 +212,9 @@ class GateBatchPlanner {
       const auto& gate = gates[idx];
       if (gate.applied) continue;
       if (!AnyQubitBlocked(gate) &&
-          TryAdmitQubits(gate.logical_qubits, layout, qubit_set)) {
+          TryAdmitQubits(gate.Qubits(), layout, qubit_set)) {
         plan.gate_indices.push_back(idx);
-        for (unsigned q : gate.logical_qubits) {
+        for (unsigned q : gate.Qubits()) {
           plan.uses_qubit[q] = 1;
         }
       } else {
@@ -284,7 +278,7 @@ class GateBatchPlanner {
 
   bool AnyQubitBlocked(const PendingGate<FP>& gate) const {
     const auto commuting = TreatAsCommuting(gate);
-    for (unsigned q : gate.logical_qubits) {
+    for (unsigned q : gate.Qubits()) {
       if (is_qubit_blocked_[q]) return true;
       if (!commuting && is_qubit_blocked_for_diagonal_[q]) return true;
     }
@@ -293,7 +287,7 @@ class GateBatchPlanner {
 
   void BlockQubits(const PendingGate<FP>& gate) {
     const auto commuting = TreatAsCommuting(gate);
-    for (unsigned q : gate.logical_qubits) {
+    for (unsigned q : gate.Qubits()) {
       if (!commuting) is_qubit_blocked_[q] = 1;
       is_qubit_blocked_for_diagonal_[q] = 1;
     }
@@ -355,7 +349,6 @@ class GateBatchRunner {
 
  private:
   using PendingGate = gate_batch_internal::PendingGate<fp_type>;
-  using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
   using SimulationStats = gate_batch_internal::SimulationStats;
   using GateBatchWorkspace = gate_batch_internal::GateBatchWorkspace<fp_type>;
   using GateBatchPlanner = gate_batch_internal::GateBatchPlanner<fp_type>;
@@ -540,14 +533,10 @@ class GateBatchRunner {
         return false;
       }
 
-      auto logical_qubits = raw_gate->qubits;
-      auto matrix = raw_gate->matrix;
-      NormalizeGateQubitOrder(logical_qubits, matrix);
       const bool diagonal =
           param_.commute_diagonal_gates &&
-          IsDiagonalMatrix(matrix, logical_qubits.size());
-      pending_gates_.push_back(
-          {std::move(logical_qubits), std::move(matrix), diagonal});
+          IsDiagonalMatrix(raw_gate->matrix, raw_gate->qubits.size());
+      pending_gates_.push_back({raw_gate, diagonal});
     }
     return true;
   }
@@ -556,7 +545,7 @@ class GateBatchRunner {
     std::vector<uint64_t> scores(num_qubits_, 0);
     for (const PendingGate& gate : pending_gates_) {
       const auto weight = gate.Arity();
-      for (unsigned q : gate.logical_qubits) scores[q] += weight;
+      for (unsigned q : gate.Qubits()) scores[q] += weight;
     }
     return scores;
   }
@@ -629,14 +618,14 @@ class GateBatchRunner {
 
     unsigned time = 0;
     for (std::size_t idx : plan.gate_indices) {
-      const auto& gate = pending_gates_[idx];
+      const auto& raw_gate = *pending_gates_[idx].gate;
 
-      std::vector<unsigned> physical_qubits(gate.Arity());
-      for (std::size_t i = 0; i < gate.Arity(); ++i) {
+      std::vector<unsigned> physical_qubits(raw_gate.qubits.size());
+      for (std::size_t i = 0; i < raw_gate.qubits.size(); ++i) {
         physical_qubits[i] =
-            layout_.PhysicalPositionOf(gate.logical_qubits[i]);
+            layout_.PhysicalPositionOf(raw_gate.qubits[i]);
       }
-      auto physical_matrix = gate.matrix;
+      auto physical_matrix = raw_gate.matrix;
       NormalizeGateQubitOrder(physical_qubits, physical_matrix);
 
       auto physical_gate = Gate<fp_type>{
@@ -666,8 +655,7 @@ class GateBatchRunner {
         return false;
       }
       assert(std::is_sorted(gate->qubits.begin(), gate->qubits.end()));
-      executable_gates.push_back(
-          {std::move(gate->qubits), std::move(gate->matrix)});
+      executable_gates.push_back(std::move(*gate));
     }
     return true;
   }
