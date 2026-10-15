@@ -17,6 +17,9 @@
 
 #ifdef _WIN32
   #include <malloc.h>
+#elif defined(__linux__)
+  #include <sys/syscall.h>
+  #include <unistd.h>
 #endif
 
 #include <cstdint>
@@ -37,6 +40,18 @@ inline void free(void* ptr) {
   ::free(ptr);
 #endif
 }
+
+#if defined(__linux__) && defined(SYS_mbind)
+// Interleave across NUMA nodes only once state vectors exceed single-socket LLC.
+inline constexpr std::size_t kMinNumaInterleaveBytes = std::size_t{512} << 20;
+
+inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
+  constexpr int kMpolInterleave = 3;
+  const unsigned long all_nodes = ~0UL;
+  syscall(SYS_mbind, ptr, size, kMpolInterleave, &all_nodes,
+          sizeof(all_nodes) * 8, 0);
+}
+#endif
 
 }  // namespace detail
 
@@ -93,7 +108,16 @@ class VectorSpace {
       return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
     #else
       void* p = nullptr;
-      if (posix_memalign(&p, 64, size) == 0) {
+      #if defined(__linux__) && defined(SYS_mbind)
+      const bool interleave = size >= detail::kMinNumaInterleaveBytes;
+      #else
+      constexpr bool interleave = false;
+      #endif
+      const std::size_t align = interleave ? 4096 : 64;
+      if (posix_memalign(&p, align, size) == 0) {
+        #if defined(__linux__) && defined(SYS_mbind)
+        if (interleave) detail::ApplyNumaInterleave(p, size);
+        #endif
         return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
       } else {
         return Null();

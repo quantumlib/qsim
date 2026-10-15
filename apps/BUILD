@@ -33,6 +33,16 @@ cc_binary(
 )
 
 cc_binary(
+    name = "qsim_gate_batch",
+    srcs = ["qsim_gate_batch.cc"],
+    copts = gsframe_copts,
+    deps = [
+        "//lib:run_qsim_gate_batch",
+        "//lib:run_qsim_lib",
+    ],
+)
+
+cc_binary(
     name = "qsim_von_neumann",
     srcs = ["qsim_von_neumann.cc"],
     copts = gsframe_copts,
