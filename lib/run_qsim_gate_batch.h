@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 #ifdef _OPENMP
@@ -112,24 +113,6 @@ struct alignas(64) SmtTeamBarrier {
   std::atomic<unsigned> generation{0};
 };
 
-struct SmtTeamAssignment {
-  unsigned team_size;
-  unsigned num_teams;
-  unsigned team_id;
-  unsigned lane;
-  bool active;
-};
-
-inline SmtTeamAssignment AssignSmtTeam(unsigned inner_threads,
-                                       unsigned num_threads,
-                                       unsigned thread_id) {
-  const auto team_size = std::max(1u, std::min(inner_threads, num_threads));
-  const auto num_teams = num_threads / team_size;
-  const auto team_id = thread_id / team_size;
-  return {team_size, num_teams, team_id, thread_id % team_size,
-          team_id < num_teams};
-}
-
 struct CooperativeFor {
   explicit CooperativeFor(unsigned num_threads) { (void) num_threads; }
 
@@ -185,7 +168,6 @@ class CpuGateBatchBackend {
   struct Parameter {
     unsigned num_threads = 1;
     unsigned inner_threads = 1;
-    std::vector<unsigned> team_thread_cpus;
   };
 
   static constexpr unsigned kDefaultTileQubits = 19;
@@ -214,10 +196,12 @@ class CpuGateBatchBackend {
   unsigned LaneQubits() const { return kLaneQubits; }
 
   bool Prepare() {
-    if (!ValidateThreads()) return false;
-    if (param_.inner_threads > 1 && !PinSmtTeamThreads()) return false;
+    if (param_.num_threads == 0) {
+      IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
+      return false;
+    }
+    if (param_.inner_threads > 1 && !ConfigureSmtTeams()) return false;
     LogAdaptiveTileSize();
-    LogThreadTeams();
     return true;
   }
 
@@ -294,66 +278,59 @@ class CpuGateBatchBackend {
     }
   }
 
-  bool PinSmtTeamThreads() const {
-    std::atomic<bool> pinned{true};
+  bool ConfigureSmtTeams() const {
+    if (!gate_batch_internal::kHasOpenMP) {
+      IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
+      return false;
+    }
 
+    std::vector<unsigned> team_cpus;
+    std::string error;
+    if (!BuildSmtTeamCpuOrder(param_.num_threads, param_.inner_threads,
+                              team_cpus, error)) {
+      IO::errorf("cannot configure SMT teams: %s.\n", error.c_str());
+      return false;
+    }
+
+    std::atomic<bool> pinned{true};
 #pragma omp parallel num_threads(param_.num_threads)
     {
-      const auto cpu =
-          param_.team_thread_cpus[gate_batch_internal::ParallelThreadId()];
+      const auto cpu = team_cpus[gate_batch_internal::ParallelThreadId()];
       if (!PinCurrentThreadToCpu(cpu)) {
         pinned.store(false, std::memory_order_relaxed);
       }
     }
-
     if (!pinned.load(std::memory_order_relaxed)) {
       IO::errorf("qsim_gate_batch: failed to pin an SMT worker to its CPU.\n");
       return false;
+    }
+
+    if (verbosity_ > 1) {
+      for (unsigned thread = 0; thread < param_.num_threads; ++thread) {
+        IO::messagef("SMT team %u lane %u: CPU %u\n",
+                     thread / param_.inner_threads,
+                     thread % param_.inner_threads, team_cpus[thread]);
+      }
     }
     return true;
   }
 
   void ExecuteSmtTileTeams(const std::vector<ExecutableGate>& gates) const {
-    auto team_barriers =
-        std::make_unique<SmtTeamBarrier[]>(param_.num_threads);
+    const unsigned team_size = param_.inner_threads;
+    const unsigned num_teams = param_.num_threads / team_size;
+    auto team_barriers = std::make_unique<SmtTeamBarrier[]>(num_teams);
 
 #pragma omp parallel num_threads(param_.num_threads)
     {
-      const auto assignment = gate_batch_internal::AssignSmtTeam(
-          param_.inner_threads, gate_batch_internal::ParallelThreadCount(),
-          gate_batch_internal::ParallelThreadId());
-      if (assignment.active) {
-        for (int64_t tile = assignment.team_id;
-             tile < partition_.num_tiles; tile += assignment.num_teams) {
-          ExecuteGatesOnTile(gates, tile, assignment.team_size,
-                             assignment.lane,
-                             &team_barriers[assignment.team_id]);
-        }
+      const unsigned tid = gate_batch_internal::ParallelThreadId();
+      const unsigned team_id = tid / team_size;
+      const unsigned lane = tid % team_size;
+      for (int64_t tile = team_id; tile < partition_.num_tiles;
+           tile += num_teams) {
+        ExecuteGatesOnTile(gates, tile, team_size, lane,
+                           &team_barriers[team_id]);
       }
     }
-  }
-
-  bool ValidateThreads() const {
-    if (param_.num_threads == 0) {
-      IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
-      return false;
-    }
-    if (param_.inner_threads <= 1) return true;
-    if (!gate_batch_internal::kHasOpenMP) {
-      IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
-      return false;
-    }
-    if (param_.num_threads % param_.inner_threads != 0) {
-      IO::errorf("qsim_gate_batch: num_threads must be divisible by "
-                 "inner_threads.\n");
-      return false;
-    }
-    if (param_.team_thread_cpus.size() != param_.num_threads) {
-      IO::errorf("qsim_gate_batch: SMT mode requires one CPU assignment "
-                 "per thread.\n");
-      return false;
-    }
-    return true;
   }
 
   void LogAdaptiveTileSize() const {
@@ -364,18 +341,6 @@ class CpuGateBatchBackend {
                    partition_.requested_tile_qubits, partition_.tile_qubits,
                    static_cast<long long>(partition_.num_tiles),
                    param_.num_threads);
-    }
-  }
-
-  void LogThreadTeams() const {
-    if (verbosity_ <= 1 || param_.inner_threads <= 1) return;
-    for (unsigned thread = 0; thread < param_.num_threads;
-         thread += param_.inner_threads) {
-      const auto team = thread / param_.inner_threads;
-      for (unsigned lane = 0; lane < param_.inner_threads; ++lane) {
-        IO::messagef("SMT team %u lane %u: CPU %u\n", team, lane,
-             param_.team_thread_cpus[thread + lane]);
-      }
     }
   }
 

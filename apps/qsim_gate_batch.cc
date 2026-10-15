@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "../lib/circuit_qsim_parser.h"
-#include "../lib/cpu_thread_topology.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/gates_qsim.h"
@@ -94,17 +93,6 @@ int main(int argc, char* argv[]) {
   using namespace qsim;
 
   auto opt = GetOptions(argc, argv);
-  std::vector<unsigned> team_thread_cpus;
-  if (opt.inner_threads > 1) {
-    std::string topology_error;
-    const auto topology = CpuThreadTopology::Discover();
-    if (!topology.BuildTeamCpuOrder(opt.num_threads, opt.inner_threads,
-                                    team_thread_cpus, topology_error)) {
-      IO::errorf("cannot configure SMT teams: %s.\n",
-                 topology_error.c_str());
-      return 1;
-    }
-  }
 
   Circuit<Operation<float>> circuit;
   if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
@@ -142,7 +130,6 @@ int main(int argc, char* argv[]) {
   param.max_gate_seeds = opt.max_gate_seeds;
   param.num_threads = opt.num_threads;
   param.inner_threads = opt.inner_threads;
-  param.team_thread_cpus = std::move(team_thread_cpus);
   param.verbosity = opt.verbosity;
 
   if (Runner::Run(param, Factory(opt.num_threads), circuit, state)) {
