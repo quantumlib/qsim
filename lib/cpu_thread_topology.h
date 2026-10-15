@@ -15,7 +15,6 @@
 #ifndef CPU_THREAD_TOPOLOGY_H_
 #define CPU_THREAD_TOPOLOGY_H_
 
-#include <algorithm>
 #include <fstream>
 #include <map>
 #include <string>
@@ -28,86 +27,90 @@
 
 namespace qsim {
 
-class CpuThreadTopology {
- public:
-  static CpuThreadTopology Discover() {
-    CpuThreadTopology topology;
+namespace cpu_topology_internal {
 
 #ifdef __linux__
-    cpu_set_t allowed_cpus;
-    CPU_ZERO(&allowed_cpus);
-    if (sched_getaffinity(0, sizeof(allowed_cpus), &allowed_cpus) != 0) {
-      topology.error_ = "cannot read the process CPU affinity";
-      return topology;
-    }
+using PhysicalCoreKey = std::pair<unsigned, unsigned>;
+using CoreSiblingsMap = std::map<PhysicalCoreKey, std::vector<unsigned>>;
 
-    std::map<std::pair<unsigned, unsigned>, std::vector<unsigned>> cores;
-    for (unsigned cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
-      if (!CPU_ISSET(cpu, &allowed_cpus)) continue;
+inline bool ReadSysfsTopologyId(unsigned cpu, const char* field,
+                                unsigned& value) {
+  std::ifstream input("/sys/devices/system/cpu/cpu" + std::to_string(cpu) +
+                      "/topology/" + field);
+  return bool(input >> value);
+}
 
-      unsigned package_id;
-      unsigned core_id;
-      if (!ReadTopologyValue(cpu, "physical_package_id", package_id) ||
-          !ReadTopologyValue(cpu, "core_id", core_id)) {
-        topology.error_ = "cannot read Linux CPU topology from sysfs";
-        return topology;
-      }
-      cores[{package_id, core_id}].push_back(cpu);
-    }
+inline bool ReadPhysicalCoreKey(unsigned cpu, PhysicalCoreKey& core_key) {
+  return ReadSysfsTopologyId(cpu, "physical_package_id", core_key.first) &&
+         ReadSysfsTopologyId(cpu, "core_id", core_key.second);
+}
 
-    for (auto& entry : cores) {
-      auto& logical_cpus = entry.second;
-      std::sort(logical_cpus.begin(), logical_cpus.end());
-      topology.cores_.push_back(std::move(logical_cpus));
-    }
-#else
-    topology.error_ = "automatic CPU topology discovery requires Linux";
-#endif
-
-    return topology;
-  }
-
-  bool BuildTeamCpuOrder(unsigned num_threads, unsigned threads_per_team,
-                         std::vector<unsigned>& thread_cpus,
-                         std::string& error) const {
-    thread_cpus.clear();
-    error.clear();
-    if (!error_.empty()) {
-      error = error_;
-      return false;
-    }
-    if (threads_per_team == 0 || num_threads % threads_per_team != 0) {
-      error = "thread count must be divisible by threads per team";
-      return false;
-    }
-
-    for (const auto& logical_cpus : cores_) {
-      if (logical_cpus.size() < threads_per_team) continue;
-      for (unsigned lane = 0; lane < threads_per_team; ++lane) {
-        thread_cpus.push_back(logical_cpus[lane]);
-      }
-      if (thread_cpus.size() == num_threads) return true;
-    }
-
-    error = "not enough physical cores with the requested SMT siblings";
-    thread_cpus.clear();
+inline bool GroupAllowedCpusByPhysicalCore(CoreSiblingsMap& cores,
+                                           std::string& error) {
+  cpu_set_t allowed_cpus;
+  CPU_ZERO(&allowed_cpus);
+  if (sched_getaffinity(0, sizeof(allowed_cpus), &allowed_cpus) != 0) {
+    error = "cannot read the process CPU affinity";
     return false;
   }
 
- private:
-#ifdef __linux__
-  static bool ReadTopologyValue(unsigned cpu, const char* name,
-                                unsigned& value) {
-    const auto path = "/sys/devices/system/cpu/cpu" +
-                      std::to_string(cpu) + "/topology/" + name;
-    std::ifstream input(path);
-    return bool(input >> value);
+  for (unsigned cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
+    if (!CPU_ISSET(cpu, &allowed_cpus)) continue;
+    PhysicalCoreKey core_key;
+    if (!ReadPhysicalCoreKey(cpu, core_key)) {
+      error = "cannot read Linux CPU topology from sysfs";
+      return false;
+    }
+    cores[core_key].push_back(cpu);
   }
+  return true;
+}
+
+inline bool SelectSmtTeamsFromCores(const CoreSiblingsMap& cores,
+                                    unsigned num_threads,
+                                    unsigned threads_per_team,
+                                    std::vector<unsigned>& thread_cpus,
+                                    std::string& error) {
+  for (const auto& entry : cores) {
+    const auto& siblings = entry.second;
+    if (siblings.size() < threads_per_team) continue;
+    for (unsigned lane = 0; lane < threads_per_team; ++lane) {
+      thread_cpus.push_back(siblings[lane]);
+    }
+    if (thread_cpus.size() == num_threads) return true;
+  }
+
+  error = "not enough physical cores with the requested SMT siblings";
+  thread_cpus.clear();
+  return false;
+}
 #endif
 
-  std::vector<std::vector<unsigned>> cores_;
-  std::string error_;
-};
+}  // namespace cpu_topology_internal
+
+inline bool BuildSmtTeamCpuOrder(unsigned num_threads,
+                                 unsigned threads_per_team,
+                                 std::vector<unsigned>& thread_cpus,
+                                 std::string& error) {
+  thread_cpus.clear();
+  error.clear();
+  if (threads_per_team == 0 || num_threads % threads_per_team != 0) {
+    error = "thread count must be divisible by threads per team";
+    return false;
+  }
+
+#ifdef __linux__
+  cpu_topology_internal::CoreSiblingsMap cores;
+  if (!cpu_topology_internal::GroupAllowedCpusByPhysicalCore(cores, error)) {
+    return false;
+  }
+  return cpu_topology_internal::SelectSmtTeamsFromCores(
+      cores, num_threads, threads_per_team, thread_cpus, error);
+#else
+  error = "automatic CPU topology discovery requires Linux";
+  return false;
+#endif
+}
 
 inline bool PinCurrentThreadToCpu(unsigned cpu) {
 #ifdef __linux__
