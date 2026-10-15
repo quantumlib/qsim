@@ -110,8 +110,8 @@ class MPSStateSpace {
 #ifdef _WIN32
     Pointer ptr{(fp_type*)_aligned_malloc(size, 64), &detail::free};
     bool is_null = ptr.get() != nullptr;
-    return MPS{std::move(ptr), is_null ? num_qubits : 0,
-               is_null ? bond_dim : 0};
+    return MPS{
+        std::move(ptr), is_null ? num_qubits : 0, is_null ? bond_dim : 0};
 #else
     void* p = nullptr;
     if (posix_memalign(&p, 64, size) == 0) {
@@ -184,8 +184,8 @@ class MPSStateSpace {
     // Contract leftmost blocks together, store result in state1 scratch.
     ConstMatrixMap top((Complex*)state2_raw, 2, bond_dim);
     ConstMatrixMap bot((Complex*)state1_raw, 2, bond_dim);
-    MatrixMap partial_contract((Complex*)(state1_raw + end), bond_dim,
-                               bond_dim);
+    MatrixMap partial_contract(
+        (Complex*)(state1_raw + end), bond_dim, bond_dim);
     MatrixMap partial_contract2(
         (Complex*)(state1_raw + end + 2 * bond_dim * bond_dim), bond_dim,
         2 * bond_dim);
@@ -196,23 +196,23 @@ class MPSStateSpace {
       offset = GetBlockOffset(state1, i);
 
       // reshape:
-      new (&partial_contract2)
-          MatrixMap((Complex*)(state1_raw + end + 2 * bond_dim * bond_dim),
-                    bond_dim, 2 * bond_dim);
+      new (&partial_contract2) MatrixMap(
+          (Complex*)(state1_raw + end + 2 * bond_dim * bond_dim), bond_dim,
+          2 * bond_dim);
 
       // Merge bot into left boundary merged tensor.
-      new (&bot) ConstMatrixMap((Complex*)(state1_raw + offset), bond_dim,
-                                2 * bond_dim);
+      new (&bot) ConstMatrixMap(
+          (Complex*)(state1_raw + offset), bond_dim, 2 * bond_dim);
       partial_contract2.noalias() = partial_contract * bot;
 
       // reshape:
-      new (&partial_contract2)
-          MatrixMap((Complex*)(state1_raw + end + 2 * bond_dim * bond_dim),
-                    2 * bond_dim, bond_dim);
+      new (&partial_contract2) MatrixMap(
+          (Complex*)(state1_raw + end + 2 * bond_dim * bond_dim), 2 * bond_dim,
+          bond_dim);
 
       // Merge top into partial_contract2.
-      new (&top) ConstMatrixMap((Complex*)(state2_raw + offset), 2 * bond_dim,
-                                bond_dim);
+      new (&top) ConstMatrixMap(
+          (Complex*)(state2_raw + offset), 2 * bond_dim, bond_dim);
       partial_contract.noalias() = top.adjoint() * partial_contract2;
     }
 
@@ -226,9 +226,9 @@ class MPSStateSpace {
     // Contract rightmost top block.
     new (&top) ConstMatrixMap((Complex*)(state2_raw + offset), 2 * bond_dim, 1);
     new (&partial_contract) MatrixMap((Complex*)(state1_raw + end), 1, 1);
-    new (&partial_contract2)
-        MatrixMap((Complex*)(state1_raw + end + 4 * bond_dim * bond_dim),
-                  2 * bond_dim, 1);
+    new (&partial_contract2) MatrixMap(
+        (Complex*)(state1_raw + end + 4 * bond_dim * bond_dim), 2 * bond_dim,
+        1);
     partial_contract.noalias() = top.adjoint() * partial_contract2;
 
     return partial_contract(0, 0);
@@ -236,8 +236,8 @@ class MPSStateSpace {
 
   // Compute the 2x2 1-RDM of state on index. Result written to rdm.
   // Requires: scratch and rdm to be allocated.
-  static void ReduceDensityMatrix(MPS& state, MPS& scratch, int index,
-                                  fp_type* rdm) {
+  static void ReduceDensityMatrix(
+      MPS& state, MPS& scratch, int index, fp_type* rdm) {
     const auto num_qubits = state.num_qubits();
     const auto bond_dim = state.bond_dim();
     const auto end = Size(state);
@@ -256,8 +256,8 @@ class MPSStateSpace {
     ConstMatrixMap top((Complex*)scratch_raw, 2, bond_dim);
     ConstMatrixMap bot((Complex*)state_raw, 2, bond_dim);
     MatrixMap partial_contract((Complex*)(state_raw + end), bond_dim, bond_dim);
-    MatrixMap partial_contract2((Complex*)(state_raw_workspace), bond_dim,
-                                2 * bond_dim);
+    MatrixMap partial_contract2(
+        (Complex*)(state_raw_workspace), bond_dim, 2 * bond_dim);
 
     partial_contract.setZero();
     partial_contract(0, 0) = 1;
@@ -275,8 +275,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(state_raw_workspace), bond_dim, 2 * bond_dim);
 
       // Merge bot into left boundary merged tensor.
-      new (&bot) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
-                                2 * bond_dim);
+      new (&bot) ConstMatrixMap(
+          (Complex*)(state_raw + offset), bond_dim, 2 * bond_dim);
       partial_contract2.noalias() = partial_contract * bot;
 
       // reshape:
@@ -284,8 +284,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(state_raw_workspace), 2 * bond_dim, bond_dim);
 
       // Merge top into partial_contract2.
-      new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), 2 * bond_dim,
-                                bond_dim);
+      new (&top) ConstMatrixMap(
+          (Complex*)(scratch_raw + offset), 2 * bond_dim, bond_dim);
       partial_contract.noalias() = top.adjoint() * partial_contract2;
     }
 
@@ -314,8 +314,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(scratch_raw_workspace), 2 * bond_dim, bond_dim);
 
       // Merge bot into left boundary merged tensor.
-      new (&bot) ConstMatrixMap((Complex*)(state_raw + offset), 2 * bond_dim,
-                                bond_dim);
+      new (&bot) ConstMatrixMap(
+          (Complex*)(state_raw + offset), 2 * bond_dim, bond_dim);
       partial_contract2.noalias() = bot * partial_contract.adjoint();
 
       // reshape:
@@ -323,8 +323,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(scratch_raw_workspace), bond_dim, 2 * bond_dim);
 
       // Merge top into partial_contract2.
-      new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), bond_dim,
-                                2 * bond_dim);
+      new (&top) ConstMatrixMap(
+          (Complex*)(scratch_raw + offset), bond_dim, 2 * bond_dim);
       // [bd, bd] = [bd, 2bd] @ [bd, 2bd]
       partial_contract.noalias() = top * partial_contract2.adjoint();
     }
@@ -344,13 +344,14 @@ class MPSStateSpace {
         MatrixMap((Complex*)(scratch_raw_workspace), bond_dim, 2 * right_dim);
     partial_contract2.noalias() = partial_contract * top.conjugate();
     // copy the bottom contraction scratch_raw to state_raw to save space.
-    memcpy(state_raw + end, scratch_raw + end,
-           bond_dim * bond_dim * 2 * sizeof(fp_type));
+    memcpy(
+        state_raw + end, scratch_raw + end,
+        bond_dim * bond_dim * 2 * sizeof(fp_type));
 
     // Contract top again for correct shape.
     fp_type* contract3_target = (last_index ? rdm : scratch_raw);
-    MatrixMap partial_contract3((Complex*)contract3_target, 2 * right_dim,
-                                2 * right_dim);
+    MatrixMap partial_contract3(
+        (Complex*)contract3_target, 2 * right_dim, 2 * right_dim);
     partial_contract3.noalias() = top.transpose() * partial_contract2;
 
     // If we are contracting the last index, all the needed transforms are done.
@@ -376,8 +377,9 @@ class MPSStateSpace {
 
   // Draw a single bitstring sample from state using scratch and scratch2
   // as working space.
-  static void SampleOnce(MPS& state, MPS& scratch, MPS& scratch2,
-                         std::mt19937* random_gen, std::vector<bool>* sample) {
+  static void SampleOnce(
+      MPS& state, MPS& scratch, MPS& scratch2, std::mt19937* random_gen,
+      std::vector<bool>* sample) {
     // TODO: carefully profile with perf and optimize temp storage
     //  locations for cache friendliness.
     const auto bond_dim = state.bond_dim();
@@ -398,10 +400,10 @@ class MPSStateSpace {
     auto offset = GetBlockOffset(state, num_qubits - 1);
     ConstMatrixMap top((Complex*)(state_raw + offset), bond_dim, 2);
     ConstMatrixMap bot((Complex*)(scratch_raw + offset), bond_dim, 2);
-    MatrixMap partial_contract((Complex*)(scratch2_raw + offset), bond_dim,
-                               bond_dim);
-    MatrixMap partial_contract2((Complex*)(scratch_raw + end), bond_dim,
-                                2 * bond_dim);
+    MatrixMap partial_contract(
+        (Complex*)(scratch2_raw + offset), bond_dim, bond_dim);
+    MatrixMap partial_contract2(
+        (Complex*)(scratch_raw + end), bond_dim, 2 * bond_dim);
     partial_contract.noalias() = top * bot.adjoint();
 
     for (unsigned i = num_qubits - 2; i > 0; --i) {
@@ -411,8 +413,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(scratch_raw + end), 2 * bond_dim, bond_dim);
 
       // Merge bot into left boundary merged tensor.
-      new (&bot) ConstMatrixMap((Complex*)(scratch_raw + offset), 2 * bond_dim,
-                                bond_dim);
+      new (&bot) ConstMatrixMap(
+          (Complex*)(scratch_raw + offset), 2 * bond_dim, bond_dim);
       partial_contract2.noalias() = bot * partial_contract.adjoint();
 
       // reshape:
@@ -420,8 +422,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(scratch_raw + end), bond_dim, 2 * bond_dim);
 
       // Merge top into partial_contract2.
-      new (&top) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
-                                2 * bond_dim);
+      new (&top) ConstMatrixMap(
+          (Complex*)(state_raw + offset), bond_dim, 2 * bond_dim);
 
       // merge into partial_contract -> scracth2_raw.
       new (&partial_contract)
@@ -463,15 +465,15 @@ class MPSStateSpace {
       offset = GetBlockOffset(state, i);
       new (&partial_contract) MatrixMap(
           (Complex*)(scratch2_raw + left_frontier_offset), bond_dim, bond_dim);
-      new (&top) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
-                                2 * bond_dim);
+      new (&top) ConstMatrixMap(
+          (Complex*)(state_raw + offset), bond_dim, 2 * bond_dim);
       new (&partial_contract2)
           MatrixMap((Complex*)(state_raw + end), bond_dim, 2 * bond_dim);
       partial_contract2.noalias() = partial_contract * top.conjugate();
 
       // Contract top again for correct shape.
-      MatrixMap partial_contract3((Complex*)(scratch_raw + end), 2 * bond_dim,
-                                  2 * bond_dim);
+      MatrixMap partial_contract3(
+          (Complex*)(scratch_raw + end), 2 * bond_dim, 2 * bond_dim);
       partial_contract3.noalias() = top.transpose() * partial_contract2;
 
       // Conduct final tensor contraction operations. Cannot be easily compiled
@@ -513,8 +515,8 @@ class MPSStateSpace {
           MatrixMap((Complex*)(state_raw + end), bond_dim, 2 * bond_dim);
 
       // Merge bot into left boundary merged tensor.
-      new (&bot) ConstMatrixMap((Complex*)(scratch_raw + offset), bond_dim,
-                                2 * bond_dim);
+      new (&bot) ConstMatrixMap(
+          (Complex*)(scratch_raw + offset), bond_dim, 2 * bond_dim);
       partial_contract2.noalias() = partial_contract * bot.conjugate();
 
       // reshape:
@@ -522,12 +524,16 @@ class MPSStateSpace {
           MatrixMap((Complex*)(state_raw + end), 2 * bond_dim, bond_dim);
 
       // Merge top into partial_contract2.
-      new (&top) ConstMatrixMap((Complex*)(scratch_raw + offset), 2 * bond_dim,
-                                bond_dim);
+      new (&top) ConstMatrixMap(
+          (Complex*)(scratch_raw + offset), 2 * bond_dim, bond_dim);
       partial_contract.noalias() = top.transpose() * partial_contract2;
     }
 
     // Compute RDM-(n-1) and sample.
+    // The internal-qubit loop is skipped for two-qubit states, so restore
+    // the left contraction frontier computed before that loop.
+    new (&partial_contract) MatrixMap(
+        (Complex*)(scratch2_raw + left_frontier_offset), bond_dim, bond_dim);
     offset = GetBlockOffset(state, num_qubits - 1);
     new (&partial_contract2)
         MatrixMap((Complex*)(state_raw + end), bond_dim, 2);
@@ -545,9 +551,9 @@ class MPSStateSpace {
 
   // Draw num_samples bitstring samples from state and store the result
   // bit vectors in results. Uses scratch and scratch2 as workspace.
-  static void Sample(MPS& state, MPS& scratch, MPS& scratch2,
-                     unsigned num_samples, unsigned seed,
-                     std::vector<std::vector<bool>>* results) {
+  static void Sample(
+      MPS& state, MPS& scratch, MPS& scratch2, unsigned num_samples,
+      unsigned seed, std::vector<std::vector<bool>>* results) {
     std::mt19937 rand_source(seed);
     results->reserve(num_samples);
     for (unsigned i = 0; i < num_samples; i++) {
@@ -572,8 +578,8 @@ class MPSStateSpace {
     for (unsigned i = 1; i < num_qubits - 1; i++) {
       offset = GetBlockOffset(state, i);
       // use of new does not trigger any expensive operations.
-      new (&next_block) ConstMatrixMap((Complex*)(raw_state + offset), bond_dim,
-                                       2 * bond_dim);
+      new (&next_block) ConstMatrixMap(
+          (Complex*)(raw_state + offset), bond_dim, 2 * bond_dim);
       new (&result2) MatrixMap((Complex*)(wf), result2_size, 2 * bond_dim);
 
       // temp variable used since result2 and accum point to same memory.
