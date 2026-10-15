@@ -89,8 +89,7 @@ class GateBatchPlanner {
  public:
   GateBatchPlanner(unsigned num_state_qubits, unsigned requested_tile_qubits,
                    unsigned tile_qubits, unsigned lane_qubits,
-                   unsigned min_eviction_floor, unsigned max_gate_seeds,
-                   bool commute_diagonal_gates)
+                   unsigned min_eviction_floor, unsigned max_gate_seeds)
       : num_logical_qubits_(num_state_qubits),
         requested_tile_qubits_(
             std::min(requested_tile_qubits, num_state_qubits)),
@@ -100,7 +99,6 @@ class GateBatchPlanner {
                                              lane_qubits,
                                              min_eviction_floor)),
         max_gate_seeds_(max_gate_seeds),
-        commute_diagonal_gates_(commute_diagonal_gates),
         is_qubit_blocked_(num_state_qubits),
         is_qubit_blocked_for_diagonal_(num_state_qubits) {}
 
@@ -272,23 +270,17 @@ class GateBatchPlanner {
               is_qubit_blocked_for_diagonal_.end(), 0);
   }
 
-  bool TreatAsCommuting(const PendingGate<FP>& gate) const {
-    return commute_diagonal_gates_ && gate.is_diagonal;
-  }
-
   bool AnyQubitBlocked(const PendingGate<FP>& gate) const {
-    const auto commuting = TreatAsCommuting(gate);
     for (unsigned q : gate.Qubits()) {
       if (is_qubit_blocked_[q]) return true;
-      if (!commuting && is_qubit_blocked_for_diagonal_[q]) return true;
+      if (!gate.is_diagonal && is_qubit_blocked_for_diagonal_[q]) return true;
     }
     return false;
   }
 
   void BlockQubits(const PendingGate<FP>& gate) {
-    const auto commuting = TreatAsCommuting(gate);
     for (unsigned q : gate.Qubits()) {
-      if (!commuting) is_qubit_blocked_[q] = 1;
+      if (!gate.is_diagonal) is_qubit_blocked_[q] = 1;
       is_qubit_blocked_for_diagonal_[q] = 1;
     }
   }
@@ -299,7 +291,6 @@ class GateBatchPlanner {
   unsigned lane_qubits_;
   unsigned eviction_floor_;
   unsigned max_gate_seeds_;
-  bool commute_diagonal_gates_;
   std::vector<char> is_qubit_blocked_;
   std::vector<char> is_qubit_blocked_for_diagonal_;
 };
@@ -321,9 +312,7 @@ class GateBatchRunner {
 
     unsigned tile_qubits = Backend::kDefaultTileQubits;
     unsigned min_eviction_floor = Backend::kDefaultEvictionFloor;
-    bool place_hot_qubits = true;
     unsigned max_gate_seeds = 64;
-    bool commute_diagonal_gates = false;
   };
 
   template <typename Circuit>
@@ -363,8 +352,7 @@ class GateBatchRunner {
         layout_(layout),
         gate_batch_planner_(num_qubits, backend_.RequestedTileQubits(),
                             backend_.TileQubits(), lane_qubits_,
-                            param.min_eviction_floor, param.max_gate_seeds,
-                            param.commute_diagonal_gates) {
+                            param.min_eviction_floor, param.max_gate_seeds) {
     assert(layout_.NumQubits() == num_qubits_);
   }
 
@@ -534,7 +522,6 @@ class GateBatchRunner {
       }
 
       const bool diagonal =
-          param_.commute_diagonal_gates &&
           IsDiagonalMatrix(raw_gate->matrix, raw_gate->qubits.size());
       pending_gates_.push_back({raw_gate, diagonal});
     }
@@ -568,7 +555,7 @@ class GateBatchRunner {
 
   void PlaceHotQubitsInFixedZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
-    if (!param_.place_hot_qubits || backend_.TileQubits() == num_qubits_ ||
+    if (backend_.TileQubits() == num_qubits_ ||
         eviction_floor <= lane_qubits_) {
       return;
     }
