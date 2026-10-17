@@ -22,7 +22,7 @@ from . import qsim
 
 
 class QSimhSimulator(cirq.SimulatesAmplitudes):
-    def __init__(self, qsimh_options: dict = None):
+    def __init__(self, qsimh_options: dict | None = None):
         if qsimh_options is None:
             qsimh_options = {}
         """Creates a new QSimhSimulator using the given options.
@@ -44,22 +44,23 @@ class QSimhSimulator(cirq.SimulatesAmplitudes):
 
     def compute_amplitudes_sweep(
         self,
-        program: cirq.Circuit,
+        program: cirq.AbstractCircuit,
         bitstrings: Sequence[int],
         params: cirq.Sweepable,
         qubit_order: cirq.QubitOrderOrList = cirq.QubitOrder.DEFAULT,
     ) -> Sequence[Sequence[complex]]:
 
-        if not isinstance(program, qsimc.QSimCircuit):
-            program = qsimc.QSimCircuit(program)
+        if not isinstance(program, cirq.Circuit):
+            program = cirq.Circuit(program)
 
+        program = qsimc.QSimCircuit(program)
         n_qubits = len(program.all_qubits())
         # qsim numbers qubits in reverse order from cirq
-        bitstrings = [
+        bitstring_strings = [
             format(bitstring, "b").zfill(n_qubits)[::-1] for bitstring in bitstrings
         ]
 
-        options = {"i": "\n".join(bitstrings)}
+        options: dict[str, object] = {"i": "\n".join(bitstring_strings)}
         options.update(self.qsimh_options)
         param_resolvers = cirq.to_resolvers(params)
 

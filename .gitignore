@@ -39,6 +39,7 @@ ipython_config.py
 .dmypy.json
 .mypy_cache/
 .pytest_cache/
+.pyrefly_cache/
 .python-version
 .ruff_cache/
 __pycache__/
