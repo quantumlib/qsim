@@ -40,6 +40,7 @@ ipython_config.py
 .mypy_cache/
 .nox/
 .pytest_cache/
+.pyrefly_cache/
 .python-version
 .pytype/
 .ruff_cache/

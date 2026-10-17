@@ -103,6 +103,7 @@ dev = [
     "isort[colors]>=8",
     "py-cpuinfo",
     "pylint~=4.0.2",
+    "pyrefly~=1.3.2",
     "pytest",
     "pytest-randomly",
     "pytest-xdist",
@@ -110,7 +111,7 @@ dev = [
 
 [tool.setuptools]
 packages = ["qsimcirq"]
-package-data = {"qsimcirq" = ["py.typed"]}
+package-data = {"qsimcirq" = ["py.typed", "*.pyi"]}
 
 [tool.setuptools.dynamic]
 # The next one becomes the value of [project].version.
@@ -165,3 +166,9 @@ skip_gitignore = true
 combine_as_imports = true
 known_first_party = ["qsimcirq*"]
 extend_skip = ["__init__.py"]
+
+[tool.pyrefly]
+project-includes = [
+    "qsimcirq/**/*.py",
+    "qsimcirq/**/*.pyi",
+]

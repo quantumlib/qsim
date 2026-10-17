@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Sequence, Tuple
+from typing import Callable, cast, Dict, List, Sequence, Tuple, TypeVar
 
 import cirq
 import numpy as np
@@ -197,7 +197,7 @@ def _cirq_gate_kind(gate: cirq.Gate):
     for gate_type in type(gate).mro():
         translator = TYPE_TRANSLATOR.get(gate_type, None)
         if translator is not None:
-            return translator(gate)
+            return cast(Callable[[cirq.Gate], object], translator)(gate)
     # Unrecognized gates will be decomposed.
     return None
 
@@ -208,10 +208,13 @@ def _has_cirq_gate_kind(op: cirq.Operation):
     return any(t in TYPE_TRANSLATOR for t in type(op.gate).mro())
 
 
+_QubitType = TypeVar("_QubitType")
+
+
 def _control_details(
-    gate: cirq.ControlledGate, qubits: Sequence[cirq.Qid]
-) -> Tuple[List[cirq.Qid], List[int]]:
-    control_qubits: List[cirq.Qid] = []
+    gate: cirq.ControlledGate, qubits: Sequence[_QubitType]
+) -> Tuple[List[_QubitType], List[int]]:
+    control_qubits: List[_QubitType] = []
     control_values: List[int] = []
     # TODO: support qudit control
     assignments = list(gate.control_values.expand())
@@ -263,17 +266,21 @@ def add_op_to_opstring(
 
 
 def add_op_to_circuit(
-    qsim_op: cirq.GateOperation,
+    qsim_op: cirq.Operation,
     time: int,
     qubit_to_index_dict: Dict[cirq.Qid, int],
     circuit: qsim.Circuit,
 ):
     """Adds an operation to a noisy or noiseless circuit."""
     qsim_gate = qsim_op.gate
+    if qsim_gate is None:
+        return
     gate_kind = _cirq_gate_kind(qsim_gate)
     qubits = [qubit_to_index_dict[q] for q in qsim_op.qubits]
 
     qsim_qubits = qubits
+    control_qubits = None
+    control_values = None
     is_controlled = isinstance(qsim_gate, cirq.ControlledGate)
     if is_controlled:
         control_qubits, control_values = _control_details(
@@ -298,7 +305,13 @@ def add_op_to_circuit(
         or gate_kind == qsim.kThreeQubitDiagonalGate
     ):
         qsim.add_diagonal_gate(
-            time, qsim_qubits, qsim_gate._diag_angles_radians, circuit
+            time,
+            qsim_qubits,
+            cast(
+                cirq.TwoQubitDiagonalGate | cirq.ThreeQubitDiagonalGate,
+                qsim_gate,
+            )._diag_angles_radians,
+            circuit,
         )
     elif gate_kind == qsim.kMatrixGate:
         m = [
@@ -326,7 +339,7 @@ def add_op_to_circuit(
 class QSimCircuit(cirq.Circuit):
     def __init__(
         self,
-        cirq_circuit: cirq.Circuit,
+        cirq_circuit: cirq.AbstractCircuit,
         allow_decomposition: bool = False,
     ):
         if allow_decomposition:
@@ -346,9 +359,10 @@ class QSimCircuit(cirq.Circuit):
         return super().__eq__(other)
 
     def _resolve_parameters_(
-        self, param_resolver: cirq.study.ParamResolver, recursive: bool = True
+        self, resolver: cirq.study.ParamResolver, recursive: bool = True
     ):
-        return QSimCircuit(cirq.resolve_parameters(super(), param_resolver, recursive))
+        circuit = cirq.Circuit(self)
+        return QSimCircuit(cirq.resolve_parameters(circuit, resolver, recursive))
 
     def _check_for_confusion_matrix(self):
         """Checks cirq Circuit for Measurement Gates with confusion matrices.
@@ -360,7 +374,7 @@ class QSimCircuit(cirq.Circuit):
         confusion_maps_on_measurement_gates = [
             op.gate.confusion_map
             for _, op, _ in self.findall_operations_with_gate_type(cirq.MeasurementGate)
-            if op.gate.confusion_map
+            if isinstance(op.gate, cirq.MeasurementGate) and op.gate.confusion_map
         ]
         if confusion_maps_on_measurement_gates:
             raise ValueError(
@@ -387,7 +401,10 @@ class QSimCircuit(cirq.Circuit):
         # qsim numbers qubits in reverse order from cirq
         ordered_qubits = list(reversed(ordered_qubits))
 
-        def to_matrix(op: cirq.GateOperation):
+        def to_matrix(op: cirq.Operation):
+            if op.gate is None:
+                return NotImplemented
+
             mat = cirq.unitary(op.gate, None)
             if mat is None:
                 return NotImplemented
@@ -439,7 +456,10 @@ class QSimCircuit(cirq.Circuit):
 
         qsim_ncircuit.num_qubits = len(ordered_qubits)
 
-        def to_matrix(op: cirq.GateOperation):
+        def to_matrix(op: cirq.Operation):
+            if op.gate is None:
+                return NotImplemented
+
             mat = cirq.unitary(op.gate, None)
             if mat is None:
                 return NotImplemented

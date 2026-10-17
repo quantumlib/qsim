@@ -284,8 +284,10 @@ The following programs can be used to perform some automated formatting.
 This project uses type annotations as defined by [PEP 484](
 https://peps.python.org/pep-0484/). All new code should use type annotations
 where possible, especially on public classes and functions to serve as
-documentation, but also on internal code so that the `mypy` type checker can
+documentation, but also on internal code so that the `pyrefly` type checker can
 help catch coding errors.
+
+*   `pyrefly check` will run type checking on the project.
 
 ### Linting Python code
 
