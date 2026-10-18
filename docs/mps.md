@@ -131,8 +131,8 @@ The MPS simulator is actively developed but not yet complete. As of now:
   is not yet implemented (commented placeholders exist in the source).
 - _Controlled gates are not yet implemented._ `ApplyControlledGate` exists but
   is a stub (`// TODO`).
-- _Expectation values are not yet implemented._ `ExpectationValue` currently
-  returns a placeholder value of `(-10, -10)`.
+- _Expectation values are supported for 1-qubit and 2-qubit operators._
+  3+ qubit expectation values are not yet implemented.
 - _No Python interface._ The MPS simulator is currently only accessible through
   C++. It is not yet exposed via the `qsimcirq` Python package.
 - _2-qubit gates must act on adjacent qubits._ Non-adjacent 2-qubit gates
