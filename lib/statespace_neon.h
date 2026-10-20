@@ -53,7 +53,7 @@ inline uint32x4_t GetZeroMaskNEON(uint64_t i, uint64_t mask, uint64_t bits) {
 /**
  * Object containing context and routines for NEON state-vector manipulations.
  * State is a vectorized sequence of four real components followed by four
- * imaginary components. Four single-precison floating numbers can be loaded
+ * imaginary components. Four single-precision floating numbers can be loaded
  * into a NEON register.
  */
 template <typename For>

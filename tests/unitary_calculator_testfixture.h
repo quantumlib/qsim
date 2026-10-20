@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UNITARY_CALCULTOR_TESTFIXTURE_H_
-#define UNITARY_CALCULTOR_TESTFIXTURE_H_
+#ifndef UNITARY_CALCULATOR_TESTFIXTURE_H_
+#define UNITARY_CALCULATOR_TESTFIXTURE_H_
 
 #include <algorithm>
 #include <complex>

@@ -32,7 +32,7 @@ namespace unitary {
 /**
  * Object containing context and routines for unitary manipulations.
  * Unitary is a vectorized sequence of four real components followed by four
- * imaginary components. Four single-precison floating numbers can be loaded
+ * imaginary components. Four single-precision floating numbers can be loaded
  * into an SSE register.
  */
 template <typename For>

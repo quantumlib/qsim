@@ -14,7 +14,7 @@
 
 
 # Check whether the user has provided info about the GPU(s) installed
-# on their system. If not, try to determine what it is automaticaly.
+# on their system. If not, try to determine what it is automatically.
 if(CMAKE_CUDA_ARCHITECTURES)
     # CMake 3.18+ sets this variable from $CUDAARCHS automatically.
     message(STATUS "qsim: using CUDA architectures "
