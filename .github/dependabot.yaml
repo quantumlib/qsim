@@ -24,8 +24,10 @@ updates:
     schedule:
       interval: "monthly"
     labels:
-      - "area/devops"
-      - "area/health"
+      - "a: dependencies"
+      - "a: devops"
+      - "a: health"
+      - "p: docker"
 
   - package-ecosystem: "github-actions"
     # The "github-actions" code explicitly looks in /.github/workflows if the
@@ -34,8 +36,9 @@ updates:
     schedule:
       interval: "monthly"
     labels:
-      - "area/devops"
-      - "area/health"
+      - "a: dependencies"
+      - "a: devops"
+      - "a: health"
 
   - package-ecosystem: "pip"
     directory: "/"
@@ -43,6 +46,6 @@ updates:
       interval: "monthly"
     versioning-strategy: "increase-if-necessary"
     labels:
-      - "area/dependencies"
-      - "area/python"
-      - "area/health"
+      - "a: dependencies"
+      - "a: python"
+      - "a: health"
