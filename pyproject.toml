@@ -99,10 +99,10 @@ dev = [
     "cibuildwheel",
 
     # Linters, formatters, and test utilities.
-    "black~=26.5.1",
+    "black~=26.10.1",
     "isort[colors]>=8",
     "py-cpuinfo",
-    "pylint~=4.0.2",
+    "pylint~=4.1.3",
     "pytest",
     "pytest-randomly",
     "pytest-xdist",
