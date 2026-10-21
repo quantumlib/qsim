@@ -4,7 +4,7 @@ qsim provides [Bazel](https://github.com/bazelbuild/bazel) build and test rules
 for qsim tests and sample applications. The Bazel targets are `tests` and
 `apps`; you can combine these with the bazel commands `build`, `test`, and
 `run` and configuration flags suitable for your computer hardware architecture
-and software environment.
+and software environment. At this time, qsim requires Bazel version 6.6.0.
 
 On hardware and software platforms that support them, qsim can be configured to
 take advantage of certain hardware optimizations, specifically AVX (a hardware
