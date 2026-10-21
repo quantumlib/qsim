@@ -981,6 +981,24 @@ TEST(MPSStateSpaceTest, SampleGHZ){
   EXPECT_NEAR(count / float(num_samples), 0.5, 1e-2);
 }
 
+TEST(MPSStateSpaceTest, SampleEmptyResults) {
+  auto ss = MPSStateSpace<For, float>(1);
+  auto mps = ss.Create(3, 4);
+  auto scratch = ss.Create(3, 4);
+  auto scratch2 = ss.Create(3, 4);
+
+  ss.SetStateZero(mps);
+
+  std::vector<std::vector<bool>> results;
+  ss.Sample(mps, scratch, scratch2, 1, 1234, &results);
+
+  ASSERT_EQ(results.size(), 1);
+  EXPECT_EQ(results[0].size(), 3);
+  EXPECT_FALSE(results[0][0]);
+  EXPECT_FALSE(results[0][1]);
+  EXPECT_FALSE(results[0][2]);
+}
+
 TEST(MPSStateSpaceTest, SampleComplex){
   const int num_samples = 10000;
   auto ss = MPSStateSpace<For, float>(1);
