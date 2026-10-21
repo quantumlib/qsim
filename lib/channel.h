@@ -112,7 +112,9 @@ struct KrausOperator {
 };
 
 /**
- * A Quantum channel. Currently `BaseOperation`s fields are not used.
+ * A Quantum noise channel represented by Kraus operators.
+ * Currently `BaseOperation`s fields are not used.
+ * @tparam FP Floating-point precision type (`float` or `double`).
  */
 template <typename FP>
 struct Channel : public BaseOperation {

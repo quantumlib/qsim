@@ -17,10 +17,14 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
 
+#include "classical_control_expr.h"
 #include "matrix.h"
 #include "operation_base.h"
 
@@ -32,6 +36,7 @@ struct Gate;
 
 /**
  * A matrix gate controlled by a number of qubits.
+ * @tparam FP The floating-point precision type (float or double).
  */
 template <typename FP>
 struct ControlledGate : public Gate<FP> {
@@ -74,6 +79,7 @@ struct ControlledGate : public Gate<FP> {
  * @param gate The base gate to be controlled.
  * @param controlled_by The control qubit indices.
  * @return The resulting controlled gate object.
+ * @tparam FP The floating-point precision type (float or double).
  */
 template <typename FP, typename Q = Qubits>
 inline ControlledGate<FP> MakeControlledGate(
@@ -90,6 +96,7 @@ inline ControlledGate<FP> MakeControlledGate(
  * @param controlled_by The control qubit indices.
  * @param control_values The control values (0 or 1) for each control qubit.
  * @return The resulting controlled gate object.
+ * @tparam FP The floating-point precision type (float or double).
  */
 template <typename FP, typename Q = Qubits>
 inline ControlledGate<FP> MakeControlledGate(
@@ -149,6 +156,7 @@ inline ControlledGate<FP> MakeControlledGate(
 
 /**
  * A generic matrix gate whose action is defined by a matrix.
+ * @tparam FP The floating-point precision type (float or double).
  */
 template <typename FP>
 struct Gate : public BaseOperation {
@@ -183,6 +191,7 @@ struct Gate : public BaseOperation {
 /**
  * Represents a gate that has undergone Schmidt decomposition.
  * Note: This struct is utilized only in the qsimh hybrid simulator.
+ * @tparam FP The floating-point precision type (float or double).
  */
 template <typename FP>
 struct DecomposedGate : public Gate<FP> {
@@ -196,10 +205,37 @@ struct DecomposedGate : public Gate<FP> {
 };
 
 /**
+ * Represents a gate with parameter expressions resolved dynamically at runtime.
+ * Parameters depend on classical variables and measurement outcomes. Evaluated
+ * prior to gate application during simulation.
+ * @tparam FP Floating-point precision type (`float` or `double`).
+ */
+template <typename FP>
+struct RuntimeResolvedGate : public Gate<FP> {
+  RuntimeResolvedGate() {}
+
+  /**
+   * Constructs a RuntimeResolvedGate by taking ownership of a base Gate.
+   * @param g An rvalue reference to a base Gate object to be moved.
+   */
+  explicit RuntimeResolvedGate(Gate<FP>&& g) : Gate<FP>{std::move(g)} {}
+
+  /** Expressions for gate parameters. */
+  std::vector<cc::Expr> param_exprs;
+
+  /**
+   * A callable that consumes the runtime-resolved parameter values
+   * and computes the gate matrix.
+   */
+  std::function<void(const std::vector<FP>& params, Matrix<FP>&)> matrix_func;
+};
+
+/**
  * An operation that measures a specific set of qubits at a given time step.
  */
-struct Measurement : public BaseOperation {};
-
+struct Measurement : public BaseOperation {
+  std::string id;
+};
 
 /**
  * A collection of gates fused into a single operation.
@@ -208,28 +244,53 @@ struct Measurement : public BaseOperation {};
  * `matrix` remains empty during the initial fusion pass. The fused
  * matrix is computed later once the Schmidt decomposition components
  * are populated.
+ * @tparam FP The floating-point precision type (float or double).
  */
 template <typename FP>
 struct FusedGate : public BaseOperation {
   using fp_type = FP;
 
-  /** Pointer to either a standard matrix gate or a Schmidt-decomposed gate. */
+  /** Pointer to a gate that can be fused. */
   using PGate = std::variant<const Gate<fp_type>*,
+                             RuntimeResolvedGate<fp_type>*,
                              const DecomposedGate<fp_type>*>;
 
   /** The primary gate that initiated this fusion block. */
   PGate parent;
+
   /** Ordered sequence of all component gates in this block. */
   std::vector<PGate> gates;
+
   /**
-   * The fused matrix. May be empty if `fuse_matrix` is false or if the block
-   * contains a `DecomposedGate`.
+   * The fused matrix. May be empty if if the block contains a `DecomposedGate`
+   * or `RuntimeResolvedGate`.
    */
   Matrix<fp_type> matrix;
+
+  /** Indicates if the matrix computation is deferred. */
+  bool defer_matrix_computation;
 
   /** Returns true if the primary gate is a decomposed gate. */
   bool ParentIsDecomposed() const {
     return std::holds_alternative<const DecomposedGate<fp_type>*>(parent);
+  }
+
+  static RuntimeResolvedGate<fp_type>* GetRuntimeResolvedGate(PGate& pgate) {
+    return OpGetAlternative<RuntimeResolvedGate<fp_type>>(pgate);
+  }
+
+  template <typename Operation>
+  static PGate OpToPGate(const Operation& op) {
+    if (auto* p = OpGetAlternative<Gate<fp_type>>(op)) {
+      return p;
+    } else if (auto* p = OpGetAlternative<RuntimeResolvedGate<fp_type>>(op)) {
+      return const_cast<RuntimeResolvedGate<fp_type>*>(p);
+    } else if (auto* p = OpGetAlternative<DecomposedGate<fp_type>>(op)) {
+      return p;
+    }
+
+    // We cannot get here.
+    return {};
   }
 };
 
@@ -267,7 +328,7 @@ template <typename Gate, typename GateDef, typename Q = Qubits,
           typename M = Matrix<typename Gate::fp_type>>
 inline Gate CreateGate(unsigned time, Q&& qubits, M&& matrix = {},
                        std::vector<typename Gate::fp_type>&& params = {}) {
-  Gate gate = {GateDef::kind, time, std::forward<Q>(qubits),
+  Gate gate = {{GateDef::kind, time, std::forward<Q>(qubits)},
                std::move(params), std::forward<M>(matrix), false};
 
   switch (gate.qubits.size()) {
@@ -295,8 +356,10 @@ enum OtherGateKind {
 };
 
 template <typename Q = Qubits>
-inline Measurement CreateMeasurement(unsigned time, Q&& qubits) {
-  return Measurement{kMeasurement, time, std::forward<Q>(qubits)};
+inline Measurement CreateMeasurement(unsigned time, Q&& qubits,
+                                     std::string_view id = "") {
+  return Measurement{{kMeasurement, time, std::forward<Q>(qubits)},
+                     std::string{id}};
 }
 
 template <typename fp_type>

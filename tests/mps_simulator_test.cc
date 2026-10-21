@@ -825,7 +825,7 @@ TEST(MPSSimulator, ApplyFusedGateLeft) {
   auto gate2 = Cirq::H<float>::Create(0, 0);
   auto gate3 = Cirq::H<float>::Create(0, 1);
 
-  FusedGate<float> fgate1{Cirq::kCZ, 2, {0, 1}, &gate1, {&gate2, &gate3}, {}};
+  FusedGate<float> fgate1{{Cirq::kCZ, 2, {0, 1}}, &gate1, {&gate2, &gate3}, {}};
   CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(3, 4);
   ss.SetStateZero(mps);
@@ -859,7 +859,7 @@ TEST(MPSSimulator, ApplyFusedGateRight) {
   auto gate2 = Cirq::H<float>::Create(0, 1);
   auto gate3 = Cirq::H<float>::Create(0, 2);
 
-  FusedGate<float> fgate1{Cirq::kCZ, 2, {1, 2}, &gate1, {&gate2, &gate3}, {}};
+  FusedGate<float> fgate1{{Cirq::kCZ, 2, {1, 2}}, &gate1, {&gate2, &gate3}, {}};
   CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(3, 4);
   ss.SetStateZero(mps);
@@ -893,7 +893,7 @@ TEST(MPSSimulator, ApplyFusedGateMiddle) {
   auto gate2 = Cirq::H<float>::Create(0, 1);
   auto gate3 = Cirq::H<float>::Create(0, 2);
 
-  FusedGate<float> fgate1{Cirq::kCZ, 2, {1, 2}, &gate1, {&gate2, &gate3}, {}};
+  FusedGate<float> fgate1{{Cirq::kCZ, 2, {1, 2}}, &gate1, {&gate2, &gate3}, {}};
   CalculateFusedMatrix(fgate1);
   auto mps = ss.Create(4, 4);
   ss.SetStateZero(mps);
