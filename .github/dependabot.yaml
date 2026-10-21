@@ -23,6 +23,8 @@ updates:
       - tests/
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     labels:
       - "a: dependencies"
       - "a: devops"
@@ -35,6 +37,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     labels:
       - "a: dependencies"
       - "a: devops"
@@ -44,6 +48,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     versioning-strategy: "increase-if-necessary"
     labels:
       - "a: dependencies"

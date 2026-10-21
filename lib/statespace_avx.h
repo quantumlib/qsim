@@ -61,7 +61,7 @@ inline double HorizontalSumAVX(__m256 s) {
 /**
  * Object containing context and routines for AVX state-vector manipulations.
  * State is a vectorized sequence of eight real components followed by eight
- * imaginary components. Eight single-precison floating numbers can be loaded
+ * imaginary components. Eight single-precision floating numbers can be loaded
  * into an AVX register.
  */
 template <typename For>
