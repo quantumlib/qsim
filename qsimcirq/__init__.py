@@ -71,6 +71,7 @@ from qsimcirq._version import __version__
 
 from .qsim_circuit import QSimCircuit, add_op_to_circuit, add_op_to_opstring
 from .qsim_simulator import QSimOptions, QSimSimulator
+from .qsim_mps_simulator import QSimMPSSimulator
 from .qsimh_simulator import QSimhSimulator
 
 __all__ = [
@@ -79,6 +80,7 @@ __all__ = [
     "add_op_to_opstring",
     "QSimOptions",
     "QSimSimulator",
+    "QSimMPSSimulator",
     "QSimhSimulator",
     "qsim",
     "qsim_gpu",
