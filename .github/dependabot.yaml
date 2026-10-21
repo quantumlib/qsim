@@ -23,6 +23,8 @@ updates:
       - tests/
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     labels:
       - "area/devops"
       - "area/health"
@@ -33,6 +35,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     labels:
       - "area/devops"
       - "area/health"
@@ -41,6 +45,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     versioning-strategy: "increase-if-necessary"
     labels:
       - "area/dependencies"

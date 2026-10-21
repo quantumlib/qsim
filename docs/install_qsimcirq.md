@@ -73,5 +73,5 @@ The file `qsimcirq_test.py` also has examples of how to use qsimcirq.
 
 **Note:** Because of how Python searches for modules, the test file cannot
 be run from inside a clone of the qsim repository, or from any parent
-directory of such a repository. Failure to meet this criteria may result
+directory of such a repository. Failure to meet this criterion may result
 in misbehaving tests (e.g., false positives after a failed installation).
