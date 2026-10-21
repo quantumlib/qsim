@@ -20,7 +20,7 @@ This tutorial depends on resources provided by the Google Cloud Platform.
     *   For more information about billing, see
         [Enable, disable, or change billing for a project](https://cloud.google.com/billing/docs/how-to/modify-project#enable-billing)
         in the Google Cloud documentation.
-*   **Estimate costs for your project** Use the
+*   **Estimate costs for your project.** Use the
     [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator)
     to estimate the scale of the costs you might incur, based on your projected
     usage. The resources that you use to simulate a quantum circuit on the

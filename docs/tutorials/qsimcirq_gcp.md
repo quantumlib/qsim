@@ -37,7 +37,7 @@ You can create a new one, or select a project you already created:
    for your project.
 
 After finishing this tutorial, you can avoid continued billing by deleting the
-resources you created. See [Clean up](#clean-up) section below for details.
+resources you created. See the [Clean up](#clean-up) section below for details.
 
 
 ## Create a GCE VM
@@ -94,7 +94,7 @@ you to write and execute Python in your browser, with:
 * Free access to GPUs
 * Easy sharing
 
-This tutorial focuses on how to run simulations GCE VM your created above using
+This tutorial focuses on how to run simulations on the GCE VM you created above using
 Colab as the UI / frontend.
 
 ### Install gcloud on your local machine
@@ -156,7 +156,7 @@ First, get a notebook up and running on Colab. Open the
 <a target="_blank" class="external" href="https://colab.research.google.com/github/quantumlib/qsim/blob/main/docs/tutorials/qsimcirq.ipynb">Get started with qsimcirq</a>
 notebook in Colab.
 
-If you are connect to Colab with a notebook visible, you can click *Connect* to
+If you are connected to Colab with a notebook visible, you can click *Connect* to
 get the UI:
 
 <img src="../images/qsimcirq_gcp/colab_local.png" width="400"/>
@@ -240,7 +240,7 @@ Run Python 3:
 $ python3
 ```
 
-To import the libraries and build the circuit, copy and paste following into the VM window.
+To import the libraries and build the circuit, copy and paste the following into the VM window.
 
 <pre class="devsite-click-to-copy">
 import cirq
@@ -294,7 +294,7 @@ resources used in this tutorial:
 
 It is usually recommended to delete the entire project you created for this
 tutorial, but if you want to continue using the project, you can easily either
-STOP the VM or Delete it. Select the VM, the either select the STOP square, or
+STOP the VM or Delete it. Select the VM, then either select the STOP square, or
 the DELETE trash can.
 
 ![alt_text](../images/qsimcirq_gcp/image9.png )
@@ -317,7 +317,7 @@ Be aware that deleting a project has the following effects:
 If you plan to explore multiple tutorials and quickstarts, reusing projects can
 help you avoid exceeding project quota limits.
 
-1. In the Cloud Console, got to the
+1. In the Cloud Console, go to the
    [Manage Resources](https://console.cloud.google.com/iam-admin/projects) page.
 2. In the project list, select the project that you want to delete and then
    click *Delete*. <img src="../images/qsimcirq_gcp/image3.png" width="18"/>
