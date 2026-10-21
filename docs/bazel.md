@@ -86,6 +86,6 @@ options:
 ### Additional configuration options
 
 To provide more information when building and testing qsim, you can add the
-configuration option `--config=verbose` to any of the `bazel`  commands above.
+configuration option `--config=verbose` to any of the `bazel` commands above.
 
 Other configuration options are described elsewhere in the qsim documentation.
