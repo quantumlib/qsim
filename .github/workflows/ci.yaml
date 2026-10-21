@@ -51,7 +51,7 @@ permissions:
 
 jobs:
   python-checks:
-    name: 'Python format & lint checks'
+    name: 'Python format, lint & type checks'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -87,6 +87,10 @@ jobs:
         run: |
           echo '::add-matcher::.github/problem-matchers/pylint.json'
           pylint ${{inputs.soft-linting && '--exit-zero'}} -j 0 .
+
+      - name: Check types
+        continue-on-error: ${{inputs.soft-linting == 'true'}}
+        run: pyrefly check
 
   docker-lint:
     name: Dockerfile lint checks
