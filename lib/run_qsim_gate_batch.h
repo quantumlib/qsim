@@ -18,19 +18,21 @@
 #define RUN_QSIM_GATE_BATCH_H_
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <memory>
-#include <string>
+#include <fstream>
+#include <thread>
 #include <vector>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <unistd.h>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "cpu_thread_topology.h"
 #include "gate_batch_runner.h"
 #include "qubit_remap.h"
 #include "util.h"
@@ -48,6 +50,24 @@ inline constexpr bool kHasOpenMP = false;
 inline unsigned ParallelThreadCount() { return 1; }
 inline unsigned ParallelThreadId() { return 0; }
 #endif
+
+inline unsigned OnlineProcessors() {
+#if defined(_SC_NPROCESSORS_ONLN)
+  const long count = sysconf(_SC_NPROCESSORS_ONLN);
+  if (count > 0) return static_cast<unsigned>(count);
+#endif
+  return std::max(1u, std::thread::hardware_concurrency());
+}
+
+// Running two SMT threads on the same physical core across independent tiles
+// doubles the per-core working set and causes L2 cache thrashing. Clamp the
+// active worker count to the physical core count when SMT is enabled.
+inline unsigned ClampToPhysicalCores(unsigned num_threads) {
+  unsigned smt = 0;
+  std::ifstream("/sys/devices/system/cpu/smt/active") >> smt;
+  const unsigned phy_core_cnt = std::max(1u, OnlineProcessors() >> (smt != 0));
+  return std::min(num_threads, phy_core_cnt);
+}
 
 template <typename StateSpace>
 struct TilePartition {
@@ -94,53 +114,34 @@ struct TilePartition {
   int64_t num_tiles;
 };
 
-// SMT sibling barrier; keep barriers on separate cache lines.
-struct alignas(64) SmtTeamBarrier {
-  void Wait(unsigned team_size) {
-    const auto current_generation = generation.load(std::memory_order_acquire);
-    if (arrivals.fetch_add(1, std::memory_order_acq_rel) + 1 == team_size) {
-      arrivals.store(0, std::memory_order_relaxed);
-      generation.fetch_add(1, std::memory_order_release);
-    } else {
-      // Spin: waits are microseconds; pause/yield measured 1-3% slower.
-      while (generation.load(std::memory_order_acquire) ==
-             current_generation) {
-      }
-    }
-  }
+struct TileFor {
+  explicit TileFor(unsigned num_threads) { (void) num_threads; }
 
-  std::atomic<unsigned> arrivals{0};
-  std::atomic<unsigned> generation{0};
-};
-
-struct CooperativeFor {
-  explicit CooperativeFor(unsigned num_threads) { (void) num_threads; }
-
-  static void Configure(unsigned team_size, unsigned team_thread_id) {
-    team_size_ = team_size;
-    team_thread_id_ = team_thread_id;
+  static void Configure(unsigned num_threads, unsigned thread_id) {
+    num_threads_ = num_threads;
+    thread_id_ = thread_id;
   }
 
   template <typename Function, typename... Args>
   static void Run(uint64_t size, Function&& func, Args&&... args) {
-    const auto team_size = team_size_;
-    if (team_size <= 1) {
+    const auto num_threads = num_threads_;
+    if (num_threads <= 1) {
       for (uint64_t i = 0; i < size; ++i) {
         func(1, 0, i, args...);
       }
       return;
     }
-    const auto team_thread_id = team_thread_id_;
-    const auto begin = size * team_thread_id / team_size;
-    const auto end = size * (team_thread_id + 1) / team_size;
+    const auto thread_id = thread_id_;
+    const auto begin = size * thread_id / num_threads;
+    const auto end = size * (thread_id + 1) / num_threads;
     for (uint64_t i = begin; i < end; ++i) {
-      func(team_size, team_thread_id, i, args...);
+      func(num_threads, thread_id, i, args...);
     }
   }
 
  private:
-  inline static thread_local unsigned team_size_ = 1;
-  inline static thread_local unsigned team_thread_id_ = 0;
+  inline static thread_local unsigned num_threads_ = 1;
+  inline static thread_local unsigned thread_id_ = 0;
 };
 
 template <typename Simulator, typename NewFor>
@@ -160,17 +161,16 @@ class CpuGateBatchBackend {
   using StateSpace = typename Factory::StateSpace;
   using State = typename StateSpace::State;
   using fp_type = typename StateSpace::fp_type;
-  using SeqSimulator = typename gate_batch_internal::ReplaceFor<
-      typename Factory::Simulator, gate_batch_internal::CooperativeFor>::type;
-  using SeqStateSpace = typename SeqSimulator::StateSpace;
+  using TileSimulator = typename gate_batch_internal::ReplaceFor<
+      typename Factory::Simulator, gate_batch_internal::TileFor>::type;
+  using TileStateSpace = typename TileSimulator::StateSpace;
   using ExecutableGate = FusedGate<fp_type>;
 
   struct Parameter {
     unsigned num_threads = 1;
-    unsigned inner_threads = 1;
   };
 
-  static constexpr unsigned kDefaultTileQubits = 19;
+  static constexpr unsigned kDefaultTileQubits = 18;
   static constexpr unsigned kMaxGateQubits = 6;
   // Floor of 5 balances remap budget against swap-pass span length.
   static constexpr unsigned kDefaultEvictionFloor = 5;
@@ -180,10 +180,12 @@ class CpuGateBatchBackend {
                       State& state)
       : param_(param),
         verbosity_(param.verbosity),
-        partition_(num_qubits, param.tile_qubits, param.num_threads,
+        active_threads_(
+            gate_batch_internal::ClampToPhysicalCores(param.num_threads)),
+        partition_(num_qubits, param.tile_qubits, active_threads_,
                    MinTileQubits(param.max_fused_size), kDefaultTileQubits),
         state_data_(state.get()),
-        seq_sim_(1) {
+        tile_sim_(1) {
     assert(partition_.tile_qubits >= std::min(kLaneQubits, num_qubits));
   }
 
@@ -200,21 +202,18 @@ class CpuGateBatchBackend {
       IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
       return false;
     }
-    if (param_.inner_threads > 1 && !ConfigureSmtTeams()) return false;
     LogAdaptiveTileSize();
     return true;
   }
 
   void ApplySwaps(const std::vector<QubitSwap>& swaps) {
     ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, kLaneQubits,
-                      swaps, param_.num_threads);
+                      swaps, active_threads_);
   }
 
   void ExecuteBatch(const std::vector<ExecutableGate>& gates) const {
     if (partition_.num_tiles == 1) {
       ExecuteSingleTileBatch(gates);
-    } else if (param_.inner_threads > 1) {
-      ExecuteSmtTileTeams(gates);
     } else {
       ExecuteIndependentTiles(gates);
     }
@@ -224,7 +223,6 @@ class CpuGateBatchBackend {
 
  private:
   using TilePartition = gate_batch_internal::TilePartition<StateSpace>;
-  using SmtTeamBarrier = gate_batch_internal::SmtTeamBarrier;
 
   static inline const unsigned kLaneQubits =
       std::log2(StateSpace::MinSize(0) / 2);
@@ -234,37 +232,34 @@ class CpuGateBatchBackend {
   }
 
   void ExecuteGatesOnTile(const std::vector<ExecutableGate>& gates,
-                          int64_t tile, unsigned team_size = 1,
-                          unsigned team_thread_id = 0,
-                          SmtTeamBarrier* team_barrier = nullptr) const {
-    gate_batch_internal::CooperativeFor::Configure(team_size, team_thread_id);
+                          int64_t tile) const {
+    gate_batch_internal::TileFor::Configure(1, 0);
     auto* tile_data = state_data_ + tile * partition_.floats_per_tile;
     auto tile_view =
-        SeqStateSpace::Create(tile_data, partition_.tile_qubits);
+        TileStateSpace::Create(tile_data, partition_.tile_qubits);
 
     for (const ExecutableGate& gate : gates) {
-      seq_sim_.ApplyGate(gate.qubits, gate.matrix.data(), tile_view);
-      if (team_barrier != nullptr) team_barrier->Wait(team_size);
+      tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), tile_view);
     }
   }
 
   void ExecuteSingleTileBatch(const std::vector<ExecutableGate>& gates) const {
     constexpr unsigned kMinParallelQubits = 14;
-    if (!gate_batch_internal::kHasOpenMP || param_.num_threads <= 1 ||
+    if (!gate_batch_internal::kHasOpenMP || active_threads_ <= 1 ||
         partition_.tile_qubits < kMinParallelQubits) {
       ExecuteGatesOnTile(gates, 0);
       return;
     }
 
-#pragma omp parallel num_threads(param_.num_threads)
+#pragma omp parallel num_threads(active_threads_)
     {
-      gate_batch_internal::CooperativeFor::Configure(
+      gate_batch_internal::TileFor::Configure(
           gate_batch_internal::ParallelThreadCount(),
           gate_batch_internal::ParallelThreadId());
       auto full_view =
-          SeqStateSpace::Create(state_data_, partition_.tile_qubits);
+          TileStateSpace::Create(state_data_, partition_.tile_qubits);
       for (const ExecutableGate& gate : gates) {
-        seq_sim_.ApplyGate(gate.qubits, gate.matrix.data(), full_view);
+        tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), full_view);
 #pragma omp barrier
       }
     }
@@ -272,64 +267,9 @@ class CpuGateBatchBackend {
 
   void ExecuteIndependentTiles(
       const std::vector<ExecutableGate>& gates) const {
-#pragma omp parallel for schedule(dynamic, 1) num_threads(param_.num_threads)
+#pragma omp parallel for schedule(dynamic, 1) num_threads(active_threads_)
     for (int64_t tile = 0; tile < partition_.num_tiles; ++tile) {
       ExecuteGatesOnTile(gates, tile);
-    }
-  }
-
-  bool ConfigureSmtTeams() const {
-    if (!gate_batch_internal::kHasOpenMP) {
-      IO::errorf("qsim_gate_batch: SMT teams require OpenMP.\n");
-      return false;
-    }
-
-    std::vector<unsigned> team_cpus;
-    std::string error;
-    if (!BuildSmtTeamCpuOrder(param_.num_threads, param_.inner_threads,
-                              team_cpus, error)) {
-      IO::errorf("cannot configure SMT teams: %s.\n", error.c_str());
-      return false;
-    }
-
-    std::atomic<bool> pinned{true};
-#pragma omp parallel num_threads(param_.num_threads)
-    {
-      const auto cpu = team_cpus[gate_batch_internal::ParallelThreadId()];
-      if (!PinCurrentThreadToCpu(cpu)) {
-        pinned.store(false, std::memory_order_relaxed);
-      }
-    }
-    if (!pinned.load(std::memory_order_relaxed)) {
-      IO::errorf("qsim_gate_batch: failed to pin an SMT worker to its CPU.\n");
-      return false;
-    }
-
-    if (verbosity_ > 1) {
-      for (unsigned thread = 0; thread < param_.num_threads; ++thread) {
-        IO::messagef("SMT team %u lane %u: CPU %u\n",
-                     thread / param_.inner_threads,
-                     thread % param_.inner_threads, team_cpus[thread]);
-      }
-    }
-    return true;
-  }
-
-  void ExecuteSmtTileTeams(const std::vector<ExecutableGate>& gates) const {
-    const unsigned team_size = param_.inner_threads;
-    const unsigned num_teams = param_.num_threads / team_size;
-    auto team_barriers = std::make_unique<SmtTeamBarrier[]>(num_teams);
-
-#pragma omp parallel num_threads(param_.num_threads)
-    {
-      const unsigned tid = gate_batch_internal::ParallelThreadId();
-      const unsigned team_id = tid / team_size;
-      const unsigned lane = tid % team_size;
-      for (int64_t tile = team_id; tile < partition_.num_tiles;
-           tile += num_teams) {
-        ExecuteGatesOnTile(gates, tile, team_size, lane,
-                           &team_barriers[team_id]);
-      }
     }
   }
 
@@ -340,15 +280,16 @@ class CpuGateBatchBackend {
                    "%lld tiles for %u threads.\n",
                    partition_.requested_tile_qubits, partition_.tile_qubits,
                    static_cast<long long>(partition_.num_tiles),
-                   param_.num_threads);
+                   active_threads_);
     }
   }
 
   const Parameter& param_;
   const unsigned verbosity_;
+  const unsigned active_threads_;
   const TilePartition partition_;
   fp_type* const state_data_;
-  SeqSimulator seq_sim_;
+  TileSimulator tile_sim_;
 };
 
 template <typename IO, typename Fuser, typename Factory>
