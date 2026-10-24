@@ -80,6 +80,35 @@ namespace qsim {
 
 namespace gate_batch_internal {
 
+// Gate matrices are row-major with interleaved real and imaginary parts.
+template <typename FP>
+bool IsDiagonalMatrix(const Matrix<FP>& matrix, std::size_t arity) {
+  const auto dim = std::size_t{1} << arity;
+  if (matrix.size() < 2 * dim * dim) return false;
+
+  for (std::size_t row = 0; row < dim; ++row) {
+    for (std::size_t col = 0; col < dim; ++col) {
+      if (row == col) continue;
+      const auto k = 2 * (row * dim + col);
+      if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
+    }
+  }
+  return true;
+}
+
+// Sorts the qubits in ascending order, as the simulator expects, and permutes
+// the matrix to match.
+template <typename FP>
+void NormalizeGateQubitOrder(
+    std::vector<unsigned>& qubits, Matrix<FP>& matrix) {
+  if (qubits.size() < 2) return;
+  auto permutation = NormalToGateOrderPermutation(qubits);
+  if (!permutation.empty()) {
+    MatrixShuffle(permutation, qubits.size(), matrix);
+    std::sort(qubits.begin(), qubits.end());
+  }
+}
+
 // A circuit gate waiting to be scheduled. Points into the caller's circuit;
 // `applied` is set once the gate has run in some batch.
 template <typename FP>
@@ -138,22 +167,32 @@ struct GateBatchPlan {
   double score = 0.0;
 };
 
+// Qubit counts that fix the zone boundaries; see the diagram at the top.
+struct TileGeometry {
+  unsigned num_qubits = 0;
+  // The tile size before the backend shrank it to give every thread a tile.
+  unsigned requested_tile_qubits = 0;
+  unsigned tile_qubits = 0;
+  unsigned lane_qubits = 0;
+};
+
 template <typename FP>
 class GateBatchPlanner {
  public:
   GateBatchPlanner(
-      unsigned num_qubits, unsigned requested_tile_qubits, unsigned tile_qubits,
-      unsigned lane_qubits, unsigned min_eviction_floor,
+      const TileGeometry& geometry, unsigned min_eviction_floor,
       unsigned max_gate_seeds)
-      : num_qubits_(num_qubits),
-        requested_tile_qubits_(std::min(requested_tile_qubits, num_qubits)),
-        tile_qubits_(tile_qubits),
-        lane_qubits_(lane_qubits),
+      : num_qubits_(geometry.num_qubits),
+        requested_tile_qubits_(
+            std::min(geometry.requested_tile_qubits, geometry.num_qubits)),
+        tile_qubits_(geometry.tile_qubits),
+        lane_qubits_(geometry.lane_qubits),
         eviction_floor_(ComputeEvictionFloor(
-            num_qubits, tile_qubits, lane_qubits, min_eviction_floor)),
+            geometry.num_qubits, geometry.tile_qubits, geometry.lane_qubits,
+            min_eviction_floor)),
         max_gate_seeds_(max_gate_seeds),
-        all_gates_blocked_(num_qubits),
-        non_diagonal_gates_blocked_(num_qubits) {}
+        all_gates_blocked_(geometry.num_qubits),
+        non_diagonal_gates_blocked_(geometry.num_qubits) {}
 
   // Builds a candidate batch from several starting qubit sets ("seeds") and
   // returns the one with the highest score:
@@ -421,6 +460,7 @@ class GateBatchRunner {
   using GateBatchWorkspace = gate_batch_internal::GateBatchWorkspace<fp_type>;
   using GateBatchPlanner = gate_batch_internal::GateBatchPlanner<fp_type>;
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
+  using TileGeometry = gate_batch_internal::TileGeometry;
 
   // Whether Run undoes the qubit permutation the batches leave behind.
   enum class QubitOrderOnExit { kRestoreIdentity, kKeepPermuted };
@@ -434,9 +474,19 @@ class GateBatchRunner {
         lane_qubits_(backend_.LaneQubits()),
         layout_(layout),
         gate_batch_planner_(
-            num_qubits, backend_.RequestedTileQubits(), backend_.TileQubits(),
-            lane_qubits_, param.min_eviction_floor, param.max_gate_seeds) {
+            MakeTileGeometry(num_qubits, backend_), param.min_eviction_floor,
+            param.max_gate_seeds) {
     assert(layout_.NumQubits() == num_qubits_);
+  }
+
+  static TileGeometry MakeTileGeometry(
+      unsigned num_qubits, const Backend& backend) {
+    TileGeometry geometry;
+    geometry.num_qubits = num_qubits;
+    geometry.requested_tile_qubits = backend.RequestedTileQubits();
+    geometry.tile_qubits = backend.TileQubits();
+    geometry.lane_qubits = backend.LaneQubits();
+    return geometry;
   }
 
   static bool SizesMatch(unsigned circuit_qubits, unsigned state_qubits) {
@@ -447,6 +497,8 @@ class GateBatchRunner {
         circuit_qubits, state_qubits);
     return false;
   }
+
+  // --- Simulation flow ---
 
   template <typename Circuit>
   bool SimulateCircuit(const Circuit& circuit, QubitOrderOnExit order) {
@@ -551,36 +603,7 @@ class GateBatchRunner {
     return plan.NumGates();
   }
 
-  void ExecuteFusedGates() {
-    TimeBackendWork(simulation_stats_.gate_seconds, [&] {
-      backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
-    });
-  }
-
-  static void NormalizeGateQubitOrder(
-      std::vector<unsigned>& qubits, Matrix<fp_type>& matrix) {
-    if (qubits.size() < 2) return;
-    auto permutation = NormalToGateOrderPermutation(qubits);
-    if (!permutation.empty()) {
-      MatrixShuffle(permutation, qubits.size(), matrix);
-      std::sort(qubits.begin(), qubits.end());
-    }
-  }
-
-  static bool IsDiagonalMatrix(
-      const Matrix<fp_type>& matrix, std::size_t arity) {
-    const auto dim = std::size_t{1} << arity;
-    if (matrix.size() < 2 * dim * dim) return false;
-
-    for (std::size_t row = 0; row < dim; ++row) {
-      for (std::size_t col = 0; col < dim; ++col) {
-        if (row == col) continue;
-        const auto k = 2 * (row * dim + col);
-        if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
-      }
-    }
-    return true;
-  }
+  // --- Gate preparation ---
 
   // Returns the operation's gate, or nullptr after reporting why the backend
   // cannot run it.
@@ -619,12 +642,14 @@ class GateBatchRunner {
       const auto* raw_gate = ValidateOperation(operation);
       if (raw_gate == nullptr) return false;
 
-      const bool diagonal =
-          IsDiagonalMatrix(raw_gate->matrix, raw_gate->qubits.size());
+      const bool diagonal = gate_batch_internal::IsDiagonalMatrix(
+          raw_gate->matrix, raw_gate->qubits.size());
       pending_gates_.push_back({raw_gate, diagonal});
     }
     return true;
   }
+
+  // --- Hot-zone placement ---
 
   std::vector<uint64_t> ComputeQubitUsageScores() const {
     std::vector<uint64_t> scores(num_qubits_, 0);
@@ -666,6 +691,8 @@ class GateBatchRunner {
     LogHotZonePlacement(usage_scores, eviction_floor, num_swaps);
   }
 
+  // --- Qubit swaps ---
+
   // Swaps each wanted qubit stored at or above zone_end into a position in
   // [zone_begin, zone_end) held by an unwanted qubit, taking positions from the
   // top of the zone down. Updates both the layout and the state, and returns
@@ -706,6 +733,17 @@ class GateBatchRunner {
     simulation_stats_.num_swaps += swap_pairs.size();
   }
 
+  void RestoreIdentityQubitOrder() {
+    std::vector<QubitSwap> swap_pairs;
+
+    while (layout_.BuildIdentityRestorationSwaps(swap_pairs)) {
+      ApplySwapsToState(swap_pairs);
+      ++simulation_stats_.num_restore_passes;
+    }
+  }
+
+  // --- Batch building, fusion and execution ---
+
   template <typename Op>
   void BuildBatchOperations(
       const GateBatchPlan& plan, std::vector<Op>& batch_operations) const {
@@ -721,7 +759,8 @@ class GateBatchRunner {
         physical_qubits[i] = layout_.PhysicalPositionOf(raw_gate.qubits[i]);
       }
       auto physical_matrix = raw_gate.matrix;
-      NormalizeGateQubitOrder(physical_qubits, physical_matrix);
+      gate_batch_internal::NormalizeGateQubitOrder(
+          physical_qubits, physical_matrix);
 
       auto physical_gate = Gate<fp_type>{
           {0, time++, std::move(physical_qubits)},
@@ -759,20 +798,19 @@ class GateBatchRunner {
     return true;
   }
 
+  void ExecuteFusedGates() {
+    TimeBackendWork(simulation_stats_.gate_seconds, [&] {
+      backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
+    });
+  }
+
   void MarkGatesApplied(const GateBatchPlan& plan) {
     for (std::size_t idx : plan.gate_indices) {
       pending_gates_[idx].applied = true;
     }
   }
 
-  void RestoreIdentityQubitOrder() {
-    std::vector<QubitSwap> swap_pairs;
-
-    while (layout_.BuildIdentityRestorationSwaps(swap_pairs)) {
-      ApplySwapsToState(swap_pairs);
-      ++simulation_stats_.num_restore_passes;
-    }
-  }
+  // --- Timing and logging ---
 
   // Adds the wall time of host-side work (planning, fusion) to `seconds` and
   // returns the work's result.
