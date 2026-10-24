@@ -139,19 +139,18 @@ template <typename FP>
 class GateBatchPlanner {
  public:
   GateBatchPlanner(
-      unsigned num_state_qubits, unsigned requested_tile_qubits,
-      unsigned tile_qubits, unsigned lane_qubits, unsigned min_eviction_floor,
+      unsigned num_qubits, unsigned requested_tile_qubits, unsigned tile_qubits,
+      unsigned lane_qubits, unsigned min_eviction_floor,
       unsigned max_gate_seeds)
-      : num_logical_qubits_(num_state_qubits),
-        requested_tile_qubits_(
-            std::min(requested_tile_qubits, num_state_qubits)),
+      : num_qubits_(num_qubits),
+        requested_tile_qubits_(std::min(requested_tile_qubits, num_qubits)),
         tile_qubits_(tile_qubits),
         lane_qubits_(lane_qubits),
         eviction_floor_(ComputeEvictionFloor(
-            num_state_qubits, tile_qubits, lane_qubits, min_eviction_floor)),
+            num_qubits, tile_qubits, lane_qubits, min_eviction_floor)),
         max_gate_seeds_(max_gate_seeds),
-        is_qubit_blocked_(num_state_qubits),
-        is_qubit_blocked_for_diagonal_(num_state_qubits) {}
+        all_gates_blocked_(num_qubits),
+        non_diagonal_gates_blocked_(num_qubits) {}
 
   GateBatchPlan PlanNextGateBatch(
       const std::vector<PendingGate<FP>>& gates, const QubitLayout& layout) {
@@ -192,7 +191,7 @@ class GateBatchPlanner {
   static constexpr double kSwapPairCost = 1.0 / 16.0;
 
   unsigned EffectiveGateSeeds(std::size_t num_pending_gates) const {
-    if (tile_qubits_ >= num_logical_qubits_ || num_pending_gates == 0) {
+    if (tile_qubits_ >= num_qubits_ || num_pending_gates == 0) {
       return 0;
     }
     if (tile_qubits_ >= requested_tile_qubits_) {
@@ -202,9 +201,10 @@ class GateBatchPlanner {
     const unsigned tile_ratio_seeds = tile_shift >= sizeof(unsigned) * 8
                                           ? 0u
                                           : (max_gate_seeds_ >> tile_shift);
-    const unsigned lane_bits =
+    const unsigned tile_qubits_above_lanes =
         tile_qubits_ > lane_qubits_ ? tile_qubits_ - lane_qubits_ : 0u;
-    const uint64_t lane_groups_per_tile = uint64_t{1} << lane_bits;
+    const uint64_t lane_groups_per_tile = uint64_t{1}
+                                          << tile_qubits_above_lanes;
     const uint64_t scan_work_per_seed = 2 * uint64_t{num_pending_gates};
     const uint64_t scan_ratio_seeds = lane_groups_per_tile / scan_work_per_seed;
     return static_cast<unsigned>(
@@ -213,30 +213,31 @@ class GateBatchPlanner {
 
   GateBatchQubitSet MakeEmptyQubitSet() const {
     GateBatchQubitSet qubit_set;
-    qubit_set.contains_qubit.assign(num_logical_qubits_, 0);
+    qubit_set.contains_qubit.assign(num_qubits_, 0);
     return qubit_set;
   }
 
   unsigned RemapSlotCapacity() const { return tile_qubits_ - eviction_floor_; }
 
   static unsigned ComputeEvictionFloor(
-      unsigned num_logical_qubits, unsigned tile_qubits, unsigned lane_qubits,
+      unsigned num_qubits, unsigned tile_qubits, unsigned lane_qubits,
       unsigned min_eviction_floor) {
-    if (tile_qubits == num_logical_qubits) return tile_qubits;
+    if (tile_qubits == num_qubits) return tile_qubits;
 
-    const auto full =
+    const auto tile_qubits_above_lanes =
         tile_qubits > lane_qubits ? tile_qubits - lane_qubits : 0u;
-    const auto depth_capped = tile_qubits > min_eviction_floor
-                                  ? tile_qubits - min_eviction_floor
-                                  : 0u;
-    const auto capacity =
-        std::min(full, std::max(depth_capped, kMinRemapSlots));
-    return tile_qubits - capacity;
+    const auto slots_above_min_floor = tile_qubits > min_eviction_floor
+                                           ? tile_qubits - min_eviction_floor
+                                           : 0u;
+    const auto remap_slots = std::min(
+        tile_qubits_above_lanes,
+        std::max(slots_above_min_floor, kMinRemapSlots));
+    return tile_qubits - remap_slots;
   }
 
   GateBatchQubitSet MakeResidentQubitSet(const QubitLayout& layout) const {
     auto qubit_set = MakeEmptyQubitSet();
-    for (unsigned q = 0; q < num_logical_qubits_; ++q) {
+    for (unsigned q = 0; q < num_qubits_; ++q) {
       if (layout.PhysicalPositionOf(q) < tile_qubits_) {
         qubit_set.remap_slots_used +=
             AdditionalRemapSlotsFor(q, qubit_set, layout);
@@ -250,7 +251,7 @@ class GateBatchPlanner {
       const std::vector<PendingGate<FP>>& gates, const QubitLayout& layout,
       GateBatchQubitSet& qubit_set) {
     GateBatchPlan plan;
-    plan.uses_qubit.assign(num_logical_qubits_, 0);
+    plan.uses_qubit.assign(num_qubits_, 0);
     ClearBlockedQubits();
 
     for (std::size_t idx = 0; idx < gates.size(); ++idx) {
@@ -301,7 +302,7 @@ class GateBatchPlanner {
   unsigned CountSwapsNeeded(
       const GateBatchPlan& plan, const QubitLayout& layout) const {
     unsigned count = 0;
-    for (unsigned q = 0; q < num_logical_qubits_; ++q) {
+    for (unsigned q = 0; q < num_qubits_; ++q) {
       if (plan.UsesQubit(q) && layout.PhysicalPositionOf(q) >= tile_qubits_) {
         ++count;
       }
@@ -310,35 +311,37 @@ class GateBatchPlanner {
   }
 
   void ClearBlockedQubits() {
-    std::fill(is_qubit_blocked_.begin(), is_qubit_blocked_.end(), 0);
+    std::fill(all_gates_blocked_.begin(), all_gates_blocked_.end(), 0);
     std::fill(
-        is_qubit_blocked_for_diagonal_.begin(),
-        is_qubit_blocked_for_diagonal_.end(), 0);
+        non_diagonal_gates_blocked_.begin(), non_diagonal_gates_blocked_.end(),
+        0);
   }
 
   bool AnyQubitBlocked(const PendingGate<FP>& gate) const {
     for (unsigned q : gate.Qubits()) {
-      if (is_qubit_blocked_[q]) return true;
-      if (!gate.is_diagonal && is_qubit_blocked_for_diagonal_[q]) return true;
+      if (all_gates_blocked_[q]) return true;
+      if (!gate.is_diagonal && non_diagonal_gates_blocked_[q]) return true;
     }
     return false;
   }
 
   void BlockQubits(const PendingGate<FP>& gate) {
     for (unsigned q : gate.Qubits()) {
-      if (!gate.is_diagonal) is_qubit_blocked_[q] = 1;
-      is_qubit_blocked_for_diagonal_[q] = 1;
+      if (!gate.is_diagonal) all_gates_blocked_[q] = 1;
+      non_diagonal_gates_blocked_[q] = 1;
     }
   }
 
-  unsigned num_logical_qubits_;
+  unsigned num_qubits_;
   unsigned requested_tile_qubits_;
   unsigned tile_qubits_;
   unsigned lane_qubits_;
   unsigned eviction_floor_;
   unsigned max_gate_seeds_;
-  std::vector<char> is_qubit_blocked_;
-  std::vector<char> is_qubit_blocked_for_diagonal_;
+  // Indexed by logical qubit. A deferred gate blocks later gates on its qubits,
+  // except that diagonal gates commute with each other.
+  std::vector<char> all_gates_blocked_;  // set by deferred non-diagonal gates
+  std::vector<char> non_diagonal_gates_blocked_;  // set by any deferred gate
 };
 
 }  // namespace gate_batch_internal
@@ -624,22 +627,22 @@ class GateBatchRunner {
   }
 
   void BuildSwapsBelow(
-      const std::vector<char>& is_wanted, unsigned limit,
+      const std::vector<char>& wanted, unsigned boundary,
       std::vector<QubitSwap>& swaps) {
     swaps.clear();
-    auto victim = limit;
+    auto evict_position = boundary;
 
-    for (unsigned q = 0; q < is_wanted.size(); ++q) {
-      if (!is_wanted[q]) continue;
+    for (unsigned q = 0; q < wanted.size(); ++q) {
+      if (!wanted[q]) continue;
       const auto position = layout_.PhysicalPositionOf(q);
-      if (position < limit) continue;
+      if (position < boundary) continue;
 
       do {
-        assert(victim > lane_qubits_);
-        --victim;
-      } while (is_wanted[layout_.LogicalQubitAt(victim)]);
-      swaps.emplace_back(victim, position);
-      layout_.SwapPhysicalPositions(victim, position);
+        assert(evict_position > lane_qubits_);
+        --evict_position;
+      } while (wanted[layout_.LogicalQubitAt(evict_position)]);
+      swaps.emplace_back(evict_position, position);
+      layout_.SwapPhysicalPositions(evict_position, position);
     }
   }
 
