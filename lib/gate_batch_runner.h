@@ -45,16 +45,19 @@
 //
 //   GateBatchRunner::Run
 //     SimulateCircuit
-//       (whole state fits one tile) FuseBatchGates, Backend::ExecuteBatch
-//       PreparePendingGates          wrap each gate, flag diagonal ones
-//       PlaceHotQubitsInHotZone      fill the hot zone once
-//       loop ExecuteNextGateBatch
-//         GateBatchPlanner::PlanNextGateBatch
-//         BuildSwapsBelow, ApplySwapsToState   swap batch qubits into the tile
-//         BuildBatchOperations                 rewrite gates to physical qubits
-//         FuseBatchGates, Backend::ExecuteBatch
-//       RestoreIdentityQubitOrder    only for Run(State&); the QubitMappedState
-//                                    overload keeps the permuted layout
+//       SimulateSingleTile           whole state fits one tile:
+//         FuseBatchGates, ExecuteFusedGates  fuse the circuit, run it once
+//       SimulateMultiTile
+//         PreparePendingGates        wrap each gate, flag diagonal ones
+//         PlaceHotQubitsInHotZone    fill the hot zone once
+//         loop ExecuteNextGateBatch
+//           GateBatchPlanner::PlanNextGateBatch
+//           MoveQubitsIntoZone       swap batch qubits into the remap zone
+//           BuildBatchOperations     rewrite gates to physical qubits
+//           FuseBatchGates, ExecuteFusedGates
+//         RestoreIdentityQubitOrder  only for Run(State&); the
+//                                    QubitMappedState overload keeps the
+//                                    permuted layout
 
 #ifndef GATE_BATCH_RUNNER_H_
 #define GATE_BATCH_RUNNER_H_
@@ -397,7 +400,7 @@ class GateBatchRunner {
     if (!SizesMatch(circuit.num_qubits, state.num_qubits())) return false;
     QubitLayout layout(circuit.num_qubits);
     GateBatchRunner runner(param, circuit.num_qubits, state, layout);
-    return runner.SimulateCircuit(circuit, true);
+    return runner.SimulateCircuit(circuit, QubitOrderOnExit::kRestoreIdentity);
   }
 
   template <typename Circuit>
@@ -409,7 +412,7 @@ class GateBatchRunner {
     }
     GateBatchRunner runner(
         param, circuit.num_qubits, state.state, state.layout);
-    return runner.SimulateCircuit(circuit, false);
+    return runner.SimulateCircuit(circuit, QubitOrderOnExit::kKeepPermuted);
   }
 
  private:
@@ -418,6 +421,9 @@ class GateBatchRunner {
   using GateBatchWorkspace = gate_batch_internal::GateBatchWorkspace<fp_type>;
   using GateBatchPlanner = gate_batch_internal::GateBatchPlanner<fp_type>;
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
+
+  // Whether Run undoes the qubit permutation the batches leave behind.
+  enum class QubitOrderOnExit { kRestoreIdentity, kKeepPermuted };
 
   GateBatchRunner(
       const Parameter& param, unsigned num_qubits, State& state,
@@ -443,9 +449,17 @@ class GateBatchRunner {
   }
 
   template <typename Circuit>
-  bool SimulateCircuit(const Circuit& circuit, bool restore_qubit_order) {
-    using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
+  bool SimulateCircuit(const Circuit& circuit, QubitOrderOnExit order) {
+    if (!ValidateParameters() || !backend_.Prepare()) return false;
+    simulation_stats_.num_raw_gates = unsigned(circuit.ops.size());
 
+    if (backend_.TileQubits() == num_qubits_) {
+      return SimulateSingleTile(circuit);
+    }
+    return SimulateMultiTile(circuit, order);
+  }
+
+  bool ValidateParameters() const {
     if (param_.max_fused_size < 2) {
       IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
       return false;
@@ -456,26 +470,31 @@ class GateBatchRunner {
           Backend::kMaxGateQubits);
       return false;
     }
-    if (!backend_.Prepare()) return false;
-    simulation_stats_.num_raw_gates = unsigned(circuit.ops.size());
+    return true;
+  }
 
-    if (backend_.TileQubits() == num_qubits_) {
-      if (!ValidateCircuitOperations(circuit)) return false;
-      const auto fuse_start = GetTime();
-      if (!FuseBatchGates(circuit.ops)) return false;
-      simulation_stats_.fuse_seconds += GetTime() - fuse_start;
-      simulation_stats_.num_executable_gates +=
-          gate_batch_workspace_.executable_gates.size();
-      backend_.Synchronize();
-      const auto simulation_start = GetTime();
-      const auto gates_start = StartTimer();
-      backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
-      simulation_stats_.gate_seconds += StopTimer(gates_start);
-      simulation_stats_.num_gate_batches = circuit.ops.empty() ? 0 : 1;
-      backend_.Synchronize();
-      LogSimulationSummary(simulation_start);
-      return true;
-    }
+  // The whole state is one tile: no planning or swaps, just fuse the circuit
+  // and run it once.
+  template <typename Circuit>
+  bool SimulateSingleTile(const Circuit& circuit) {
+    if (!ValidateCircuitOperations(circuit)) return false;
+    const bool fused = TimeHostWork(simulation_stats_.fuse_seconds, [&] {
+      return FuseBatchGates(circuit.ops);
+    });
+    if (!fused) return false;
+
+    backend_.Synchronize();
+    const auto simulation_start = GetTime();
+    ExecuteFusedGates();
+    simulation_stats_.num_gate_batches = circuit.ops.empty() ? 0 : 1;
+    backend_.Synchronize();
+    LogSimulationSummary(simulation_start);
+    return true;
+  }
+
+  template <typename Circuit>
+  bool SimulateMultiTile(const Circuit& circuit, QubitOrderOnExit order) {
+    using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
 
     const auto prepare_start = GetTime();
     if (!PreparePendingGates(circuit)) return false;
@@ -494,7 +513,9 @@ class GateBatchRunner {
       applied_count += num_applied;
     }
 
-    if (restore_qubit_order) RestoreIdentityQubitOrder();
+    if (order == QubitOrderOnExit::kRestoreIdentity) {
+      RestoreIdentityQubitOrder();
+    }
     backend_.Synchronize();
     LogSimulationSummary(simulation_start);
     return true;
@@ -504,10 +525,9 @@ class GateBatchRunner {
   std::size_t ExecuteNextGateBatch(std::vector<Op>& batch_operations) {
     const auto tile_qubits = backend_.TileQubits();
 
-    const auto plan_start = GetTime();
-    const auto plan =
-        gate_batch_planner_.PlanNextGateBatch(pending_gates_, layout_);
-    simulation_stats_.plan_seconds += GetTime() - plan_start;
+    const auto plan = TimeHostWork(simulation_stats_.plan_seconds, [&] {
+      return gate_batch_planner_.PlanNextGateBatch(pending_gates_, layout_);
+    });
     if (!plan.HasGates()) {
       IO::errorf(
           "qsim_gate_batch: a gate does not fit the qubit set "
@@ -516,26 +536,25 @@ class GateBatchRunner {
       return 0;
     }
 
-    BuildSwapsBelow(
-        plan.uses_qubit, tile_qubits, gate_batch_workspace_.swap_pairs);
-    ApplySwapsToState(gate_batch_workspace_.swap_pairs);
+    MoveQubitsIntoZone(
+        plan.uses_qubit, gate_batch_planner_.EvictionFloor(), tile_qubits);
 
-    const auto fuse_start = GetTime();
-    BuildBatchOperations(plan, batch_operations);
-    if (!FuseBatchGates(batch_operations)) {
-      return 0;
-    }
-    simulation_stats_.fuse_seconds += GetTime() - fuse_start;
-    simulation_stats_.num_executable_gates +=
-        gate_batch_workspace_.executable_gates.size();
+    const bool fused = TimeHostWork(simulation_stats_.fuse_seconds, [&] {
+      BuildBatchOperations(plan, batch_operations);
+      return FuseBatchGates(batch_operations);
+    });
+    if (!fused) return 0;
     MarkGatesApplied(plan);
 
-    const auto gates_start = StartTimer();
-    backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
-    simulation_stats_.gate_seconds += StopTimer(gates_start);
-
+    ExecuteFusedGates();
     ++simulation_stats_.num_gate_batches;
     return plan.NumGates();
+  }
+
+  void ExecuteFusedGates() {
+    TimeBackendWork(simulation_stats_.gate_seconds, [&] {
+      backend_.ExecuteBatch(gate_batch_workspace_.executable_gates);
+    });
   }
 
   static void NormalizeGateQubitOrder(
@@ -563,23 +582,31 @@ class GateBatchRunner {
     return true;
   }
 
+  // Returns the operation's gate, or nullptr after reporting why the backend
+  // cannot run it.
+  template <typename Op>
+  static const Gate<fp_type>* ValidateOperation(const Op& operation) {
+    const auto* raw_gate = OpGetAlternative<Gate<fp_type>>(operation);
+    if (raw_gate == nullptr) {
+      IO::errorf(
+          "qsim_gate_batch: unsupported operation "
+          "(controlled gate or measurement).\n");
+      return nullptr;
+    }
+    if (raw_gate->qubits.size() > Backend::kMaxGateQubits) {
+      IO::errorf(
+          "qsim_gate_batch: %zu-qubit gate exceeds the backend "
+          "limit of %u qubits.\n",
+          raw_gate->qubits.size(), Backend::kMaxGateQubits);
+      return nullptr;
+    }
+    return raw_gate;
+  }
+
   template <typename Circuit>
-  bool ValidateCircuitOperations(const Circuit& circuit) const {
+  static bool ValidateCircuitOperations(const Circuit& circuit) {
     for (const auto& operation : circuit.ops) {
-      const auto* raw_gate = OpGetAlternative<Gate<fp_type>>(operation);
-      if (raw_gate == nullptr) {
-        IO::errorf(
-            "qsim_gate_batch: unsupported operation "
-            "(controlled gate or measurement).\n");
-        return false;
-      }
-      if (raw_gate->qubits.size() > Backend::kMaxGateQubits) {
-        IO::errorf(
-            "qsim_gate_batch: %zu-qubit gate exceeds the backend "
-            "limit of %u qubits.\n",
-            raw_gate->qubits.size(), Backend::kMaxGateQubits);
-        return false;
-      }
+      if (ValidateOperation(operation) == nullptr) return false;
     }
     return true;
   }
@@ -589,20 +616,8 @@ class GateBatchRunner {
     pending_gates_.reserve(circuit.ops.size());
 
     for (const auto& operation : circuit.ops) {
-      const auto* raw_gate = OpGetAlternative<Gate<fp_type>>(operation);
-      if (raw_gate == nullptr) {
-        IO::errorf(
-            "qsim_gate_batch: unsupported operation "
-            "(controlled gate or measurement).\n");
-        return false;
-      }
-      if (raw_gate->qubits.size() > Backend::kMaxGateQubits) {
-        IO::errorf(
-            "qsim_gate_batch: %zu-qubit gate exceeds the backend "
-            "limit of %u qubits.\n",
-            raw_gate->qubits.size(), Backend::kMaxGateQubits);
-        return false;
-      }
+      const auto* raw_gate = ValidateOperation(operation);
+      if (raw_gate == nullptr) return false;
 
       const bool diagonal =
           IsDiagonalMatrix(raw_gate->matrix, raw_gate->qubits.size());
@@ -646,37 +661,48 @@ class GateBatchRunner {
     const auto is_hot = SelectHighestScoringQubits(
         usage_scores, lane_qubits_, eviction_floor - lane_qubits_);
 
-    auto& swap_pairs = gate_batch_workspace_.swap_pairs;
-    BuildSwapsBelow(is_hot, eviction_floor, swap_pairs);
-    LogHotZonePlacement(usage_scores, eviction_floor, swap_pairs.size());
-    ApplySwapsToState(swap_pairs);
+    const auto num_swaps =
+        MoveQubitsIntoZone(is_hot, lane_qubits_, eviction_floor);
+    LogHotZonePlacement(usage_scores, eviction_floor, num_swaps);
   }
 
-  void BuildSwapsBelow(
-      const std::vector<char>& wanted, unsigned boundary,
-      std::vector<QubitSwap>& swaps) {
+  // Swaps each wanted qubit stored at or above zone_end into a position in
+  // [zone_begin, zone_end) held by an unwanted qubit, taking positions from the
+  // top of the zone down. Updates both the layout and the state, and returns
+  // the number of swaps.
+  //
+  // The zone always has enough unwanted positions, so eviction never reaches
+  // below zone_begin: the hot zone holds exactly as many positions as there
+  // are hot qubits, and a batch plan's wanted qubits outside the hot and lane
+  // zones never outnumber the remap slots.
+  std::size_t MoveQubitsIntoZone(
+      const std::vector<char>& wanted, unsigned zone_begin, unsigned zone_end) {
+    auto& swaps = gate_batch_workspace_.swap_pairs;
     swaps.clear();
-    auto evict_position = boundary;
+    auto evict_position = zone_end;
 
     for (unsigned q = 0; q < wanted.size(); ++q) {
       if (!wanted[q]) continue;
       const auto position = layout_.PhysicalPositionOf(q);
-      if (position < boundary) continue;
+      if (position < zone_end) continue;
 
       do {
-        assert(evict_position > lane_qubits_);
+        assert(evict_position > zone_begin);
         --evict_position;
       } while (wanted[layout_.LogicalQubitAt(evict_position)]);
       swaps.emplace_back(evict_position, position);
       layout_.SwapPhysicalPositions(evict_position, position);
     }
+
+    ApplySwapsToState(swaps);
+    return swaps.size();
   }
 
   void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
     if (swap_pairs.empty()) return;
-    const auto swap_start = StartTimer();
-    backend_.ApplySwaps(swap_pairs);
-    simulation_stats_.swap_seconds += StopTimer(swap_start);
+    TimeBackendWork(simulation_stats_.swap_seconds, [&] {
+      backend_.ApplySwaps(swap_pairs);
+    });
     simulation_stats_.num_swaps += swap_pairs.size();
   }
 
@@ -729,6 +755,7 @@ class GateBatchRunner {
       assert(std::is_sorted(gate->qubits.begin(), gate->qubits.end()));
       executable_gates.push_back(std::move(*gate));
     }
+    simulation_stats_.num_executable_gates += executable_gates.size();
     return true;
   }
 
@@ -747,14 +774,27 @@ class GateBatchRunner {
     }
   }
 
-  double StartTimer() {
-    if (param_.verbosity > 1) backend_.Synchronize();
-    return GetTime();
+  // Adds the wall time of host-side work (planning, fusion) to `seconds` and
+  // returns the work's result.
+  template <typename Work>
+  auto TimeHostWork(double& seconds, Work&& work) {
+    const auto start = GetTime();
+    auto result = work();
+    seconds += GetTime() - start;
+    return result;
   }
 
-  double StopTimer(double start) {
+  // Adds the time of backend work (gate and swap passes) to `seconds`. Backend
+  // calls may return before the work finishes, so at verbosity > 1 this
+  // synchronizes before and after to time the work itself; otherwise the time
+  // covers only the call.
+  template <typename Work>
+  void TimeBackendWork(double& seconds, Work&& work) {
     if (param_.verbosity > 1) backend_.Synchronize();
-    return GetTime() - start;
+    const auto start = GetTime();
+    work();
+    if (param_.verbosity > 1) backend_.Synchronize();
+    seconds += GetTime() - start;
   }
 
   void LogPreparationTime(double prepare_start) const {
