@@ -14,8 +14,8 @@
 
 // In-place application of disjoint qubit transpositions to a SIMD state space.
 
-#ifndef QUBIT_REMAP_H_
-#define QUBIT_REMAP_H_
+#ifndef QUBIT_SWAP_H_
+#define QUBIT_SWAP_H_
 
 #include <algorithm>
 #include <cassert>
@@ -114,4 +114,4 @@ inline void ApplyBitPairSwaps(
 
 }  // namespace qsim
 
-#endif  // QUBIT_REMAP_H_
+#endif  // QUBIT_SWAP_H_

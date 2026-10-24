@@ -569,7 +569,7 @@ cc_library(
     hdrs = [
         "gate_batch_runner.h",
         "qubit_layout.h",
-        "qubit_remap.h",
+        "qubit_swap.h",
         "run_qsim_gate_batch.h",
     ],
     deps = [

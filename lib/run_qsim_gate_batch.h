@@ -34,7 +34,7 @@
 #endif
 
 #include "gate_batch_runner.h"
-#include "qubit_remap.h"
+#include "qubit_swap.h"
 #include "util.h"
 
 namespace qsim {
