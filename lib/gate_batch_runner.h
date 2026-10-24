@@ -13,6 +13,48 @@
 // limitations under the License.
 
 // Gate-batched cache-local simulation runner.
+//
+// The state vector is split into tiles of 2^tile_qubits amplitudes, small
+// enough to stay in cache. A gate can only run tile by tile when all of its
+// qubits sit at low physical bit positions (below tile_qubits), so the runner
+// repeatedly picks a batch of gates, swaps their qubits down into the tile,
+// and runs the whole batch over each tile in one pass over memory.
+//
+// Each logical qubit lives at a physical bit position of the amplitude index
+// (see QubitLayout). Positions are divided into four zones:
+//
+// 0           lane_qubits      eviction_floor     tile_qubits       num_qubits
+// | lane zone |    hot zone    |    remap zone    | tile index bits |
+//
+//   lane zone   SIMD lanes; never remapped.
+//   hot zone    Filled once, before the first batch, with the most-used
+//               qubits; never evicted afterwards.
+//   remap zone  Remap slots. Before each batch, qubits the batch needs that sit
+//               above tile_qubits are swapped into slots held by qubits the
+//               batch does not need.
+//   tile index  Select which tile an amplitude belongs to; gates cannot act on
+//               qubits stored here.
+//
+// Planning (GateBatchPlanner) walks the pending gates in circuit order and
+// admits each gate whose qubits still fit into the remap slots and that
+// commutes past every gate deferred so far. It tries several starting qubit
+// sets ("seeds") and keeps the batch with the best score: gates admitted minus
+// an estimated swap cost.
+//
+// Reading guide:
+//
+//   GateBatchRunner::Run
+//     SimulateCircuit
+//       (whole state fits one tile) FuseBatchGates, Backend::ExecuteBatch
+//       PreparePendingGates          wrap each gate, flag diagonal ones
+//       PlaceHotQubitsInHotZone      fill the hot zone once
+//       loop ExecuteNextGateBatch
+//         GateBatchPlanner::PlanNextGateBatch
+//         BuildSwapsBelow, ApplySwapsToState   swap batch qubits into the tile
+//         BuildBatchOperations                 rewrite gates to physical qubits
+//         FuseBatchGates, Backend::ExecuteBatch
+//       RestoreIdentityQubitOrder    only for Run(State&); the QubitMappedState
+//                                    overload keeps the permuted layout
 
 #ifndef GATE_BATCH_RUNNER_H_
 #define GATE_BATCH_RUNNER_H_
@@ -35,6 +77,8 @@ namespace qsim {
 
 namespace gate_batch_internal {
 
+// A circuit gate waiting to be scheduled. Points into the caller's circuit;
+// `applied` is set once the gate has run in some batch.
 template <typename FP>
 struct PendingGate {
   const std::vector<unsigned>& Qubits() const { return gate->qubits; }
@@ -45,12 +89,14 @@ struct PendingGate {
   bool applied = false;
 };
 
+// Buffers reused across batches so the batch loop does not reallocate.
 template <typename FP>
 struct GateBatchWorkspace {
   std::vector<QubitSwap> swap_pairs;
   std::vector<FusedGate<FP>> executable_gates;
 };
 
+// Counters and timings reported by LogSimulationSummary.
 struct SimulationStats {
   unsigned num_gate_batches = 0;
   unsigned num_restore_passes = 0;
@@ -63,6 +109,8 @@ struct SimulationStats {
   double gate_seconds = 0.0;
 };
 
+// The logical qubits a candidate batch may hold in the tile, grown as gates
+// are admitted. Qubits outside the lane and hot zones each use one remap slot.
 struct GateBatchQubitSet {
   bool Contains(unsigned logical_qubit) const {
     return contains_qubit[logical_qubit];
@@ -72,6 +120,9 @@ struct GateBatchQubitSet {
   unsigned remap_slots_used = 0;
 };
 
+// The batch chosen by the planner. `uses_qubit` marks only the qubits the
+// admitted gates touch, a subset of the qubit set that produced the plan; only
+// these are swapped into the tile.
 struct GateBatchPlan {
   bool HasGates() const { return !gate_indices.empty(); }
   std::size_t NumGates() const { return gate_indices.size(); }
@@ -104,7 +155,7 @@ class GateBatchPlanner {
 
   GateBatchPlan PlanNextGateBatch(
       const std::vector<PendingGate<FP>>& gates, const QubitLayout& layout) {
-    GateBatchPlan best_plan;
+    GateBatchPlan best_plan{};
     auto consider = [&](GateBatchQubitSet seed) {
       auto plan = BuildCandidatePlan(gates, layout, seed);
       if (!best_plan.HasGates() || plan.score > best_plan.score) {
@@ -403,7 +454,7 @@ class GateBatchRunner {
 
     backend_.Synchronize();
     const auto simulation_start = GetTime();
-    PlaceHotQubitsInFixedZone();
+    PlaceHotQubitsInHotZone();
 
     std::vector<Op> batch_operations;
 
@@ -555,7 +606,7 @@ class GateBatchRunner {
     return selected;
   }
 
-  void PlaceHotQubitsInFixedZone() {
+  void PlaceHotQubitsInHotZone() {
     const auto eviction_floor = gate_batch_planner_.EvictionFloor();
     if (backend_.TileQubits() == num_qubits_ ||
         eviction_floor <= lane_qubits_) {
@@ -568,7 +619,7 @@ class GateBatchRunner {
 
     auto& swap_pairs = gate_batch_workspace_.swap_pairs;
     BuildSwapsBelow(is_hot, eviction_floor, swap_pairs);
-    LogFixedZonePlacement(usage_scores, eviction_floor, swap_pairs.size());
+    LogHotZonePlacement(usage_scores, eviction_floor, swap_pairs.size());
     ApplySwapsToState(swap_pairs);
   }
 
@@ -682,12 +733,12 @@ class GateBatchRunner {
     IO::messagef("prepare time is %g seconds.\n", GetTime() - prepare_start);
   }
 
-  void LogFixedZonePlacement(
+  void LogHotZonePlacement(
       const std::vector<uint64_t>& usage_scores, unsigned eviction_floor,
       std::size_t num_initial_swaps) const {
     if (param_.verbosity <= 1) return;
 
-    IO::messagef("fixed hot zone [%u,%u):", lane_qubits_, eviction_floor);
+    IO::messagef("hot zone [%u,%u):", lane_qubits_, eviction_floor);
     for (unsigned p = lane_qubits_; p < eviction_floor; ++p) {
       const auto q = layout_.LogicalQubitAt(p);
       IO::messagef(
