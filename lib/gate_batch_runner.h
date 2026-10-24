@@ -152,6 +152,14 @@ class GateBatchPlanner {
         all_gates_blocked_(num_qubits),
         non_diagonal_gates_blocked_(num_qubits) {}
 
+  // Builds a candidate batch from several starting qubit sets ("seeds") and
+  // returns the one with the highest score:
+  //   - empty: admits gates greedily in circuit order;
+  //   - resident: starts from every qubit already in the tile, which favors
+  //     batches that need no swaps;
+  //   - lookahead: one seed per later pending gate, starting from that gate's
+  //     qubits, so a batch can form around work further ahead. The first
+  //     pending gate is skipped because the empty seed already starts there.
   GateBatchPlan PlanNextGateBatch(
       const std::vector<PendingGate<FP>>& gates, const QubitLayout& layout) {
     GateBatchPlan best_plan{};
@@ -174,7 +182,8 @@ class GateBatchPlanner {
         skipped_first_pending = true;
         continue;
       }
-      if (seeds_used++ == max_seeds) break;
+      if (seeds_used == max_seeds) break;
+      ++seeds_used;
       auto seed = MakeEmptyQubitSet();
       if (TryAdmitQubits(gate.Qubits(), layout, seed)) {
         consider(std::move(seed));
@@ -187,9 +196,17 @@ class GateBatchPlanner {
 
  private:
   static constexpr unsigned kMinRemapSlots = 2;
+  // Plan scores are measured in gates admitted. A batch that needs swaps pays
+  // kSwapPassCost once for the swap pass over the state, plus kSwapPairCost
+  // per qubit it swaps into the tile.
   static constexpr double kSwapPassCost = 0.5;
   static constexpr double kSwapPairCost = 1.0 / 16.0;
 
+  // Number of lookahead seeds to try. Full-size tiles are memory-bandwidth
+  // bound, so they get the whole max_gate_seeds_ budget: better plans mean
+  // fewer batches and swap passes. Tiles the backend shrank to feed more
+  // threads make each pass cheap, so planning is capped to stay small next to
+  // it.
   unsigned EffectiveGateSeeds(std::size_t num_pending_gates) const {
     if (tile_qubits_ >= num_qubits_ || num_pending_gates == 0) {
       return 0;
@@ -197,18 +214,27 @@ class GateBatchPlanner {
     if (tile_qubits_ >= requested_tile_qubits_) {
       return max_gate_seeds_;
     }
+    return std::min(
+        SeedCapFromTileShrink(), SeedCapFromScanWork(num_pending_gates));
+  }
+
+  // Halves the seed budget for each qubit the tile was shrunk by.
+  unsigned SeedCapFromTileShrink() const {
     const auto tile_shift = requested_tile_qubits_ - tile_qubits_;
-    const unsigned tile_ratio_seeds = tile_shift >= sizeof(unsigned) * 8
-                                          ? 0u
-                                          : (max_gate_seeds_ >> tile_shift);
+    if (tile_shift >= sizeof(unsigned) * 8) return 0;
+    return max_gate_seeds_ >> tile_shift;
+  }
+
+  // Each seed scans the pending gates about twice; keep the total below the
+  // number of SIMD lane groups one tile pass touches.
+  unsigned SeedCapFromScanWork(std::size_t num_pending_gates) const {
     const unsigned tile_qubits_above_lanes =
         tile_qubits_ > lane_qubits_ ? tile_qubits_ - lane_qubits_ : 0u;
     const uint64_t lane_groups_per_tile = uint64_t{1}
                                           << tile_qubits_above_lanes;
     const uint64_t scan_work_per_seed = 2 * uint64_t{num_pending_gates};
-    const uint64_t scan_ratio_seeds = lane_groups_per_tile / scan_work_per_seed;
-    return static_cast<unsigned>(
-        std::min<uint64_t>(tile_ratio_seeds, scan_ratio_seeds));
+    return static_cast<unsigned>(std::min<uint64_t>(
+        lane_groups_per_tile / scan_work_per_seed, max_gate_seeds_));
   }
 
   GateBatchQubitSet MakeEmptyQubitSet() const {
