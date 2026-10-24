@@ -14,10 +14,9 @@
 
 // Benchmark application for the gate-batch runner.
 
-#include <unistd.h>
-
 #include <limits>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -44,25 +43,46 @@ struct Options {
 };
 
 Options GetOptions(int argc, char* argv[]) {
-  constexpr char usage[] = "usage:\n  ./qsim_gate_batch -c circuit "
-                           "-d maxtime -s seed -t threads "
-                           "-f max_fused_size -l tile_qubits "
-                           "-e min_eviction_floor -g max_gate_seeds "
-                           "-v verbosity\n";
+  constexpr char usage[] =
+      "usage:\n  ./qsim_gate_batch -c circuit "
+      "-d maxtime -s seed -t threads "
+      "-f max_fused_size -l tile_qubits "
+      "-e min_eviction_floor -g max_gate_seeds "
+      "-v verbosity\n";
   Options opt;
   int k;
   while ((k = getopt(argc, argv, "c:d:s:t:f:l:e:g:v:")) != -1) {
     switch (k) {
-      case 'c': opt.circuit_file = optarg; break;
-      case 'd': opt.maxtime = std::atoi(optarg); break;
-      case 's': opt.seed = std::atoi(optarg); break;
-      case 't': opt.num_threads = std::atoi(optarg); break;
-      case 'f': opt.max_fused_size = std::atoi(optarg); break;
-      case 'l': opt.tile_qubits = std::atoi(optarg); break;
-      case 'e': opt.min_eviction_floor = std::atoi(optarg); break;
-      case 'g': opt.max_gate_seeds = std::atoi(optarg); break;
-      case 'v': opt.verbosity = std::atoi(optarg); break;
-      default: qsim::IO::errorf(usage); exit(1);
+      case 'c':
+        opt.circuit_file = optarg;
+        break;
+      case 'd':
+        opt.maxtime = std::atoi(optarg);
+        break;
+      case 's':
+        opt.seed = std::atoi(optarg);
+        break;
+      case 't':
+        opt.num_threads = std::atoi(optarg);
+        break;
+      case 'f':
+        opt.max_fused_size = std::atoi(optarg);
+        break;
+      case 'l':
+        opt.tile_qubits = std::atoi(optarg);
+        break;
+      case 'e':
+        opt.min_eviction_floor = std::atoi(optarg);
+        break;
+      case 'g':
+        opt.max_gate_seeds = std::atoi(optarg);
+        break;
+      case 'v':
+        opt.verbosity = std::atoi(optarg);
+        break;
+      default:
+        qsim::IO::errorf(usage);
+        exit(1);
     }
   }
   if (opt.circuit_file.empty()) {
@@ -73,17 +93,19 @@ Options GetOptions(int argc, char* argv[]) {
 }
 
 template <typename StateSpace, typename QubitMappedState>
-void PrintAmplitudes(unsigned num_qubits, const StateSpace& state_space,
-                     const QubitMappedState& state) {
+void PrintAmplitudes(
+    unsigned num_qubits, const StateSpace& state_space,
+    const QubitMappedState& state) {
   static constexpr char const* bits[8] = {
-    "000", "001", "010", "011", "100", "101", "110", "111",
+      "000", "001", "010", "011", "100", "101", "110", "111",
   };
   const auto size = std::min(uint64_t{8}, uint64_t{1} << num_qubits);
   const auto s = 3 - std::min(unsigned{3}, num_qubits);
   for (uint64_t i = 0; i < size; ++i) {
     auto a = state.GetAmpl(state_space, i);
-    qsim::IO::messagef("%s:%16.8g%16.8g%16.8g\n",
-                       bits[i] + s, std::real(a), std::imag(a), std::norm(a));
+    qsim::IO::messagef(
+        "%s:%16.8g%16.8g%16.8g\n", bits[i] + s, std::real(a), std::imag(a),
+        std::norm(a));
   }
 }
 
@@ -93,8 +115,8 @@ int main(int argc, char* argv[]) {
   auto opt = GetOptions(argc, argv);
 
   Circuit<Operation<float>> circuit;
-  if (!CircuitQsimParser<IOFile>::FromFile(opt.maxtime, opt.circuit_file,
-                                           circuit)) {
+  if (!CircuitQsimParser<IOFile>::FromFile(
+          opt.maxtime, opt.circuit_file, circuit)) {
     return 1;
   }
 

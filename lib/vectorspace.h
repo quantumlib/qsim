@@ -16,10 +16,10 @@
 #define VECTORSPACE_H_
 
 #ifdef _WIN32
-  #include <malloc.h>
+#include <malloc.h>
 #elif defined(__linux__)
-  #include <sys/syscall.h>
-  #include <unistd.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 #endif
 
 #include <cstdint>
@@ -42,14 +42,16 @@ inline void free(void* ptr) {
 }
 
 #if defined(__linux__) && defined(SYS_mbind)
-// Interleave across NUMA nodes only once state vectors exceed single-socket LLC.
+// Interleave across NUMA nodes only once state vectors exceed single-socket
+// LLC.
 inline constexpr std::size_t kMinNumaInterleaveBytes = std::size_t{512} << 20;
 
 inline void ApplyNumaInterleave(void* ptr, std::size_t size) {
   constexpr int kMpolInterleave = 3;
   const unsigned long all_nodes = ~0UL;
-  syscall(SYS_mbind, ptr, size, kMpolInterleave, &all_nodes,
-          sizeof(all_nodes) * 8, 0);
+  syscall(
+      SYS_mbind, ptr, size, kMpolInterleave, &all_nodes, sizeof(all_nodes) * 8,
+      0);
 }
 #endif
 
@@ -72,26 +74,18 @@ class VectorSpace {
     Vector(Pointer&& ptr, unsigned num_qubits)
         : ptr_(std::move(ptr)), num_qubits_(num_qubits) {}
 
-    fp_type* get() {
-      return ptr_.get();
-    }
+    fp_type* get() { return ptr_.get(); }
 
-    const fp_type* get() const {
-      return ptr_.get();
-    }
+    const fp_type* get() const { return ptr_.get(); }
 
     fp_type* release() {
       num_qubits_ = 0;
       return ptr_.release();
     }
 
-    unsigned num_qubits() const {
-      return num_qubits_;
-    }
+    unsigned num_qubits() const { return num_qubits_; }
 
-    static constexpr bool requires_copy_to_host() {
-      return false;
-    }
+    static constexpr bool requires_copy_to_host() { return false; }
 
    private:
     Pointer ptr_;
@@ -103,26 +97,26 @@ class VectorSpace {
 
   static Vector Create(unsigned num_qubits) {
     auto size = sizeof(fp_type) * Impl::MinSize(num_qubits);
-    #ifdef _WIN32
-      Pointer ptr{(fp_type*) _aligned_malloc(size, 64), &detail::free};
-      return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
-    #else
-      void* p = nullptr;
-      #if defined(__linux__) && defined(SYS_mbind)
-      const bool interleave = size >= detail::kMinNumaInterleaveBytes;
-      #else
-      constexpr bool interleave = false;
-      #endif
-      const std::size_t align = interleave ? 4096 : 64;
-      if (posix_memalign(&p, align, size) == 0) {
-        #if defined(__linux__) && defined(SYS_mbind)
-        if (interleave) detail::ApplyNumaInterleave(p, size);
-        #endif
-        return Vector{Pointer{(fp_type*) p, &detail::free}, num_qubits};
-      } else {
-        return Null();
-      }
-    #endif
+#ifdef _WIN32
+    Pointer ptr{(fp_type*)_aligned_malloc(size, 64), &detail::free};
+    return Vector{std::move(ptr), ptr.get() != nullptr ? num_qubits : 0};
+#else
+    void* p = nullptr;
+#if defined(__linux__) && defined(SYS_mbind)
+    const bool interleave = size >= detail::kMinNumaInterleaveBytes;
+#else
+    constexpr bool interleave = false;
+#endif
+    const std::size_t align = interleave ? 4096 : 64;
+    if (posix_memalign(&p, align, size) == 0) {
+#if defined(__linux__) && defined(SYS_mbind)
+      if (interleave) detail::ApplyNumaInterleave(p, size);
+#endif
+      return Vector{Pointer{(fp_type*)p, &detail::free}, num_qubits};
+    } else {
+      return Null();
+    }
+#endif
   }
 
   // It is the client's responsibility to make sure that p has at least
@@ -131,27 +125,19 @@ class VectorSpace {
     return Vector{Pointer{p, &detail::do_not_free}, num_qubits};
   }
 
-  static Vector Null() {
-    return Vector{Pointer{nullptr, &detail::free}, 0};
-  }
+  static Vector Null() { return Vector{Pointer{nullptr, &detail::free}, 0}; }
 
-  static bool IsNull(const Vector& vec) {
-    return vec.get() == nullptr;
-  }
+  static bool IsNull(const Vector& vec) { return vec.get() == nullptr; }
 
-  static void Free(fp_type* ptr) {
-    detail::free(ptr);
-  }
+  static void Free(fp_type* ptr) { detail::free(ptr); }
 
   bool Copy(const Vector& src, Vector& dest) const {
     if (src.num_qubits() != dest.num_qubits()) {
       return false;
     }
 
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const fp_type* src, fp_type* dest) {
-      dest[i] = src[i];
-    };
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* src,
+                fp_type* dest) { dest[i] = src[i]; };
 
     for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest.get());
 
@@ -161,10 +147,8 @@ class VectorSpace {
   // It is the client's responsibility to make sure that dest has at least
   // Impl::MinSize(src.num_qubits()) elements.
   bool Copy(const Vector& src, fp_type* dest) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const fp_type* src, fp_type* dest) {
-      dest[i] = src[i];
-    };
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* src,
+                fp_type* dest) { dest[i] = src[i]; };
 
     for_.Run(Impl::MinSize(src.num_qubits()), f, src.get(), dest);
 
@@ -174,10 +158,8 @@ class VectorSpace {
   // It is the client's responsibility to make sure that src has at least
   // Impl::MinSize(dest.num_qubits()) elements.
   bool Copy(const fp_type* src, Vector& dest) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const fp_type* src, fp_type* dest) {
-      dest[i] = src[i];
-    };
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* src,
+                fp_type* dest) { dest[i] = src[i]; };
 
     for_.Run(Impl::MinSize(dest.num_qubits()), f, src, dest.get());
 
@@ -187,10 +169,8 @@ class VectorSpace {
   // It is the client's responsibility to make sure that src has at least
   // min(size, Impl::MinSize(dest.num_qubits())) elements.
   bool Copy(const fp_type* src, uint64_t size, Vector& dest) const {
-    auto f = [](unsigned n, unsigned m, uint64_t i,
-                const fp_type* src, fp_type* dest) {
-      dest[i] = src[i];
-    };
+    auto f = [](unsigned n, unsigned m, uint64_t i, const fp_type* src,
+                fp_type* dest) { dest[i] = src[i]; };
 
     size = std::min(size, Impl::MinSize(dest.num_qubits()));
     for_.Run(size, f, src, dest.get());

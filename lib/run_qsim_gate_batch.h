@@ -73,24 +73,24 @@ template <typename StateSpace>
 struct TilePartition {
   static constexpr unsigned kCacheResidentQubits = 26;
 
-  TilePartition(unsigned state_qubits, unsigned requested_tile_qubits,
-                unsigned num_threads, unsigned min_tile_qubits,
-                unsigned default_tile_qubits)
+  TilePartition(
+      unsigned state_qubits, unsigned requested_tile_qubits,
+      unsigned num_threads, unsigned min_tile_qubits,
+      unsigned default_tile_qubits)
       : num_state_qubits(state_qubits),
-        requested_tile_qubits(
-            std::min(requested_tile_qubits, state_qubits)),
+        requested_tile_qubits(std::min(requested_tile_qubits, state_qubits)),
         tile_qubits(ChooseTileQubits(
-            state_qubits, requested_tile_qubits, num_threads,
-            min_tile_qubits, default_tile_qubits)),
+            state_qubits, requested_tile_qubits, num_threads, min_tile_qubits,
+            default_tile_qubits)),
         floats_per_tile(StateSpace::MinSize(tile_qubits)),
         num_tiles(int64_t{1} << (state_qubits - tile_qubits)) {}
 
-  // Keep LLC-resident states whole unless a smaller tile was explicitly requested.
-  static unsigned ChooseTileQubits(unsigned state_qubits,
-                                   unsigned requested_tile_qubits,
-                                   unsigned num_threads,
-                                   unsigned min_tile_qubits,
-                                   unsigned default_tile_qubits) {
+  // Keep LLC-resident states whole unless a smaller tile was explicitly
+  // requested.
+  static unsigned ChooseTileQubits(
+      unsigned state_qubits, unsigned requested_tile_qubits,
+      unsigned num_threads, unsigned min_tile_qubits,
+      unsigned default_tile_qubits) {
     if (state_qubits < kCacheResidentQubits &&
         requested_tile_qubits >= std::min(state_qubits, default_tile_qubits)) {
       return state_qubits;
@@ -103,8 +103,7 @@ struct TilePartition {
     const auto minimum = std::min(min_tile_qubits, state_qubits);
     return std::max(
         minimum,
-        std::min({requested_tile_qubits, state_qubits,
-                  parallel_tile_qubits}));
+        std::min({requested_tile_qubits, state_qubits, parallel_tile_qubits}));
   }
 
   unsigned num_state_qubits;
@@ -115,7 +114,7 @@ struct TilePartition {
 };
 
 struct TileFor {
-  explicit TileFor(unsigned num_threads) { (void) num_threads; }
+  explicit TileFor(unsigned num_threads) { (void)num_threads; }
 
   static void Configure(unsigned num_threads, unsigned thread_id) {
     num_threads_ = num_threads;
@@ -147,8 +146,9 @@ struct TileFor {
 template <typename Simulator, typename NewFor>
 struct ReplaceFor;
 
-template <template <typename...> class SimulatorT, typename For,
-          typename NewFor, typename... Rest>
+template <
+    template <typename...> class SimulatorT, typename For, typename NewFor,
+    typename... Rest>
 struct ReplaceFor<SimulatorT<For, Rest...>, NewFor> {
   using type = SimulatorT<NewFor, Rest...>;
 };
@@ -176,14 +176,15 @@ class CpuGateBatchBackend {
   static constexpr unsigned kDefaultEvictionFloor = 5;
 
   template <typename RunnerParameter>
-  CpuGateBatchBackend(const RunnerParameter& param, unsigned num_qubits,
-                      State& state)
+  CpuGateBatchBackend(
+      const RunnerParameter& param, unsigned num_qubits, State& state)
       : param_(param),
         verbosity_(param.verbosity),
         active_threads_(
             gate_batch_internal::ClampToPhysicalCores(param.num_threads)),
-        partition_(num_qubits, param.tile_qubits, active_threads_,
-                   MinTileQubits(param.max_fused_size), kDefaultTileQubits),
+        partition_(
+            num_qubits, param.tile_qubits, active_threads_,
+            MinTileQubits(param.max_fused_size), kDefaultTileQubits),
         state_data_(state.get()),
         tile_sim_(1) {
     assert(partition_.tile_qubits >= std::min(kLaneQubits, num_qubits));
@@ -207,8 +208,9 @@ class CpuGateBatchBackend {
   }
 
   void ApplySwaps(const std::vector<QubitSwap>& swaps) {
-    ApplyBitPairSwaps(state_data_, partition_.num_state_qubits, kLaneQubits,
-                      swaps, active_threads_);
+    ApplyBitPairSwaps(
+        state_data_, partition_.num_state_qubits, kLaneQubits, swaps,
+        active_threads_);
   }
 
   void ExecuteBatch(const std::vector<ExecutableGate>& gates) const {
@@ -231,12 +233,11 @@ class CpuGateBatchBackend {
     return kLaneQubits + max_fused_size;
   }
 
-  void ExecuteGatesOnTile(const std::vector<ExecutableGate>& gates,
-                          int64_t tile) const {
+  void ExecuteGatesOnTile(
+      const std::vector<ExecutableGate>& gates, int64_t tile) const {
     gate_batch_internal::TileFor::Configure(1, 0);
     auto* tile_data = state_data_ + tile * partition_.floats_per_tile;
-    auto tile_view =
-        TileStateSpace::Create(tile_data, partition_.tile_qubits);
+    auto tile_view = TileStateSpace::Create(tile_data, partition_.tile_qubits);
 
     for (const ExecutableGate& gate : gates) {
       tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), tile_view);
@@ -265,8 +266,7 @@ class CpuGateBatchBackend {
     }
   }
 
-  void ExecuteIndependentTiles(
-      const std::vector<ExecutableGate>& gates) const {
+  void ExecuteIndependentTiles(const std::vector<ExecutableGate>& gates) const {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(active_threads_)
     for (int64_t tile = 0; tile < partition_.num_tiles; ++tile) {
       ExecuteGatesOnTile(gates, tile);
@@ -276,11 +276,11 @@ class CpuGateBatchBackend {
   void LogAdaptiveTileSize() const {
     if (verbosity_ > 1 &&
         partition_.tile_qubits != partition_.requested_tile_qubits) {
-      IO::messagef("adaptive tile size: L=%u reduced to L=%u, producing "
-                   "%lld tiles for %u threads.\n",
-                   partition_.requested_tile_qubits, partition_.tile_qubits,
-                   static_cast<long long>(partition_.num_tiles),
-                   active_threads_);
+      IO::messagef(
+          "adaptive tile size: L=%u reduced to L=%u, producing "
+          "%lld tiles for %u threads.\n",
+          partition_.requested_tile_qubits, partition_.tile_qubits,
+          static_cast<long long>(partition_.num_tiles), active_threads_);
     }
   }
 
@@ -303,16 +303,18 @@ class QSimGateBatchRunner final
   using typename Base::State;
 
   template <typename Circuit>
-  static bool Run(const Parameter& param, const Factory& factory,
-                  const Circuit& circuit, State& state) {
-    (void) factory;
+  static bool Run(
+      const Parameter& param, const Factory& factory, const Circuit& circuit,
+      State& state) {
+    (void)factory;
     return Base::Run(param, circuit, state);
   }
 
   template <typename Circuit>
-  static bool Run(const Parameter& param, const Factory& factory,
-                  const Circuit& circuit, QubitMappedState& state) {
-    (void) factory;
+  static bool Run(
+      const Parameter& param, const Factory& factory, const Circuit& circuit,
+      QubitMappedState& state) {
+    (void)factory;
     return Base::Run(param, circuit, state);
   }
 };

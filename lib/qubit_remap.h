@@ -35,8 +35,9 @@ struct GroupBitSwap {
   uint64_t flip_mask;
 };
 
-inline bool IsDisjointSwapSet(const std::vector<QubitSwap>& qubit_swaps,
-                              unsigned num_qubits, unsigned lane_qubits) {
+inline bool IsDisjointSwapSet(
+    const std::vector<QubitSwap>& qubit_swaps, unsigned num_qubits,
+    unsigned lane_qubits) {
   std::vector<char> is_swapped(num_qubits, 0);
   for (const auto& [first, second] : qubit_swaps) {
     if (first == second) return false;
@@ -49,8 +50,8 @@ inline bool IsDisjointSwapSet(const std::vector<QubitSwap>& qubit_swaps,
   return true;
 }
 
-inline uint64_t PartnerGroup(uint64_t group,
-                             const std::vector<GroupBitSwap>& bit_swaps) {
+inline uint64_t PartnerGroup(
+    uint64_t group, const std::vector<GroupBitSwap>& bit_swaps) {
   auto partner = group;
   for (const GroupBitSwap& bit_swap : bit_swaps) {
     if (((group >> bit_swap.lower_bit) ^ (group >> bit_swap.upper_bit)) & 1) {
@@ -61,9 +62,9 @@ inline uint64_t PartnerGroup(uint64_t group,
 }
 
 // Keep the __restrict loop: std::swap_ranges measured consistently 1-3% slower.
-inline void SwapGroupSpans(float* __restrict first_span,
-                           float* __restrict second_span,
-                           uint64_t num_floats) {
+inline void SwapGroupSpans(
+    float* __restrict first_span, float* __restrict second_span,
+    uint64_t num_floats) {
   for (uint64_t i = 0; i < num_floats; ++i) {
     const auto temporary = first_span[i];
     first_span[i] = second_span[i];
@@ -74,10 +75,9 @@ inline void SwapGroupSpans(float* __restrict first_span,
 }  // namespace remap_internal
 
 // Swapped positions must be >= lane_qubits to move whole SIMD lane groups.
-inline void ApplyBitPairSwaps(float* state, unsigned num_qubits,
-                              unsigned lane_qubits,
-                              const std::vector<QubitSwap>& qubit_swaps,
-                              unsigned num_threads) {
+inline void ApplyBitPairSwaps(
+    float* state, unsigned num_qubits, unsigned lane_qubits,
+    const std::vector<QubitSwap>& qubit_swaps, unsigned num_threads) {
   namespace ri = remap_internal;
 
   if (qubit_swaps.empty()) return;
@@ -96,8 +96,8 @@ inline void ApplyBitPairSwaps(float* state, unsigned num_qubits,
 
   const auto floats_per_group = uint64_t{2} << lane_qubits;
   const auto floats_per_span = floats_per_group << span_bits;
-  const int64_t num_spans =
-      int64_t{1} << (num_qubits - lane_qubits - span_bits);
+  const int64_t num_spans = int64_t{1}
+                            << (num_qubits - lane_qubits - span_bits);
 
 #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int64_t span = 0; span < num_spans; ++span) {
@@ -105,8 +105,9 @@ inline void ApplyBitPairSwaps(float* state, unsigned num_qubits,
     const auto partner = ri::PartnerGroup(group, bit_swaps);
 
     if (partner > group) {
-      ri::SwapGroupSpans(state + group * floats_per_group,
-                         state + partner * floats_per_group, floats_per_span);
+      ri::SwapGroupSpans(
+          state + group * floats_per_group, state + partner * floats_per_group,
+          floats_per_span);
     }
   }
 }

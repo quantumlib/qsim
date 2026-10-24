@@ -28,8 +28,7 @@ using QubitSwap = std::pair<unsigned, unsigned>;
 class QubitLayout {
  public:
   explicit QubitLayout(unsigned num_qubits)
-      : logical_to_physical_(num_qubits),
-        physical_to_logical_(num_qubits) {
+      : logical_to_physical_(num_qubits), physical_to_logical_(num_qubits) {
     for (unsigned i = 0; i < num_qubits; ++i) {
       logical_to_physical_[i] = i;
       physical_to_logical_[i] = i;
@@ -63,10 +62,9 @@ class QubitLayout {
   void SwapPhysicalPositions(unsigned position_a, unsigned position_b) {
     const auto qubit_a = physical_to_logical_[position_a];
     const auto qubit_b = physical_to_logical_[position_b];
-    std::swap(physical_to_logical_[position_a],
-              physical_to_logical_[position_b]);
-    std::swap(logical_to_physical_[qubit_a],
-              logical_to_physical_[qubit_b]);
+    std::swap(
+        physical_to_logical_[position_a], physical_to_logical_[position_b]);
+    std::swap(logical_to_physical_[qubit_a], logical_to_physical_[qubit_b]);
   }
 
   bool BuildIdentityRestorationSwaps(std::vector<QubitSwap>& swaps) {
@@ -76,8 +74,7 @@ class QubitLayout {
     for (unsigned position = 0; position < NumQubits(); ++position) {
       if (IsIdentityAt(position)) continue;
       const auto paired_position = PhysicalPositionOf(position);
-      if (position_touched[position] ||
-          position_touched[paired_position]) {
+      if (position_touched[position] || position_touched[paired_position]) {
         continue;
       }
 
@@ -101,8 +98,8 @@ struct QubitMappedState {
 
   template <typename StateSpace>
   auto GetAmpl(const StateSpace& state_space, uint64_t logical_index) const {
-    return state_space.GetAmpl(state,
-                               layout.PhysicalAmplitudeIndex(logical_index));
+    return state_space.GetAmpl(
+        state, layout.PhysicalAmplitudeIndex(logical_index));
   }
 
   State state;
