@@ -38,7 +38,7 @@ struct Options {
   unsigned max_fused_size = 3;
   unsigned tile_qubits = 18;
   unsigned min_eviction_floor = 5;
-  unsigned max_gate_seeds = 64;
+  unsigned max_lookahead_seeds = 64;
   unsigned verbosity = 0;
 };
 
@@ -47,7 +47,7 @@ Options GetOptions(int argc, char* argv[]) {
       "usage:\n  ./qsim_gate_batch -c circuit "
       "-d maxtime -s seed -t threads "
       "-f max_fused_size -l tile_qubits "
-      "-e min_eviction_floor -g max_gate_seeds "
+      "-e min_eviction_floor -g max_lookahead_seeds "
       "-v verbosity\n";
   Options opt;
   int k;
@@ -75,7 +75,7 @@ Options GetOptions(int argc, char* argv[]) {
         opt.min_eviction_floor = std::atoi(optarg);
         break;
       case 'g':
-        opt.max_gate_seeds = std::atoi(optarg);
+        opt.max_lookahead_seeds = std::atoi(optarg);
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
   param.max_fused_size = opt.max_fused_size;
   param.tile_qubits = opt.tile_qubits;
   param.min_eviction_floor = opt.min_eviction_floor;
-  param.max_gate_seeds = opt.max_gate_seeds;
+  param.max_lookahead_seeds = opt.max_lookahead_seeds;
   param.num_threads = opt.num_threads;
   param.verbosity = opt.verbosity;
 

@@ -302,19 +302,12 @@ class QSimGateBatchRunner final
   using typename Base::QubitMappedState;
   using typename Base::State;
 
-  template <typename Circuit>
+  // Takes a State or a QubitMappedState; see GateBatchRunner::Run. The
+  // factory is accepted for QSimRunner compatibility and not used.
+  template <typename Circuit, typename StateOrMappedState>
   static bool Run(
-      const Parameter& param, const Factory& factory, const Circuit& circuit,
-      State& state) {
-    (void)factory;
-    return Base::Run(param, circuit, state);
-  }
-
-  template <typename Circuit>
-  static bool Run(
-      const Parameter& param, const Factory& factory, const Circuit& circuit,
-      QubitMappedState& state) {
-    (void)factory;
+      const Parameter& param, const Factory&, const Circuit& circuit,
+      StateOrMappedState& state) {
     return Base::Run(param, circuit, state);
   }
 };
