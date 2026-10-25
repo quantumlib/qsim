@@ -250,17 +250,18 @@ class DeferredGates {
   explicit DeferredGates(unsigned num_qubits)
       : blocks_(num_qubits, Level::kNone) {}
 
+  // Whether the gate may run before every gate deferred so far.
   template <typename FP>
-  bool Blocks(const PendingGate<FP>& gate) const {
+  bool CanRunAhead(const PendingGate<FP>& gate) const {
     const auto blocking = gate.is_diagonal ? Level::kAll : Level::kNonDiagonal;
     for (unsigned q : gate.Qubits()) {
-      if (blocks_[q] >= blocking) return true;
+      if (blocks_[q] >= blocking) return false;
     }
-    return false;
+    return true;
   }
 
   template <typename FP>
-  void Defer(const PendingGate<FP>& gate) {
+  void Add(const PendingGate<FP>& gate) {
     const auto level = gate.is_diagonal ? Level::kNonDiagonal : Level::kAll;
     for (unsigned q : gate.Qubits()) blocks_[q] = std::max(blocks_[q], level);
   }
@@ -309,8 +310,15 @@ class GateBatchPlanner {
  public:
   using PendingGateList = gate_batch_internal::PendingGateList<FP>;
 
-  GateBatchPlanner(const QubitZones& zones, unsigned max_lookahead_seeds)
-      : zones_(zones), max_lookahead_seeds_(max_lookahead_seeds) {}
+  // Reads `pending_gates` and `layout` at each PlanNextGateBatch call, so it
+  // always plans from the current state; both must outlive the planner.
+  GateBatchPlanner(
+      const QubitZones& zones, const PendingGateList& pending_gates,
+      const QubitLayout& layout, unsigned max_lookahead_seeds)
+      : zones_(zones),
+        pending_gates_(pending_gates),
+        layout_(layout),
+        max_lookahead_seeds_(max_lookahead_seeds) {}
 
   // A seed is the set of remap slots a candidate batch starts with; admitting a
   // gate adds its qubits that need slots. Builds one candidate per seed and
@@ -320,32 +328,32 @@ class GateBatchPlanner {
   //     favors batches that need no swaps;
   //   - lookahead: one seed per later pending gate, starting from that gate's
   //     qubits, so a batch can form around work further ahead.
-  GateBatchPlan PlanNextGateBatch(
-      const PendingGateList& gates, const QubitLayout& layout) const {
+  GateBatchPlan PlanNextGateBatch() const {
     GateBatchPlan best_plan(zones_.num_qubits);
     auto consider = [&](RemapSlotSet seed) {
-      auto plan = BuildCandidatePlan(gates, layout, seed);
+      auto plan = BuildCandidatePlan(seed);
       if (!best_plan.HasGates() || plan.Score() > best_plan.Score()) {
         best_plan = std::move(plan);
       }
     };
 
     consider(RemapSlotSet(zones_.num_qubits));
-    consider(MakeResidentSeed(layout));
+    consider(MakeResidentSeed());
 
     // A seed for the first pending gate would rebuild the empty seed's plan, so
     // lookahead starts at the gate after it.
-    const unsigned num_lookahead_seeds = NumLookaheadSeeds(gates.Size());
+    const unsigned num_lookahead_seeds =
+        NumLookaheadSeeds(pending_gates_.Size());
     unsigned seeds_used = 0;
-    const auto* first_pending = gates.NextPending();
+    const auto* first_pending = pending_gates_.NextPending();
     assert(
         first_pending != nullptr);  // the runner plans only while gates remain
-    for (const auto* gate = gates.NextPending(first_pending);
+    for (const auto* gate = pending_gates_.NextPending(first_pending);
          gate != nullptr && seeds_used < num_lookahead_seeds;
-         gate = gates.NextPending(gate)) {
+         gate = pending_gates_.NextPending(gate)) {
       ++seeds_used;
       RemapSlotSet seed(zones_.num_qubits);
-      if (TryAdmitQubits(gate->Qubits(), layout, seed)) {
+      if (TryAdmitQubits(gate->Qubits(), seed)) {
         consider(std::move(seed));
       }
     }
@@ -386,10 +394,10 @@ class GateBatchPlanner {
         lane_groups_per_tile / scan_work_per_seed, max_lookahead_seeds_));
   }
 
-  RemapSlotSet MakeResidentSeed(const QubitLayout& layout) const {
+  RemapSlotSet MakeResidentSeed() const {
     RemapSlotSet seed(zones_.num_qubits);
     for (unsigned q = 0; q < zones_.num_qubits; ++q) {
-      const auto position = layout.PhysicalPositionOf(q);
+      const auto position = layout_.PhysicalPositionOf(q);
       if (position >= zones_.eviction_floor && position < zones_.tile_qubits) {
         seed.Add(q);
       }
@@ -397,52 +405,48 @@ class GateBatchPlanner {
     return seed;
   }
 
-  GateBatchPlan BuildCandidatePlan(
-      const PendingGateList& gates, const QubitLayout& layout,
-      RemapSlotSet& slots) const {
+  GateBatchPlan BuildCandidatePlan(RemapSlotSet& slots) const {
     GateBatchPlan plan(zones_.num_qubits);
     DeferredGates deferred(zones_.num_qubits);
 
-    for (const auto* gate = gates.NextPending(); gate != nullptr;
-         gate = gates.NextPending(gate)) {
-      if (!deferred.Blocks(*gate) &&
-          TryAdmitQubits(gate->Qubits(), layout, slots)) {
+    for (const auto* gate = pending_gates_.NextPending(); gate != nullptr;
+         gate = pending_gates_.NextPending(gate)) {
+      if (deferred.CanRunAhead(*gate) &&
+          TryAdmitQubits(gate->Qubits(), slots)) {
         plan.AddGate(*gate);
       } else {
-        deferred.Defer(*gate);
+        deferred.Add(*gate);
       }
     }
 
-    plan.num_swaps = CountSwapsNeeded(plan, layout);
+    plan.num_swaps = CountSwapsNeeded(plan);
     return plan;
   }
 
-  bool NeedsRemapSlot(unsigned q, const QubitLayout& layout) const {
-    return layout.PhysicalPositionOf(q) >= zones_.eviction_floor;
+  bool NeedsRemapSlot(unsigned q) const {
+    return layout_.PhysicalPositionOf(q) >= zones_.eviction_floor;
   }
 
   // Adds the gate's qubits to `slots` if the remap zone has room for them.
   bool TryAdmitQubits(
-      const std::vector<unsigned>& qubits, const QubitLayout& layout,
-      RemapSlotSet& slots) const {
+      const std::vector<unsigned>& qubits, RemapSlotSet& slots) const {
     unsigned new_slots = 0;
     for (unsigned q : qubits) {
-      if (!slots.Contains(q) && NeedsRemapSlot(q, layout)) ++new_slots;
+      if (!slots.Contains(q) && NeedsRemapSlot(q)) ++new_slots;
     }
     if (slots.NumSlotsUsed() + new_slots > zones_.NumRemapSlots()) return false;
 
     for (unsigned q : qubits) {
-      if (NeedsRemapSlot(q, layout)) slots.Add(q);
+      if (NeedsRemapSlot(q)) slots.Add(q);
     }
     return true;
   }
 
-  unsigned CountSwapsNeeded(
-      const GateBatchPlan& plan, const QubitLayout& layout) const {
+  unsigned CountSwapsNeeded(const GateBatchPlan& plan) const {
     unsigned count = 0;
     for (unsigned q = 0; q < zones_.num_qubits; ++q) {
       if (plan.uses_qubit[q] &&
-          layout.PhysicalPositionOf(q) >= zones_.tile_qubits) {
+          layout_.PhysicalPositionOf(q) >= zones_.tile_qubits) {
         ++count;
       }
     }
@@ -450,6 +454,8 @@ class GateBatchPlanner {
   }
 
   const QubitZones zones_;
+  const PendingGateList& pending_gates_;
+  const QubitLayout& layout_;
   unsigned max_lookahead_seeds_;
 };
 
@@ -572,7 +578,8 @@ class GateBatchRunner {
             QubitZones::ForBackend(
                 backend_, num_qubits, param.min_eviction_floor)),
         layout_(layout),
-        gate_batch_planner_(zones_, param.max_lookahead_seeds) {
+        gate_batch_planner_(
+            zones_, pending_gates_, layout_, param.max_lookahead_seeds) {
     assert(layout_.NumQubits() == num_qubits);
   }
 
@@ -656,7 +663,7 @@ class GateBatchRunner {
   template <typename Op>
   bool ExecuteNextGateBatch(std::vector<Op>& batch_operations) {
     const auto plan = TimeHostWork(simulation_stats_.plan_seconds, [&] {
-      return gate_batch_planner_.PlanNextGateBatch(pending_gates_, layout_);
+      return gate_batch_planner_.PlanNextGateBatch();
     });
     if (!plan.HasGates()) {
       IO::errorf(
