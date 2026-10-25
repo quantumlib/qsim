@@ -65,7 +65,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <numeric>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -710,10 +709,8 @@ class GateBatchRunner {
   }
 
   static std::vector<char> SelectHighestScoringQubits(
-      const std::vector<uint64_t>& scores, unsigned first_qubit,
+      const std::vector<uint64_t>& scores, std::vector<unsigned> candidates,
       unsigned count) {
-    std::vector<unsigned> candidates(scores.size() - first_qubit);
-    std::iota(candidates.begin(), candidates.end(), first_qubit);
     assert(count <= candidates.size());
     std::stable_sort(
         candidates.begin(), candidates.end(),
@@ -727,9 +724,18 @@ class GateBatchRunner {
   void FillHotZone() {
     if (zones_.NumHotSlots() == 0) return;
 
+    // Lane qubits never move, so only qubits stored above the lanes can be
+    // made hot.
+    std::vector<unsigned> candidates;
+    for (unsigned q = 0; q < zones_.num_qubits; ++q) {
+      if (layout_.PhysicalPositionOf(q) >= zones_.lane_qubits) {
+        candidates.push_back(q);
+      }
+    }
+
     const auto usage_scores = ComputeQubitUsageScores();
     const auto is_hot = SelectHighestScoringQubits(
-        usage_scores, zones_.lane_qubits, zones_.NumHotSlots());
+        usage_scores, std::move(candidates), zones_.NumHotSlots());
 
     const auto num_swaps =
         MoveQubitsIntoZone(is_hot, zones_.lane_qubits, zones_.eviction_floor);
