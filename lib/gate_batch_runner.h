@@ -36,8 +36,8 @@
 //               qubits stored here.
 //
 // Planning (GateBatchPlanner) walks the pending gates in circuit order and
-// admits each gate whose qubits still fit into the remap slots and that
-// commutes past every gate deferred so far. It tries several starting sets of
+// admits each gate whose qubits still fit into the remap slots and that may
+// run before every gate deferred so far. It tries several starting sets of
 // remap slots ("seeds") and keeps the batch with the best score: gates
 // admitted minus an estimated swap cost.
 //
@@ -80,54 +80,74 @@ namespace qsim {
 
 namespace gate_batch_internal {
 
-// Gate matrices are row-major with interleaved real and imaginary parts.
+// --- Qubit zones ---
+
+// The zone boundaries from the diagram at the top, fixed for the whole run.
+struct QubitZones {
+  template <typename Backend>
+  static QubitZones ForBackend(
+      const Backend& backend, unsigned num_qubits,
+      unsigned min_eviction_floor) {
+    QubitZones zones;
+    zones.num_qubits = num_qubits;
+    zones.requested_tile_qubits =
+        std::min(backend.RequestedTileQubits(), num_qubits);
+    zones.tile_qubits = backend.TileQubits();
+    zones.lane_qubits = backend.LaneQubits();
+    zones.eviction_floor = zones.ComputeEvictionFloor(min_eviction_floor);
+    return zones;
+  }
+
+  bool IsSingleTile() const { return tile_qubits == num_qubits; }
+  unsigned NumHotSlots() const { return eviction_floor - lane_qubits; }
+  unsigned NumRemapSlots() const { return tile_qubits - eviction_floor; }
+  unsigned TileQubitsAboveLanes() const {
+    return tile_qubits > lane_qubits ? tile_qubits - lane_qubits : 0u;
+  }
+
+  unsigned lane_qubits = 0;     // end of the lane zone
+  unsigned eviction_floor = 0;  // end of the hot zone
+  unsigned tile_qubits = 0;     // end of the remap zone
+  unsigned num_qubits = 0;
+  // The tile size before the backend shrank it to give every thread a tile.
+  unsigned requested_tile_qubits = 0;
+
+ private:
+  static constexpr unsigned kMinRemapSlots = 2;
+
+  unsigned ComputeEvictionFloor(unsigned min_eviction_floor) const {
+    if (IsSingleTile()) return tile_qubits;
+
+    const auto slots_above_min_floor = tile_qubits > min_eviction_floor
+                                           ? tile_qubits - min_eviction_floor
+                                           : 0u;
+    const auto remap_slots = std::min(
+        TileQubitsAboveLanes(),
+        std::max(slots_above_min_floor, kMinRemapSlots));
+    return tile_qubits - remap_slots;
+  }
+};
+
+// --- Pending gates ---
+
+// Whether the gate's matrix is diagonal. Two diagonal gates give the same
+// result in either order, so the planner may swap their order.
 template <typename FP>
-bool IsDiagonalMatrix(const Matrix<FP>& matrix, std::size_t arity) {
-  const auto dim = std::size_t{1} << arity;
-  if (matrix.size() < 2 * dim * dim) return false;
+bool IsDiagonalGate(const Gate<FP>& gate) {
+  const auto& matrix = gate.matrix;
+  const auto dim = std::size_t{1} << gate.qubits.size();
+  assert(matrix.size() == 2 * dim * dim);
 
   for (std::size_t row = 0; row < dim; ++row) {
     for (std::size_t col = 0; col < dim; ++col) {
       if (row == col) continue;
       const auto k = 2 * (row * dim + col);
-      if (matrix[k] != 0 || matrix[k + 1] != 0) return false;
+      const auto re = matrix[k];
+      const auto im = matrix[k + 1];
+      if (re != 0 || im != 0) return false;
     }
   }
   return true;
-}
-
-// Sorts the qubits in ascending order, as the simulator expects, and permutes
-// the matrix to match.
-template <typename FP>
-void NormalizeGateQubitOrder(
-    std::vector<unsigned>& qubits, Matrix<FP>& matrix) {
-  if (qubits.size() < 2) return;
-  auto permutation = NormalToGateOrderPermutation(qubits);
-  if (!permutation.empty()) {
-    MatrixShuffle(permutation, qubits.size(), matrix);
-    std::sort(qubits.begin(), qubits.end());
-  }
-}
-
-// Returns `raw_gate` rewritten to act on the physical positions that `layout`
-// stores its logical qubits at, with the qubits sorted as the simulator
-// expects.
-template <typename FP>
-Gate<FP> MakePhysicalGate(
-    const Gate<FP>& raw_gate, const QubitLayout& layout, unsigned time) {
-  std::vector<unsigned> physical_qubits;
-  physical_qubits.reserve(raw_gate.qubits.size());
-  for (unsigned q : raw_gate.qubits) {
-    physical_qubits.push_back(layout.PhysicalPositionOf(q));
-  }
-  auto physical_matrix = raw_gate.matrix;
-  NormalizeGateQubitOrder(physical_qubits, physical_matrix);
-
-  return Gate<FP>{
-      {0, time, std::move(physical_qubits)},
-      {},
-      std::move(physical_matrix),
-      false};
 }
 
 // A circuit gate to be scheduled. Points into the caller's circuit; `index` is
@@ -135,10 +155,7 @@ Gate<FP> MakePhysicalGate(
 template <typename FP>
 struct PendingGate {
   PendingGate(const Gate<FP>& raw_gate, std::size_t index)
-      : gate(&raw_gate),
-        index(index),
-        is_diagonal(IsDiagonalMatrix(raw_gate.matrix, raw_gate.qubits.size())) {
-  }
+      : gate(&raw_gate), index(index), is_diagonal(IsDiagonalGate(raw_gate)) {}
 
   const std::vector<unsigned>& Qubits() const { return gate->qubits; }
 
@@ -200,19 +217,7 @@ class PendingGateList {
   std::size_t first_pending_ = 0;
 };
 
-// Counters and timings reported by LogSimulationSummary.
-struct SimulationStats {
-  unsigned num_gate_batches = 0;
-  unsigned num_restore_passes = 0;
-  unsigned num_raw_gates = 0;
-  unsigned num_swaps = 0;
-  unsigned num_executable_gates = 0;
-  double prepare_seconds = 0.0;
-  double plan_seconds = 0.0;
-  double swap_seconds = 0.0;
-  double fuse_seconds = 0.0;
-  double gate_seconds = 0.0;
-};
+// --- Batch planning ---
 
 // The logical qubits holding a remap slot in a candidate batch, grown as gates
 // are admitted. Qubits below the eviction floor stay in the tile for free and
@@ -237,29 +242,9 @@ class RemapSlotSet {
   unsigned num_slots_used_ = 0;
 };
 
-// The batch chosen by the planner. `uses_qubit` marks the qubits the admitted
-// gates touch; those above the tile are swapped in before the batch runs.
-struct GateBatchPlan {
-  explicit GateBatchPlan(unsigned num_qubits) : uses_qubit(num_qubits, 0) {}
-
-  // Adds the gate to the batch and marks its qubits as used.
-  template <typename FP>
-  void AddGate(const PendingGate<FP>& gate) {
-    gate_indices.push_back(gate.index);
-    for (unsigned q : gate.Qubits()) uses_qubit[q] = 1;
-  }
-
-  bool HasGates() const { return !gate_indices.empty(); }
-  std::size_t NumGates() const { return gate_indices.size(); }
-
-  std::vector<std::size_t> gate_indices;
-  std::vector<char> uses_qubit;
-  double score = 0.0;
-};
-
 // What the gates deferred so far in a candidate batch block, per logical
 // qubit. A later gate may not move past a deferred gate on a shared qubit,
-// except that diagonal gates commute with each other.
+// except that two diagonal gates may swap order.
 class DeferredGates {
  public:
   explicit DeferredGates(unsigned num_qubits)
@@ -287,50 +272,36 @@ class DeferredGates {
   std::vector<Level> blocks_;
 };
 
-// The zone boundaries from the diagram at the top, fixed for the whole run.
-struct QubitZones {
-  template <typename Backend>
-  static QubitZones ForBackend(
-      const Backend& backend, unsigned num_qubits,
-      unsigned min_eviction_floor) {
-    QubitZones zones;
-    zones.num_qubits = num_qubits;
-    zones.requested_tile_qubits =
-        std::min(backend.RequestedTileQubits(), num_qubits);
-    zones.tile_qubits = backend.TileQubits();
-    zones.lane_qubits = backend.LaneQubits();
-    zones.eviction_floor = zones.ComputeEvictionFloor(min_eviction_floor);
-    return zones;
+// The batch chosen by the planner. `uses_qubit` marks the qubits the admitted
+// gates touch; those above the tile are swapped in before the batch runs.
+struct GateBatchPlan {
+  explicit GateBatchPlan(unsigned num_qubits) : uses_qubit(num_qubits, 0) {}
+
+  // Adds the gate to the batch and marks its qubits as used.
+  template <typename FP>
+  void AddGate(const PendingGate<FP>& gate) {
+    gate_indices.push_back(gate.index);
+    for (unsigned q : gate.Qubits()) uses_qubit[q] = 1;
   }
 
-  bool IsSingleTile() const { return tile_qubits == num_qubits; }
-  unsigned NumHotSlots() const { return eviction_floor - lane_qubits; }
-  unsigned NumRemapSlots() const { return tile_qubits - eviction_floor; }
-  unsigned TileQubitsAboveLanes() const {
-    return tile_qubits > lane_qubits ? tile_qubits - lane_qubits : 0u;
+  bool HasGates() const { return !gate_indices.empty(); }
+  std::size_t NumGates() const { return gate_indices.size(); }
+
+  // Measured in gates admitted. A batch that needs swaps pays kSwapPassCost
+  // once for the swap pass over the state, plus kSwapPairCost per qubit it
+  // swaps into the tile.
+  double Score() const {
+    constexpr double kSwapPassCost = 0.5;
+    constexpr double kSwapPairCost = 1.0 / 16.0;
+    const auto swap_cost =
+        num_swaps == 0 ? 0.0 : kSwapPassCost + kSwapPairCost * num_swaps;
+    return NumGates() - swap_cost;
   }
 
-  unsigned lane_qubits = 0;     // end of the lane zone
-  unsigned eviction_floor = 0;  // end of the hot zone
-  unsigned tile_qubits = 0;     // end of the remap zone
-  unsigned num_qubits = 0;
-  // The tile size before the backend shrank it to give every thread a tile.
-  unsigned requested_tile_qubits = 0;
-
- private:
-  static constexpr unsigned kMinRemapSlots = 2;
-
-  unsigned ComputeEvictionFloor(unsigned min_eviction_floor) const {
-    if (IsSingleTile()) return tile_qubits;
-
-    const auto slots_above_min_floor = tile_qubits > min_eviction_floor
-                                           ? tile_qubits - min_eviction_floor
-                                           : 0u;
-    const auto remap_slots = std::min(
-        TileQubitsAboveLanes(),
-        std::max(slots_above_min_floor, kMinRemapSlots));
-    return tile_qubits - remap_slots;
-  }
+  std::vector<std::size_t> gate_indices;
+  std::vector<char> uses_qubit;
+  // Qubits the batch uses that are stored above the tile; set by the planner.
+  unsigned num_swaps = 0;
 };
 
 template <typename FP>
@@ -354,7 +325,7 @@ class GateBatchPlanner {
     GateBatchPlan best_plan(zones_.num_qubits);
     auto consider = [&](RemapSlotSet seed) {
       auto plan = BuildCandidatePlan(gates, layout, seed);
-      if (!best_plan.HasGates() || plan.score > best_plan.score) {
+      if (!best_plan.HasGates() || plan.Score() > best_plan.Score()) {
         best_plan = std::move(plan);
       }
     };
@@ -442,22 +413,8 @@ class GateBatchPlanner {
       }
     }
 
-    plan.score = Score(plan, layout);
+    plan.num_swaps = CountSwapsNeeded(plan, layout);
     return plan;
-  }
-
-  double Score(const GateBatchPlan& plan, const QubitLayout& layout) const {
-    // Plan scores are measured in gates admitted. A batch that needs swaps pays
-    // kSwapPassCost once for the swap pass over the state, plus kSwapPairCost
-    // per qubit it swaps into the tile.
-    constexpr double kSwapPassCost = 0.5;
-    constexpr double kSwapPairCost = 1.0 / 16.0;
-
-    const auto required_swaps = CountSwapsNeeded(plan, layout);
-    const auto swap_cost = required_swaps == 0
-                               ? 0.0
-                               : kSwapPassCost + kSwapPairCost * required_swaps;
-    return plan.NumGates() - swap_cost;
   }
 
   bool NeedsRemapSlot(unsigned q, const QubitLayout& layout) const {
@@ -494,6 +451,52 @@ class GateBatchPlanner {
 
   const QubitZones zones_;
   unsigned max_lookahead_seeds_;
+};
+
+// --- Running a batch ---
+
+// Sorts the qubits in ascending order, as the simulator expects, and permutes
+// the matrix to match.
+template <typename FP>
+void NormalizeGateQubitOrder(
+    std::vector<unsigned>& qubits, Matrix<FP>& matrix) {
+  if (qubits.size() < 2) return;
+  auto permutation = NormalToGateOrderPermutation(qubits);
+  if (!permutation.empty()) {
+    MatrixShuffle(permutation, qubits.size(), matrix);
+    std::sort(qubits.begin(), qubits.end());
+  }
+}
+
+// Returns `raw_gate` rewritten to act on the physical positions that `layout`
+// stores its logical qubits at, with the qubits sorted as the simulator
+// expects.
+template <typename FP>
+Gate<FP> MakePhysicalGate(
+    const Gate<FP>& raw_gate, const QubitLayout& layout, unsigned time) {
+  // kind, params and swapped keep their zero defaults; the fuser ignores them.
+  Gate<FP> physical_gate{};
+  physical_gate.time = time;
+  for (unsigned q : raw_gate.qubits) {
+    physical_gate.qubits.push_back(layout.PhysicalPositionOf(q));
+  }
+  physical_gate.matrix = raw_gate.matrix;
+  NormalizeGateQubitOrder(physical_gate.qubits, physical_gate.matrix);
+  return physical_gate;
+}
+
+// Counters and timings reported by LogSimulationSummary.
+struct SimulationStats {
+  unsigned num_gate_batches = 0;
+  unsigned num_restore_passes = 0;
+  unsigned num_raw_gates = 0;
+  unsigned num_swaps = 0;
+  unsigned num_executable_gates = 0;
+  double prepare_seconds = 0.0;
+  double plan_seconds = 0.0;
+  double swap_seconds = 0.0;
+  double fuse_seconds = 0.0;
+  double gate_seconds = 0.0;
 };
 
 }  // namespace gate_batch_internal
