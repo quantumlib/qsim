@@ -571,8 +571,14 @@ class GateBatchRunner {
     if (!ValidateParameters() || !backend_.Prepare()) return false;
     simulation_stats_.num_raw_gates = unsigned(circuit.ops.size());
 
-    if (zones_.IsSingleTile()) return SimulateSingleTile(circuit);
-    return SimulateMultiTile(circuit, order);
+    const bool prepared = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
+      return PreparePendingGates(circuit);
+    });
+    if (!prepared) return false;
+
+    using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
+    if (zones_.IsSingleTile()) return SimulateSingleTile<Op>();
+    return SimulateMultiTile<Op>(order);
   }
 
   bool ValidateParameters() const {
@@ -589,31 +595,34 @@ class GateBatchRunner {
     return true;
   }
 
-  // The whole state is one tile: no planning or swaps, just fuse the circuit
-  // and run it once.
-  template <typename Circuit>
-  bool SimulateSingleTile(const Circuit& circuit) {
+  // The whole state is one tile: no planning or swaps. Every gate runs in one
+  // batch, on the physical positions the layout gives its qubits. Gates keep
+  // their circuit times, so the fuser groups them as for the whole circuit.
+  template <typename Op>
+  bool SimulateSingleTile() {
+    std::vector<Op> operations;
+    operations.reserve(pending_gates_.Size());
+    for (const auto* gate = pending_gates_.NextPending(); gate != nullptr;
+         gate = pending_gates_.NextPending(gate)) {
+      operations.push_back(
+          Op{gate_batch_internal::MakePhysicalGate(
+              *gate->gate, layout_, gate->gate->time)});
+    }
+
     const bool fused = TimeHostWork(simulation_stats_.fuse_seconds, [&] {
-      return FuseBatchGates(circuit.ops, executable_gates_);
+      return FuseBatchGates(operations, executable_gates_);
     });
     if (!fused) return false;
 
     const auto simulation_start = StartSimulationClock();
     ExecuteFusedGates(executable_gates_);
-    simulation_stats_.num_gate_batches = circuit.ops.empty() ? 0 : 1;
+    simulation_stats_.num_gate_batches = operations.empty() ? 0 : 1;
     FinishSimulation(simulation_start);
     return true;
   }
 
-  template <typename Circuit>
-  bool SimulateMultiTile(const Circuit& circuit, QubitOrderOnExit order) {
-    using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
-
-    const bool prepared = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
-      return PreparePendingGates(circuit);
-    });
-    if (!prepared) return false;
-
+  template <typename Op>
+  bool SimulateMultiTile(QubitOrderOnExit order) {
     const auto simulation_start = StartSimulationClock();
     FillHotZone();
 
