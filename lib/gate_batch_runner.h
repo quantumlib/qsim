@@ -323,22 +323,12 @@ class GateBatchPlanner {
   // A seed is the set of remap slots a candidate batch starts with; admitting a
   // gate adds its qubits that need slots. Builds one candidate per seed and
   // returns the one with the highest score (the first one built on a tie).
-  // Seeds:
-  //   - gate seeds: one per pending gate, starting from the slots that gate
-  //     needs, so a batch can form around work further ahead. The first
-  //     pending gate's seed is plain greedy, since the walk admits that gate
-  //     first anyway; it does not count against the lookahead budget.
-  //   - resident: every qubit already in the remap zone, which favors batches
-  //     that need no swaps.
+  // There is one seed per pending gate, starting from the slots that gate
+  // needs, so a batch can form around work further ahead. The first pending
+  // gate's seed is plain greedy, since the walk admits that gate first anyway;
+  // it does not count against the lookahead budget.
   GateBatchPlan PlanNextGateBatch() const {
     GateBatchPlan best_plan(zones_.num_qubits);
-    auto consider = [&](RemapSlotSet seed) {
-      auto plan = BuildCandidatePlan(seed);
-      if (!best_plan.HasGates() || plan.Score() > best_plan.Score()) {
-        best_plan = std::move(plan);
-      }
-    };
-
     const unsigned num_lookahead_seeds =
         NumLookaheadSeeds(pending_gates_.Size());
     unsigned seeds_used = 0;  // `<=` below: the first, greedy seed is free
@@ -346,9 +336,12 @@ class GateBatchPlanner {
          gate != nullptr && seeds_used <= num_lookahead_seeds;
          gate = pending_gates_.NextPending(gate), ++seeds_used) {
       RemapSlotSet seed(zones_.num_qubits);
-      if (TryAdmitQubits(gate->Qubits(), seed)) consider(std::move(seed));
+      if (!TryAdmitQubits(gate->Qubits(), seed)) continue;
+      auto plan = BuildCandidatePlan(seed);
+      if (!best_plan.HasGates() || plan.Score() > best_plan.Score()) {
+        best_plan = std::move(plan);
+      }
     }
-    consider(MakeResidentSeed());
     return best_plan;
   }
 
@@ -384,17 +377,6 @@ class GateBatchPlanner {
     const uint64_t scan_work_per_seed = 2 * uint64_t{num_pending_gates};
     return static_cast<unsigned>(std::min<uint64_t>(
         lane_groups_per_tile / scan_work_per_seed, max_lookahead_seeds_));
-  }
-
-  RemapSlotSet MakeResidentSeed() const {
-    RemapSlotSet seed(zones_.num_qubits);
-    for (unsigned q = 0; q < zones_.num_qubits; ++q) {
-      const auto position = layout_.PhysicalPositionOf(q);
-      if (position >= zones_.eviction_floor && position < zones_.tile_qubits) {
-        seed.Add(q);
-      }
-    }
-    return seed;
   }
 
   GateBatchPlan BuildCandidatePlan(RemapSlotSet& slots) const {
