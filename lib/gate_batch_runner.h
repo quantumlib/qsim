@@ -157,7 +157,7 @@ struct PendingGate {
   PendingGate(const Gate<FP>& raw_gate, std::size_t index)
       : gate(&raw_gate), index(index), is_diagonal(IsDiagonalGate(raw_gate)) {}
 
-  const std::vector<unsigned>& Qubits() const { return gate->qubits; }
+  const qsim::Qubits& Qubits() const { return gate->qubits; }
 
   const Gate<FP>* gate;
   std::size_t index;
@@ -322,12 +322,14 @@ class GateBatchPlanner {
 
   // A seed is the set of remap slots a candidate batch starts with; admitting a
   // gate adds its qubits that need slots. Builds one candidate per seed and
-  // returns the one with the highest score. Seeds:
-  //   - empty: admits gates greedily in circuit order;
-  //   - resident: starts from every qubit already in the remap zone, which
-  //     favors batches that need no swaps;
-  //   - lookahead: one seed per later pending gate, starting from that gate's
-  //     qubits, so a batch can form around work further ahead.
+  // returns the one with the highest score (the first one built on a tie).
+  // Seeds:
+  //   - gate seeds: one per pending gate, starting from the slots that gate
+  //     needs, so a batch can form around work further ahead. The first
+  //     pending gate's seed is plain greedy, since the walk admits that gate
+  //     first anyway; it does not count against the lookahead budget.
+  //   - resident: every qubit already in the remap zone, which favors batches
+  //     that need no swaps.
   GateBatchPlan PlanNextGateBatch() const {
     GateBatchPlan best_plan(zones_.num_qubits);
     auto consider = [&](RemapSlotSet seed) {
@@ -337,26 +339,16 @@ class GateBatchPlanner {
       }
     };
 
-    consider(RemapSlotSet(zones_.num_qubits));
-    consider(MakeResidentSeed());
-
-    // A seed for the first pending gate would rebuild the empty seed's plan, so
-    // lookahead starts at the gate after it.
     const unsigned num_lookahead_seeds =
         NumLookaheadSeeds(pending_gates_.Size());
-    unsigned seeds_used = 0;
-    const auto* first_pending = pending_gates_.NextPending();
-    assert(
-        first_pending != nullptr);  // the runner plans only while gates remain
-    for (const auto* gate = pending_gates_.NextPending(first_pending);
-         gate != nullptr && seeds_used < num_lookahead_seeds;
-         gate = pending_gates_.NextPending(gate)) {
-      ++seeds_used;
+    unsigned seeds_used = 0;  // `<=` below: the first, greedy seed is free
+    for (const auto* gate = pending_gates_.NextPending();
+         gate != nullptr && seeds_used <= num_lookahead_seeds;
+         gate = pending_gates_.NextPending(gate), ++seeds_used) {
       RemapSlotSet seed(zones_.num_qubits);
-      if (TryAdmitQubits(gate->Qubits(), seed)) {
-        consider(std::move(seed));
-      }
+      if (TryAdmitQubits(gate->Qubits(), seed)) consider(std::move(seed));
     }
+    consider(MakeResidentSeed());
     return best_plan;
   }
 
@@ -428,8 +420,7 @@ class GateBatchPlanner {
   }
 
   // Adds the gate's qubits to `slots` if the remap zone has room for them.
-  bool TryAdmitQubits(
-      const std::vector<unsigned>& qubits, RemapSlotSet& slots) const {
+  bool TryAdmitQubits(const Qubits& qubits, RemapSlotSet& slots) const {
     unsigned new_slots = 0;
     for (unsigned q : qubits) {
       if (!slots.Contains(q) && NeedsRemapSlot(q)) ++new_slots;
@@ -464,8 +455,7 @@ class GateBatchPlanner {
 // Sorts the qubits in ascending order, as the simulator expects, and permutes
 // the matrix to match.
 template <typename FP>
-void NormalizeGateQubitOrder(
-    std::vector<unsigned>& qubits, Matrix<FP>& matrix) {
+void NormalizeGateQubitOrder(Qubits& qubits, Matrix<FP>& matrix) {
   if (qubits.size() < 2) return;
   auto permutation = NormalToGateOrderPermutation(qubits);
   if (!permutation.empty()) {
@@ -719,8 +709,7 @@ class GateBatchRunner {
   }
 
   static std::vector<char> SelectHighestScoringQubits(
-      const std::vector<uint64_t>& scores, std::vector<unsigned> candidates,
-      unsigned count) {
+      const std::vector<uint64_t>& scores, Qubits candidates, unsigned count) {
     assert(count <= candidates.size());
     std::stable_sort(
         candidates.begin(), candidates.end(),
@@ -736,7 +725,7 @@ class GateBatchRunner {
 
     // Lane qubits never move, so only qubits stored above the lanes can be
     // made hot.
-    std::vector<unsigned> candidates;
+    Qubits candidates;
     for (unsigned q = 0; q < zones_.num_qubits; ++q) {
       if (layout_.PhysicalPositionOf(q) >= zones_.lane_qubits) {
         candidates.push_back(q);
