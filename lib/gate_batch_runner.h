@@ -150,6 +150,44 @@ bool IsDiagonalGate(const Gate<FP>& gate) {
   return true;
 }
 
+// Returns `controlled` as an ordinary gate on its target qubits followed by its
+// control qubits. The matrix applies the target matrix where every control
+// qubit has its required value (`cmask`) and leaves all other amplitudes
+// unchanged. Matrix index bit i belongs to qubits[i], so the target bits are
+// the low bits and control i is bit num_targets + i, matching cmask bit i.
+template <typename FP>
+Gate<FP> ExpandControlledGate(const ControlledGate<FP>& controlled) {
+  const auto target_dim = std::size_t{1} << controlled.qubits.size();
+  const auto dim = target_dim << controlled.controlled_by.size();
+
+  Gate<FP> gate{};
+  gate.kind = controlled.kind;
+  gate.time = controlled.time;
+  gate.qubits = controlled.qubits;
+  gate.qubits.insert(
+      gate.qubits.end(), controlled.controlled_by.begin(),
+      controlled.controlled_by.end());
+  gate.matrix.assign(2 * dim * dim, 0);
+
+  for (std::size_t row = 0; row < dim; ++row) {
+    for (std::size_t col = 0; col < dim; ++col) {
+      const auto row_controls = row / target_dim;
+      if (row_controls != col / target_dim) continue;
+      const auto row_target = row % target_dim;
+      const auto col_target = col % target_dim;
+      const auto k = 2 * (row * dim + col);
+      if (row_controls == controlled.cmask) {
+        const auto t = 2 * (row_target * target_dim + col_target);
+        gate.matrix[k] = controlled.matrix[t];
+        gate.matrix[k + 1] = controlled.matrix[t + 1];
+      } else if (row_target == col_target) {
+        gate.matrix[k] = 1;
+      }
+    }
+  }
+  return gate;
+}
+
 // A circuit gate to be scheduled. Points into the caller's circuit; `index` is
 // its position in the circuit.
 template <typename FP>
@@ -166,21 +204,49 @@ struct PendingGate {
 
 // The circuit's gates in order, each marked applied once it has run. The list
 // never changes after FromCircuit, so gate indices and the pointers handed out
-// by NextPending stay valid for the whole run.
+// by NextPending stay valid for the whole run. It is move-only: its gates may
+// point into its own storage of expanded controlled gates.
 template <typename FP>
 class PendingGateList {
  public:
   using PendingGate = gate_batch_internal::PendingGate<FP>;
 
-  // Returns nullopt if the circuit has an operation other than a plain gate.
+  PendingGateList() = default;
+  PendingGateList(PendingGateList&&) = default;
+  PendingGateList& operator=(PendingGateList&&) = default;
+  PendingGateList(const PendingGateList&) = delete;
+  PendingGateList& operator=(const PendingGateList&) = delete;
+
+  // Wraps every gate of the circuit; a controlled gate is expanded into an
+  // ordinary gate over its target and control qubits. Returns nullopt if the
+  // circuit has another kind of operation (such as a measurement) or a gate
+  // wider than max_gate_qubits, counting controls.
   template <typename Circuit>
-  static std::optional<PendingGateList> FromCircuit(const Circuit& circuit) {
+  static std::optional<PendingGateList> FromCircuit(
+      const Circuit& circuit, unsigned max_gate_qubits) {
     PendingGateList list;
-    list.gates_.reserve(circuit.ops.size());
+    std::size_t num_controlled = 0;
     for (const auto& operation : circuit.ops) {
-      const auto* raw_gate = OpGetAlternative<Gate<FP>>(operation);
-      if (raw_gate == nullptr) return std::nullopt;
-      list.gates_.emplace_back(*raw_gate, list.gates_.size());
+      if (OpGetAlternative<ControlledGate<FP>>(operation)) ++num_controlled;
+    }
+    // Reserved up front so that pointers into it stay valid.
+    list.expanded_gates_.reserve(num_controlled);
+    list.gates_.reserve(circuit.ops.size());
+
+    for (const auto& operation : circuit.ops) {
+      const Gate<FP>* gate = OpGetAlternative<Gate<FP>>(operation);
+      if (const auto* controlled =
+              OpGetAlternative<ControlledGate<FP>>(operation)) {
+        const auto width =
+            controlled->qubits.size() + controlled->controlled_by.size();
+        if (width > max_gate_qubits) return std::nullopt;
+        list.expanded_gates_.push_back(ExpandControlledGate(*controlled));
+        gate = &list.expanded_gates_.back();
+      }
+      if (gate == nullptr || gate->qubits.size() > max_gate_qubits) {
+        return std::nullopt;
+      }
+      list.gates_.emplace_back(*gate, list.gates_.size());
     }
     list.applied_.assign(list.gates_.size(), 0);
     return list;
@@ -211,6 +277,7 @@ class PendingGateList {
     return index < gates_.size() ? &gates_[index] : nullptr;
   }
 
+  std::vector<Gate<FP>> expanded_gates_;
   std::vector<PendingGate> gates_;
   std::vector<char> applied_;
   // Every gate before this index is applied.
@@ -671,17 +738,16 @@ class GateBatchRunner {
 
   // --- Gate preparation ---
 
-  static void ReportUnsupportedOperation() {
-    IO::errorf(
-        "qsim_gate_batch: only plain gates are supported, not controlled "
-        "gates or measurements; use QSimRunner for those.\n");
-  }
-
   template <typename Circuit>
   bool PreparePendingGates(const Circuit& circuit) {
-    auto pending_gates = PendingGateList::FromCircuit(circuit);
+    auto pending_gates =
+        PendingGateList::FromCircuit(circuit, Backend::kMaxGateQubits);
     if (!pending_gates) {
-      ReportUnsupportedOperation();
+      IO::errorf(
+          "qsim_gate_batch: only gates of up to %u qubits (counting controls) "
+          "are supported, not measurements or other operations; use "
+          "QSimRunner for those.\n",
+          Backend::kMaxGateQubits);
       return false;
     }
     pending_gates_ = std::move(*pending_gates);
@@ -814,15 +880,9 @@ class GateBatchRunner {
     // Fused ops reference input batch_operations, so copying must happen while
     // it is alive.
     for (auto& operation : fused_ops) {
+      // Only gates reach the fuser, each at most kMaxGateQubits wide.
       auto* gate = OpGetAlternative<ExecutableGate>(operation);
-      if (gate == nullptr) {
-        ReportUnsupportedOperation();
-        return false;
-      }
-      if (gate->qubits.size() > Backend::kMaxGateQubits) {
-        IO::errorf("qsim_gate_batch: gate wider than the backend supports.\n");
-        return false;
-      }
+      assert(gate != nullptr && gate->qubits.size() <= Backend::kMaxGateQubits);
       assert(std::is_sorted(gate->qubits.begin(), gate->qubits.end()));
       executable_gates.push_back(std::move(*gate));
     }
