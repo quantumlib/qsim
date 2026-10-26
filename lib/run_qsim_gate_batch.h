@@ -18,10 +18,10 @@
 #define RUN_QSIM_GATE_BATCH_H_
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -71,43 +71,34 @@ inline unsigned ClampToPhysicalCores(unsigned num_threads) {
 
 template <typename StateSpace>
 struct TilePartition {
-  static constexpr unsigned kCacheResidentQubits = 26;
-
   TilePartition(
-      unsigned state_qubits, unsigned requested_tile_qubits,
-      unsigned num_threads, unsigned min_tile_qubits,
-      unsigned default_tile_qubits)
+      unsigned state_qubits, std::optional<unsigned> requested_tile_qubits,
+      unsigned num_threads, unsigned default_tile_qubits)
       : num_state_qubits(state_qubits),
-        requested_tile_qubits(std::min(requested_tile_qubits, state_qubits)),
         tile_qubits(ChooseTileQubits(
-            state_qubits, requested_tile_qubits, num_threads, min_tile_qubits,
+            state_qubits, requested_tile_qubits, num_threads,
             default_tile_qubits)),
         floats_per_tile(StateSpace::MinSize(tile_qubits)),
         num_tiles(int64_t{1} << (state_qubits - tile_qubits)) {}
 
-  // Keep LLC-resident states whole unless a smaller tile was explicitly
-  // requested.
+  // A requested size is used as given. Otherwise the state is split into
+  // default-size tiles only if there are at least as many tiles as threads:
+  // each tile runs on one thread, whereas a single tile is shared by all
+  // threads.
   static unsigned ChooseTileQubits(
-      unsigned state_qubits, unsigned requested_tile_qubits,
-      unsigned num_threads, unsigned min_tile_qubits,
-      unsigned default_tile_qubits) {
-    if (state_qubits < kCacheResidentQubits &&
-        requested_tile_qubits >= std::min(state_qubits, default_tile_qubits)) {
-      return state_qubits;
+      unsigned state_qubits, std::optional<unsigned> requested_tile_qubits,
+      unsigned num_threads, unsigned default_tile_qubits) {
+    if (requested_tile_qubits) {
+      return std::min(*requested_tile_qubits, state_qubits);
     }
-    unsigned parallel_bits = 0;  // floor(log2(num_threads))
-    while ((2u << parallel_bits) <= num_threads) ++parallel_bits;
+    if (state_qubits <= default_tile_qubits) return state_qubits;
 
-    const auto parallel_tile_qubits =
-        state_qubits > parallel_bits ? state_qubits - parallel_bits : 0u;
-    const auto minimum = std::min(min_tile_qubits, state_qubits);
-    return std::max(
-        minimum,
-        std::min({requested_tile_qubits, state_qubits, parallel_tile_qubits}));
+    const auto num_default_tiles = uint64_t{1}
+                                   << (state_qubits - default_tile_qubits);
+    return num_default_tiles < num_threads ? state_qubits : default_tile_qubits;
   }
 
   unsigned num_state_qubits;
-  unsigned requested_tile_qubits;
   unsigned tile_qubits;
   uint64_t floats_per_tile;
   int64_t num_tiles;
@@ -182,18 +173,14 @@ class CpuGateBatchBackend {
         verbosity_(param.verbosity),
         active_threads_(
             gate_batch_internal::ClampToPhysicalCores(param.num_threads)),
+        min_tile_qubits_(
+            std::min(MinTileQubits(param.max_fused_size), num_qubits)),
         partition_(
-            num_qubits, param.tile_qubits, active_threads_,
-            MinTileQubits(param.max_fused_size), kDefaultTileQubits),
+            num_qubits, param.tile_qubits, active_threads_, kDefaultTileQubits),
         state_data_(state.get()),
-        tile_sim_(1) {
-    assert(partition_.tile_qubits >= std::min(kLaneQubits, num_qubits));
-  }
+        tile_sim_(1) {}
 
   unsigned TileQubits() const { return partition_.tile_qubits; }
-  unsigned RequestedTileQubits() const {
-    return partition_.requested_tile_qubits;
-  }
 
   // SIMD lanes are never remapped to preserve lane-group layout.
   unsigned LaneQubits() const { return kLaneQubits; }
@@ -203,7 +190,14 @@ class CpuGateBatchBackend {
       IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
       return false;
     }
-    LogAdaptiveTileSize();
+    if (partition_.tile_qubits < min_tile_qubits_) {
+      IO::errorf(
+          "qsim_gate_batch: tile_qubits must be at least %u (SIMD lane "
+          "qubits plus max_fused_size).\n",
+          min_tile_qubits_);
+      return false;
+    }
+    LogTileSize();
     return true;
   }
 
@@ -273,20 +267,17 @@ class CpuGateBatchBackend {
     }
   }
 
-  void LogAdaptiveTileSize() const {
-    if (verbosity_ > 1 &&
-        partition_.tile_qubits != partition_.requested_tile_qubits) {
-      IO::messagef(
-          "adaptive tile size: L=%u reduced to L=%u, producing "
-          "%lld tiles for %u threads.\n",
-          partition_.requested_tile_qubits, partition_.tile_qubits,
-          static_cast<long long>(partition_.num_tiles), active_threads_);
-    }
+  void LogTileSize() const {
+    if (verbosity_ <= 1) return;
+    IO::messagef(
+        "tile size: L=%u, %lld tiles for %u threads.\n", partition_.tile_qubits,
+        static_cast<long long>(partition_.num_tiles), active_threads_);
   }
 
   const Parameter& param_;
   const unsigned verbosity_;
   const unsigned active_threads_;
+  const unsigned min_tile_qubits_;
   const TilePartition partition_;
   fp_type* const state_data_;
   TileSimulator tile_sim_;

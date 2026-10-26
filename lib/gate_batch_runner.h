@@ -90,8 +90,6 @@ struct QubitZones {
       unsigned min_eviction_floor) {
     QubitZones zones;
     zones.num_qubits = num_qubits;
-    zones.requested_tile_qubits =
-        std::min(backend.RequestedTileQubits(), num_qubits);
     zones.tile_qubits = backend.TileQubits();
     zones.lane_qubits = backend.LaneQubits();
     zones.eviction_floor = zones.ComputeEvictionFloor(min_eviction_floor);
@@ -109,8 +107,6 @@ struct QubitZones {
   unsigned eviction_floor = 0;  // end of the hot zone
   unsigned tile_qubits = 0;     // end of the remap zone
   unsigned num_qubits = 0;
-  // The tile size before the backend shrank it to give every thread a tile.
-  unsigned requested_tile_qubits = 0;
 
  private:
   static constexpr unsigned kMinRemapSlots = 2;
@@ -396,11 +392,9 @@ class GateBatchPlanner {
   // it does not count against the lookahead budget.
   GateBatchPlan PlanNextGateBatch() const {
     GateBatchPlan best_plan(zones_.num_qubits);
-    const unsigned num_lookahead_seeds =
-        NumLookaheadSeeds(pending_gates_.Size());
     unsigned seeds_used = 0;  // `<=` below: the first, greedy seed is free
     for (const auto* gate = pending_gates_.NextPending();
-         gate != nullptr && seeds_used <= num_lookahead_seeds;
+         gate != nullptr && seeds_used <= max_lookahead_seeds_;
          gate = pending_gates_.NextPending(gate), ++seeds_used) {
       RemapSlotSet seed(zones_.num_qubits);
       if (!TryAdmitQubits(gate->Qubits(), seed)) continue;
@@ -413,39 +407,6 @@ class GateBatchPlanner {
   }
 
  private:
-  // Number of lookahead seeds to try. Full-size tiles are memory-bandwidth
-  // bound, so they get the whole max_lookahead_seeds_ budget: better plans mean
-  // fewer batches and swap passes. Tiles the backend shrank to feed more
-  // threads make each pass cheap, so planning is capped to stay small next to
-  // it.
-  unsigned NumLookaheadSeeds(std::size_t num_pending_gates) const {
-    if (zones_.IsSingleTile() || num_pending_gates == 0) {
-      return 0;
-    }
-    if (zones_.tile_qubits >= zones_.requested_tile_qubits) {
-      return max_lookahead_seeds_;
-    }
-    return std::min(
-        SeedCapFromTileShrink(), SeedCapFromScanWork(num_pending_gates));
-  }
-
-  // Halves the seed budget for each qubit the tile was shrunk by.
-  unsigned SeedCapFromTileShrink() const {
-    const auto tile_shift = zones_.requested_tile_qubits - zones_.tile_qubits;
-    if (tile_shift >= sizeof(unsigned) * 8) return 0;
-    return max_lookahead_seeds_ >> tile_shift;
-  }
-
-  // Each seed scans the pending gates about twice; keep the total below the
-  // number of SIMD lane groups one tile pass touches.
-  unsigned SeedCapFromScanWork(std::size_t num_pending_gates) const {
-    const uint64_t lane_groups_per_tile = uint64_t{1}
-                                          << zones_.TileQubitsAboveLanes();
-    const uint64_t scan_work_per_seed = 2 * uint64_t{num_pending_gates};
-    return static_cast<unsigned>(std::min<uint64_t>(
-        lane_groups_per_tile / scan_work_per_seed, max_lookahead_seeds_));
-  }
-
   GateBatchPlan BuildCandidatePlan(RemapSlotSet& slots) const {
     GateBatchPlan plan(zones_.num_qubits);
     DeferredGates deferred(zones_.num_qubits);
@@ -560,7 +521,8 @@ class GateBatchRunner {
   struct Parameter : public Fuser::Parameter, public Backend::Parameter {
     Parameter() { this->max_fused_size = 3; }
 
-    unsigned tile_qubits = Backend::kDefaultTileQubits;
+    // Unset lets the backend choose; a set value is used as given.
+    std::optional<unsigned> tile_qubits;
     unsigned min_eviction_floor = Backend::kDefaultEvictionFloor;
     // Most lookahead seeds the planner tries per batch; see PlanNextGateBatch.
     unsigned max_lookahead_seeds = 64;

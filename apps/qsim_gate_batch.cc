@@ -15,6 +15,7 @@
 // Benchmark application for the gate-batch runner.
 
 #include <limits>
+#include <optional>
 #include <string>
 #include <unistd.h>
 #include <utility>
@@ -36,7 +37,7 @@ struct Options {
   unsigned seed = 1;
   unsigned num_threads = 1;
   unsigned max_fused_size = 3;
-  unsigned tile_qubits = 18;
+  std::optional<unsigned> tile_qubits;
   unsigned min_eviction_floor = 5;
   unsigned max_lookahead_seeds = 64;
   unsigned verbosity = 0;
