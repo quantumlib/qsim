@@ -27,7 +27,7 @@
 
 namespace qsim {
 
-namespace remap_internal {
+namespace qubit_swap_internal {
 
 struct GroupBitSwap {
   unsigned lower_bit;
@@ -72,18 +72,20 @@ inline void SwapGroupSpans(
   }
 }
 
-}  // namespace remap_internal
+}  // namespace qubit_swap_internal
 
-// Swapped positions must be >= lane_qubits to move whole SIMD lane groups.
+// Swaps disjoint pairs of bit positions at or above `lane_qubits`.
+// Positions `[0, lane_qubits)` select lanes inside each SIMD lane group
+// (`floats_per_group` floats), while positions `[lane_qubits, num_qubits)` are
+// bits `[0, num_qubits - lane_qubits)` of the lane-group index.
 inline void ApplyBitPairSwaps(
     float* state, unsigned num_qubits, unsigned lane_qubits,
     const std::vector<QubitSwap>& qubit_swaps, unsigned num_threads) {
-  namespace ri = remap_internal;
-
   if (qubit_swaps.empty()) return;
-  assert(ri::IsDisjointSwapSet(qubit_swaps, num_qubits, lane_qubits));
+  assert(qubit_swap_internal::IsDisjointSwapSet(
+      qubit_swaps, num_qubits, lane_qubits));
 
-  std::vector<ri::GroupBitSwap> bit_swaps;
+  std::vector<qubit_swap_internal::GroupBitSwap> bit_swaps;
   bit_swaps.reserve(qubit_swaps.size());
   auto span_bits = num_qubits - lane_qubits;
   for (const auto& [first, second] : qubit_swaps) {
@@ -94,18 +96,25 @@ inline void ApplyBitPairSwaps(
     span_bits = std::min(span_bits, lower);
   }
 
+  // Beyond the SIMD lane bits, no swap in this pass touches the lowest
+  // `span_bits` bits of the group index, so `2^span_bits` consecutive lane
+  // groups (`floats_per_span` contiguous floats) map to a contiguous partner
+  // block and can be swapped together.
   const auto floats_per_group = uint64_t{2} << lane_qubits;
   const auto floats_per_span = floats_per_group << span_bits;
   const int64_t num_spans = int64_t{1}
                             << (num_qubits - lane_qubits - span_bits);
 
+  // PartnerGroup is symmetric over disjoint bit swaps: if group A maps to B,
+  // then B maps back to A. Checking `partner > group` swaps each pair once at
+  // its lower index and skips groups that map to themselves.
 #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int64_t span = 0; span < num_spans; ++span) {
     const auto group = uint64_t(span) << span_bits;
-    const auto partner = ri::PartnerGroup(group, bit_swaps);
+    const auto partner = qubit_swap_internal::PartnerGroup(group, bit_swaps);
 
     if (partner > group) {
-      ri::SwapGroupSpans(
+      qubit_swap_internal::SwapGroupSpans(
           state + group * floats_per_group, state + partner * floats_per_group,
           floats_per_span);
     }
