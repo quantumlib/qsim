@@ -63,6 +63,7 @@ inline unsigned OnlineProcessors() {
 // doubles the per-core working set and causes L2 cache thrashing. Clamp the
 // active worker count to the physical core count when SMT is enabled.
 inline unsigned ClampToPhysicalCores(unsigned num_threads) {
+  if (num_threads <= 1) return num_threads;
   unsigned smt = 0;
   std::ifstream("/sys/devices/system/cpu/smt/active") >> smt;
   const unsigned phy_core_cnt = std::max(1u, OnlineProcessors() >> (smt != 0));
@@ -104,6 +105,14 @@ struct TilePartition {
   int64_t num_tiles;
 };
 
+// Loop policy injected into Factory::Simulator via ReplaceFor so the backend
+// controls OpenMP threading outside ApplyGate instead of spawning a parallel
+// region per gate:
+//   - Multi-tile: an outer `omp parallel for` assigns whole tiles to threads,
+//     each configured with Configure(1, 0).
+//   - Single-tile: one `omp parallel` region spans the whole batch, with each
+//     worker configured via Configure(num_threads, thread_id) and synced by a
+//     lightweight `omp barrier` between gates.
 struct TileFor {
   explicit TileFor(unsigned num_threads) { (void)num_threads; }
 
@@ -169,8 +178,7 @@ class CpuGateBatchBackend {
   template <typename RunnerParameter>
   CpuGateBatchBackend(
       const RunnerParameter& param, unsigned num_qubits, State& state)
-      : param_(param),
-        verbosity_(param.verbosity),
+      : verbosity_(param.verbosity),
         active_threads_(
             gate_batch_internal::ClampToPhysicalCores(param.num_threads)),
         min_tile_qubits_(
@@ -186,7 +194,7 @@ class CpuGateBatchBackend {
   unsigned LaneQubits() const { return kLaneQubits; }
 
   bool Prepare() {
-    if (param_.num_threads == 0) {
+    if (active_threads_ == 0) {
       IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
       return false;
     }
@@ -274,7 +282,6 @@ class CpuGateBatchBackend {
         static_cast<long long>(partition_.num_tiles), active_threads_);
   }
 
-  const Parameter& param_;
   const unsigned verbosity_;
   const unsigned active_threads_;
   const unsigned min_tile_qubits_;
