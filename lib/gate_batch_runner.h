@@ -584,9 +584,7 @@ class GateBatchRunner {
         zones_(
             QubitZones::ForBackend(
                 backend_, num_qubits, param.min_eviction_floor)),
-        layout_(layout),
-        gate_batch_planner_(
-            zones_, pending_gates_, layout_, param.max_lookahead_seeds) {
+        layout_(layout) {
     assert(layout_.NumQubits() == num_qubits);
   }
 
@@ -606,14 +604,14 @@ class GateBatchRunner {
     if (!ValidateParameters() || !backend_.Prepare()) return false;
     simulation_stats_.num_raw_gates = unsigned(circuit.ops.size());
 
-    const bool prepared = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
-      return PreparePendingGates(circuit);
+    auto pending_gates = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
+      return BuildPendingGates(circuit);
     });
-    if (!prepared) return false;
+    if (!pending_gates) return false;
 
     using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
-    if (zones_.IsSingleTile()) return SimulateSingleTile<Op>();
-    return SimulateMultiTile<Op>(order);
+    if (zones_.IsSingleTile()) return SimulateSingleTile<Op>(*pending_gates);
+    return SimulateMultiTile<Op>(*pending_gates, order);
   }
 
   bool ValidateParameters() const {
@@ -634,11 +632,11 @@ class GateBatchRunner {
   // batch, on the physical positions the layout gives its qubits. Gates keep
   // their circuit times, so the fuser groups them as for the whole circuit.
   template <typename Op>
-  bool SimulateSingleTile() {
+  bool SimulateSingleTile(const PendingGateList& pending_gates) {
     std::vector<Op> operations;
-    operations.reserve(pending_gates_.Size());
-    for (const auto* gate = pending_gates_.NextPending(); gate != nullptr;
-         gate = pending_gates_.NextPending(gate)) {
+    operations.reserve(pending_gates.Size());
+    for (const auto* gate = pending_gates.NextPending(); gate != nullptr;
+         gate = pending_gates.NextPending(gate)) {
       operations.push_back(
           Op{gate_batch_internal::MakePhysicalGate(
               *gate->gate, layout_, gate->gate->time)});
@@ -658,12 +656,15 @@ class GateBatchRunner {
   }
 
   template <typename Op>
-  bool SimulateMultiTile(QubitOrderOnExit order) {
+  bool SimulateMultiTile(
+      PendingGateList& pending_gates, QubitOrderOnExit order) {
     const auto simulation_start = StartSimulationClock();
-    FillHotZone();
+    FillHotZone(pending_gates);
 
-    while (pending_gates_.NextPending() != nullptr) {
-      if (!ExecuteNextGateBatch<Op>()) return false;
+    const GateBatchPlanner planner(
+        zones_, pending_gates, layout_, param_.max_lookahead_seeds);
+    while (pending_gates.NextPending() != nullptr) {
+      if (!ExecuteNextGateBatch<Op>(planner, pending_gates)) return false;
     }
 
     if (order == QubitOrderOnExit::kRestoreIdentity) {
@@ -676,9 +677,10 @@ class GateBatchRunner {
   // Returns false after reporting an error (a gate that never fits, or a
   // fuser failure).
   template <typename Op>
-  bool ExecuteNextGateBatch() {
+  bool ExecuteNextGateBatch(
+      const GateBatchPlanner& planner, PendingGateList& pending_gates) {
     const auto plan = TimeHostWork(simulation_stats_.plan_seconds, [&] {
-      return gate_batch_planner_.PlanNextGateBatch();
+      return planner.PlanNextGateBatch();
     });
     if (!plan.HasGates()) {
       IO::errorf(
@@ -693,11 +695,12 @@ class GateBatchRunner {
 
     const auto executable_gates =
         TimeHostWork(simulation_stats_.fuse_seconds, [&] {
-          const auto batch_operations = BuildBatchOperations<Op>(plan);
+          const auto batch_operations =
+              BuildBatchOperations<Op>(plan, pending_gates);
           return FuseBatchGates(batch_operations);
         });
     if (!executable_gates) return false;
-    pending_gates_.MarkApplied(plan.gate_indices);
+    pending_gates.MarkApplied(plan.gate_indices);
 
     ExecuteFusedGates(*executable_gates);
     ++simulation_stats_.num_gate_batches;
@@ -707,7 +710,8 @@ class GateBatchRunner {
   // --- Gate preparation ---
 
   template <typename Circuit>
-  bool PreparePendingGates(const Circuit& circuit) {
+  static std::optional<PendingGateList> BuildPendingGates(
+      const Circuit& circuit) {
     auto pending_gates =
         PendingGateList::FromCircuit(circuit, Backend::kMaxGateQubits);
     if (!pending_gates) {
@@ -716,18 +720,17 @@ class GateBatchRunner {
           "are supported, not measurements or other operations; use "
           "QSimRunner for those.\n",
           Backend::kMaxGateQubits);
-      return false;
     }
-    pending_gates_ = std::move(*pending_gates);
-    return true;
+    return pending_gates;
   }
 
   // --- Hot-zone placement ---
 
-  std::vector<uint64_t> ComputeQubitUsageScores() const {
+  std::vector<uint64_t> ComputeQubitUsageScores(
+      const PendingGateList& pending_gates) const {
     std::vector<uint64_t> scores(zones_.num_qubits, 0);
-    for (std::size_t idx = 0; idx < pending_gates_.Size(); ++idx) {
-      const auto& qubits = pending_gates_[idx].Qubits();
+    for (std::size_t idx = 0; idx < pending_gates.Size(); ++idx) {
+      const auto& qubits = pending_gates[idx].Qubits();
       for (unsigned q : qubits) scores[q] += qubits.size();
     }
     return scores;
@@ -745,7 +748,7 @@ class GateBatchRunner {
     return selected;
   }
 
-  void FillHotZone() {
+  void FillHotZone(const PendingGateList& pending_gates) {
     if (zones_.NumHotSlots() == 0) return;
 
     // Lane qubits never move, so only qubits stored above the lanes can be
@@ -757,7 +760,7 @@ class GateBatchRunner {
       }
     }
 
-    const auto usage_scores = ComputeQubitUsageScores();
+    const auto usage_scores = ComputeQubitUsageScores(pending_gates);
     const auto is_hot = SelectHighestScoringQubits(
         usage_scores, std::move(candidates), zones_.NumHotSlots());
 
@@ -818,7 +821,8 @@ class GateBatchRunner {
   // --- Batch building, fusion and execution ---
 
   template <typename Op>
-  std::vector<Op> BuildBatchOperations(const GateBatchPlan& plan) const {
+  std::vector<Op> BuildBatchOperations(
+      const GateBatchPlan& plan, const PendingGateList& pending_gates) const {
     std::vector<Op> batch_operations;
     batch_operations.reserve(plan.NumGates());
 
@@ -826,7 +830,7 @@ class GateBatchRunner {
     for (std::size_t idx : plan.gate_indices) {
       batch_operations.push_back(
           Op{gate_batch_internal::MakePhysicalGate(
-              *pending_gates_[idx].gate, layout_, time++)});
+              *pending_gates[idx].gate, layout_, time++)});
     }
     return batch_operations;
   }
@@ -938,9 +942,7 @@ class GateBatchRunner {
   const Parameter& param_;
   Backend backend_;
   const QubitZones zones_;
-  PendingGateList pending_gates_;
   QubitLayout& layout_;
-  GateBatchPlanner gate_batch_planner_;
 
   // Accumulated over the whole run; printed by LogSimulationSummary.
   SimulationStats simulation_stats_;
