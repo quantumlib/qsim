@@ -155,7 +155,7 @@ class CpuGateBatchBackend {
   using TileSimulator = typename gate_batch_internal::ReplaceFor<
       typename Factory::Simulator, gate_batch_internal::TileFor>::type;
   using TileStateSpace = typename TileSimulator::StateSpace;
-  using ExecutableGate = FusedGate<fp_type>;
+  using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
 
   struct Parameter {
     unsigned num_threads = 1;

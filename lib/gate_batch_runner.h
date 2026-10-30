@@ -491,6 +491,12 @@ Gate<FP> MakePhysicalGate(
   return physical_gate;
 }
 
+template <typename FP>
+struct ExecutableGate {
+  Qubits qubits;
+  Matrix<FP> matrix;
+};
+
 // Counters and timings reported by LogSimulationSummary.
 struct SimulationStats {
   unsigned num_gate_batches = 0;
@@ -550,7 +556,7 @@ class GateBatchRunner {
  private:
   using PendingGateList = gate_batch_internal::PendingGateList<fp_type>;
   using SimulationStats = gate_batch_internal::SimulationStats;
-  using ExecutableGate = FusedGate<fp_type>;
+  using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
   using GateBatchPlanner = gate_batch_internal::GateBatchPlanner<fp_type>;
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
   using QubitZones = gate_batch_internal::QubitZones;
@@ -638,13 +644,14 @@ class GateBatchRunner {
               *gate->gate, layout_, gate->gate->time)});
     }
 
-    const bool fused = TimeHostWork(simulation_stats_.fuse_seconds, [&] {
-      return FuseBatchGates(operations, executable_gates_);
-    });
-    if (!fused) return false;
+    const auto executable_gates =
+        TimeHostWork(simulation_stats_.fuse_seconds, [&] {
+          return FuseBatchGates(operations);
+        });
+    if (!executable_gates) return false;
 
     const auto simulation_start = StartSimulationClock();
-    ExecuteFusedGates(executable_gates_);
+    ExecuteFusedGates(*executable_gates);
     simulation_stats_.num_gate_batches = operations.empty() ? 0 : 1;
     FinishSimulation(simulation_start);
     return true;
@@ -655,10 +662,8 @@ class GateBatchRunner {
     const auto simulation_start = StartSimulationClock();
     FillHotZone();
 
-    std::vector<Op> batch_operations;
-
     while (pending_gates_.NextPending() != nullptr) {
-      if (!ExecuteNextGateBatch(batch_operations)) return false;
+      if (!ExecuteNextGateBatch<Op>()) return false;
     }
 
     if (order == QubitOrderOnExit::kRestoreIdentity) {
@@ -671,7 +676,7 @@ class GateBatchRunner {
   // Returns false after reporting an error (a gate that never fits, or a
   // fuser failure).
   template <typename Op>
-  bool ExecuteNextGateBatch(std::vector<Op>& batch_operations) {
+  bool ExecuteNextGateBatch() {
     const auto plan = TimeHostWork(simulation_stats_.plan_seconds, [&] {
       return gate_batch_planner_.PlanNextGateBatch();
     });
@@ -686,14 +691,15 @@ class GateBatchRunner {
     MoveQubitsIntoZone(
         plan.uses_qubit, zones_.eviction_floor, zones_.tile_qubits);
 
-    const bool fused = TimeHostWork(simulation_stats_.fuse_seconds, [&] {
-      BuildBatchOperations(plan, batch_operations);
-      return FuseBatchGates(batch_operations, executable_gates_);
-    });
-    if (!fused) return false;
+    const auto executable_gates =
+        TimeHostWork(simulation_stats_.fuse_seconds, [&] {
+          const auto batch_operations = BuildBatchOperations<Op>(plan);
+          return FuseBatchGates(batch_operations);
+        });
+    if (!executable_gates) return false;
     pending_gates_.MarkApplied(plan.gate_indices);
 
-    ExecuteFusedGates(executable_gates_);
+    ExecuteFusedGates(*executable_gates);
     ++simulation_stats_.num_gate_batches;
     return true;
   }
@@ -773,8 +779,7 @@ class GateBatchRunner {
   // zones never outnumber the remap slots.
   std::size_t MoveQubitsIntoZone(
       const std::vector<char>& wanted, unsigned zone_begin, unsigned zone_end) {
-    auto& swaps = swap_pairs_;
-    swaps.clear();
+    std::vector<QubitSwap> swaps;
     auto evict_position = zone_end;
 
     for (unsigned q = 0; q < wanted.size(); ++q) {
@@ -803,8 +808,9 @@ class GateBatchRunner {
   }
 
   void RestoreIdentityQubitOrder() {
-    while (layout_.BuildIdentityRestorationSwaps(swap_pairs_)) {
-      ApplySwapsToState(swap_pairs_);
+    std::vector<QubitSwap> swaps;
+    while (layout_.BuildIdentityRestorationSwaps(swaps)) {
+      ApplySwapsToState(swaps);
       ++simulation_stats_.num_restore_passes;
     }
   }
@@ -812,9 +818,8 @@ class GateBatchRunner {
   // --- Batch building, fusion and execution ---
 
   template <typename Op>
-  void BuildBatchOperations(
-      const GateBatchPlan& plan, std::vector<Op>& batch_operations) const {
-    batch_operations.clear();
+  std::vector<Op> BuildBatchOperations(const GateBatchPlan& plan) const {
+    std::vector<Op> batch_operations;
     batch_operations.reserve(plan.NumGates());
 
     unsigned time = 0;
@@ -823,33 +828,33 @@ class GateBatchRunner {
           Op{gate_batch_internal::MakePhysicalGate(
               *pending_gates_[idx].gate, layout_, time++)});
     }
+    return batch_operations;
   }
 
-  // Fuses `batch_operations` into `executable_gates`, replacing its contents.
   template <typename Op>
-  bool FuseBatchGates(
-      const std::vector<Op>& batch_operations,
-      std::vector<ExecutableGate>& executable_gates) {
+  std::optional<std::vector<ExecutableGate>> FuseBatchGates(
+      const std::vector<Op>& batch_operations) {
     auto fused_ops =
         Fuser::FuseGates(param_, zones_.tile_qubits, batch_operations);
     if (fused_ops.empty() && !batch_operations.empty()) {
       IO::errorf("qsim_gate_batch: fuser failed on a gate batch.\n");
-      return false;
+      return std::nullopt;
     }
 
-    executable_gates.clear();
+    std::vector<ExecutableGate> executable_gates;
     executable_gates.reserve(fused_ops.size());
-    // Fused ops reference input batch_operations, so copying must happen while
-    // it is alive.
     for (auto& operation : fused_ops) {
       // Only gates reach the fuser, each at most kMaxGateQubits wide.
-      auto* gate = OpGetAlternative<ExecutableGate>(operation);
-      assert(gate != nullptr && gate->qubits.size() <= Backend::kMaxGateQubits);
-      assert(std::is_sorted(gate->qubits.begin(), gate->qubits.end()));
-      executable_gates.push_back(std::move(*gate));
+      auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation);
+      assert(
+          fused != nullptr && fused->qubits.size() <= Backend::kMaxGateQubits);
+      assert(!fused->matrix.empty());
+      assert(std::is_sorted(fused->qubits.begin(), fused->qubits.end()));
+      executable_gates.push_back(
+          {std::move(fused->qubits), std::move(fused->matrix)});
     }
     simulation_stats_.num_executable_gates += executable_gates.size();
-    return true;
+    return executable_gates;
   }
 
   void ExecuteFusedGates(const std::vector<ExecutableGate>& executable_gates) {
@@ -936,10 +941,6 @@ class GateBatchRunner {
   PendingGateList pending_gates_;
   QubitLayout& layout_;
   GateBatchPlanner gate_batch_planner_;
-
-  // Reused across batches so the batch loop does not reallocate.
-  std::vector<QubitSwap> swap_pairs_;
-  std::vector<ExecutableGate> executable_gates_;
 
   // Accumulated over the whole run; printed by LogSimulationSummary.
   SimulationStats simulation_stats_;
