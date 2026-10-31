@@ -782,7 +782,7 @@ class GateBatchRunner {
   // zones never outnumber the remap slots.
   std::size_t MoveQubitsIntoZone(
       const std::vector<char>& wanted, unsigned zone_begin, unsigned zone_end) {
-    std::vector<QubitSwap> swaps;
+    std::vector<PositionSwap> swaps;
     auto evict_position = zone_end;
 
     for (unsigned q = 0; q < wanted.size(); ++q) {
@@ -794,7 +794,7 @@ class GateBatchRunner {
         assert(evict_position > zone_begin);
         --evict_position;
       } while (wanted[layout_.LogicalQubitAt(evict_position)]);
-      swaps.emplace_back(evict_position, position);
+      swaps.push_back({evict_position, position});
       layout_.SwapPhysicalPositions(evict_position, position);
     }
 
@@ -802,17 +802,18 @@ class GateBatchRunner {
     return swaps.size();
   }
 
-  void ApplySwapsToState(const std::vector<QubitSwap>& swap_pairs) {
-    if (swap_pairs.empty()) return;
+  void ApplySwapsToState(const std::vector<PositionSwap>& swaps) {
+    if (swaps.empty()) return;
     TimeBackendWork(simulation_stats_.swap_seconds, [&] {
-      backend_.ApplySwaps(swap_pairs);
+      backend_.ApplySwaps(swaps);
     });
-    simulation_stats_.num_swaps += swap_pairs.size();
+    simulation_stats_.num_swaps += swaps.size();
   }
 
   void RestoreIdentityQubitOrder() {
-    std::vector<QubitSwap> swaps;
-    while (layout_.BuildIdentityRestorationSwaps(swaps)) {
+    while (true) {
+      const auto swaps = layout_.StepTowardIdentity();
+      if (swaps.empty()) break;
       ApplySwapsToState(swaps);
       ++simulation_stats_.num_restore_passes;
     }

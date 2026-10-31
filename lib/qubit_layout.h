@@ -22,7 +22,10 @@
 
 namespace qsim {
 
-using QubitSwap = std::pair<unsigned, unsigned>;
+struct PositionSwap {
+  unsigned pos_a;
+  unsigned pos_b;
+};
 
 // Bidirectional mapping between logical qubits and state storage bit positions.
 class QubitLayout {
@@ -67,26 +70,41 @@ class QubitLayout {
     std::swap(logical_to_physical_[qubit_a], logical_to_physical_[qubit_b]);
   }
 
-  bool BuildIdentityRestorationSwaps(std::vector<QubitSwap>& swaps) {
-    swaps.clear();
-    std::vector<char> position_touched(NumQubits(), 0);
+  // Returns one parallel round of disjoint swaps by reversing each cycle.
+  // Calling this in a loop restores the identity layout in at most 2 calls.
+  std::vector<PositionSwap> StepTowardIdentity() {
+    std::vector<PositionSwap> swaps;
+    std::vector<char> visited(NumQubits(), 0);
 
-    for (unsigned position = 0; position < NumQubits(); ++position) {
-      if (IsIdentityAt(position)) continue;
-      const auto paired_position = PhysicalPositionOf(position);
-      if (position_touched[position] || position_touched[paired_position]) {
-        continue;
-      }
-
-      swaps.emplace_back(position, paired_position);
-      position_touched[position] = 1;
-      position_touched[paired_position] = 1;
-      SwapPhysicalPositions(position, paired_position);
+    for (unsigned start = 0; start < NumQubits(); ++start) {
+      if (visited[start] || IsIdentityAt(start)) continue;
+      ReverseCycle(TraceCycle(start, visited), swaps);
     }
-    return !swaps.empty();
+    return swaps;
   }
 
  private:
+  std::vector<unsigned> TraceCycle(
+      unsigned start, std::vector<char>& visited) const {
+    std::vector<unsigned> cycle;
+    for (unsigned pos = start; !visited[pos]; pos = PhysicalPositionOf(pos)) {
+      visited[pos] = 1;
+      cycle.push_back(pos);
+    }
+    return cycle;
+  }
+
+  void ReverseCycle(
+      const std::vector<unsigned>& cycle,
+      std::vector<PositionSwap>& swaps) {
+    for (std::size_t i = 0; i < cycle.size() / 2; ++i) {
+      const unsigned pos_a = cycle[i];
+      const unsigned pos_b = cycle[cycle.size() - 1 - i];
+      swaps.push_back({pos_a, pos_b});
+      SwapPhysicalPositions(pos_a, pos_b);
+    }
+  }
+
   std::vector<unsigned> logical_to_physical_;
   std::vector<unsigned> physical_to_logical_;
 };

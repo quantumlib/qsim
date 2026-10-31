@@ -209,7 +209,7 @@ class CpuGateBatchBackend {
     return true;
   }
 
-  void ApplySwaps(const std::vector<QubitSwap>& swaps) {
+  void ApplySwaps(const std::vector<PositionSwap>& swaps) {
     ApplyBitPairSwaps(
         state_data_, partition_.num_state_qubits, kLaneQubits, swaps,
         active_threads_);

@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <utility>
 #include <vector>
 
 #include "qubit_layout.h"
@@ -36,12 +35,12 @@ struct GroupBitSwap {
 };
 
 inline bool IsDisjointSwapSet(
-    const std::vector<QubitSwap>& qubit_swaps, unsigned num_qubits,
+    const std::vector<PositionSwap>& swaps, unsigned num_qubits,
     unsigned lane_qubits) {
   std::vector<char> is_swapped(num_qubits, 0);
-  for (const auto& [first, second] : qubit_swaps) {
-    if (first == second) return false;
-    for (unsigned position : {first, second}) {
+  for (const auto& [pos_a, pos_b] : swaps) {
+    if (pos_a == pos_b) return false;
+    for (unsigned position : {pos_a, pos_b}) {
       if (position < lane_qubits || position >= num_qubits) return false;
       if (is_swapped[position]) return false;
       is_swapped[position] = 1;
@@ -80,17 +79,17 @@ inline void SwapGroupSpans(
 // bits `[0, num_qubits - lane_qubits)` of the lane-group index.
 inline void ApplyBitPairSwaps(
     float* state, unsigned num_qubits, unsigned lane_qubits,
-    const std::vector<QubitSwap>& qubit_swaps, unsigned num_threads) {
-  if (qubit_swaps.empty()) return;
-  assert(qubit_swap_internal::IsDisjointSwapSet(
-      qubit_swaps, num_qubits, lane_qubits));
+    const std::vector<PositionSwap>& swaps, unsigned num_threads) {
+  if (swaps.empty()) return;
+  assert(
+      qubit_swap_internal::IsDisjointSwapSet(swaps, num_qubits, lane_qubits));
 
   std::vector<qubit_swap_internal::GroupBitSwap> bit_swaps;
-  bit_swaps.reserve(qubit_swaps.size());
+  bit_swaps.reserve(swaps.size());
   auto span_bits = num_qubits - lane_qubits;
-  for (const auto& [first, second] : qubit_swaps) {
-    const auto lower = std::min(first, second) - lane_qubits;
-    const auto upper = std::max(first, second) - lane_qubits;
+  for (const auto& [pos_a, pos_b] : swaps) {
+    const auto lower = std::min(pos_a, pos_b) - lane_qubits;
+    const auto upper = std::max(pos_a, pos_b) - lane_qubits;
     bit_swaps.push_back(
         {lower, upper, (uint64_t{1} << lower) | (uint64_t{1} << upper)});
     span_bits = std::min(span_bits, lower);
