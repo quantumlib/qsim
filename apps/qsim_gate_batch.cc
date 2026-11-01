@@ -146,6 +146,7 @@ int main(int argc, char* argv[]) {
 
   Runner::Parameter param;
   param.max_fused_size = opt.max_fused_size;
+  param.seed = opt.seed;
   param.tile_qubits = opt.tile_qubits;
   param.min_eviction_floor = opt.min_eviction_floor;
   param.max_lookahead_seeds = opt.max_lookahead_seeds;

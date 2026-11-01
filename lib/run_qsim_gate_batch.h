@@ -225,6 +225,14 @@ class CpuGateBatchBackend {
     }
   }
 
+  template <typename RGen>
+  typename StateSpace::MeasurementResult Measure(
+      const Qubits& physical_qubits, RGen& rgen) const {
+    auto full_view = StateSpace::Create(state_data_, partition_.num_state_qubits);
+    StateSpace state_space(active_threads_);
+    return state_space.Measure(physical_qubits, rgen, full_view);
+  }
+
   void Synchronize() const {}
 
  private:
@@ -311,6 +319,7 @@ class QSimGateBatchRunner final
   using Base = GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>>;
 
  public:
+  using typename Base::MeasurementResult;
   using typename Base::Parameter;
   using typename Base::QubitMappedState;
   using typename Base::State;
@@ -322,6 +331,13 @@ class QSimGateBatchRunner final
       const Parameter& param, const Factory&, const Circuit& circuit,
       StateOrMappedState& state) {
     return Base::Run(param, circuit, state);
+  }
+
+  template <typename Circuit, typename StateOrMappedState>
+  static bool Run(const Parameter& param, const Factory&, const Circuit& circuit,
+                  StateOrMappedState& state,
+                  std::vector<MeasurementResult>& measurement_results) {
+    return Base::Run(param, circuit, state, measurement_results);
   }
 };
 

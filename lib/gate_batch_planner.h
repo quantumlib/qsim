@@ -80,7 +80,7 @@ struct QubitZones {
 };
 
 // A circuit gate to be scheduled. Points into the caller's circuit; `index` is
-// its position in the circuit.
+// its position in the flat gate list.
 template <typename FP>
 struct PendingGate {
   PendingGate(const Gate<FP>& raw_gate, std::size_t index)
@@ -127,9 +127,16 @@ struct PendingGate {
   }
 };
 
-// The circuit's gates in order, each marked applied once it has run. The list
-// never changes after FromCircuit. All gate pointers refer to the caller's
-// circuit, which must outlive this list.
+// Measure after every gate before gate_end has executed. Measurements at the
+// same circuit timestep share one boundary and preserve their qubit-list order.
+struct MeasurementBoundary {
+  std::size_t gate_end;
+  Measurement measurement;
+};
+
+// The circuit's gates in timestep order, each marked applied once it has run.
+// The list never changes after FromCircuit. All gate pointers refer to the
+// caller's circuit, which must outlive this list.
 template <typename FP>
 class PendingGateList {
  public:
@@ -142,18 +149,21 @@ class PendingGateList {
   PendingGateList& operator=(const PendingGateList&) = delete;
 
   // Controls do not enlarge the target matrix or count toward the backend's
-  // target-width limit. Rejects measurements and other operation types.
+  // target-width limit. Measurements are extracted as execution boundaries.
   template <typename Circuit>
   static std::optional<PendingGateList> FromCircuit(
       const Circuit& circuit, unsigned max_gate_qubits,
       unsigned max_controlled_gate_qubits) {
     PendingGateList list;
     list.gates_.reserve(circuit.ops.size());
+    if (!ValidateCircuitTimeSteps(circuit)) return std::nullopt;
 
     for (const auto& operation : circuit.ops) {
+      if (OpGetAlternative<Measurement>(operation)) continue;
+
+      const auto* controlled = OpGetAlternative<ControlledGate<FP>>(operation);
       const Gate<FP>* gate = OpGetAlternative<Gate<FP>>(operation);
-      if (const auto* controlled =
-              OpGetAlternative<ControlledGate<FP>>(operation)) {
+      if (controlled != nullptr) {
         if (controlled->qubits.size() > max_controlled_gate_qubits) {
           return std::nullopt;
         }
@@ -165,6 +175,9 @@ class PendingGateList {
       }
       list.gates_.emplace_back(*gate, list.gates_.size());
     }
+    list.OrderGatesByTimeStep();
+    list.BuildMeasurementBoundaries(circuit);
+    list.gate_end_ = list.gates_.size();
     list.applied_.assign(list.gates_.size(), 0);
     return list;
   }
@@ -172,8 +185,19 @@ class PendingGateList {
   std::size_t Size() const { return gates_.size(); }
   const PendingGate& operator[](std::size_t i) const { return gates_[i]; }
 
+  const std::vector<MeasurementBoundary>& MeasurementBoundaries() const {
+    return measurement_boundaries_;
+  }
+
+  // Every pending-gate traversal, including planner seeds and lookahead, stops
+  // at this exclusive boundary. Advance it only after the current range drains.
+  void SetGateEnd(std::size_t gate_end) {
+    assert(gate_end >= first_pending_ && gate_end <= gates_.size());
+    gate_end_ = gate_end;
+  }
+
   // The first gate after `gate` not yet applied, or the first one at all when
-  // `gate` is nullptr. Returns nullptr once no gate is pending.
+  // `gate` is nullptr. Stops at the active measurement boundary.
   const PendingGate* NextPending(const PendingGate* gate = nullptr) const {
     return PendingAtOrAfter(gate == nullptr ? first_pending_ : gate->index + 1);
   }
@@ -189,11 +213,95 @@ class PendingGateList {
   }
 
  private:
-  const PendingGate* PendingAtOrAfter(std::size_t index) const {
-    while (index < gates_.size() && applied_[index]) ++index;
-    return index < gates_.size() ? &gates_[index] : nullptr;
+  template <typename Circuit>
+  static bool ValidateCircuitTimeSteps(const Circuit& circuit) {
+    std::vector<std::optional<unsigned>> last_time_steps(circuit.num_qubits);
+    unsigned max_time_step = 0;
+    unsigned measurement_time_step = 0;
+
+    for (const auto& operation : circuit.ops) {
+      const auto time_step = OpTime(operation);
+      if (!RecordQubitTimeSteps(
+              OpQubits(operation), time_step, last_time_steps)) {
+        return false;
+      }
+      if (const auto* controlled =
+              OpGetAlternative<ControlledGate<FP>>(operation)) {
+        if (!RecordQubitTimeSteps(
+                controlled->controlled_by, time_step, last_time_steps)) {
+          return false;
+        }
+      }
+
+      if (time_step < measurement_time_step) return false;
+      if (OpGetAlternative<Measurement>(operation)) {
+        if (time_step < max_time_step) return false;
+        measurement_time_step = time_step;
+      }
+      max_time_step = std::max(max_time_step, time_step);
+    }
+    return true;
   }
 
+  void OrderGatesByTimeStep() {
+    std::stable_sort(
+        gates_.begin(), gates_.end(), [](const auto& a, const auto& b) {
+          return a.gate->time < b.gate->time;
+        });
+    for (std::size_t i = 0; i < gates_.size(); ++i) gates_[i].index = i;
+  }
+
+  // Validation guarantees measurements arrive in timestep order. Preserve
+  // their qubit order when combining measurements at the same timestep.
+  template <typename Circuit>
+  void BuildMeasurementBoundaries(const Circuit& circuit) {
+    for (const auto& operation : circuit.ops) {
+      const auto* measurement = OpGetAlternative<Measurement>(operation);
+      if (measurement == nullptr) continue;
+
+      if (measurement_boundaries_.empty() ||
+          measurement_boundaries_.back().measurement.time !=
+              measurement->time) {
+        measurement_boundaries_.push_back({0, *measurement});
+      } else {
+        auto& qubits = measurement_boundaries_.back().measurement.qubits;
+        qubits.insert(
+            qubits.end(), measurement->qubits.begin(),
+            measurement->qubits.end());
+      }
+    }
+
+    // Each boundary follows all gates in its timestep, including disjoint
+    // gates originally listed after a measurement. Later timesteps stay
+    // pending.
+    std::size_t gate_end = 0;
+    for (auto& boundary : measurement_boundaries_) {
+      while (gate_end < gates_.size() &&
+             gates_[gate_end].gate->time <= boundary.measurement.time) {
+        ++gate_end;
+      }
+      boundary.gate_end = gate_end;
+    }
+  }
+
+  static bool RecordQubitTimeSteps(
+      const qsim::Qubits& qubits, unsigned time_step,
+      std::vector<std::optional<unsigned>>& last_time_steps) {
+    for (unsigned q : qubits) {
+      if (q >= last_time_steps.size()) return false;
+      if (last_time_steps[q] && time_step <= *last_time_steps[q]) return false;
+      last_time_steps[q] = time_step;
+    }
+    return true;
+  }
+
+  const PendingGate* PendingAtOrAfter(std::size_t index) const {
+    while (index < gate_end_ && applied_[index]) ++index;
+    return index < gate_end_ ? &gates_[index] : nullptr;
+  }
+
+  std::vector<MeasurementBoundary> measurement_boundaries_;
+  std::size_t gate_end_ = 0;
   std::vector<PendingGate> gates_;
   std::vector<char> applied_;
   // Every gate before this index is applied.

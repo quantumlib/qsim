@@ -45,20 +45,16 @@
 //
 //   GateBatchRunner::Run
 //     SimulateCircuit
-//       BuildPendingGates          wrap each gate, flag diagonal ones
-//       SimulateSingleTile         whole state fits one tile:
-//         BuildExecutableGates    prepare fused and controlled gates
-//         ExecuteFusedGates       execute the batch
-//       SimulateMultiTile
-//         FillHotZone              move the most-used qubits there, once
-//         loop ExecuteNextGateBatch
-//           GateBatchPlanner::PlanNextGateBatch
-//           MoveQubitsIntoZone     swap batch qubits into the remap zone
-//           BuildBatchGates       rewrite gates to physical qubits
-//           BuildExecutableGates, ExecuteFusedGates
-//         RestoreIdentityQubitOrder  only for Run(State&); the
-//                                    QubitMappedState overload keeps the
-//                                    permuted layout
+//       BuildPendingGates          extract gates and measurement boundaries
+//       FillHotZone                place frequently used targets, once
+//       for each measurement boundary:
+//         ExecuteGatesUntil        drain gates before the boundary
+//           SimulateSingleTile     one batch when the state fits one tile
+//           ExecuteNextGateBatch   otherwise plan, remap, and execute batches
+//         Measure                  sample and collapse the full state
+//       ExecuteGatesUntil          drain gates after the final measurement
+//       RestoreIdentityQubitOrder  for the State overload
+//       FinishSimulation
 
 #ifndef GATE_BATCH_RUNNER_H_
 #define GATE_BATCH_RUNNER_H_
@@ -68,6 +64,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <random>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -101,6 +98,7 @@ class GateBatchRunner {
  public:
   using StateSpace = typename Backend::StateSpace;
   using State = typename Backend::State;
+  using MeasurementResult = typename StateSpace::MeasurementResult;
   using QubitMappedState = qsim::QubitMappedState<State>;
   using fp_type = typename Backend::fp_type;
   static_assert(
@@ -112,6 +110,7 @@ class GateBatchRunner {
 
     // Unset lets the backend choose; a set value is used as given.
     std::optional<unsigned> tile_qubits;
+    uint64_t seed = 1;
     unsigned min_eviction_floor = Backend::kDefaultEvictionFloor;
     // Most lookahead seeds the planner tries per batch; see PlanNextGateBatch.
     unsigned max_lookahead_seeds = 64;
@@ -121,19 +120,32 @@ class GateBatchRunner {
   template <typename Circuit>
   static bool Run(
       const Parameter& param, const Circuit& circuit, State& state) {
-    QubitLayout layout(circuit.num_qubits);
-    return RunWithLayout(
-        param, circuit, state, layout, QubitOrderOnExit::kRestoreIdentity);
+    std::vector<MeasurementResult> discarded_results;
+    return Run(param, circuit, state, discarded_results);
   }
 
-  // Leaves `state` permuted, with `state.layout` describing the order; this
-  // skips the restore passes.
   template <typename Circuit>
-  static bool Run(
-      const Parameter& param, const Circuit& circuit, QubitMappedState& state) {
-    return RunWithLayout(
-        param, circuit, state.state, state.layout,
-        QubitOrderOnExit::kKeepPermuted);
+  static bool Run(const Parameter& param, const Circuit& circuit, State& state,
+                  std::vector<MeasurementResult>& measurement_results) {
+    QubitLayout layout(circuit.num_qubits);
+    return RunWithLayout(param, circuit, state, layout, measurement_results,
+                         QubitOrderOnExit::kRestoreIdentity);
+  }
+
+  // Leaves `state` permuted, with `state.layout` describing the order.
+  template <typename Circuit>
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  QubitMappedState& state) {
+    std::vector<MeasurementResult> discarded_results;
+    return Run(param, circuit, state, discarded_results);
+  }
+
+  template <typename Circuit>
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  QubitMappedState& state,
+                  std::vector<MeasurementResult>& measurement_results) {
+    return RunWithLayout(param, circuit, state.state, state.layout,
+                         measurement_results, QubitOrderOnExit::kKeepPermuted);
   }
 
  private:
@@ -153,11 +165,13 @@ class GateBatchRunner {
     unsigned num_raw_gates = 0;
     unsigned num_swaps = 0;
     unsigned num_executable_gates = 0;
+    unsigned num_measurements = 0;
     double prepare_seconds = 0.0;
     double plan_seconds = 0.0;
     double swap_seconds = 0.0;
     double fuse_seconds = 0.0;
     double gate_seconds = 0.0;
+    double measure_seconds = 0.0;
   };
 
   // Whether Run undoes the qubit permutation the batches leave behind.
@@ -166,13 +180,14 @@ class GateBatchRunner {
   template <typename Circuit>
   static bool RunWithLayout(
       const Parameter& param, const Circuit& circuit, State& state,
-      QubitLayout& layout, QubitOrderOnExit order) {
+      QubitLayout& layout, std::vector<MeasurementResult>& measurement_results,
+      QubitOrderOnExit order) {
     if (!SizesMatch(circuit.num_qubits, state.num_qubits()) ||
         !SizesMatch(circuit.num_qubits, layout.NumQubits())) {
       return false;
     }
     GateBatchRunner runner(param, circuit.num_qubits, state, layout);
-    return runner.SimulateCircuit(circuit, order);
+    return runner.SimulateCircuit(circuit, order, measurement_results);
   }
 
   GateBatchRunner(
@@ -183,7 +198,8 @@ class GateBatchRunner {
         zones_(
             QubitZones::ForBackend(
                 backend_, num_qubits, param.min_eviction_floor)),
-        layout_(layout) {
+        layout_(layout),
+        rgen_(param.seed) {
     assert(layout_.NumQubits() == num_qubits);
   }
 
@@ -197,17 +213,30 @@ class GateBatchRunner {
   }
 
   template <typename Circuit>
-  bool SimulateCircuit(const Circuit& circuit, QubitOrderOnExit order) {
+  bool SimulateCircuit(const Circuit& circuit, QubitOrderOnExit order,
+                       std::vector<MeasurementResult>& measurement_results) {
     if (!ValidateParameters() || !backend_.Prepare()) return false;
-    simulation_stats_.num_raw_gates = unsigned(circuit.ops.size());
 
     auto pending_gates = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
       return BuildPendingGates(circuit);
     });
     if (!pending_gates) return false;
+    simulation_stats_.num_raw_gates = unsigned(pending_gates->Size());
 
-    if (zones_.IsSingleTile()) return SimulateSingleTile(*pending_gates);
-    return SimulateMultiTile(*pending_gates, order);
+    const auto simulation_start = StartSimulationClock();
+    if (!zones_.IsSingleTile() && pending_gates->Size() != 0) {
+      FillHotZone(*pending_gates);
+    }
+    for (const auto& boundary : pending_gates->MeasurementBoundaries()) {
+      if (!ExecuteGatesUntil(*pending_gates, boundary.gate_end)) return false;
+      if (!Measure(boundary.measurement, measurement_results)) return false;
+    }
+    if (!ExecuteGatesUntil(*pending_gates, pending_gates->Size())) return false;
+    if (order == QubitOrderOnExit::kRestoreIdentity) {
+      RestoreIdentityQubitOrder();
+    }
+    FinishSimulation(simulation_start);
+    return true;
   }
 
   bool ValidateParameters() const {
@@ -224,16 +253,16 @@ class GateBatchRunner {
     return true;
   }
 
-  // The whole state is one tile: no planning or swaps. Every gate runs in one
-  // batch, on the physical positions the layout gives its qubits. Gates keep
-  // their circuit times for fusion dependency tracking.
-  bool SimulateSingleTile(const PendingGateList& pending_gates) {
+  // Execute the pending gates before the boundary in one tile. Circuit
+  // times are retained for fusion dependency tracking.
+  bool SimulateSingleTile(PendingGateList& pending_gates) {
     std::vector<MappedGate> mapped_gates;
+    std::vector<std::size_t> indices;
     mapped_gates.reserve(pending_gates.Size());
     for (const auto* gate = pending_gates.NextPending(); gate != nullptr;
          gate = pending_gates.NextPending(gate)) {
-      mapped_gates.push_back(
-          MakeMappedGate(*gate, gate->gate->time));
+      mapped_gates.push_back(MakeMappedGate(*gate, gate->gate->time));
+      indices.push_back(gate->index);
     }
 
     const auto executable_gates =
@@ -242,28 +271,53 @@ class GateBatchRunner {
         });
     if (!executable_gates) return false;
 
-    const auto simulation_start = StartSimulationClock();
     ExecuteFusedGates(*executable_gates);
-    simulation_stats_.num_gate_batches = mapped_gates.empty() ? 0 : 1;
-    FinishSimulation(simulation_start);
+    pending_gates.MarkApplied(indices);
+    simulation_stats_.num_gate_batches += mapped_gates.empty() ? 0 : 1;
     return true;
   }
 
-  bool SimulateMultiTile(
-      PendingGateList& pending_gates, QubitOrderOnExit order) {
-    const auto simulation_start = StartSimulationClock();
-    FillHotZone(pending_gates);
+  bool ExecuteGatesUntil(PendingGateList& pending_gates, std::size_t gate_end) {
+    pending_gates.SetGateEnd(gate_end);
+    return ExecutePendingGates(pending_gates);
+  }
+
+  bool ExecutePendingGates(PendingGateList& pending_gates) {
+    if (pending_gates.NextPending() == nullptr) return true;
+    if (zones_.IsSingleTile()) return SimulateSingleTile(pending_gates);
 
     const GateBatchPlanner planner(
         zones_, pending_gates, layout_, param_.max_lookahead_seeds);
     while (pending_gates.NextPending() != nullptr) {
       if (!ExecuteNextGateBatch(planner, pending_gates)) return false;
     }
+    return true;
+  }
 
-    if (order == QubitOrderOnExit::kRestoreIdentity) {
-      RestoreIdentityQubitOrder();
+  bool Measure(const Measurement& measurement,
+               std::vector<MeasurementResult>& measurement_results) {
+    Qubits physical_qubits;
+    for (unsigned q : measurement.qubits) {
+      physical_qubits.push_back(layout_.PhysicalPositionOf(q));
     }
-    FinishSimulation(simulation_start);
+    auto result = TimeHostWork(simulation_stats_.measure_seconds, [&] {
+      return backend_.Measure(physical_qubits, rgen_);
+    });
+    if (!result.valid) {
+      IO::errorf("qsim_gate_batch: measurement failed.\n");
+      return false;
+    }
+    // bitstring follows the requested qubit order. Rewrite position-indexed
+    // fields into logical coordinates before exposing the result.
+    result.mask = 0;
+    result.bits = 0;
+    for (std::size_t i = 0; i < measurement.qubits.size(); ++i) {
+      const auto bit = uint64_t{1} << measurement.qubits[i];
+      result.mask |= bit;
+      if (result.bitstring[i]) result.bits |= bit;
+    }
+    measurement_results.push_back(std::move(result));
+    ++simulation_stats_.num_measurements;
     return true;
   }
 
@@ -308,9 +362,8 @@ class GateBatchRunner {
     if (!pending_gates) {
       IO::errorf(
           "qsim_gate_batch: supports ordinary gates up to %u targets and "
-          "controlled gates up to %u targets; measurements and other "
-          "operations are unsupported. Use "
-          "QSimRunner for those.\n",
+          "controlled gates up to %u targets, and measurements with valid "
+          "time boundaries and qubits. Other operations are unsupported.\n",
           Backend::kMaxGateQubits, Backend::kMaxControlledGateQubits);
     }
     return pending_gates;
@@ -606,17 +659,18 @@ class GateBatchRunner {
     IO::messagef(
         "gate-batch runner: %u gate batches, %u restore passes, "
         "%u raw gates, %u executable gates, "
-        "%u qubit swaps.\n",
+        "%u qubit swaps, %u measurements.\n",
         simulation_stats_.num_gate_batches,
         simulation_stats_.num_restore_passes, simulation_stats_.num_raw_gates,
-        simulation_stats_.num_executable_gates, simulation_stats_.num_swaps);
+        simulation_stats_.num_executable_gates, simulation_stats_.num_swaps,
+        simulation_stats_.num_measurements);
     if (param_.verbosity > 1) {
       IO::messagef(
           "breakdown: prepare %g s, plan %g s, swap passes %g s, fuse %g s, "
-          "gate passes %g s.\n",
+          "gate passes %g s, measure %g s.\n",
           simulation_stats_.prepare_seconds, simulation_stats_.plan_seconds,
           simulation_stats_.swap_seconds, simulation_stats_.fuse_seconds,
-          simulation_stats_.gate_seconds);
+          simulation_stats_.gate_seconds, simulation_stats_.measure_seconds);
     }
   }
 
@@ -624,6 +678,7 @@ class GateBatchRunner {
   Backend backend_;
   const QubitZones zones_;
   QubitLayout& layout_;
+  std::mt19937 rgen_;
 
   // Accumulated over the whole run; printed by LogSimulationSummary.
   SimulationStats simulation_stats_;
