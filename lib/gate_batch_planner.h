@@ -86,11 +86,25 @@ struct PendingGate {
   PendingGate(const Gate<FP>& raw_gate, std::size_t index)
       : gate(&raw_gate), index(index), is_diagonal(IsDiagonalGate(raw_gate)) {}
 
-  const qsim::Qubits& Qubits() const { return gate->qubits; }
+  PendingGate(const ControlledGate<FP>& controlled, std::size_t index)
+      : PendingGate(static_cast<const Gate<FP>&>(controlled), index) {
+    controlled_gate = &controlled;
+    all_qubits = controlled.qubits;
+    all_qubits.insert(all_qubits.end(), controlled.controlled_by.begin(),
+                      controlled.controlled_by.end());
+  }
+
+  // Targets need tile slots; controls only constrain execution and ordering.
+  const qsim::Qubits& TargetQubits() const { return gate->qubits; }
+  const qsim::Qubits& Qubits() const {
+    return controlled_gate == nullptr ? TargetQubits() : all_qubits;
+  }
 
   const Gate<FP>* gate;
   std::size_t index;
   bool is_diagonal;
+  const ControlledGate<FP>* controlled_gate = nullptr;
+  qsim::Qubits all_qubits;
 
  private:
   // Whether the gate's matrix is diagonal. Two diagonal gates give the same
@@ -114,9 +128,8 @@ struct PendingGate {
 };
 
 // The circuit's gates in order, each marked applied once it has run. The list
-// never changes after FromCircuit, so gate indices and the pointers handed out
-// by NextPending stay valid for the whole run. It is move-only: its gates may
-// point into its own storage of expanded controlled gates.
+// never changes after FromCircuit. All gate pointers refer to the caller's
+// circuit, which must outlive this list.
 template <typename FP>
 class PendingGateList {
  public:
@@ -128,31 +141,24 @@ class PendingGateList {
   PendingGateList(const PendingGateList&) = delete;
   PendingGateList& operator=(const PendingGateList&) = delete;
 
-  // Wraps every gate of the circuit; a controlled gate is expanded into an
-  // ordinary gate over its target and control qubits. Returns nullopt if the
-  // circuit has another kind of operation (such as a measurement) or a gate
-  // wider than max_gate_qubits, counting controls.
+  // Controls do not enlarge the target matrix or count toward the backend's
+  // target-width limit. Rejects measurements and other operation types.
   template <typename Circuit>
   static std::optional<PendingGateList> FromCircuit(
-      const Circuit& circuit, unsigned max_gate_qubits) {
+      const Circuit& circuit, unsigned max_gate_qubits,
+      unsigned max_controlled_gate_qubits) {
     PendingGateList list;
-    std::size_t num_controlled = 0;
-    for (const auto& operation : circuit.ops) {
-      if (OpGetAlternative<ControlledGate<FP>>(operation)) ++num_controlled;
-    }
-    // Reserved up front so that pointers into it stay valid.
-    list.expanded_gates_.reserve(num_controlled);
     list.gates_.reserve(circuit.ops.size());
 
     for (const auto& operation : circuit.ops) {
       const Gate<FP>* gate = OpGetAlternative<Gate<FP>>(operation);
       if (const auto* controlled =
               OpGetAlternative<ControlledGate<FP>>(operation)) {
-        const auto width =
-            controlled->qubits.size() + controlled->controlled_by.size();
-        if (width > max_gate_qubits) return std::nullopt;
-        list.expanded_gates_.push_back(ExpandControlledGate(*controlled));
-        gate = &list.expanded_gates_.back();
+        if (controlled->qubits.size() > max_controlled_gate_qubits) {
+          return std::nullopt;
+        }
+        list.gates_.emplace_back(*controlled, list.gates_.size());
+        continue;
       }
       if (gate == nullptr || gate->qubits.size() > max_gate_qubits) {
         return std::nullopt;
@@ -183,50 +189,11 @@ class PendingGateList {
   }
 
  private:
-  // Returns `controlled` as an ordinary gate on its target qubits followed by
-  // its control qubits. The matrix applies the target matrix where every
-  // control qubit has its required value (`cmask`) and leaves all other
-  // amplitudes unchanged. Matrix index bit i belongs to qubits[i], so the
-  // target bits are the low bits and control i is bit num_targets + i,
-  // matching cmask bit i.
-  static Gate<FP> ExpandControlledGate(const ControlledGate<FP>& controlled) {
-    const auto target_dim = std::size_t{1} << controlled.qubits.size();
-    const auto dim = target_dim << controlled.controlled_by.size();
-
-    Gate<FP> gate{};
-    gate.kind = controlled.kind;
-    gate.time = controlled.time;
-    gate.qubits = controlled.qubits;
-    gate.qubits.insert(
-        gate.qubits.end(), controlled.controlled_by.begin(),
-        controlled.controlled_by.end());
-    gate.matrix.assign(2 * dim * dim, 0);
-
-    for (std::size_t row = 0; row < dim; ++row) {
-      for (std::size_t col = 0; col < dim; ++col) {
-        const auto row_controls = row / target_dim;
-        if (row_controls != col / target_dim) continue;
-        const auto row_target = row % target_dim;
-        const auto col_target = col % target_dim;
-        const auto k = 2 * (row * dim + col);
-        if (row_controls == controlled.cmask) {
-          const auto t = 2 * (row_target * target_dim + col_target);
-          gate.matrix[k] = controlled.matrix[t];
-          gate.matrix[k + 1] = controlled.matrix[t + 1];
-        } else if (row_target == col_target) {
-          gate.matrix[k] = 1;
-        }
-      }
-    }
-    return gate;
-  }
-
   const PendingGate* PendingAtOrAfter(std::size_t index) const {
     while (index < gates_.size() && applied_[index]) ++index;
     return index < gates_.size() ? &gates_[index] : nullptr;
   }
 
-  std::vector<Gate<FP>> expanded_gates_;
   std::vector<PendingGate> gates_;
   std::vector<char> applied_;
   // Every gate before this index is applied.
@@ -234,15 +201,15 @@ class PendingGateList {
 };
 
 // The batch chosen by the planner. `uses_qubit` marks the qubits the admitted
-// gates touch; those above the tile are swapped in before the batch runs.
+// gates target; those above the tile are swapped in before the batch runs.
 struct GateBatchPlan {
   explicit GateBatchPlan(unsigned num_qubits) : uses_qubit(num_qubits, 0) {}
 
-  // Adds the gate to the batch and marks its qubits as used.
+  // Adds the gate to the batch and marks its target qubits as used.
   template <typename FP>
   void AddGate(const PendingGate<FP>& gate) {
     gate_indices.push_back(gate.index);
-    for (unsigned q : gate.Qubits()) uses_qubit[q] = 1;
+    for (unsigned q : gate.TargetQubits()) uses_qubit[q] = 1;
   }
 
   bool HasGates() const { return !gate_indices.empty(); }
@@ -281,7 +248,7 @@ class GateBatchPlanner {
         max_lookahead_seeds_(max_lookahead_seeds) {}
 
   // A seed is the set of remap slots a candidate batch starts with; admitting a
-  // gate adds its qubits that need slots. Builds one candidate per seed and
+  // gate adds its targets that need slots. Builds one candidate per seed and
   // returns the one with the highest score (the first one built on a tie).
   // There is one seed per pending gate, starting from the slots that gate
   // needs, so a batch can form around work further ahead. The first pending
@@ -294,7 +261,7 @@ class GateBatchPlanner {
          gate != nullptr && seeds_used <= max_lookahead_seeds_;
          gate = pending_gates_.NextPending(gate), ++seeds_used) {
       RemapSlotSet seed(zones_.num_qubits);
-      if (!TryAdmitQubits(gate->Qubits(), seed)) continue;
+      if (!TryAdmitQubits(gate->TargetQubits(), seed)) continue;
       auto plan = BuildCandidatePlan(seed);
       if (!best_plan.HasGates() || plan.Score() > best_plan.Score()) {
         best_plan = std::move(plan);
@@ -348,7 +315,9 @@ class GateBatchPlanner {
 
     void Add(const PendingGate<FP>& gate) {
       const auto level = gate.is_diagonal ? Level::kNonDiagonal : Level::kAll;
-      for (unsigned q : gate.Qubits()) blocks_[q] = std::max(blocks_[q], level);
+      for (unsigned q : gate.Qubits()) {
+        blocks_[q] = std::max(blocks_[q], level);
+      }
     }
 
    private:
@@ -365,7 +334,7 @@ class GateBatchPlanner {
     for (const auto* gate = pending_gates_.NextPending(); gate != nullptr;
          gate = pending_gates_.NextPending(gate)) {
       if (deferred.CanRunAhead(*gate) &&
-          TryAdmitQubits(gate->Qubits(), slots)) {
+          TryAdmitQubits(gate->TargetQubits(), slots)) {
         plan.AddGate(*gate);
       } else {
         deferred.Add(*gate);

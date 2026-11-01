@@ -172,6 +172,8 @@ class CpuGateBatchBackend {
 
   static constexpr unsigned kDefaultTileQubits = 18;
   static constexpr unsigned kMaxGateQubits = 6;
+  // Common controlled-target limit across CPU simulators.
+  static constexpr unsigned kMaxControlledGateQubits = 4;
   // Floor of 5 balances remap budget against swap-pass span length.
   static constexpr unsigned kDefaultEvictionFloor = 5;
 
@@ -235,6 +237,19 @@ class CpuGateBatchBackend {
     return kLaneQubits + max_fused_size;
   }
 
+  // External controls are constant throughout a tile. Internal controls are
+  // handled by the simulator without expanding the target matrix.
+  void ExecuteGate(const ExecutableGate& gate, uint64_t tile,
+                   typename TileStateSpace::State& view) const {
+    if ((tile & gate.tile_control_mask) != gate.tile_control_values) return;
+    if (gate.controls.empty()) {
+      tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), view);
+    } else {
+      tile_sim_.ApplyControlledGate(gate.qubits, gate.controls,
+                                   gate.control_values, gate.matrix.data(), view);
+    }
+  }
+
   void ExecuteGatesOnTile(
       const std::vector<ExecutableGate>& gates, int64_t tile) const {
     gate_batch_internal::TileFor::Configure(1, 0);
@@ -242,7 +257,7 @@ class CpuGateBatchBackend {
     auto tile_view = TileStateSpace::Create(tile_data, partition_.tile_qubits);
 
     for (const ExecutableGate& gate : gates) {
-      tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), tile_view);
+      ExecuteGate(gate, tile, tile_view);
     }
   }
 
@@ -262,7 +277,7 @@ class CpuGateBatchBackend {
       auto full_view =
           TileStateSpace::Create(state_data_, partition_.tile_qubits);
       for (const ExecutableGate& gate : gates) {
-        tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), full_view);
+        ExecuteGate(gate, 0, full_view);
 #pragma omp barrier
       }
     }

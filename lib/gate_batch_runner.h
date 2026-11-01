@@ -16,8 +16,8 @@
 //
 // The state vector is split into tiles of 2^tile_qubits amplitudes, small
 // enough to stay in cache. A gate can only run tile by tile when all of its
-// qubits sit at low physical bit positions (below tile_qubits), so the runner
-// repeatedly picks a batch of gates, swaps their qubits down into the tile,
+// targets sit at low physical bit positions (below tile_qubits), so the runner
+// repeatedly picks a batch of gates, swaps their targets down into the tile,
 // and runs the whole batch over each tile in one pass over memory.
 //
 // Each logical qubit lives at a physical bit position of the amplitude index
@@ -32,11 +32,11 @@
 //   remap zone  Remap slots. Before each batch, qubits the batch needs that sit
 //               above tile_qubits are swapped into slots held by qubits the
 //               batch does not need.
-//   tile index  Select which tile an amplitude belongs to; gates cannot act on
-//               qubits stored here.
+//   tile index  Select which tile an amplitude belongs to; controls may stay
+//               here, but targets must be brought into the tile.
 //
 // Planning (GateBatchPlanner) walks the pending gates in circuit order and
-// admits each gate whose qubits still fit into the remap slots and that may
+// admits each gate whose targets fit into the remap slots and that may
 // run before every gate deferred so far. It tries several starting sets of
 // remap slots ("seeds") and keeps the batch with the best score: gates
 // admitted minus an estimated swap cost.
@@ -47,14 +47,15 @@
 //     SimulateCircuit
 //       BuildPendingGates          wrap each gate, flag diagonal ones
 //       SimulateSingleTile         whole state fits one tile:
-//         FuseBatchGates, ExecuteFusedGates  fuse the circuit, run it once
+//         BuildExecutableGates    prepare fused and controlled gates
+//         ExecuteFusedGates       execute the batch
 //       SimulateMultiTile
 //         FillHotZone              move the most-used qubits there, once
 //         loop ExecuteNextGateBatch
 //           GateBatchPlanner::PlanNextGateBatch
 //           MoveQubitsIntoZone     swap batch qubits into the remap zone
-//           BuildBatchOperations   rewrite gates to physical qubits
-//           FuseBatchGates, ExecuteFusedGates
+//           BuildBatchGates       rewrite gates to physical qubits
+//           BuildExecutableGates, ExecuteFusedGates
 //         RestoreIdentityQubitOrder  only for Run(State&); the
 //                                    QubitMappedState overload keeps the
 //                                    permuted layout
@@ -69,6 +70,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "gate.h"
@@ -86,6 +88,10 @@ template <typename FP>
 struct ExecutableGate {
   Qubits qubits;
   Matrix<FP> matrix;
+  Qubits controls;                 // physical positions inside the tile
+  uint64_t control_values = 0;     // bit i belongs to controls[i]
+  uint64_t tile_control_mask = 0;  // positions relative to the tile index
+  uint64_t tile_control_values = 0;
 };
 
 }  // namespace gate_batch_internal
@@ -111,7 +117,7 @@ class GateBatchRunner {
     unsigned max_lookahead_seeds = 64;
   };
 
-  // Leaves `state` in standard qubit order, like QSimRunner::Run.
+  // Leaves `state` in standard qubit order.
   template <typename Circuit>
   static bool Run(
       const Parameter& param, const Circuit& circuit, State& state) {
@@ -131,6 +137,9 @@ class GateBatchRunner {
   }
 
  private:
+  // Gate qubit indices have been mapped through QubitLayout to physical bit
+  // positions.
+  using MappedGate = std::variant<Gate<fp_type>, ControlledGate<fp_type>>;
   using PendingGateList = gate_batch_internal::PendingGateList<fp_type>;
   using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
   using GateBatchPlanner = gate_batch_internal::GateBatchPlanner<fp_type>;
@@ -197,9 +206,8 @@ class GateBatchRunner {
     });
     if (!pending_gates) return false;
 
-    using Op = typename std::decay_t<decltype(circuit.ops)>::value_type;
-    if (zones_.IsSingleTile()) return SimulateSingleTile<Op>(*pending_gates);
-    return SimulateMultiTile<Op>(*pending_gates, order);
+    if (zones_.IsSingleTile()) return SimulateSingleTile(*pending_gates);
+    return SimulateMultiTile(*pending_gates, order);
   }
 
   bool ValidateParameters() const {
@@ -218,31 +226,29 @@ class GateBatchRunner {
 
   // The whole state is one tile: no planning or swaps. Every gate runs in one
   // batch, on the physical positions the layout gives its qubits. Gates keep
-  // their circuit times, so the fuser groups them as for the whole circuit.
-  template <typename Op>
+  // their circuit times for fusion dependency tracking.
   bool SimulateSingleTile(const PendingGateList& pending_gates) {
-    std::vector<Op> operations;
-    operations.reserve(pending_gates.Size());
+    std::vector<MappedGate> mapped_gates;
+    mapped_gates.reserve(pending_gates.Size());
     for (const auto* gate = pending_gates.NextPending(); gate != nullptr;
          gate = pending_gates.NextPending(gate)) {
-      operations.push_back(
-          Op{MakePhysicalGate(*gate->gate, layout_, gate->gate->time)});
+      mapped_gates.push_back(
+          MakeMappedGate(*gate, gate->gate->time));
     }
 
     const auto executable_gates =
         TimeHostWork(simulation_stats_.fuse_seconds, [&] {
-          return FuseBatchGates(operations);
+          return BuildExecutableGates(mapped_gates);
         });
     if (!executable_gates) return false;
 
     const auto simulation_start = StartSimulationClock();
     ExecuteFusedGates(*executable_gates);
-    simulation_stats_.num_gate_batches = operations.empty() ? 0 : 1;
+    simulation_stats_.num_gate_batches = mapped_gates.empty() ? 0 : 1;
     FinishSimulation(simulation_start);
     return true;
   }
 
-  template <typename Op>
   bool SimulateMultiTile(
       PendingGateList& pending_gates, QubitOrderOnExit order) {
     const auto simulation_start = StartSimulationClock();
@@ -251,7 +257,7 @@ class GateBatchRunner {
     const GateBatchPlanner planner(
         zones_, pending_gates, layout_, param_.max_lookahead_seeds);
     while (pending_gates.NextPending() != nullptr) {
-      if (!ExecuteNextGateBatch<Op>(planner, pending_gates)) return false;
+      if (!ExecuteNextGateBatch(planner, pending_gates)) return false;
     }
 
     if (order == QubitOrderOnExit::kRestoreIdentity) {
@@ -263,7 +269,6 @@ class GateBatchRunner {
 
   // Returns false after reporting an error (a gate that never fits, or a
   // fuser failure).
-  template <typename Op>
   bool ExecuteNextGateBatch(
       const GateBatchPlanner& planner, PendingGateList& pending_gates) {
     const auto plan = TimeHostWork(simulation_stats_.plan_seconds, [&] {
@@ -282,9 +287,9 @@ class GateBatchRunner {
 
     const auto executable_gates =
         TimeHostWork(simulation_stats_.fuse_seconds, [&] {
-          const auto batch_operations =
-              BuildBatchOperations<Op>(plan, pending_gates);
-          return FuseBatchGates(batch_operations);
+          const auto batch_gates =
+              BuildBatchGates(plan, pending_gates);
+          return BuildExecutableGates(batch_gates);
         });
     if (!executable_gates) return false;
     pending_gates.MarkApplied(plan.gate_indices);
@@ -298,13 +303,15 @@ class GateBatchRunner {
   static std::optional<PendingGateList> BuildPendingGates(
       const Circuit& circuit) {
     auto pending_gates =
-        PendingGateList::FromCircuit(circuit, Backend::kMaxGateQubits);
+        PendingGateList::FromCircuit(circuit, Backend::kMaxGateQubits,
+                                     Backend::kMaxControlledGateQubits);
     if (!pending_gates) {
       IO::errorf(
-          "qsim_gate_batch: only gates of up to %u qubits (counting controls) "
-          "are supported, not measurements or other operations; use "
+          "qsim_gate_batch: supports ordinary gates up to %u targets and "
+          "controlled gates up to %u targets; measurements and other "
+          "operations are unsupported. Use "
           "QSimRunner for those.\n",
-          Backend::kMaxGateQubits);
+          Backend::kMaxGateQubits, Backend::kMaxControlledGateQubits);
     }
     return pending_gates;
   }
@@ -313,7 +320,7 @@ class GateBatchRunner {
       const PendingGateList& pending_gates) const {
     std::vector<uint64_t> scores(zones_.num_qubits, 0);
     for (std::size_t idx = 0; idx < pending_gates.Size(); ++idx) {
-      const auto& qubits = pending_gates[idx].Qubits();
+      const auto& qubits = pending_gates[idx].TargetQubits();
       for (unsigned q : qubits) scores[q] += qubits.size();
     }
     return scores;
@@ -400,18 +407,51 @@ class GateBatchRunner {
     }
   }
 
-  template <typename Op>
-  std::vector<Op> BuildBatchOperations(
+  std::vector<MappedGate> BuildBatchGates(
       const GateBatchPlan& plan, const PendingGateList& pending_gates) const {
-    std::vector<Op> batch_operations;
-    batch_operations.reserve(plan.NumGates());
+    std::vector<MappedGate> batch_gates;
+    batch_gates.reserve(plan.NumGates());
 
-    unsigned time = 0;
+    // Gates sharing any target or control retain their order. Independent
+    // gates share layers so the fuser can combine them.
+    std::vector<unsigned> next_time(zones_.num_qubits, 0);
     for (std::size_t idx : plan.gate_indices) {
-      batch_operations.push_back(
-          Op{MakePhysicalGate(*pending_gates[idx].gate, layout_, time++)});
+      const auto& gate = pending_gates[idx];
+      unsigned time = 0;
+      for (unsigned q : gate.Qubits()) time = std::max(time, next_time[q]);
+      for (unsigned q : gate.Qubits()) next_time[q] = time + 1;
+      batch_gates.push_back(MakeMappedGate(gate, time));
     }
-    return batch_operations;
+    std::stable_sort(batch_gates.begin(), batch_gates.end(),
+                     [](const MappedGate& a, const MappedGate& b) {
+                       return OpTime(a) < OpTime(b);
+                     });
+    return batch_gates;
+  }
+
+  // Target matrix order and control-value order are independent. Sorting the
+  // mapped controls must move each required value with its control qubit.
+  MappedGate MakeMappedGate(
+      const gate_batch_internal::PendingGate<fp_type>& pending,
+      unsigned time) const {
+    auto target = MakePhysicalGate(*pending.gate, layout_, time);
+    if (pending.controlled_gate == nullptr) return target;
+
+    std::vector<std::pair<unsigned, unsigned>> controls;
+    const auto& raw = *pending.controlled_gate;
+    for (unsigned i = 0; i < raw.controlled_by.size(); ++i) {
+      controls.push_back({layout_.PhysicalPositionOf(raw.controlled_by[i]),
+                          unsigned((raw.cmask >> i) & 1)});
+    }
+    std::sort(controls.begin(), controls.end());
+    ControlledGate<fp_type> physical;
+    static_cast<Gate<fp_type>&>(physical) = std::move(target);
+    physical.cmask = 0;
+    for (const auto& control : controls) {
+      physical.cmask |= uint64_t{control.second} << physical.controlled_by.size();
+      physical.controlled_by.push_back(control.first);
+    }
+    return physical;
   }
 
   // Returns `raw_gate` rewritten to act on the physical positions that `layout`
@@ -443,30 +483,65 @@ class GateBatchRunner {
     }
   }
 
-  template <typename Op>
-  std::optional<std::vector<ExecutableGate>> FuseBatchGates(
-      const std::vector<Op>& batch_operations) {
+  template <typename Operation>
+  static const ControlledGate<fp_type>* GetControlledGate(const Operation& op) {
+    return OpGetAlternative<ControlledGate<fp_type>>(op);
+  }
+
+  std::optional<std::vector<ExecutableGate>> BuildExecutableGates(
+      const std::vector<MappedGate>& batch_gates) {
+    // The fuser tracks dependencies on targets and controls, including controls
+    // above the tile. Only targets of ordinary gates enter fused matrices, so
+    // those matrices still act entirely within the tile.
     auto fused_ops =
-        Fuser::FuseGates(param_, zones_.tile_qubits, batch_operations);
-    if (fused_ops.empty() && !batch_operations.empty()) {
+        Fuser::FuseGates(param_, zones_.num_qubits, batch_gates);
+    if (fused_ops.empty() && !batch_gates.empty()) {
       IO::errorf("qsim_gate_batch: fuser failed on a gate batch.\n");
       return std::nullopt;
     }
 
+    // Controlled gates pass through the fuser as pointers into batch_gates.
+    // Copy their data so executable gates own it after batch_gates expires.
     std::vector<ExecutableGate> executable_gates;
     executable_gates.reserve(fused_ops.size());
     for (auto& operation : fused_ops) {
-      // Only gates reach the fuser, each at most kMaxGateQubits wide.
-      auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation);
-      assert(
-          fused != nullptr && fused->qubits.size() <= Backend::kMaxGateQubits);
-      assert(!fused->matrix.empty());
-      assert(std::is_sorted(fused->qubits.begin(), fused->qubits.end()));
-      executable_gates.push_back(
-          {std::move(fused->qubits), std::move(fused->matrix)});
+      if (const auto* controlled = GetControlledGate(operation)) {
+        executable_gates.push_back(MakeExecutableControlledGate(*controlled));
+      } else {
+        auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation);
+        assert(fused != nullptr);
+        executable_gates.push_back(MakeExecutableFusedGate(*fused));
+      }
     }
     simulation_stats_.num_executable_gates += executable_gates.size();
     return executable_gates;
+  }
+
+  ExecutableGate MakeExecutableFusedGate(FusedGate<fp_type>& fused) const {
+    // Fused qubits are sorted, so the last index determines tile containment.
+    assert(fused.qubits.size() <= Backend::kMaxGateQubits);
+    assert(fused.qubits.empty() || fused.qubits.back() < zones_.tile_qubits);
+    return {std::move(fused.qubits), std::move(fused.matrix)};
+  }
+
+  // Split controls by physical position after remapping. The backend sees
+  // local control indices plus a predicate on the tile index.
+  ExecutableGate MakeExecutableControlledGate(
+      const ControlledGate<fp_type>& controlled) const {
+    ExecutableGate gate{controlled.qubits, controlled.matrix};
+    for (unsigned i = 0; i < controlled.controlled_by.size(); ++i) {
+      const auto position = controlled.controlled_by[i];
+      const auto value = (controlled.cmask >> i) & 1;
+      if (position < zones_.tile_qubits) {
+        gate.control_values |= value << gate.controls.size();
+        gate.controls.push_back(position);
+      } else {
+        const auto bit = uint64_t{1} << (position - zones_.tile_qubits);
+        gate.tile_control_mask |= bit;
+        if (value) gate.tile_control_values |= bit;
+      }
+    }
+    return gate;
   }
 
   void ExecuteFusedGates(const std::vector<ExecutableGate>& executable_gates) {
