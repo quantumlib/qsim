@@ -100,7 +100,10 @@ if(NOT CMAKE_APPLE_SILICON_PROCESSOR)
     elseif(has_hipcc)
         add_subdirectory(pybind_interface/hip)
     endif()
+endif()
 
+# SSE/AVX pybind modules use x86 intrinsics; only build them on x86.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i386|i486|i586|i686)$")
     add_subdirectory(pybind_interface/sse)
     add_subdirectory(pybind_interface/avx512)
     add_subdirectory(pybind_interface/avx2)

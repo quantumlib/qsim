@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: Scorecard analysis
-run-name: Run Scorecard scanner for security best practices
+run-name: Run Scorecard analyzer
 
 # Scorecard (https://github.com/ossf/scorecard) is a repository-scanning tool
 # that evaluates a project's security practices. Its use is suggested by
@@ -26,59 +26,69 @@ on:
     - cron:  '30 9 * * 6'
 
   pull_request:
-    types: [opened, synchronize]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
     branches:
       - main
 
-  # Allow manual invocation.
   workflow_dispatch:
 
 concurrency:
-  # Cancel any previously-started but still active runs on the same branch.
   cancel-in-progress: true
   group: ${{github.workflow}}-${{github.event.pull_request.number||github.ref}}
 
-# Declare default workflow permissions as read only.
-permissions: read-all
+permissions: {}
 
 jobs:
   run-scorecard:
-    if: github.repository_owner == 'quantumlib'
+    # Skip fork PRs to avoid "Analysis configuration not found" errors.
+    if: >-
+      github.repository_owner == 'quantumlib' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.fork == false)
     name: Scorecard analyzer
     runs-on: ubuntu-24.04
     permissions:
       security-events: write
       id-token: write
+      contents: read
+      actions: read
+      issues: read
+      pull-requests: read
+      checks: read
     timeout-minutes: 15
     steps:
       - name: Check out a copy of the git repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Run Scorecard analysis
         # yamllint disable rule:line-length
-        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:
-          # Save the results
           results_file: scorecard-results.sarif
           results_format: sarif
-          # See https://github.com/ossf/scorecard-action#publishing-results.
           publish_results: true
 
       - name: Upload results to code-scanning dashboard
         # yamllint disable rule:line-length
-        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4.36.1
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: scorecard-results.sarif
 
-  # Scorecard currently (ver. 2.4.x) doesn't allow submissions from jobs having
-  # steps that use "run:". To print to the summary, we need to use another job.
+  # Scorecard doesn't allow submissions from jobs having steps that use "run:".
+  # Printing a summary needs to use "run:", so we have to use a separate job.
   write-summary:
     name: Scorecard results
     needs: run-scorecard
     runs-on: ubuntu-slim
     timeout-minutes: 5
+    permissions:
+      actions: read
     steps:
       - name: Write the Scorecard report page link to the workflow summary
         run: |
