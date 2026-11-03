@@ -51,6 +51,9 @@ class MPSSimulator final {
   using OneQubitMatrix = Eigen::Matrix<Complex, 2, 2, Eigen::RowMajor>;
   using ConstOneQubitMap = Eigen::Map<const OneQubitMatrix>;
 
+  using TwoQubitMatrix = Eigen::Matrix<Complex, 4, 4, Eigen::RowMajor>;
+  using ConstTwoQubitMap = Eigen::Map<const TwoQubitMatrix>;
+
   // Note: ForArgs are currently unused.
   template <typename... ForArgs>
   explicit MPSSimulator(ForArgs&&... args) : for_(args...) {}
@@ -116,11 +119,85 @@ class MPSSimulator final {
                                         const fp_type* matrix,
                                         const State& state) const {
     // Assume qs[0] < qs[1] < qs[2] < ... .
-    // TODO.
-    return std::complex<double>(-10., -10.);
+    switch (qs.size()) {
+      case 1:
+        return ExpectationValue1(qs, matrix, state);
+      case 2:
+        return ExpectationValue2(qs, matrix, state);
+      default:
+        // Not implemented.
+        break;
+    }
+
+    return 0;
   }
 
  private:
+  std::complex<double> ExpectationValue1(const std::vector<unsigned>& qs,
+                                         const fp_type* matrix,
+                                         const State& state) const {
+    auto o_state = MPSStateSpace_::Create(state.num_qubits(), state.bond_dim());
+    if (o_state.get() == nullptr) {
+      return 0;
+    }
+
+    MPSStateSpace_::Copy(state, o_state);
+    ApplyGate1(qs, matrix, o_state);
+    return MPSStateSpace_::InnerProduct(o_state, state);
+  }
+
+  std::complex<double> ExpectationValue2(const std::vector<unsigned>& qs,
+                                         const fp_type* matrix,
+                                         const State& state) const {
+    ConstTwoQubitMap O((const Complex*) matrix);
+    TwoQubitMatrix K;
+    for (int i = 0; i < 2; ++i) {
+      for (int j = 0; j < 2; ++j) {
+        for (int k = 0; k < 2; ++k) {
+          for (int l = 0; l < 2; ++l) {
+            K(2 * i + k, 2 * j + l) = O(2 * i + j, 2 * k + l);
+          }
+        }
+      }
+    }
+
+    Eigen::BDCSVD<TwoQubitMatrix> svd(K, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    const auto& U = svd.matrixU();
+    const auto& V = svd.matrixV();
+    const auto& S = svd.singularValues();
+
+    auto o_state = MPSStateSpace_::Create(state.num_qubits(), state.bond_dim());
+    if (o_state.get() == nullptr) {
+      return 0;
+    }
+
+    const auto eps = std::numeric_limits<fp_type>::epsilon() * 10;
+    std::complex<double> total_ev = 0;
+    for (int r = 0; r < 4; ++r) {
+      auto s = S(r);
+      if (s < eps) continue;
+
+      OneQubitMatrix A, B;
+      for (int i = 0; i < 2; ++i) {
+        for (int k = 0; k < 2; ++k) {
+          A(i, k) = U(2 * i + k, r);
+        }
+      }
+      for (int j = 0; j < 2; ++j) {
+        for (int l = 0; l < 2; ++l) {
+          B(j, l) = Complex(s) * std::conj(V(2 * j + l, r));
+        }
+      }
+
+      MPSStateSpace_::Copy(state, o_state);
+      ApplyGate1({qs[0]}, (const fp_type*) A.data(), o_state);
+      ApplyGate1({qs[1]}, (const fp_type*) B.data(), o_state);
+      total_ev += MPSStateSpace_::InnerProduct(o_state, state);
+    }
+
+    return total_ev;
+  }
+
   void ApplyGate1(const std::vector<unsigned>& qs, const fp_type* matrix,
                   State& state) const {
     if (qs[0] == state.num_qubits() - 1) {

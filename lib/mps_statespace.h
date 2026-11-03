@@ -101,10 +101,12 @@ class MPSStateSpace {
   // Requires num_qubits >= 2 and bond_dim >= 2.
   static MPS Create(unsigned num_qubits, unsigned bond_dim) {
     auto end_sizes = 2 * 4 * bond_dim;
-    auto internal_sizes = 4 * bond_dim * bond_dim * (num_qubits + 1);
     // Use three extra "internal style" blocks past the end of the
     //   working allocation for scratch space. Needed for gate
-    //   application.
+    //   application. Scratch space needs at least 8 * bond_dim^2 + 32
+    //   floats (scratch3 stores a 4x4 complex gate matrix = 32 floats).
+    auto scratch_size = std::max(12 * bond_dim * bond_dim, 8 * bond_dim * bond_dim + 32);
+    auto internal_sizes = 4 * bond_dim * bond_dim * (num_qubits - 2) + scratch_size;
     auto size = sizeof(fp_type) * (end_sizes + internal_sizes);
 
 #ifdef _WIN32
@@ -166,20 +168,20 @@ class MPSStateSpace {
   // Computes Re{<state1 | state2 >} for two equal sized MPS.
   // Requires: state1.bond_dim() == state2.bond_dim() &&
   //           state1.num_qubits() == state2.num_qubits()
-  static fp_type RealInnerProduct(MPS& state1, MPS& state2) {
+  static fp_type RealInnerProduct(MPS& state1, const MPS& state2) {
     return InnerProduct(state1, state2).real();
   }
 
   // Computes <state1 | state2 > for two equal sized MPS.
   // Requires: state1.bond_dim() == state2.bond_dim() &&
   //           state1.num_qubits() == state2.num_qubits()
-  static std::complex<fp_type> InnerProduct(MPS& state1, MPS& state2) {
+  static std::complex<fp_type> InnerProduct(MPS& state1, const MPS& state2) {
     const auto num_qubits = state1.num_qubits();
     const auto bond_dim = state1.bond_dim();
     const auto end = Size(state1);
     auto offset = 0;
     fp_type* state1_raw = state1.get();
-    fp_type* state2_raw = state2.get();
+    const fp_type* state2_raw = state2.get();
 
     // Contract leftmost blocks together, store result in state1 scratch.
     ConstMatrixMap top((Complex*)state2_raw, 2, bond_dim);
