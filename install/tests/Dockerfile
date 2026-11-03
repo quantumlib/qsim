@@ -42,6 +42,9 @@ RUN python3 -m venv --upgrade-deps /qsim/test_env
 # Activate the venv.
 ENV PATH="/qsim/test_env/bin:$PATH"
 
+# Prepare Eigen, which is required by the MPS simulator bindings.
+RUN make eigen
+
 # Install qsim from sources.
 # Note: use pip3 here, not python3 -m pip. We need to make sure to get the pip
 # installed inside the venv, because that one has the correct sys.path.

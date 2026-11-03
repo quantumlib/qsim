@@ -168,7 +168,7 @@ qsim-hip:
 	$(MAKE) -C apps/ qsim-hip
 
 .PHONY: pybind
-pybind:
+pybind: eigen
 	$(MAKE) -C pybind_interface/ pybind
 
 .PHONY: cxx-tests
