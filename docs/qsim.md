@@ -49,7 +49,7 @@ bazel build qsim && cp -p ../bazel-bin/qsim/qsim . && chmod 755 qsim
 
 ### Circuit Input (`-c`)
 
-Specifies the file path to the input text file written in the [`qsim` circuit description language](input_format.md).
+Specifies the file path to the input text file written in the [`qsim` circuit description language](qsim_language.md).
 
 ### Symbol Injection (`-s`)
 

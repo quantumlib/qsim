@@ -6,7 +6,7 @@ This document describes the circuit description format for the `qsim` applicatio
 
 ### Expressions
 
-Circuit descriptions can include expressions for gate parameters, loop/branch conditions, and variable assignments. For more details, see [Expressions](classical_control.md%23Expressions).
+Circuit descriptions can include expressions for gate parameters, loop/branch conditions, and variable assignments. For more details, see [Expressions](classical_control.md#expressions).
 
 ### Delimiters & Comments
 
@@ -28,7 +28,6 @@ const float d(3)          # Uninitialized float vector (defaults to 0.0, 1.0, 2.
 int i = 0                 # Integer variable
 float x = 1.5             # Float variable
 int arr(4) = 1 2 3 i + 1  # Integer vector
-
 ```
 
 **Notes:**
@@ -47,7 +46,6 @@ The first entry in a circuit definition specifies the total number of qubits. It
 
 ```text
 5      # Explicit total circuit qubits
-
 ```
 
 How the parser determines qubit count:
@@ -67,7 +65,6 @@ Noise can be specified at the top of a circuit file—either as the **second ent
 
 ```text
 noise channel parameters
-
 ```
 
 * **`channel`**: Name of the one-qubit noise channel.
@@ -89,7 +86,6 @@ noise channel parameters
 
 ```text
 noise amplitude_damp 0.01
-
 ```
 
 When specified, the noise channel is automatically applied to **every qubit** after **every moment**.
@@ -100,7 +96,6 @@ Quantum gates are defined using the following format:
 
 ```text
 [time] gate_name qubit_indices... [parameters...]
-
 ```
 
 The optional `[time]` prefix defines the explicit moment/time step for the gate. If omitted, the time step is assigned automatically. Qubit indices can involve integer constant expressions, and gate parameters can involve runtime expressions (except for controlled gates).
@@ -134,13 +129,12 @@ The supported gates are listed below:
 | Measurement ($n$-qubit) | `m qi1 qi2 ... [tag]` | `m 0 1 2` or `m 0 1 2 m1` |
 | Controlled Gate | `c cqi1 cqi2 ... gate` | `c 0 1 rx 4 0.5` |
 
-For the measurement gate, gn optional measurement tag can be specified following the qubit indices. This tag serves as the measurement variable name and can be referenced in subsequent expressions.
+For the measurement gate, an optional measurement tag can be specified following the qubit indices. This tag serves as the measurement variable name and can be referenced in subsequent expressions.
 
 ```text
 const int qs(nq)
 m qs[2] m1
 fs qs[0] qs[1] pi * m1 / 2 pi / 4
-
 ```
 
 ## Classical Control Constructs
@@ -162,7 +156,6 @@ elsif condition3
 else
     # Executed if all preceding conditions are false
 end
-
 ```
 
 ### 2. Pre-Condition Loop (`repeat`)
@@ -173,7 +166,6 @@ Repeats the enclosed block while `condition` evaluates to `true` (evaluated prio
 [time] repeat condition
     # Block executed while condition is true
 end
-
 ```
 
 ### 3. Post-Condition Loop (`do ... while`)
@@ -184,7 +176,6 @@ Executes the enclosed block at least once, evaluating `condition` at the end of 
 [time] do
     # Block executed at least once
 while condition
-
 ```
 
 ### 4. Runtime Variable Assignment
@@ -194,10 +185,11 @@ Mutates classical variables or vector elements during circuit execution.
 ```text
 a = 2                        # Integer scalar assignment
 b = 2.3 + a                  # Float scalar assignment
-c(3) = 2 * a 3 * a 4 * a     # Vector assignment
+c = 2 * a 3 * a 4 * a        # Vector assignment
 vec[index] = expr            # Single-element update
-
 ```
+
+A self-referential vector assignment (such as c = c[2] c[1] c[0]) may yield unspecified values because element evaluation order is not guaranteed. Using a temporary vector is recommended in such cases.
 
 ### 5. Trajectory Filtering (`discard`)
 
@@ -206,7 +198,6 @@ Immediately halts and aborts the current quantum trajectory simulation if `condi
 ```text
 m 0 m1
 discard m1 == 0
-
 ```
 
 ### 6. Console Debug Output (`println`)
@@ -216,7 +207,6 @@ Prints evaluated classical expressions or formatted strings (using C++20 formatt
 ```text
 println 'Hello, World!'
 println "Index = {}, Value = {}" i (i * 2)
-
 ```
 
 ## Circuit Moments & Automatic Timing
@@ -235,7 +225,7 @@ Operations are executed in literal program order without reordering. In the foll
 
 * Both `h 0` and `h 1` are assigned time `0`.
 * Measurement `m 0 m1` is assigned time `1`.
-* The `if` statement and `y 1` gate are assigned time `2` (the `if` block and `y 1` do not swap, and `y 1` cannot share time `1` with the measurement).
+* The `if` statement and `y 1` gate are assigned time `2` (the `if` block cannot share time `1` with the measurement and reordering between the `if` block and `y 1` is not supported).
 * The `x 0` gate inside the `if` block resets to time `0` within its local scope.
 
 ```text
@@ -247,7 +237,6 @@ if m1
  x 0
 end
 y 1
-
 ```
 
 ## Observables
@@ -259,7 +248,6 @@ Histograms accumulate output bitstring distributions across simulated trajectori
 ```text
 m 0 1 2 m1
 histogram m1
-
 ```
 
 * All measurement tags referenced in `histogram` statements must be unique, even across different scopes.
@@ -271,7 +259,6 @@ histogram m1
 
 ```text
 println 'Hello, World!'
-
 ```
 
 ### 2. Iterative Factorial Computation ($12!$)
@@ -287,7 +274,6 @@ repeat i <= n
 end
 
 println f
-
 ```
 
 ### 3. Noisy Single-Qubit Circuit with Histogram
@@ -300,5 +286,4 @@ x 0
 m 0 m1
 
 histogram m1
-
 ```

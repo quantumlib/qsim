@@ -28,39 +28,41 @@ namespace qsim::cc {
 
 struct SymTable;
 
-using TInt = int64_t;
-using TFloat = double;
-using TBool = bool;
-using TFuncI = std::function<TInt(const SymTable&)>;
-using TFuncF = std::function<double(const SymTable&)>;
-using TFuncB = std::function<bool(const SymTable&)>;
+// The prefix V stands for Value.
+using VInt = int64_t;
+using VFloat = double;
+using VBool = bool;
+
+using EvalIntFn = std::function<VInt(const SymTable&)>;
+using EvalFloatFn = std::function<double(const SymTable&)>;
+using EvalBoolFn = std::function<bool(const SymTable&)>;
 
 /**
  * Variant representing an index expression used to access elements in vectors
  * or measurements.
  */
-using Index = std::variant<TInt, TBool, TFuncI, TFuncB>;
+using Index = std::variant<VInt, VBool, EvalIntFn, EvalBoolFn>;
 
 /** Represents a symbol reference. */
-using TSymbol = std::string_view;
+using SymbolKey = std::string_view;
 
 /**
  * Represents an indexed symbol reference, such as a vector or measurement bit
  * lookup (e.g., `v[i]`).
  */
-using TSymbolInd = std::pair<TSymbol, Index>;
+using SymbolKeyInd = std::pair<SymbolKey, Index>;
 
 /**
  * Abstract representation of compile-time constants or runtime-evaluated
  * expressions.
  *
  * Expressions can be:
- * - Direct scalar constants (`TInt`, `TFloat`, `TBool`)
- * - Runtime functional closures (`TFuncI`, `TFuncF`, `TFuncB`)
- * - Plain or indexed symbol lookup identifiers (`TSymbol`, `TSymbolInd`)
+ * - Direct scalar constants (`VInt`, `VFloat`, `VBool`)
+ * - Runtime functional closures (`EvalIntFn`, `EvalFloatFn`, `EvalBoolFn`)
+ * - Plain or indexed symbol lookup identifiers (`SymbolKey`, `SymbolKeyInd`)
  */
-using Expr = std::variant<TInt, TFloat, TBool,
-                          TFuncI, TFuncF, TFuncB, TSymbol, TSymbolInd>;
+using Expr = std::variant<VInt, VFloat, VBool, EvalIntFn,
+                          EvalFloatFn, EvalBoolFn, SymbolKey, SymbolKeyInd>;
 
 /**
  * Computes the dimensionality/size of an Index.
@@ -72,16 +74,13 @@ inline unsigned IndexSize(const Index&) {
 
 /**
  * Checks if an index expression can be evaluated at compile-time.
- * @tparam SymTable Symbol table type.
- * @param symtab Symbol table instance used for symbol lookups.
  * @param i The index expression to check.
- * @return True if the index is a static constant (`TInt` or `TBool`).
+ * @return True if the index is a static constant (`VInt` or `VBool`).
  */
-template <typename SymTable>
-inline bool IsConstIndex(const SymTable& symtab, const Index& i) {
+inline bool IsConstIndex(const Index& i) {
   auto f = [](auto&& i) -> bool {
     using I = std::decay_t<decltype(i)>;
-    return std::is_same_v<I, TInt> || std::is_same_v<I, TBool>;
+    return std::is_same_v<I, VInt> || std::is_same_v<I, VBool>;
   };
 
   return std::visit(f, i);
@@ -94,32 +93,39 @@ inline bool IsConstIndex(const SymTable& symtab, const Index& i) {
  * @param symtab Symbol table instance used for symbol lookups.
  * @param index Index variant to evaluate.
  * @return Non-negative target index position.
+ * @throws std::runtime_error If evaluated index is negative.
  */
 template <typename SymTable>
 inline std::size_t EvalIndex(const SymTable& symtab, const Index& index) {
-  auto f = [&symtab](auto&& index) -> std::size_t {
+  auto f = [&symtab](auto&& index) -> VInt {
     using I = std::decay_t<decltype(index)>;
 
-    if constexpr (std::is_same_v<I, TInt>) {
+    if constexpr (std::is_same_v<I, VInt>) {
       return index;
-    } else if constexpr (std::is_same_v<I, TBool>) {
+    } else if constexpr (std::is_same_v<I, VBool>) {
       return index;
-    } else if constexpr (std::is_same_v<I, TFuncI>) {
+    } else if constexpr (std::is_same_v<I, EvalIntFn>) {
       return index(symtab);
-    } else if constexpr (std::is_same_v<I, TFuncB>) {
+    } else if constexpr (std::is_same_v<I, EvalBoolFn>) {
       return index(symtab);
     }
   };
 
-  return std::visit(f, index);
+  VInt i = std::visit(f, index);
+
+  if (i < 0) {
+    Error::Throw("negative index");
+  }
+
+  return static_cast<std::size_t>(i);
 }
 
 /**
- * Checks if an index expression can be evaluated at compile-time.
+ * Checks if an expression can be evaluated at compile-time.
  * @tparam SymTable Symbol table type.
  * @param symtab Symbol table instance used for symbol lookups.
  * @param e Target expression to check.
- * @return True for literals (`TInt`, `TFloat`, `TBool`) and read-only symbols;
+ * @return True for literals (`VInt`, `VFloat`, `VBool`) and read-only symbols;
  *   false for closures.
  * @throws std::runtime_error If symbol lookup fails.
  */
@@ -128,26 +134,26 @@ inline bool IsConstExpr(const SymTable& symtab, const Expr& e) {
   auto f = [&symtab](auto&& e) -> bool {
     using E = std::decay_t<decltype(e)>;
 
-    if constexpr (std::is_same_v<E, TInt>) {
+    if constexpr (std::is_same_v<E, VInt>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TFloat>) {
+    } else if constexpr (std::is_same_v<E, VFloat>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TBool>) {
+    } else if constexpr (std::is_same_v<E, VBool>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TFuncI>) {
+    } else if constexpr (std::is_same_v<E, EvalIntFn>) {
       return false;
-    } else if constexpr (std::is_same_v<E, TFuncF>) {
+    } else if constexpr (std::is_same_v<E, EvalFloatFn>) {
       return false;
-    } else if constexpr (std::is_same_v<E, TFuncB>) {
+    } else if constexpr (std::is_same_v<E, EvalBoolFn>) {
       return false;
-    } else if constexpr (std::is_same_v<E, TSymbol>) {
+    } else if constexpr (std::is_same_v<E, SymbolKey>) {
       const auto* sym = symtab.LookupOrError(
           e, "identifier '{}' is not defined", e);
       return sym->IsReadOnly();
-    } else if constexpr (std::is_same_v<E, TSymbolInd>) {
+    } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
       const auto* sym = symtab.LookupOrError(
           e.first, "identifier '{}' is not defined", e.first);
-      return sym->IsReadOnly();
+      return sym->IsReadOnly() && IsConstIndex(e.second);
     }
   };
 
@@ -168,23 +174,23 @@ inline bool IsConvertibleToInt(const SymTable& symtab, const Expr& e) {
   auto f = [&symtab](auto&& e) -> bool {
     using E = std::decay_t<decltype(e)>;
 
-    if constexpr (std::is_same_v<E, TInt>) {
+    if constexpr (std::is_same_v<E, VInt>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TFloat>) {
+    } else if constexpr (std::is_same_v<E, VFloat>) {
       return false;
-    } else if constexpr (std::is_same_v<E, TBool>) {
+    } else if constexpr (std::is_same_v<E, VBool>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TFuncI>) {
+    } else if constexpr (std::is_same_v<E, EvalIntFn>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TFuncF>) {
+    } else if constexpr (std::is_same_v<E, EvalFloatFn>) {
       return false;
-    } else if constexpr (std::is_same_v<E, TFuncB>) {
+    } else if constexpr (std::is_same_v<E, EvalBoolFn>) {
       return true;
-    } else if constexpr (std::is_same_v<E, TSymbol>) {
+    } else if constexpr (std::is_same_v<E, SymbolKey>) {
       const auto* sym = symtab.LookupOrError(
           e, "identifier '{}' is not defined", e);
       return sym->IsConvertibleToInt();
-    } else if constexpr (std::is_same_v<E, TSymbolInd>) {
+    } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
       const auto* sym = symtab.LookupOrError(
           e.first, "identifier '{}' is not defined", e.first);
       return sym->IsConvertibleToInt();
@@ -196,35 +202,35 @@ inline bool IsConvertibleToInt(const SymTable& symtab, const Expr& e) {
 
 /**
  * Evaluates an expression and returns its scalar value widened/converted
- * to TFloat for integer types.
+ * to VFloat for integer types.
  * @tparam SymTable Symbol table type.
  * @param symtab Symbol table instance used for symbol lookups.
  * @param e Target expression to evaluate.
- * @return Result as double-precision float (`TFloat`).
+ * @return Result as double-precision float (`VFloat`).
  * @throws std::runtime_error If symbol lookup fails.
  */
 template <typename SymTable>
-inline TFloat EvalExpr(const SymTable& symtab, const Expr& e) {
-  auto f = [&symtab](auto&& e) -> TFloat {
+inline VFloat EvalFloatExpr(const SymTable& symtab, const Expr& e) {
+  auto f = [&symtab](auto&& e) -> VFloat {
     using E = std::decay_t<decltype(e)>;
 
-    if constexpr (std::is_same_v<E, TInt>) {
+    if constexpr (std::is_same_v<E, VInt>) {
       return e;
-    } else if constexpr (std::is_same_v<E, TFloat>) {
+    } else if constexpr (std::is_same_v<E, VFloat>) {
       return e;
-    } else if constexpr (std::is_same_v<E, TBool>) {
+    } else if constexpr (std::is_same_v<E, VBool>) {
       return e;
-    } else if constexpr (std::is_same_v<E, TFuncI>) {
+    } else if constexpr (std::is_same_v<E, EvalIntFn>) {
       return e(symtab);
-    } else if constexpr (std::is_same_v<E, TFuncF>) {
+    } else if constexpr (std::is_same_v<E, EvalFloatFn>) {
       return e(symtab);
-    } else if constexpr (std::is_same_v<E, TFuncB>) {
+    } else if constexpr (std::is_same_v<E, EvalBoolFn>) {
       return e(symtab);
-    } else if constexpr (std::is_same_v<E, TSymbol>) {
+    } else if constexpr (std::is_same_v<E, SymbolKey>) {
       const auto* sym = symtab.LookupOrError(
           e, "identifier '{}' is not defined", e);
       return sym->GetFloat();
-    } else if constexpr (std::is_same_v<E, TSymbolInd>) {
+    } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
       const auto* sym = symtab.LookupOrError(
           e.first, "identifier '{}' is not defined", e.first);
       return sym->GetFloat(EvalIndex(symtab, e.second));
@@ -235,7 +241,7 @@ inline TFloat EvalExpr(const SymTable& symtab, const Expr& e) {
 }
 
 /**
- * Evaluates an expression as an integer (`TInt`).
+ * Evaluates an expression as an integer (`VInt`).
  * @tparam SymTable Symbol table type.
  * @param symtab Symbol table instance used for symbol lookups.
  * @param e Target expression to evaluate.
@@ -244,23 +250,23 @@ inline TFloat EvalExpr(const SymTable& symtab, const Expr& e) {
  *   lookup fails.
  */
 template <typename SymTable>
-inline TInt EvalIntExpr(const SymTable& symtab, const Expr& e) {
-  auto f = [&symtab](auto&& e) -> TInt {
+inline VInt EvalIntExpr(const SymTable& symtab, const Expr& e) {
+  auto f = [&symtab](auto&& e) -> VInt {
     using E = std::decay_t<decltype(e)>;
 
-    if constexpr (std::is_same_v<E, TInt>) {
+    if constexpr (std::is_same_v<E, VInt>) {
       return e;
-    } else if constexpr (std::is_same_v<E, TBool>) {
+    } else if constexpr (std::is_same_v<E, VBool>) {
       return e;
-    } else if constexpr (std::is_same_v<E, TFuncI>) {
+    } else if constexpr (std::is_same_v<E, EvalIntFn>) {
       return e(symtab);
-    } else if constexpr (std::is_same_v<E, TFuncB>) {
+    } else if constexpr (std::is_same_v<E, EvalBoolFn>) {
       return e(symtab);
-    } else if constexpr (std::is_same_v<E, TSymbol>) {
+    } else if constexpr (std::is_same_v<E, SymbolKey>) {
       const auto* sym = symtab.LookupOrError(
           e, "identifier '{}' is not defined", e);
       return sym->GetInt();
-    } else if constexpr (std::is_same_v<E, TSymbolInd>) {
+    } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
       const auto* sym = symtab.LookupOrError(
           e.first, "identifier '{}' is not defined", e.first);
       return sym->GetInt(EvalIndex(symtab, e.second));
@@ -274,32 +280,32 @@ inline TInt EvalIntExpr(const SymTable& symtab, const Expr& e) {
 }
 
 /**
- * Evaluates an expression as a boolean condition (`TBool`).
+ * Evaluates an expression as a boolean condition (`VBool`).
  * @tparam SymTable Symbol table type.
  * @param symtab Symbol table instance used for symbol lookups.
  * @param e Target expression to evaluate.
  * @return True if integer value is non-zero or boolean condition holds.
- * @throws std::runtime_error If expression evaluates from a `float` type or
+ * @throws std::runtime_error if expression evaluates from a `float` type or
  *   if symbol lookup fails.
  */
 template <typename SymTable>
-inline TBool EvalCondExpr(const SymTable& symtab, const Expr& e) {
-  auto f = [&symtab](auto&& e) -> TBool {
+inline VBool EvalCondExpr(const SymTable& symtab, const Expr& e) {
+  auto f = [&symtab](auto&& e) -> VBool {
     using E = std::decay_t<decltype(e)>;
 
-    if constexpr (std::is_same_v<E, TInt>) {
+    if constexpr (std::is_same_v<E, VInt>) {
       return e != 0;
-    } else if constexpr (std::is_same_v<E, TBool>) {
+    } else if constexpr (std::is_same_v<E, VBool>) {
       return e;
-    } else if constexpr (std::is_same_v<E, TFuncI>) {
+    } else if constexpr (std::is_same_v<E, EvalIntFn>) {
       return e(symtab) != 0;
-    } else if constexpr (std::is_same_v<E, TFuncB>) {
+    } else if constexpr (std::is_same_v<E, EvalBoolFn>) {
       return e(symtab);
-    } else if constexpr (std::is_same_v<E, TSymbol>) {
+    } else if constexpr (std::is_same_v<E, SymbolKey>) {
       const auto* sym = symtab.LookupOrError(
           e, "identifier '{}' is not defined", e);
       return sym->GetInt() != 0;
-    } else if constexpr (std::is_same_v<E, TSymbolInd>) {
+    } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
       const auto* sym = symtab.LookupOrError(
           e.first, "identifier '{}' is not defined", e.first);
       return sym->GetInt(EvalIndex(symtab, e.second)) != 0;

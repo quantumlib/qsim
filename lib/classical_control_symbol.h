@@ -31,11 +31,11 @@ namespace qsim::cc {
  * Represents a typed value container holding scalars, vectors, or quantum
  * measurements. A Symbol encapsulates values used in quantum circuit
  * simulation or classical computation, supporting typed access, indexing,
- * conversions, assignment and and read-only flags.
+ * conversions, assignment and read-only flags.
  */
 struct Symbol {
-  using Int = TInt;
-  using Float = TFloat;
+  using Int = VInt;
+  using Float = VFloat;
   using IntVector = std::vector<Int>;
   using FloatVector = std::vector<Float>;
 
@@ -83,7 +83,7 @@ struct Symbol {
       : val(std::forward<V>(v)), read_only(read_only) {}
 
   /** Checks if the underlying value is a quantum measurement (Mea). */
-  bool HoldsMea() const {
+  bool IsMea() const {
     return std::holds_alternative<Mea>(val);
   }
 
@@ -91,7 +91,7 @@ struct Symbol {
    * Checks if the underlying value is a vector type (IntVector or
    * FloatVector).
    */
-  bool HoldsVector() const {
+  bool IsVector() const {
     return std::holds_alternative<IntVector>(val)
         || std::holds_alternative<FloatVector>(val);
   }
@@ -199,7 +199,7 @@ struct Symbol {
       } else if constexpr (std::is_same_v<V, Float>) {
         return v;
       } else {
-        Error::Throw("'vector' is not convertible to 'int'");
+        Error::Throw("'vector' is not convertible to 'float'");
         return 0.0;
       }
     };
@@ -298,6 +298,7 @@ struct Symbol {
    * For scalar types (`Int` or `Float`), assigns the first expression `es[0]`.
    * For vector types (`IntVector` or `FloatVector`), evaluates and updates
    * elements element-wise up to `std::min(es.size(), val.size())`.
+   * A self-referential vector assignment may yield unspecified values.
    * @tparam SymTable Symbol table type used for evaluating expressions.
    * @param symtab Symbol table instance used for symbol lookups.
    * @param es Vector of expressions to evaluate and assign.
@@ -306,6 +307,10 @@ struct Symbol {
    */
   template <typename SymTable>
   void Assign(const SymTable& symtab, const std::vector<Expr>& es) {
+    if (read_only) {
+      Error::Throw("assignment to a constant identifier");
+    }
+
     auto f = [&symtab, &es](auto&& val) {
       using V = std::decay_t<decltype(val)>;
 
@@ -315,7 +320,7 @@ struct Symbol {
         }
         val = EvalIntExpr(symtab, es[0]);
       } else if constexpr (std::is_same_v<V, Float>) {
-        val = EvalExpr(symtab, es[0]);
+        val = EvalFloatExpr(symtab, es[0]);
       } else if constexpr (std::is_same_v<V, IntVector>) {
         auto size = std::min(es.size(), val.size());
         for (unsigned i = 0; i < size; ++i) {
@@ -327,7 +332,7 @@ struct Symbol {
       } else if constexpr (std::is_same_v<V, FloatVector>) {
         auto size = std::min(es.size(), val.size());
         for (unsigned i = 0; i < size; ++i) {
-          val[i] = EvalExpr(symtab, es[i]);
+          val[i] = EvalFloatExpr(symtab, es[i]);
         }
       } else {
         Error::Throw("cannot assign to a measurement identifier");
@@ -344,7 +349,7 @@ struct Symbol {
    * or `FloatVector[i]`.
    * @tparam SymTable Symbol table type used for evaluation.
    * @param symtab Symbol table instance used for symbol lookups.
-   * @param e Expression to evaluate and assigne.
+   * @param e Expression to evaluate and assign.
    * @param index Target index expression.
    * @throws std::runtime_error If the evaluated index is out of bounds,
    *   if assigning float to an integer vector, or if called on non-indexable
@@ -352,6 +357,10 @@ struct Symbol {
    */
   template <typename SymTable>
   void Assign(const SymTable& symtab, const Expr& e, const Index& index) {
+    if (read_only) {
+      Error::Throw("assignment to a constant identifier");
+    }
+
     std::size_t i = EvalIndex(symtab, index);
 
     auto g = [&symtab, &e, i](auto&& val) {
@@ -372,7 +381,7 @@ struct Symbol {
           Error::Throw("index {} is out of range", i);
         }
 
-        val[i] = EvalExpr(symtab, e);
+        val[i] = EvalFloatExpr(symtab, e);
       } else {
         Error::Throw("cannot assign to a measurement identifier");
       }

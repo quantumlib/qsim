@@ -51,7 +51,7 @@ namespace cc {
  * Populates the provided symbol table symtab with evaluation results from
  * statements like `"nq = 5 c1 = 1 c2 = c1 * 2"`. Constant definitions do not
  * use `const` or type keywords in this mode. Evaluated expressions convert to
- * `TInt` if `IsConvertibleToInt` returns true, otherwise to `TFloat`.
+ * `VInt` if `IsConvertibleToInt` returns true, otherwise to `VFloat`.
  *
  * @tparam ParserError Error policy for syntax errors.
  * @tparam RuntimeError Error policy for runtime errors.
@@ -100,7 +100,8 @@ inline void ParseSymbols(std::string_view sym_defs, SymTable& symtab) {
       symtab.Insert(t.val,
                     Symbol{Symbol::Int{EvalIntExpr(symtab, expr)}, true});
     } else {
-      symtab.Insert(t.val, Symbol{Symbol::Float{EvalExpr(symtab, expr)}, true});
+      symtab.Insert(t.val,
+                    Symbol{Symbol::Float{EvalFloatExpr(symtab, expr)}, true});
     }
 
     t = tok();
@@ -353,7 +354,7 @@ struct CircuitQSimParser final {
 
           tok();  // Consume '='.
 
-          Assign(cop, t, symtab, sym, std::move(index), tok);
+          Assign(cop, t, symtab, sym, std::move(index), i, tok);
         }
 
         ops.push_back(std::move(cop));
@@ -777,7 +778,7 @@ struct CircuitQSimParser final {
               PE::Throw("identifier '{}' is not defined", n.lc, n.val);
             }
 
-            if (!sym->HoldsMea()) {
+            if (!sym->IsMea()) {
               PE::Throw("identifier '{}' is not a measurement", n.lc, n.val);
             }
 
@@ -903,7 +904,7 @@ struct CircuitQSimParser final {
       PE::Throw("cannot assign to the const identifier '{}'", t.lc, t.val);
     }
 
-    if (sym->HoldsMea()) {
+    if (sym->IsMea()) {
       PE::Throw("cannot assign to the measurement identifier '{}'",
                 t.lc, t.val);
     }
@@ -911,7 +912,7 @@ struct CircuitQSimParser final {
     Token n = tok.Peek();
     bool is_float = sym->IsFloat();
 
-    if (!sym->HoldsVector()) {
+    if (!sym->IsVector()) {
       auto e = ExprParser::Run(symtab, tok);
 
       if (cop == nullptr && !IsConstExpr(symtab, e)) {
@@ -919,7 +920,7 @@ struct CircuitQSimParser final {
       }
 
       if (is_float) {
-        sym->Assign(EvalExpr(symtab, e));
+        sym->Assign(EvalFloatExpr(symtab, e));
       } else {
         if (!IsConvertibleToInt(symtab, e)) {
           PE::Throw("'float' cannot be assigned to the integer identifer '{}'",
@@ -952,7 +953,7 @@ struct CircuitQSimParser final {
         }
 
         if (is_float) {
-          sym->Assign(EvalExpr(symtab, e), count);
+          sym->Assign(EvalFloatExpr(symtab, e), count);
         } else {
           if (!IsConvertibleToInt(symtab, e)) {
             PE::Throw(
@@ -977,12 +978,12 @@ struct CircuitQSimParser final {
 
   static void Assign(ClassicallyControlledOperation& cop, Token t,
                      const SymTable& symtab, Symbol* sym, Index&& index,
-                     Tokenizer& tok) {
+                     std::size_t i, Tokenizer& tok) {
     if (sym->IsReadOnly()) {
       PE::Throw("cannot assign to the const identifier '{}'", t.lc, t.val);
     }
 
-    if (sym->HoldsMea()) {
+    if (sym->IsMea()) {
       PE::Throw("cannot assign to the measurement identifier '{}'",
                 t.lc, t.val);
     }
@@ -992,14 +993,14 @@ struct CircuitQSimParser final {
     auto e = ExprParser::Run(symtab, tok);
 
     if (sym->IsFloat()) {
-      sym->Assign(EvalExpr(symtab, e), EvalIndex(symtab, index));
+      sym->Assign(EvalFloatExpr(symtab, e), i);
     } else {
       if (!IsConvertibleToInt(symtab, e)) {
         PE::Throw("'float' cannot be assigned to the integer identifer '{}'",
                   n.lc, t.val);
       }
 
-      sym->Assign(EvalIntExpr(symtab, e), EvalIndex(symtab, index));
+      sym->Assign(EvalIntExpr(symtab, e), i);
     }
 
     cop.exprs.push_back(std::move(e));
@@ -1204,7 +1205,7 @@ struct CircuitQSimParser final {
         auto e = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e)) {
-          double phi = EvalExpr(symtab, e);
+          double phi = EvalFloatExpr(symtab, e);
           return GateGPh<fp_type>::Create(0, phi);
         } else {
           RuntimeResolvedGate g{GateGPh<fp_type>::Create(0, 0.0)};
@@ -1298,7 +1299,7 @@ struct CircuitQSimParser final {
         auto e = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e)) {
-          double phi = EvalExpr(symtab, e);
+          double phi = EvalFloatExpr(symtab, e);
           return GateRX<fp_type>::Create(0, q0, phi);
         } else {
           RuntimeResolvedGate g{GateRX<fp_type>::Create(0, q0, 0.0)};
@@ -1320,7 +1321,7 @@ struct CircuitQSimParser final {
         auto e = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e)) {
-          double phi = EvalExpr(symtab, e);
+          double phi = EvalFloatExpr(symtab, e);
           return GateRY<fp_type>::Create(0, q0, phi);
         } else {
           RuntimeResolvedGate g{GateRY<fp_type>::Create(0, q0, 0.0)};
@@ -1342,7 +1343,7 @@ struct CircuitQSimParser final {
         auto e = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e)) {
-          double phi = EvalExpr(symtab, e);
+          double phi = EvalFloatExpr(symtab, e);
           return GateRZ<fp_type>::Create(0, q0, phi);
         } else {
           RuntimeResolvedGate g{GateRZ<fp_type>::Create(0, q0, 0.0)};
@@ -1371,8 +1372,8 @@ struct CircuitQSimParser final {
         auto e2 = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e1) && IsConstExpr(symtab, e2)) {
-          double theta = EvalExpr(symtab, e1);
-          double phi = EvalExpr(symtab, e2);
+          double theta = EvalFloatExpr(symtab, e1);
+          double phi = EvalFloatExpr(symtab, e2);
           return GateRXY<fp_type>::Create(0, q0, theta, phi);
         } else {
           RuntimeResolvedGate g{GateRXY<fp_type>::Create(0, q0, 0.0, 0.0)};
@@ -1465,8 +1466,8 @@ struct CircuitQSimParser final {
         auto e2 = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e1) && IsConstExpr(symtab, e2)) {
-          double theta = EvalExpr(symtab, e1);
-          double phi = EvalExpr(symtab, e2);
+          double theta = EvalFloatExpr(symtab, e1);
+          double phi = EvalFloatExpr(symtab, e2);
           return GateFS<fp_type>::Create(0, q0, q1, theta, phi);
         } else {
           RuntimeResolvedGate g{GateFS<fp_type>::Create(0, q0, q1, 0.0, 0.0)};
@@ -1488,7 +1489,7 @@ struct CircuitQSimParser final {
         auto e = ExprParser::Run(symtab, tok, args...);
 
         if (IsConstExpr(symtab, e)) {
-          double phi = EvalExpr(symtab, e);
+          double phi = EvalFloatExpr(symtab, e);
           return GateCP<fp_type>::Create(0, q0, q1, phi);
         } else {
           RuntimeResolvedGate g{GateCP<fp_type>::Create(0, q0, q1, 0.0)};
@@ -1525,7 +1526,7 @@ struct CircuitQSimParser final {
       PE::Throw("expected a const expression", n.lc);
     }
 
-    TFloat p1 = EvalExpr(symtab, e1);
+    VFloat p1 = EvalFloatExpr(symtab, e1);
 
     switch (hash) {
     case "amplitude_damp"_hash:
@@ -1547,7 +1548,7 @@ struct CircuitQSimParser final {
           PE::Throw("expected a const expression", n.lc);
         }
 
-        TFloat p2 = EvalExpr(symtab, e2);
+        VFloat p2 = EvalFloatExpr(symtab, e2);
 
         return Cirq::GeneralizedAmplitudeDampingChannel<fp_type>::Create(
             0, 0, p1, p2);
@@ -1561,7 +1562,7 @@ struct CircuitQSimParser final {
           PE::Throw("expected a const expression", n.lc);
         }
 
-        TFloat p2 = EvalExpr(symtab, e2);
+        VFloat p2 = EvalFloatExpr(symtab, e2);
 
         n = tok.Peek();
 
@@ -1570,7 +1571,7 @@ struct CircuitQSimParser final {
           PE::Throw("expected a const expression", n.lc);
         }
 
-        TFloat p3 = EvalExpr(symtab, e3);
+        VFloat p3 = EvalFloatExpr(symtab, e3);
 
         return Cirq::AsymmetricDepolarizingChannel<fp_type>::Create(
             0, 0, p1, p2, p3);

@@ -424,7 +424,7 @@ class QSimRunner {
           for (auto& g : fg->gates) {
             if (auto* ffg = FusedGate::GetRuntimeResolvedGate(g)) {
               for (unsigned i = 0; i < ffg->params.size(); ++i) {
-                ffg->params[i] = cc::EvalExpr(symtab, ffg->param_exprs[i]);
+                ffg->params[i] = cc::EvalFloatExpr(symtab, ffg->param_exprs[i]);
               }
               ffg->matrix_func(ffg->params, ffg->matrix);
             }

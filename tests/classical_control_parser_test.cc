@@ -48,12 +48,12 @@ class ParserTest : public ::testing::Test {
     symtab.EnterScope(scope);
 
     // Constant symbols (must fold to literals at compile-time)
-    symtab.Insert("c_int", Symbol(TInt{10}, /*read_only=*/true));
-    symtab.Insert("c_float", Symbol(TFloat{2.5}, /*read_only=*/true));
+    symtab.Insert("c_int", Symbol(VInt{10}, /*read_only=*/true));
+    symtab.Insert("c_float", Symbol(VFloat{2.5}, /*read_only=*/true));
 
     // Variable symbols (must generate runtime closures)
-    symtab.Insert("v_int", Symbol(TInt{5}, /*read_only=*/false));
-    symtab.Insert("v_float", Symbol(TFloat{1.5}, /*read_only=*/false));
+    symtab.Insert("v_int", Symbol(VInt{5}, /*read_only=*/false));
+    symtab.Insert("v_float", Symbol(VFloat{1.5}, /*read_only=*/false));
 
     // Vector and measurement symbols
     symtab.Insert(
@@ -69,36 +69,36 @@ TEST_F(ParserTest, ConstantExpressionsFoldToScalarLiterals) {
   Tokenizer tok("2 * c_int + 4");
   Expr expr = TestExprParser::Run(symtab, tok);
 
-  // Must hold TInt directly (folded at compile-time)
-  ASSERT_TRUE(std::holds_alternative<TInt>(expr));
-  EXPECT_EQ(std::get<TInt>(expr), 24);
+  // Must hold VInt directly (folded at compile-time)
+  ASSERT_TRUE(std::holds_alternative<VInt>(expr));
+  EXPECT_EQ(std::get<VInt>(expr), 24);
 }
 
 TEST_F(ParserTest, ConstantFloatExpressionsFoldToFloatLiterals) {
   Tokenizer tok("c_float * 2.0");
   Expr expr = TestExprParser::Run(symtab, tok);
 
-  // Must hold TFloat directly
-  ASSERT_TRUE(std::holds_alternative<TFloat>(expr));
-  EXPECT_DOUBLE_EQ(std::get<TFloat>(expr), 5.0);
+  // Must hold VFloat directly
+  ASSERT_TRUE(std::holds_alternative<VFloat>(expr));
+  EXPECT_DOUBLE_EQ(std::get<VFloat>(expr), 5.0);
 }
 
 TEST_F(ParserTest, ConstantComparisonFoldsToBoolLiteral) {
   Tokenizer tok("c_int == 10");
   Expr expr = TestExprParser::Run(symtab, tok);
 
-  // Must hold TBool directly
-  ASSERT_TRUE(std::holds_alternative<TBool>(expr));
-  EXPECT_TRUE(std::get<TBool>(expr));
+  // Must hold VBool directly
+  ASSERT_TRUE(std::holds_alternative<VBool>(expr));
+  EXPECT_TRUE(std::get<VBool>(expr));
 }
 
 TEST_F(ParserTest, VariableExpressionProducesRuntimeClosure) {
   Tokenizer tok("v_int * 2 + 1");
   Expr expr = TestExprParser::Run(symtab, tok);
 
-  // Must NOT be a scalar literal; must produce an executable TFuncI closure
-  EXPECT_FALSE(std::holds_alternative<TInt>(expr));
-  EXPECT_TRUE(std::holds_alternative<TFuncI>(expr));
+  // Must NOT be a scalar literal; must produce an executable EvalIntFn closure
+  EXPECT_FALSE(std::holds_alternative<VInt>(expr));
+  EXPECT_TRUE(std::holds_alternative<EvalIntFn>(expr));
 
   // Evaluate closure at runtime
   EXPECT_EQ(EvalIntExpr(symtab, expr), 11);
@@ -109,8 +109,8 @@ TEST_F(ParserTest, ParserStopsWhenOperatorsExhausted) {
 
   // First run consumes "2 * c_int"
   Expr e1 = TestExprParser::Run(symtab, tok);
-  ASSERT_TRUE(std::holds_alternative<TInt>(e1));
-  EXPECT_EQ(std::get<TInt>(e1), 20);
+  ASSERT_TRUE(std::holds_alternative<VInt>(e1));
+  EXPECT_EQ(std::get<VInt>(e1), 20);
 
   // Next token remaining in stream must be "3"
   EXPECT_EQ(tok.Peek().val, "3");
@@ -132,8 +132,8 @@ TEST_F(ParserTest, IndexParserEvaluatesBracketedIndex) {
   Tokenizer tok("[1 + 1]");
   Index idx = TestIndexParser::Run(symtab, tok);
 
-  // Constant index folds to TInt
-  ASSERT_TRUE(std::holds_alternative<TInt>(idx));
+  // Constant index folds to VInt
+  ASSERT_TRUE(std::holds_alternative<VInt>(idx));
   EXPECT_EQ(EvalIndex(symtab, idx), 2u);
 }
 
@@ -177,16 +177,16 @@ class ComplexParserTest : public ::testing::Test {
     symtab.EnterScope(scope);
 
     // Integer symbols and vector
-    symtab.Insert("a", Symbol(TInt{3}, /*read_only=*/true));
-    symtab.Insert("b", Symbol(TInt{7}, /*read_only=*/true));
-    symtab.Insert("c", Symbol(TInt{2}, /*read_only=*/true));
+    symtab.Insert("a", Symbol(VInt{3}, /*read_only=*/true));
+    symtab.Insert("b", Symbol(VInt{7}, /*read_only=*/true));
+    symtab.Insert("c", Symbol(VInt{2}, /*read_only=*/true));
     symtab.Insert(
         "ivec", Symbol(Symbol::IntVector{5, 12, 18, 42}, /*read_only=*/true));
 
     // Float symbols and vector
-    symtab.Insert("x", Symbol(TFloat{2.5}, /*read_only=*/true));
-    symtab.Insert("y", Symbol(TFloat{0.5}, /*read_only=*/true));
-    symtab.Insert("z", Symbol(TFloat{4.0}, /*read_only=*/true));
+    symtab.Insert("x", Symbol(VFloat{2.5}, /*read_only=*/true));
+    symtab.Insert("y", Symbol(VFloat{0.5}, /*read_only=*/true));
+    symtab.Insert("z", Symbol(VFloat{4.0}, /*read_only=*/true));
     symtab.Insert("fvec", Symbol(
         Symbol::FloatVector{1.5, 3.25, 8.0}, /*read_only=*/true));
 
@@ -200,7 +200,7 @@ TEST_F(ComplexParserTest, RandomIntExpressions) {
   // Case 1: Precedence of bitwise, shift, and arithmetic operators
   {
     Tokenizer tok("(a << 2) + (b & 0x05) * ~c + (ivec[1] % 5)");
-    TInt expected = (3 << 2) + (7 & 0x05) * ~2 + (12 % 5);
+    VInt expected = (3 << 2) + (7 & 0x05) * ~2 + (12 % 5);
     Expr expr = TestIntExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalIntExpr(symtab, expr), expected);
   }
@@ -209,7 +209,7 @@ TEST_F(ComplexParserTest, RandomIntExpressions) {
   {
     Tokenizer tok("((ivec[a - 1] + 2) * (b > a)) - (ivec[0] << (c + 1))");
     // (20 * 1) - 40 = -20
-    TInt expected = ((18 + 2) * (7 > 3)) - (5 << (2 + 1));
+    VInt expected = ((18 + 2) * (7 > 3)) - (5 << (2 + 1));
     Expr expr = TestIntExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalIntExpr(symtab, expr), expected);
   }
@@ -219,7 +219,7 @@ TEST_F(ComplexParserTest, RandomIntExpressions) {
   {
     Tokenizer tok("(m[0] ^ m[2]) + (m[3] << 3) * (ivec[m[1]] - 0b0010)");
     // m[0]=1, m[2]=0, m[3]=1, m[1]=1 -> ivec[1]=12
-    TInt expected = (1 ^ 0) + (1 << 3) * (12 - 2); // 1 + 8 * 10 = 81
+    VInt expected = (1 ^ 0) + (1 << 3) * (12 - 2); // 1 + 8 * 10 = 81
     Expr expr = TestIntExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalIntExpr(symtab, expr), expected);
   }
@@ -228,7 +228,7 @@ TEST_F(ComplexParserTest, RandomIntExpressions) {
   {
     Tokenizer tok("0x1F & (ivec[3] / (a + 1)) + (0x0A * (b - c))");
     // 31 & (10 + 50) = 31 & 60 = 28
-    TInt expected = 0x1F & ((42 / (3 + 1)) + (0x0A * (7 - 2)));
+    VInt expected = 0x1F & ((42 / (3 + 1)) + (0x0A * (7 - 2)));
     Expr expr = TestIntExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalIntExpr(symtab, expr), expected);
   }
@@ -239,7 +239,7 @@ TEST_F(ComplexParserTest, RandomIntExpressions) {
     // (3 + 14 > 10) -> 1
     // (18 <= 20) -> 1
     // (7 != 7) -> 0
-    TInt expected = 1 + 2 * 1 + 3 * 0; // 3
+    VInt expected = 1 + 2 * 1 + 3 * 0; // 3
     Expr expr = TestIntExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalIntExpr(symtab, expr), expected);
   }
@@ -250,9 +250,9 @@ TEST_F(ComplexParserTest, RandomFloatExpressions) {
   {
     Tokenizer tok("x ** 2.0 + fvec[0] * (z - y) / 0.5");
      // 6.25 + 10.5 = 16.75
-    TFloat expected = std::pow(2.5, 2.0) + 1.5 * (4.0 - 0.5) / 0.5;
+    VFloat expected = std::pow(2.5, 2.0) + 1.5 * (4.0 - 0.5) / 0.5;
     Expr expr = TestExprParser::Run(symtab, tok);
-    EXPECT_DOUBLE_EQ(EvalExpr(symtab, expr), expected);
+    EXPECT_DOUBLE_EQ(EvalFloatExpr(symtab, expr), expected);
   }
 
   // Case 2: Deeply nested float expressions with vector indexing via dynamic
@@ -260,27 +260,27 @@ TEST_F(ComplexParserTest, RandomFloatExpressions) {
   {
     Tokenizer tok("(fvec[a - 2] * (z ** (y * 2.0))) - (x / (fvec[1] - 0.25))");
     // fvec[1] * (4.0 ** 1.0) - (2.5 / (3.25 - 0.25)) -> 3.25 * 4 - (2.5 / 3.0)
-    TFloat expected = (3.25 * 4.0) - (2.5 / 3.0);
+    VFloat expected = (3.25 * 4.0) - (2.5 / 3.0);
     Expr expr = TestExprParser::Run(symtab, tok);
-    EXPECT_DOUBLE_EQ(EvalExpr(symtab, expr), expected);
+    EXPECT_DOUBLE_EQ(EvalFloatExpr(symtab, expr), expected);
   }
 
   // Case 3: Float expression with promoted integer symbols and float division
   {
     Tokenizer tok("(a + 1.5) * (ivec[0] ** 2) / (z + y)");
     // (4.5 * 25.0) / 4.5 = 25.0
-    TFloat expected = (3.0 + 1.5) * std::pow(5.0, 2.0) / (4.0 + 0.5);
+    VFloat expected = (3.0 + 1.5) * std::pow(5.0, 2.0) / (4.0 + 0.5);
     Expr expr = TestExprParser::Run(symtab, tok);
-    EXPECT_DOUBLE_EQ(EvalExpr(symtab, expr), expected);
+    EXPECT_DOUBLE_EQ(EvalFloatExpr(symtab, expr), expected);
   }
 
   // Case 4: Precedence test with negation, addition, and power
   {
     Tokenizer tok("-x + (y + fvec[2]) ** 0.5 * z");
     // -2.5 + 3.0 * 4.0 = 9.5
-    TFloat expected = -2.5 + std::pow(0.5 + 8.0, 0.5) * 4.0;
+    VFloat expected = -2.5 + std::pow(0.5 + 8.0, 0.5) * 4.0;
     Expr expr = TestExprParser::Run(symtab, tok);
-    EXPECT_DOUBLE_EQ(EvalExpr(symtab, expr), expected);
+    EXPECT_DOUBLE_EQ(EvalFloatExpr(symtab, expr), expected);
   }
 }
 
@@ -290,7 +290,7 @@ TEST_F(ComplexParserTest, RandomBoolExpressions) {
     Tokenizer tok("(a < b) && (ivec[1] == 12) ^^ !(x >= z) || (c == 0)");
     // (3 < 7)[1] && (12 == 12)[1] ^^ !(2.5 >= 4.0)[1] || (2 == 0)[0]
     // (1 && 1) ^^ 1 || 0 -> 1 ^^ 1 || 0 -> 0 || 0 -> false
-    TBool expected = false;
+    VBool expected = false;
     Expr expr = TestExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalCondExpr(symtab, expr), expected);
   }
@@ -300,7 +300,7 @@ TEST_F(ComplexParserTest, RandomBoolExpressions) {
     Tokenizer tok("!(m[2] == 1) && ((m[0] ^^ m[1]) || (ivec[a] > 30))");
     // !(0 == 1)[1] && ((1 ^^ 1)[0] || (ivec[3]=42 > 30)[1])
     // 1 && (0 || 1) -> true
-    TBool expected = true;
+    VBool expected = true;
     Expr expr = TestExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalCondExpr(symtab, expr), expected);
   }
@@ -311,7 +311,7 @@ TEST_F(ComplexParserTest, RandomBoolExpressions) {
     Tokenizer tok("(x * 2.0 == ivec[0]) && (fvec[1] > y) ^^ (b - a != 4)");
     // (5.0 == 5)[1] && (3.25 > 0.5)[1] ^^ (7 - 3 != 4)[0]
     // (1 && 1) ^^ 0 -> 1 ^^ 0 -> true
-    TBool expected = true;
+    VBool expected = true;
     Expr expr = TestExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalCondExpr(symtab, expr), expected);
   }
@@ -323,7 +323,7 @@ TEST_F(ComplexParserTest, RandomBoolExpressions) {
     // (3 & 7) = 3 (true); (5 % 2) = 1 (true) -> (3 ^^ 1) => 1 ^^ 1 = 0 (false)
     // !0 -> 1 (true)
     // true || ... -> true
-    TBool expected = true;
+    VBool expected = true;
     Expr expr = TestExprParser::Run(symtab, tok);
     EXPECT_EQ(EvalCondExpr(symtab, expr), expected);
   }

@@ -23,26 +23,28 @@
 namespace qsim {
 
 /** Utilities for reporting generic runtime errors. */
-struct Error {
-  /**
-   * Formats an error message and throws a std::runtime_error. Applies variadic
-   * formatting arguments to the message string using std::vformat, and throws
-   * a std::runtime_error.
-   * @tparam Args Variadic types of the format arguments.
-   * @param message Format string explaining the error.
-   * @param args Formatting arguments to substitute into the message.
-   * @throws std::runtime_error Always throws with the formatted error string.
-   */
-  template <typename... Args>
-  static void Throw(
-      const std::string_view message, Args&&... args) {
-    auto error_message = std::vformat(
-        std::string("error: ") + std::string(message),
-        std::make_format_args(args...));
 
-    throw std::runtime_error(error_message);
-  }
-};
+namespace Error {
+
+/**
+ * Formats an error message and throws a std::runtime_error. Applies variadic
+ * formatting arguments to the message string using std::vformat, and throws
+ * a std::runtime_error.
+ * @tparam Args Variadic types of the format arguments.
+ * @param message Format string explaining the error.
+ * @param args Formatting arguments to substitute into the message.
+ * @throws std::runtime_error Always throws with the formatted error string.
+ */
+template <typename... Args>
+[[noreturn]] static void Throw(const std::string_view message, Args&&... args) {
+  auto error_message = std::vformat(
+      std::string("error: ") + std::string(message),
+      std::make_format_args(args...));
+
+  throw std::runtime_error(error_message);
+}
+
+}  // namespace Error
 
 }  // namespace qsim
 

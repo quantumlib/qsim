@@ -17,8 +17,8 @@ TEST(SymbolTest, DefaultConstructor) {
 
 TEST(SymbolTest, ConstructsIntAndDefaultReadOnly) {
   Symbol s(Symbol::Int{42});
-  EXPECT_FALSE(s.HoldsMea());
-  EXPECT_FALSE(s.HoldsVector());
+  EXPECT_FALSE(s.IsMea());
+  EXPECT_FALSE(s.IsVector());
   EXPECT_FALSE(s.IsFloat());
   EXPECT_TRUE(s.IsConvertibleToInt());
   EXPECT_TRUE(s.IsReadOnly());
@@ -28,8 +28,8 @@ TEST(SymbolTest, ConstructsIntAndDefaultReadOnly) {
 
 TEST(SymbolTest, ConstructsFloatAndExplicitReadOnly) {
   Symbol s(Symbol::Float{3.14}, /*read_only=*/false);
-  EXPECT_FALSE(s.HoldsMea());
-  EXPECT_FALSE(s.HoldsVector());
+  EXPECT_FALSE(s.IsMea());
+  EXPECT_FALSE(s.IsVector());
   EXPECT_TRUE(s.IsFloat());
   EXPECT_FALSE(s.IsConvertibleToInt());
   EXPECT_FALSE(s.IsReadOnly());
@@ -41,8 +41,8 @@ TEST(SymbolTest, ConstructsMeaDefaultsToNotReadOnly) {
   Symbol::Mea mea{.bits = 0b1011, .num_bits = 4, .time = 10};
   Symbol s(mea);
 
-  EXPECT_TRUE(s.HoldsMea());
-  EXPECT_FALSE(s.HoldsVector());
+  EXPECT_TRUE(s.IsMea());
+  EXPECT_FALSE(s.IsVector());
   EXPECT_FALSE(s.IsReadOnly());
   EXPECT_EQ(s.Size(), 4u);
   EXPECT_EQ(s.GetMea().time, 10u);
@@ -52,7 +52,7 @@ TEST(SymbolTest, ConstructsVectorsCorrectly) {
   Symbol::IntVector iv = {1, 2, 3, 4};
   Symbol s_int_vec(iv);
 
-  EXPECT_TRUE(s_int_vec.HoldsVector());
+  EXPECT_TRUE(s_int_vec.IsVector());
   EXPECT_FALSE(s_int_vec.IsFloat());
   EXPECT_TRUE(s_int_vec.IsConvertibleToInt());
   EXPECT_EQ(s_int_vec.Size(), 4u);
@@ -60,7 +60,7 @@ TEST(SymbolTest, ConstructsVectorsCorrectly) {
   Symbol::FloatVector fv = {1.1, 2.2};
   Symbol s_float_vec(fv);
 
-  EXPECT_TRUE(s_float_vec.HoldsVector());
+  EXPECT_TRUE(s_float_vec.IsVector());
   EXPECT_TRUE(s_float_vec.IsFloat());
   EXPECT_FALSE(s_float_vec.IsConvertibleToInt());
   EXPECT_EQ(s_float_vec.Size(), 2u);
@@ -138,11 +138,14 @@ TEST(SymbolTest, AssignScalarIntAndFloat) {
 TEST(SymbolTest, AssignVectorElements) {
   Symbol s_int_vec(Symbol::IntVector{1, 2, 3}, /*read_only=*/false);
   s_int_vec.Assign(Symbol::Int{100}, 1);
+  EXPECT_EQ(s_int_vec.GetInt(0), 1);
   EXPECT_EQ(s_int_vec.GetInt(1), 100);
+  EXPECT_EQ(s_int_vec.GetInt(2), 3);
 
   Symbol s_float_vec(Symbol::FloatVector{0.1, 0.2}, /*read_only=*/false);
   s_float_vec.Assign(Symbol::Float{9.9}, 0);
   EXPECT_DOUBLE_EQ(s_float_vec.GetFloat(0), 9.9);
+  EXPECT_DOUBLE_EQ(s_float_vec.GetFloat(1), 0.2);
 }
 
 class SymbolAssignTest : public ::testing::Test {
@@ -161,8 +164,8 @@ TEST_F(SymbolAssignTest, AssignsScalarInt) {
   Symbol s(Symbol::Int{0}, /*read_only=*/false);
 
   // Assign with expression referencing a symbol table variable: rhs_var + 5
-  Expr expr = TFuncI{[](const SymTable& st) -> TInt {
-    return EvalIntExpr(st, TSymbol{"rhs_var"}) + 5;
+  Expr expr = EvalIntFn{[](const SymTable& st) -> VInt {
+    return EvalIntExpr(st, SymbolKey{"rhs_var"}) + 5;
   }};
 
   s.Assign(symtab, std::vector<Expr>{expr});
@@ -171,8 +174,9 @@ TEST_F(SymbolAssignTest, AssignsScalarInt) {
 
 TEST_F(SymbolAssignTest, AssignsScalarFloatAndConvertsIntToFloat) {
   Symbol s(Symbol::Float{0.0}, /*read_only=*/false);
+  Symbol var_s(Symbol::Float{0.0}, /*read_only=*/true);
 
-  s.Assign(symtab, std::vector<Expr>{TInt{42}});
+  s.Assign(symtab, std::vector<Expr>{VInt{42}});
   EXPECT_DOUBLE_EQ(s.GetFloat(), 42.0);
 }
 
@@ -180,12 +184,12 @@ TEST_F(SymbolAssignTest, AssigningFloatToScalarIntThrows) {
   Symbol s(Symbol::Int{0}, /*read_only=*/false);
 
   EXPECT_THROW(
-      s.Assign(symtab, std::vector<Expr>{TFloat{3.14}}), std::runtime_error);
+      s.Assign(symtab, std::vector<Expr>{VFloat{3.14}}), std::runtime_error);
 }
 
 TEST_F(SymbolAssignTest, AssignsIntVectorElementWise) {
   Symbol s(Symbol::IntVector{0, 0, 0}, /*read_only=*/false);
-  std::vector<Expr> exprs = {TInt{10}, TInt{20}, TInt{30}};
+  std::vector<Expr> exprs = {VInt{10}, VInt{20}, VInt{30}};
 
   s.Assign(symtab, exprs);
   EXPECT_EQ(s.GetInt(0), 10);
@@ -195,7 +199,7 @@ TEST_F(SymbolAssignTest, AssignsIntVectorElementWise) {
 
 TEST_F(SymbolAssignTest, AssignsFloatVectorElementWise) {
   Symbol s(Symbol::FloatVector{0.0, 0.0}, /*read_only=*/false);
-  std::vector<Expr> exprs = {TFloat{1.1}, TInt{2}};
+  std::vector<Expr> exprs = {VFloat{1.1}, VInt{2}};
 
   s.Assign(symtab, exprs);
   EXPECT_DOUBLE_EQ(s.GetFloat(0), 1.1);
@@ -204,7 +208,7 @@ TEST_F(SymbolAssignTest, AssignsFloatVectorElementWise) {
 
 TEST_F(SymbolAssignTest, AssignsVectorUpToContainerSize) {
   Symbol s(Symbol::IntVector{0, 0}, /*read_only=*/false);
-  std::vector<Expr> exprs = {TInt{10}, TInt{20}, TInt{30}, TInt{40}};
+  std::vector<Expr> exprs = {VInt{10}, VInt{20}, VInt{30}, VInt{40}};
 
   s.Assign(symtab, exprs);
   EXPECT_EQ(s.Size(), 2u);
@@ -212,17 +216,29 @@ TEST_F(SymbolAssignTest, AssignsVectorUpToContainerSize) {
   EXPECT_EQ(s.GetInt(1), 20);
 }
 
+TEST_F(SymbolAssignTest, AssignsVectorUpToRHSExpressionSize) {
+  Symbol s(Symbol::IntVector{1, 2, 3, 4}, /*read_only=*/false);
+  std::vector<Expr> exprs = {VInt{10}, VInt{20}};
+
+  s.Assign(symtab, exprs);
+  EXPECT_EQ(s.Size(), 4u);
+  EXPECT_EQ(s.GetInt(0), 10);
+  EXPECT_EQ(s.GetInt(1), 20);
+  EXPECT_EQ(s.GetInt(2), 3);
+  EXPECT_EQ(s.GetInt(3), 4);
+}
+
 TEST_F(SymbolAssignTest, AssigningFloatInIntVectorThrows) {
   Symbol s(Symbol::IntVector{0, 0}, /*read_only=*/false);
-  std::vector<Expr> exprs = {TInt{10}, TFloat{2.5}};
+  std::vector<Expr> exprs = {VInt{10}, VFloat{2.5}};
 
   EXPECT_THROW(s.Assign(symtab, exprs), std::runtime_error);
 }
 
 TEST_F(SymbolAssignTest, AssignsIndexedVectorElement) {
   Symbol s(Symbol::IntVector{100, 200, 300}, /*read_only=*/false);
-  Index idx = TInt{1};
-  Expr expr = TInt{999};
+  Index idx = VInt{1};
+  Expr expr = VInt{999};
 
   s.Assign(symtab, expr, idx);
   EXPECT_EQ(s.GetInt(1), 999);
@@ -230,16 +246,16 @@ TEST_F(SymbolAssignTest, AssignsIndexedVectorElement) {
 
 TEST_F(SymbolAssignTest, IndexedAssignmentOutOfBoundsThrows) {
   Symbol s(Symbol::FloatVector{1.0, 2.0}, /*read_only=*/false);
-  Index idx = TInt{5};
-  Expr expr = TFloat{9.9};
+  Index idx = VInt{5};
+  Expr expr = VFloat{9.9};
 
   EXPECT_THROW(s.Assign(symtab, expr, idx), std::runtime_error);
 }
 
 TEST_F(SymbolAssignTest, IndexedAssignmentTypeMismatchThrows) {
   Symbol s(Symbol::IntVector{1, 2, 3}, /*read_only=*/false);
-  Index idx = TInt{0};
-  Expr expr = TFloat{1.23};
+  Index idx = VInt{0};
+  Expr expr = VFloat{1.23};
 
   EXPECT_THROW(s.Assign(symtab, expr, idx), std::runtime_error);
 }
@@ -249,8 +265,27 @@ TEST_F(SymbolAssignTest, AssigningToMeasurementThrows) {
   Symbol s(mea);
 
   EXPECT_THROW(
-      s.Assign(symtab, std::vector<Expr>{TInt{1}}), std::runtime_error);
-  EXPECT_THROW(s.Assign(symtab, TInt{1}, TInt{0}), std::runtime_error);
+      s.Assign(symtab, std::vector<Expr>{VInt{1}}), std::runtime_error);
+  EXPECT_THROW(s.Assign(symtab, VInt{1}, VInt{0}), std::runtime_error);
+}
+
+TEST_F(SymbolAssignTest, AssignsToConst) {
+  Symbol s(Symbol::Int{0}, /*read_only=*/true);
+
+  // Assign with expression referencing a symbol table variable: rhs_var + 5
+  Expr expr = EvalIntFn{[](const SymTable& st) -> VInt {
+    return EvalIntExpr(st, SymbolKey{"rhs_var"}) + 5;
+  }};
+
+  EXPECT_THROW(s.Assign(symtab, std::vector<Expr>{expr}), std::runtime_error);
+}
+
+TEST_F(SymbolAssignTest, AssignsConstIndexedVectorElement) {
+  Symbol s(Symbol::IntVector{100, 200, 300}, /*read_only=*/true);
+  Index idx = VInt{1};
+  Expr expr = VInt{999};
+
+  EXPECT_THROW(s.Assign(symtab, expr, idx), std::runtime_error);
 }
 
 }  // namespace

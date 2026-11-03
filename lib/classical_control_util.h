@@ -195,7 +195,7 @@ inline std::string ReadFile(std::string_view path) {
 /**
  * Recursive variadic helper template for formatting expressions into a string.
  * @tparam Count Remaining number of expressions to evaluate.
- * @tparam Vals Accumulated evaluated expression types (`TInt` or `TFloat`).
+ * @tparam Vals Accumulated evaluated expression types (`VInt` or `VFloat`).
  */
 template <unsigned Count, typename... Vals>
 struct ExprToStr {
@@ -209,11 +209,11 @@ struct ExprToStr {
       auto k = es.size() - Count;
 
       if (IsConvertibleToInt(symtab, es[k])) {
-        return ExprToStr<Count - 1, Vals..., TInt>::Run1(
+        return ExprToStr<Count - 1, Vals..., VInt>::Run1(
             symtab, fmt, es, std::move(vs)..., EvalIntExpr(symtab, es[k]));
       } else {
-        return ExprToStr<Count - 1, Vals..., TFloat>::Run1(
-            symtab, fmt, es, std::move(vs)..., EvalExpr(symtab, es[k]));
+        return ExprToStr<Count - 1, Vals..., VFloat>::Run1(
+            symtab, fmt, es, std::move(vs)..., EvalFloatExpr(symtab, es[k]));
       }
     }
   }
@@ -236,13 +236,13 @@ struct ExprToStr {
       }
 
       if (IsConvertibleToInt(symtab, es[k])) {
-        return ExprToStr<Count - 1, Vals..., TInt>::Run2(
+        return ExprToStr<Count - 1, Vals..., VInt>::Run2(
             symtab, std::move(fmt), es, std::move(vs)...,
             EvalIntExpr(symtab, es[k]));
       } else {
-        return ExprToStr<Count - 1, Vals..., TFloat>::Run2(
+        return ExprToStr<Count - 1, Vals..., VFloat>::Run2(
             symtab, std::move(fmt), es, std::move(vs)...,
-            EvalExpr(symtab, es[k]));
+            EvalFloatExpr(symtab, es[k]));
       }
     }
   }

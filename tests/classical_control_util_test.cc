@@ -101,10 +101,10 @@ TEST(UtilsTest, ExprToStrRun1ExplicitFormat) {
   auto scope = symtab.AddScope();
   symtab.EnterScope(scope);
 
-  symtab.Insert("x", Symbol(TInt{10}));
-  symtab.Insert("y", Symbol(TFloat{2.5}));
+  symtab.Insert("x", Symbol(VInt{10}));
+  symtab.Insert("y", Symbol(VFloat{2.5}));
 
-  std::vector<Expr> es = {TSymbol{"x"}, TSymbol{"y"}};
+  std::vector<Expr> es = {SymbolKey{"x"}, SymbolKey{"y"}};
 
   // Run1 uses std::vformat with user string "x = {}, y = {}"
   std::string res = ExprToStr<2>::Run1(symtab, "x = {}, y = {}", es);
@@ -116,7 +116,7 @@ TEST(UtilsTest, ExprToStrRun2AutoFormat) {
   auto scope = symtab.AddScope();
   symtab.EnterScope(scope);
 
-  std::vector<Expr> es = {TInt{100}, TFloat{3.14}};
+  std::vector<Expr> es = {VInt{100}, VFloat{3.14}};
 
   // Run2 auto-builds space-separated "{}" format specifier string
   std::string res = ExprToStr<2>::Run2(symtab, std::string{}, es);

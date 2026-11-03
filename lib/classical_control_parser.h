@@ -75,7 +75,7 @@ struct ExprParser {
    * Stops automatically when operators are exhausted or when an opening
    * (left) parenthesis is reached.
    * If the expression involves only compile-time constants, the expression
-   * is folded directly into a scalar literal (`TInt`, `TFloat`, or `TBool`).
+   * is folded directly into a scalar literal (`VInt`, `VFloat`, or `VBool`).
    * @tparam F Callback function type with signature
    *   `void(const Symbol::Mea&, std::string_view)`.
    * @param symtab Symbol table instance used for symbol lookups.
@@ -96,15 +96,15 @@ struct ExprParser {
 
  private:
   static bool IsInt(const Expr& e) {
-    return std::holds_alternative<TInt>(e);
+    return std::holds_alternative<VInt>(e);
   }
 
   static bool IsSymbol(const Expr& e) {
-    return std::holds_alternative<TSymbol>(e);
+    return std::holds_alternative<SymbolKey>(e);
   }
 
   static bool IsSymbolInd(const Expr& e) {
-    return std::holds_alternative<TSymbolInd>(e);
+    return std::holds_alternative<SymbolKeyInd>(e);
   }
 
   static unsigned GetPrecedence(const Token& t) {
@@ -195,9 +195,9 @@ struct ExprParser {
           }
 
           if (IsConstExpr(symtab, l)) {
-            return TBool{!EvalCondExpr(symtab, l)};
+            return VBool{!EvalCondExpr(symtab, l)};
           } else {
-            return TFuncB{[l](const SymTable& symtab) {
+            return EvalBoolFn{[l](const SymTable& symtab) {
               return !EvalCondExpr(symtab, l);
             }};
           }
@@ -212,12 +212,12 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l)) {
-          return TInt{~EvalIntExpr(symtab, l)};
+          return VInt{~EvalIntExpr(symtab, l)};
         } else {
-          return TFuncI{[l](const SymTable& symtab) {
+          return EvalIntFn{[l](const SymTable& symtab) {
             auto val = ~EvalIntExpr(symtab, l);
             val = TruncateMea(symtab, l, val);
-            return TInt{val};
+            return VInt{val};
           }};
         }
       }
@@ -227,18 +227,18 @@ struct ExprParser {
 
         if (IsConstExpr(symtab, l)) {
           if (IsConvertibleToInt(symtab, l)) {
-            return TInt{-EvalIntExpr(symtab, l)};
+            return VInt{-EvalIntExpr(symtab, l)};
           } else {
-            return TFloat{-EvalExpr(symtab, l)};
+            return VFloat{-EvalFloatExpr(symtab, l)};
           }
         } else {
           if (IsConvertibleToInt(symtab, l)) {
-            return TFuncI{[l](const SymTable& symtab) {
+            return EvalIntFn{[l](const SymTable& symtab) {
               return -EvalIntExpr(symtab, l);
             }};
           } else {
-            return TFuncF{[l](const SymTable& symtab) {
-              return -EvalExpr(symtab, l);
+            return EvalFloatFn{[l](const SymTable& symtab) {
+              return -EvalFloatExpr(symtab, l);
             }};
           }
         }
@@ -258,13 +258,13 @@ struct ExprParser {
 
     switch (t.kind) {
     case Token::kInteger:
-      return TInt{ToInt(t.val)};
+      return VInt{ToInt(t.val)};
     case Token::kFloat:
       if constexpr (int_only) {
         PE::Throw("float value in an integer expression", t.lc);
       }
 
-      return TFloat{ToFloat(t.val)};
+      return VFloat{ToFloat(t.val)};
     case Token::kIdentifier:
       {
         const auto* sym = symtab.Lookup(t.val);
@@ -284,18 +284,18 @@ struct ExprParser {
         if (n.val != "[") {
           if (sym->IsReadOnly()) {
             if (convertible_to_int) {
-              return TInt{sym->GetInt()};
+              return VInt{sym->GetInt()};
             } else {
-              return TFloat{sym->GetFloat()};
+              return VFloat{sym->GetFloat()};
             }
           } else {
-            if (sym->HoldsMea()) {
+            if (sym->IsMea()) {
               f(sym->GetMea(), t.val);
             }
-            return TSymbol{t.val};
+            return SymbolKey{t.val};
           }
         } else {
-          if (!sym->HoldsMea() && !sym->HoldsVector()) {
+          if (!sym->IsMea() && !sym->IsVector()) {
             PE::Throw("scalar identifier cannot be indexed", t.lc);
           }
 
@@ -308,17 +308,17 @@ struct ExprParser {
             PE::Throw("index is out of range", n.lc);
           }
 
-          if (sym->IsReadOnly() && IsConstIndex(symtab, index)) {
+          if (sym->IsReadOnly() && IsConstIndex(index)) {
             if (convertible_to_int) {
-              return TInt{sym->GetInt(i)};
+              return VInt{sym->GetInt(i)};
             } else {
-              return TFloat{sym->GetFloat(i)};
+              return VFloat{sym->GetFloat(i)};
             }
           } else {
-            if (sym->HoldsMea()) {
+            if (sym->IsMea()) {
               f(sym->GetMea(), t.val);
             }
-            return TSymbolInd{t.val, std::move(index)};
+            return SymbolKeyInd{t.val, std::move(index)};
           }
         }
       }
@@ -347,9 +347,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TBool{EvalCondExpr(symtab, l) || EvalCondExpr(symtab, r)};
+          return VBool{EvalCondExpr(symtab, l) || EvalCondExpr(symtab, r)};
         } else {
-          return TFuncB{[l, r](const SymTable& symtab) {
+          return EvalBoolFn{[l, r](const SymTable& symtab) {
             return EvalCondExpr(symtab, l) || EvalCondExpr(symtab, r);
           }};
         }
@@ -367,9 +367,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TBool{EvalCondExpr(symtab, l) != EvalCondExpr(symtab, r)};
+          return VBool{EvalCondExpr(symtab, l) != EvalCondExpr(symtab, r)};
         } else {
-          return TFuncB{[l, r](const SymTable& symtab) {
+          return EvalBoolFn{[l, r](const SymTable& symtab) {
             return EvalCondExpr(symtab, l) != EvalCondExpr(symtab, r);
           }};
         }
@@ -387,9 +387,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TBool{EvalCondExpr(symtab, l) && EvalCondExpr(symtab, r)};
+          return VBool{EvalCondExpr(symtab, l) && EvalCondExpr(symtab, r)};
         } else {
-          return TFuncB{[l, r](const SymTable& symtab) {
+          return EvalBoolFn{[l, r](const SymTable& symtab) {
             return EvalCondExpr(symtab, l) && EvalCondExpr(symtab, r);
           }};
         }
@@ -407,9 +407,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TInt{EvalIntExpr(symtab, l) | EvalIntExpr(symtab, r)};
+          return VInt{EvalIntExpr(symtab, l) | EvalIntExpr(symtab, r)};
         } else {
-          return TFuncI{[l, r](const SymTable& symtab) {
+          return EvalIntFn{[l, r](const SymTable& symtab) {
             return EvalIntExpr(symtab, l) | EvalIntExpr(symtab, r);
           }};
         }
@@ -427,9 +427,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TInt{EvalIntExpr(symtab, l) ^ EvalIntExpr(symtab, r)};
+          return VInt{EvalIntExpr(symtab, l) ^ EvalIntExpr(symtab, r)};
         } else {
-          return TFuncI{[l, r](const SymTable& symtab) {
+          return EvalIntFn{[l, r](const SymTable& symtab) {
             return EvalIntExpr(symtab, l) ^ EvalIntExpr(symtab, r);
           }};
         }
@@ -447,9 +447,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TInt{EvalIntExpr(symtab, l) & EvalIntExpr(symtab, r)};
+          return VInt{EvalIntExpr(symtab, l) & EvalIntExpr(symtab, r)};
         } else {
-          return TFuncI{[l, r](const SymTable& symtab) {
+          return EvalIntFn{[l, r](const SymTable& symtab) {
             return EvalIntExpr(symtab, l) & EvalIntExpr(symtab, r);
           }};
         }
@@ -461,18 +461,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalIntExpr(symtab, l) == EvalIntExpr(symtab, r)};
+            return VBool{EvalIntExpr(symtab, l) == EvalIntExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) == EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalExpr(symtab, l) == EvalExpr(symtab, r)};
+            return VBool{EvalFloatExpr(symtab, l) == EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) == EvalExpr(symtab, r);
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) == EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -484,18 +484,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalIntExpr(symtab, l) != EvalIntExpr(symtab, r)};
+            return VBool{EvalIntExpr(symtab, l) != EvalIntExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) != EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalExpr(symtab, l) != EvalExpr(symtab, r)};
+            return VBool{EvalFloatExpr(symtab, l) != EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) != EvalExpr(symtab, r);
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) != EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -507,18 +507,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalIntExpr(symtab, l) < EvalIntExpr(symtab, r)};
+            return VBool{EvalIntExpr(symtab, l) < EvalIntExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) < EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalExpr(symtab, l) < EvalExpr(symtab, r)};
+            return VBool{EvalFloatExpr(symtab, l) < EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) < EvalExpr(symtab, r);
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) < EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -530,18 +530,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalIntExpr(symtab, l) <= EvalIntExpr(symtab, r)};
+            return VBool{EvalIntExpr(symtab, l) <= EvalIntExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) <= EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalExpr(symtab, l) <= EvalExpr(symtab, r)};
+            return VBool{EvalFloatExpr(symtab, l) <= EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) <= EvalExpr(symtab, r);
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) <= EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -553,18 +553,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalIntExpr(symtab, l) > EvalIntExpr(symtab, r)};
+            return VBool{EvalIntExpr(symtab, l) > EvalIntExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) > EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalExpr(symtab, l) > EvalExpr(symtab, r)};
+            return VBool{EvalFloatExpr(symtab, l) > EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) > EvalExpr(symtab, r);
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) > EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -576,18 +576,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalIntExpr(symtab, l) >= EvalIntExpr(symtab, r)};
+            return VBool{EvalIntExpr(symtab, l) >= EvalIntExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) >= EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TBool{EvalExpr(symtab, l) >= EvalExpr(symtab, r)};
+            return VBool{EvalFloatExpr(symtab, l) >= EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncB{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) >= EvalExpr(symtab, r);
+            return EvalBoolFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) >= EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -605,9 +605,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TInt{EvalIntExpr(symtab, l) << EvalIntExpr(symtab, r)};
+          return VInt{EvalIntExpr(symtab, l) << EvalIntExpr(symtab, r)};
         } else {
-          return TFuncI{[l, r](const SymTable& symtab) {
+          return EvalIntFn{[l, r](const SymTable& symtab) {
             auto val = EvalIntExpr(symtab, l);
             return TruncateMea(symtab, l, val) << EvalIntExpr(symtab, r);
           }};
@@ -626,9 +626,9 @@ struct ExprParser {
         }
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TInt{EvalIntExpr(symtab, l) >> EvalIntExpr(symtab, r)};
+          return VInt{EvalIntExpr(symtab, l) >> EvalIntExpr(symtab, r)};
         } else {
-          return TFuncI{[l, r](const SymTable& symtab) {
+          return EvalIntFn{[l, r](const SymTable& symtab) {
             auto val = EvalIntExpr(symtab, l);
             return TruncateMea(symtab, l, val) >> EvalIntExpr(symtab, r);
           }};
@@ -641,18 +641,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TInt{EvalIntExpr(symtab, l) + EvalIntExpr(symtab, r)};
+            return VInt{EvalIntExpr(symtab, l) + EvalIntExpr(symtab, r)};
           } else {
-            return TFuncI{[l, r](const SymTable& symtab) -> TInt {
+            return EvalIntFn{[l, r](const SymTable& symtab) -> VInt {
               return EvalIntExpr(symtab, l) + EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TFloat{EvalExpr(symtab, l) + EvalExpr(symtab, r)};
+            return VFloat{EvalFloatExpr(symtab, l) + EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncF{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) + EvalExpr(symtab, r);
+            return EvalFloatFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) + EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -664,18 +664,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TInt{EvalIntExpr(symtab, l) - EvalIntExpr(symtab, r)};
+            return VInt{EvalIntExpr(symtab, l) - EvalIntExpr(symtab, r)};
           } else {
-            return TFuncI{[l, r](const SymTable& symtab) {
+            return EvalIntFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) - EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TFloat{EvalExpr(symtab, l) - EvalExpr(symtab, r)};
+            return VFloat{EvalFloatExpr(symtab, l) - EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncF{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) - EvalExpr(symtab, r);
+            return EvalFloatFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) - EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -687,18 +687,18 @@ struct ExprParser {
         if (IsConvertibleToInt(symtab, l)
             && IsConvertibleToInt(symtab, r)) {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TInt{EvalIntExpr(symtab, l) * EvalIntExpr(symtab, r)};
+            return VInt{EvalIntExpr(symtab, l) * EvalIntExpr(symtab, r)};
           } else {
-            return TFuncI{[l, r](const SymTable& symtab) {
+            return EvalIntFn{[l, r](const SymTable& symtab) {
               return EvalIntExpr(symtab, l) * EvalIntExpr(symtab, r);
             }};
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return TFloat{EvalExpr(symtab, l) * EvalExpr(symtab, r)};
+            return VFloat{EvalFloatExpr(symtab, l) * EvalFloatExpr(symtab, r)};
           } else {
-            return TFuncF{[l, r](const SymTable& symtab) {
-              return EvalExpr(symtab, l) * EvalExpr(symtab, r);
+            return EvalFloatFn{[l, r](const SymTable& symtab) {
+              return EvalFloatExpr(symtab, l) * EvalFloatExpr(symtab, r);
             }};
           }
         }
@@ -715,9 +715,9 @@ struct ExprParser {
             if (divisor == 0) {
               PE::Throw("division by zero", lc);
             }
-            return TInt{EvalIntExpr(symtab, l) / divisor};
+            return VInt{EvalIntExpr(symtab, l) / divisor};
           } else {
-            return TFuncI{[l, r, lc](const SymTable& symtab) {
+            return EvalIntFn{[l, r, lc](const SymTable& symtab) {
               auto divisor = EvalIntExpr(symtab, r);
               if (divisor == 0) {
                 RE::Throw("division by zero", lc);
@@ -727,18 +727,18 @@ struct ExprParser {
           }
         } else {
           if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            auto divisor = EvalExpr(symtab, r);
+            auto divisor = EvalFloatExpr(symtab, r);
             if (divisor == 0.0) {
               PE::Throw("division by zero", lc);
             }
-            return TFloat{EvalExpr(symtab, l) / divisor};
+            return VFloat{EvalFloatExpr(symtab, l) / divisor};
           } else {
-            return TFuncF{[l, r, lc](const SymTable& symtab) {
-              auto divisor = EvalExpr(symtab, r);
+            return EvalFloatFn{[l, r, lc](const SymTable& symtab) {
+              auto divisor = EvalFloatExpr(symtab, r);
               if (divisor == 0.0) {
                 RE::Throw("division by zero", lc);
               }
-              return EvalExpr(symtab, l) / divisor;
+              return EvalFloatExpr(symtab, l) / divisor;
             }};
           }
         }
@@ -762,9 +762,9 @@ struct ExprParser {
           if (divisor == 0) {
             PE::Throw("division by zero", lc);
           }
-          return TInt{EvalIntExpr(symtab, l) % divisor};
+          return VInt{EvalIntExpr(symtab, l) % divisor};
         } else {
-          return TFuncI{[l, r, lc](const SymTable& symtab) {
+          return EvalIntFn{[l, r, lc](const SymTable& symtab) {
             auto divisor = EvalIntExpr(symtab, r);
             if (divisor == 0) {
               RE::Throw("division by zero", lc);
@@ -783,10 +783,11 @@ struct ExprParser {
         Expr r = RunWithPrecedence(symtab, tok, kPowPrec, f);
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return TFloat{std::pow(EvalExpr(symtab, l), EvalExpr(symtab, r))};
+          return VFloat{std::pow(EvalFloatExpr(symtab, l),
+                                 EvalFloatExpr(symtab, r))};
         } else {
-          return TFuncF{[l, r](const SymTable& symtab) {
-            return std::pow(EvalExpr(symtab, l), EvalExpr(symtab, r));
+          return EvalFloatFn{[l, r](const SymTable& symtab) {
+            return std::pow(EvalFloatExpr(symtab, l), EvalFloatExpr(symtab, r));
           }};
         }
       }
@@ -796,28 +797,28 @@ struct ExprParser {
     }
   }
 
-  static TInt TruncateMea(const SymTable& symtab, const Expr& l, TInt val) {
+  static VInt TruncateMea(const SymTable& symtab, const Expr& l, VInt val) {
     if (IsSymbol(l)) {
-      auto name = std::get<TSymbol>(l);
+      auto name = std::get<SymbolKey>(l);
       const auto* sym = symtab.Lookup(name);
 
       if (sym == nullptr) {
         Error::Throw("identifier '{}' is not defined", name);
       }
 
-      if (sym->HoldsMea()) {
+      if (sym->IsMea()) {
         // sym->Size() should should not exceed 63.
         val &= (Symbol::Int{1} << sym->Size()) - 1;
       }
     } else if (IsSymbolInd(l)) {
-      const auto& p = std::get<TSymbolInd>(l);
+      const auto& p = std::get<SymbolKeyInd>(l);
       const auto* sym = symtab.Lookup(p.first);
 
       if (sym == nullptr) {
         Error::Throw("identifier '{}' is not defined", p.first);
       }
 
-      if (sym->HoldsMea()) {
+      if (sym->IsMea()) {
         val &= (Symbol::Int{1} << IndexSize(p.second)) - 1;
       }
     }
@@ -846,7 +847,7 @@ struct IndexParser {
    * @param symtab Symbol table instance used for symbol lookups.
    * @param tok Tokenizer stream positioned at '['.
    * @return Index variant containing a constant scalar or integer evaluation
-   *   closure (`TFuncI`/`TFuncB`).
+   *   closure (`EvalIntFn`/`EvalBoolFn`).
    * @throws syntax_error If the bracket syntax is malformed or
    *   if the expression is non-integer.
    */
@@ -859,35 +860,35 @@ struct IndexParser {
     auto f = [&symtab, &n](auto&& e) -> Index {
       using E = std::decay_t<decltype(e)>;
 
-      if constexpr (std::is_same_v<E, TInt>) {
+      if constexpr (std::is_same_v<E, VInt>) {
         return e;
-      } else if constexpr (std::is_same_v<E, TBool>) {
+      } else if constexpr (std::is_same_v<E, VBool>) {
         return e;
-      } else if constexpr (std::is_same_v<E, TFuncI>) {
+      } else if constexpr (std::is_same_v<E, EvalIntFn>) {
         return e;
-      } else if constexpr (std::is_same_v<E, TFuncB>) {
+      } else if constexpr (std::is_same_v<E, EvalBoolFn>) {
         return e;
-      } else if constexpr (std::is_same_v<E, TSymbol>) {
+      } else if constexpr (std::is_same_v<E, SymbolKey>) {
         const auto* sym = symtab.LookupOrError(
             e, "identifier '{}' is not defined", e);
         if (!sym->IsConvertibleToInt()) {
           PE::Throw("index must be an integer expression", n.lc);
         }
-        return TFuncI{[sym](const SymTable& symtab) {
+        return EvalIntFn{[sym](const SymTable& symtab) {
           return sym->GetInt();
         }};
-      } else if constexpr (std::is_same_v<E, TSymbolInd>) {
+      } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
         const auto* sym = symtab.LookupOrError(
             e.first, "identifier '{}' is not defined", e.first);
         if (!sym->IsConvertibleToInt()) {
           PE::Throw("index must be an integer expression", n.lc);
         }
-        return TFuncI{[sym, e](const SymTable& symtab) {
+        return EvalIntFn{[sym, e](const SymTable& symtab) {
           return sym->GetInt(EvalIndex(symtab, e.second));
         }};
       } else {
         PE::Throw("index must be an integer expression", n.lc);
-        return TInt{0};
+        return VInt{0};
       }
     };
 

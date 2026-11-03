@@ -41,7 +41,6 @@ Individual elements of vectors and specific bits of measurement registers are ac
 ```text
 vec[index]
 m1[bit_index]
-
 ```
 
 * **Unindexed Registers:** Unindexed measurement registers evaluate to their full integer bitstring value (e.g., if qubits measure $\vert{}11\rangle$, `m1` evaluates to `3`).
@@ -65,10 +64,10 @@ Operators are listed below in **decreasing order of precedence**:
 | `==`, `!=` | Comparison | Equality | Yields `bool`. |
 | `&` | Bitwise | Bitwise AND | Requires integer operands. |
 | `^` | Bitwise | Bitwise XOR | Requires integer operands. |
-| `|` | Bitwise | Bitwise OR | Requires integer operands. |
+| `\|` | Bitwise | Bitwise OR | Requires integer operands. |
 | `&&` | Logical | Logical AND | Requires operands convertible to `bool`. |
 | `^^` | Logical | Logical XOR | Requires operands convertible to `bool` (low-precedence version of `!=`). |
-| `||` | Logical | Logical OR | Requires operands convertible to `bool`. |
+| `\|\|` | Logical | Logical OR | Requires operands convertible to `bool`. |
 
 Parentheses (`(` and `)`) can be used to override default operator precedence, e.g., `(2 + 3) * 4`.
 
@@ -94,7 +93,6 @@ m0[0] ^ m1[1]
 phase + 3.14159 / 2.0
 
 (m0 != 0) && (m1[0] == 1)
-
 ```
 
 ## C++ API Overview
@@ -117,7 +115,6 @@ elsif condition2
 else
     # Executed if all preceding conditions are false
 end
-
 ```
 
 **2. Pre-Condition Loop (`repeat`)**
@@ -128,7 +125,6 @@ Repeats the inner block while the loop condition evaluates to true (evaluated be
 repeat condition
     # Block executed while condition is true
 end
-
 ```
 
 **3. Post-Condition Loop (`do ... while`)**
@@ -139,41 +135,51 @@ Executes the inner block at least once, evaluating the loop condition at the end
 do
     # Block executed at least once
 while condition
-
 ```
 
 **4. Runtime Symbol Assignment (`assign`)**
 
-Mutates classical variables or vector elements during execution based on evaluated expressions. Supports scalar, vector, and indexed vector assignments.
+Mutates classical variables or vector elements during execution based on evaluated expressions. Supports scalar, vector, and indexed vector assignments. A self-referential vector assignment may yield unspecified values because element evaluation order is not guaranteed.
+
+```text
+a = 2
+```
 
 **5. Quantum Trajectory Filtering (`discard`)**
 
 Immediately halts and aborts the current quantum trajectory simulation if the specified condition evaluates to true.
 
+```text
+discard condition
+```
+
 **6. Debug Output (`println`)**
 
 Prints formatted strings or evaluated classical expression values to `stdout` during circuit execution.
+
+```text
+println "1 + 2 = {}" 1 + 2
+```
 
 ### C++ API Architecture & Types
 
 The API abstracts circuit execution into variant-based operations and parameterized containers:
 
 ```text
-                   ┌───────────────────────────────┐
-                   │            Circuit            │
-                   └───────────────┬───────────────┘
-                                   │ ops
-                                   ▼
-                   ┌───────────────────────────────┐
-                   │           Operation           │
-                   └───────────────┬───────────────┘
-                                   │ (variant)
-    ┌────────────────┬─────────────┼───────────────────┬────────────────┐
-    ▼                ▼             ▼                   ▼                ▼
-┌───────┐  ┌──────────────┐ ┌─────────────┐ ┌────────────────────┐ ┌─────────┐
-│ Gate  │  │ControlledGate│ │ Measurement │ │RuntimeResolvedGate │ │   CCO   │
-└───────┘  └──────────────┘ └─────────────┘ └────────────────────┘ └─────────┘
-
+                      ┌───────────────────────────────┐
+                      │            Circuit            │
+                      └───────────────┬───────────────┘
+                                      │ ops
+                                      ▼
+                      ┌───────────────────────────────┐
+                      │           Operation           │
+                      └───────────────┬───────────────┘
+                                      │ (variant)
+  ┌────────────┬───────────────┬──────┴──────────┬───────────────┬───────┐
+  ▼            ▼               ▼                 ▼               ▼       ▼
+┌────┐  ┌──────────────┐ ┌───────────┐ ┌───────────────────┐ ┌───────┐ ┌───┐
+│Gate│  │ControlledGate│ │Measurement│ │RuntimeResolvedGate│ │Channel│ │CCO│
+└────┘  └──────────────┘ └───────────┘ └───────────────────┘ └───────┘ └───┘
 ```
 
 *(Note: `CCO` stands for `ClassicallyControlledOperation`.)*
