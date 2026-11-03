@@ -423,7 +423,7 @@ class MPSStateSpace {
       new (&top) ConstMatrixMap((Complex*)(state_raw + offset), bond_dim,
                                 2 * bond_dim);
 
-      // merge into partial_contract -> scracth2_raw.
+      // merge into partial_contract -> scratch2_raw.
       new (&partial_contract)
           MatrixMap((Complex*)(scratch2_raw + offset), bond_dim, bond_dim);
       partial_contract.noalias() = top * partial_contract2.adjoint();

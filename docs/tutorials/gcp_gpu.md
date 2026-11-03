@@ -44,7 +44,7 @@ instance section, ensure that your VM has the following properties:
     instance](https://cloud.google.com/compute/docs/quickstart-linux)
     Quickstart.
 *   In the **Firewall** section, ensure that both the **Allow HTTP traffic**
-    checkbox and the **Allow HTTPS traffic** checkboxs are selected.
+    checkbox and the **Allow HTTPS traffic** checkboxes are selected.
 
 When Google Cloud finishes creating the VM, you can see your VM listed in the
 [Compute Instances dashboard](https://pantheon.corp.google.com/compute/instances)
@@ -82,7 +82,7 @@ machine to your virtual machine.
 
 1.  Install the GPU driver. Complete the steps provided in the following
     sections of the [Installing GPU
-    drivers](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu):
+    drivers](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu)
     guide:
     *   [Examples](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#examples),
         under the **Ubuntu** tab. For step 3, only perform the steps for
@@ -121,7 +121,7 @@ machine to your virtual machine.
         echo "export PATH=/usr/local/[DIR]/bin${PATH:+:${PATH}}" >> ~/.bashrc
         ```
 
-    3.  Run `source ~/.bashrc` to activate the new environment search path
+    3.  Run `source ~/.bashrc` to activate the new environment search path.
 
 
 ## 4. Install build tools (Options 1 and 2)

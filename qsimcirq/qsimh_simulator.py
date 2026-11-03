@@ -28,7 +28,7 @@ class QSimhSimulator(cirq.SimulatesAmplitudes):
         """Creates a new QSimhSimulator using the given options.
 
         Args:
-            qsim_options: A map of circuit options for the simulator. These will be
+            qsimh_options: A map of circuit options for the simulator. These will be
                 applied to all circuits run using this simulator. Accepted keys and
                 their behavior are as follows:
                     - 'k': Comma-separated list of ints. Indices of "part 1" qubits.

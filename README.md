@@ -107,12 +107,12 @@ test in series. Testing will stop early if a test fails. It will also run tests
 of the `qsimcirq` python interface. To run C++ or python tests only, run
 `make run-cxx-tests` or `make run-py-tests`, respectively.
 
-To clean up generated test files, run `make clean` from the test directory
+To clean up generated test files, run `make clean` from the test directory.
 
 ## Documentation
 
 Please visit the [qsim documentation site](https://quantumai.google/qsim)
-guides, tutorials, and API reference documentation.
+for guides, tutorials, and API reference documentation.
 
 ## How to cite qsim<a name="citing-qsim"></a><a name="how-to-cite"></a>
 

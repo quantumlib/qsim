@@ -21,7 +21,7 @@ TARGETS = qsim
 TESTS = run-cxx-tests
 
 # By default, we also build the pybind11-based Python interface.
-# Can be overriden via env variables or command-line flags
+# Can be overridden via env variables or command-line flags
 PYBIND11 ?= true
 
 ifeq ($(PYBIND11), true)
@@ -33,7 +33,7 @@ endif
 PYTESTFLAGS ?= -n auto -v
 
 # Default compilers and compiler flags.
-# Can be overriden via env variables or command-line flags.
+# Can be overridden via env variables or command-line flags.
 CXX ?= g++
 NVCC ?= nvcc
 HIPCC ?= hipcc

@@ -32,7 +32,7 @@ namespace unitary {
 /**
  * Object containing context and routines for unitary manipulations.
  * State is a vectorized sequence of sixteen real components followed by
- * sixteen imaginary components. Sixteen single-precison floating numbers can
+ * sixteen imaginary components. Sixteen single-precision floating numbers can
  * be loaded into an AVX512 register.
  */
 template <typename For>
