@@ -257,13 +257,8 @@ class GateBatchRunner {
   template <typename Circuit>
   bool SimulateCircuit(const Circuit& circuit, QubitOrderOnExit order,
                        std::vector<MeasurementResult>& measurement_results) {
-    if (!ValidateParameters() || !backend_.Prepare()) return false;
-
-    auto pending_gates = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
-      return BuildPendingGates(circuit);
-    });
+    auto pending_gates = PrepareSimulation(circuit);
     if (!pending_gates) return false;
-    simulation_stats_.num_raw_gates = unsigned(pending_gates->Size());
 
     const auto simulation_start = StartSimulationClock();
     if (!zones_.IsSingleTile() && pending_gates->Size() != 0) {
@@ -286,13 +281,8 @@ class GateBatchRunner {
       const Circuit& circuit,
       const std::vector<unsigned>& times_to_measure_at,
       const StateSpace& state_space, State& state, MeasurementFunc& measure) {
-    if (!ValidateParameters() || !backend_.Prepare()) return false;
-
-    auto pending_gates = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
-      return BuildPendingGates(circuit, times_to_measure_at);
-    });
+    auto pending_gates = PrepareSimulation(circuit, times_to_measure_at);
     if (!pending_gates) return false;
-    simulation_stats_.num_raw_gates = unsigned(pending_gates->Size());
 
     const auto simulation_start = StartSimulationClock();
     if (!zones_.IsSingleTile() && pending_gates->Size() != 0) {
@@ -323,6 +313,23 @@ class GateBatchRunner {
     }
     FinishSimulation(simulation_start);
     return true;
+  }
+
+  template <typename Circuit>
+  std::optional<PendingGateList> PrepareSimulation(
+      const Circuit& circuit,
+      const std::vector<unsigned>& times_to_measure_at = {}) {
+    if (!ValidateParameters() || !backend_.Prepare()) return std::nullopt;
+
+    auto pending_gates = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
+      return BuildPendingGates(circuit, times_to_measure_at);
+    });
+    if (!pending_gates) return std::nullopt;
+    simulation_stats_.num_raw_gates = unsigned(pending_gates->Size());
+    zones_ = QubitZones::ForBackend(
+        backend_, zones_.num_qubits, param_.min_eviction_floor,
+        pending_gates->MaxTargetQubits());
+    return pending_gates;
   }
 
   bool ExecuteThroughTimeStep(
@@ -798,7 +805,7 @@ class GateBatchRunner {
 
   const Parameter& param_;
   Backend backend_;
-  const QubitZones zones_;
+  QubitZones zones_;
   QubitLayout& layout_;
   RGen rgen_;
 

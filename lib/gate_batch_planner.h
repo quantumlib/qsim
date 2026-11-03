@@ -42,12 +42,14 @@ struct QubitZones {
   template <typename Backend>
   static QubitZones ForBackend(
       const Backend& backend, unsigned num_qubits,
-      unsigned min_eviction_floor) {
+      unsigned min_eviction_floor,
+      unsigned max_target_qubits = kMinRemapSlots) {
     QubitZones zones;
     zones.num_qubits = num_qubits;
     zones.tile_qubits = backend.TileQubits();
     zones.lane_qubits = backend.LaneQubits();
-    zones.eviction_floor = zones.ComputeEvictionFloor(min_eviction_floor);
+    zones.eviction_floor =
+        zones.ComputeEvictionFloor(min_eviction_floor, max_target_qubits);
     return zones;
   }
 
@@ -66,15 +68,17 @@ struct QubitZones {
  private:
   static constexpr unsigned kMinRemapSlots = 2;
 
-  unsigned ComputeEvictionFloor(unsigned min_eviction_floor) const {
+  unsigned ComputeEvictionFloor(
+      unsigned min_eviction_floor, unsigned max_target_qubits) const {
     if (IsSingleTile()) return tile_qubits;
 
+    const auto min_remap_slots = std::max(kMinRemapSlots, max_target_qubits);
     const auto slots_above_min_floor = tile_qubits > min_eviction_floor
                                            ? tile_qubits - min_eviction_floor
                                            : 0u;
     const auto remap_slots = std::min(
         TileQubitsAboveLanes(),
-        std::max(slots_above_min_floor, kMinRemapSlots));
+        std::max(slots_above_min_floor, min_remap_slots));
     return tile_qubits - remap_slots;
   }
 };
@@ -180,12 +184,17 @@ class PendingGateList {
     }
     list.OrderGatesByTimeStep();
     list.BuildMeasurementBoundaries(circuit);
+    for (const auto& gate : list.gates_) {
+      list.max_target_qubits_ = std::max(
+          list.max_target_qubits_, unsigned(gate.TargetQubits().size()));
+    }
     list.gate_end_ = list.gates_.size();
     list.applied_.assign(list.gates_.size(), 0);
     return list;
   }
 
   std::size_t Size() const { return gates_.size(); }
+  unsigned MaxTargetQubits() const { return max_target_qubits_; }
   const PendingGate& operator[](std::size_t i) const { return gates_[i]; }
 
   const std::vector<MeasurementBoundary>& MeasurementBoundaries() const {
@@ -332,6 +341,7 @@ class PendingGateList {
 
   std::vector<MeasurementBoundary> measurement_boundaries_;
   std::size_t gate_end_ = 0;
+  unsigned max_target_qubits_ = 0;
   std::vector<PendingGate> gates_;
   std::vector<char> applied_;
   // Every gate before this index is applied.
