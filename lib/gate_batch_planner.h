@@ -245,9 +245,7 @@ class PendingGateList {
     }
     std::vector<std::optional<unsigned>> last_time_steps(circuit.num_qubits);
     unsigned max_time_step = 0;
-    unsigned measurement_time_step = 0;
-    std::size_t last_time_window = 0;
-    std::size_t next_time_index = 0;
+    unsigned min_time_step = 0;
 
     for (const auto& operation : circuit.ops) {
       const auto time_step = OpTime(operation);
@@ -263,28 +261,27 @@ class PendingGateList {
         }
       }
 
-      if (time_step < measurement_time_step) return false;
-      const auto time_window = std::size_t(
-          std::lower_bound(
-              times_to_measure_at.begin(), times_to_measure_at.end(),
-              time_step) -
-          times_to_measure_at.begin());
-      if (time_window < last_time_window) return false;
-      last_time_window = time_window;
-
-      if (OpGetAlternative<Measurement>(operation)) {
-        if (time_step < max_time_step) return false;
-        measurement_time_step = time_step;
+      if (time_step < min_time_step) return false;
+      if (time_step < max_time_step &&
+          HasBoundaryInRange(times_to_measure_at, time_step, max_time_step)) {
+        return false;
       }
-      while (next_time_index < times_to_measure_at.size() &&
-             times_to_measure_at[next_time_index] <= time_step) {
-        const unsigned split_time = times_to_measure_at[next_time_index++];
-        if (split_time < max_time_step) return false;
-        measurement_time_step = std::max(measurement_time_step, split_time);
+      if (const auto* measurement = OpGetAlternative<Measurement>(operation)) {
+        if (measurement->qubits.empty() || time_step < max_time_step) {
+          return false;
+        }
+        min_time_step = time_step;
       }
       max_time_step = std::max(max_time_step, time_step);
     }
     return true;
+  }
+
+  static bool HasBoundaryInRange(
+      const std::vector<unsigned>& sorted_times, unsigned low, unsigned high) {
+    const auto it =
+        std::lower_bound(sorted_times.begin(), sorted_times.end(), low);
+    return it != sorted_times.end() && *it <= high;
   }
 
   void OrderGatesByTimeStep() {

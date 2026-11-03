@@ -44,16 +44,16 @@
 // Reading guide:
 //
 //   GateBatchRunner::Run
-//     SimulateCircuit
-//       BuildPendingGates          extract gates and measurement boundaries
+//     SimulateCircuit / SimulateCircuitWithCallback
+//       PrepareSimulation          validate parameters, extract gates/boundaries
 //       FillHotZone                place frequently used targets, once
-//       for each measurement boundary:
-//         ExecuteGatesUntil        drain gates before the boundary
+//       ExecuteThroughTimeStep     drain measurements and gates up to a window
+//       ExecuteRemainingOperations drain remaining measurement boundaries/gates
+//         ExecuteGatesUntil        drain gates before a boundary
 //           SimulateSingleTile     one batch when the state fits one tile
 //           ExecuteNextGateBatch   otherwise plan, remap, and execute batches
 //         Measure                  sample and collapse the full state
-//       ExecuteGatesUntil          drain gates after the final measurement
-//       RestoreIdentityQubitOrder  for the State overload
+//       RestoreIdentityQubitOrder  for State and callback overloads
 //       FinishSimulation
 
 #ifndef GATE_BATCH_RUNNER_H_
@@ -106,6 +106,18 @@ class GateBatchRunner {
       std::is_same_v<fp_type, float>,
       "GateBatchRunner requires a float state space.");
 
+  template <typename MeasurementFunc>
+  using EnableIfMeasurementFunc = std::enable_if_t<
+      std::is_invocable_v<
+          MeasurementFunc, unsigned, const StateSpace&, const State&>,
+      int>;
+
+  template <typename StateOrMappedState>
+  using EnableIfState = std::enable_if_t<
+      std::is_same_v<StateOrMappedState, State> ||
+          std::is_same_v<StateOrMappedState, QubitMappedState>,
+      int>;
+
   struct Parameter : public Fuser::Parameter, public Backend::Parameter {
     Parameter() { this->max_fused_size = 3; }
 
@@ -154,10 +166,7 @@ class GateBatchRunner {
   // each timestep in `times_to_measure_at`), with `state` in standard qubit
   // order.
   template <typename Circuit, typename MeasurementFunc,
-            std::enable_if_t<
-                std::is_invocable_v<
-                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
-                int> = 0>
+            EnableIfMeasurementFunc<MeasurementFunc> = 0>
   static bool Run(
       const Parameter& param, const Circuit& circuit,
       MeasurementFunc measure) {
@@ -169,10 +178,7 @@ class GateBatchRunner {
   }
 
   template <typename Circuit, typename MeasurementFunc,
-            std::enable_if_t<
-                std::is_invocable_v<
-                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
-                int> = 0>
+            EnableIfMeasurementFunc<MeasurementFunc> = 0>
   static bool Run(
       const Parameter& param,
       const std::vector<unsigned>& times_to_measure_at,
@@ -293,16 +299,17 @@ class GateBatchRunner {
       std::vector<MeasurementResult> discarded_results;
       std::size_t boundary_index = 0;
       for (std::size_t k = 0; k < times_to_measure_at.size(); ++k) {
+        const unsigned time_step = times_to_measure_at[k];
+        const auto gate_end = pending_gates->GateEndAtOrBefore(time_step);
         if (!ExecuteThroughTimeStep(
-                *pending_gates, boundary_index, times_to_measure_at[k],
+                *pending_gates, boundary_index, time_step, gate_end,
                 discarded_results)) {
           return false;
         }
         RestoreIdentityQubitOrder();
         measure(unsigned(k), state_space, state);
         if (boundary_index == pending_gates->MeasurementBoundaries().size() &&
-            pending_gates->GateEndAtOrBefore(times_to_measure_at[k]) ==
-                pending_gates->Size()) {
+            gate_end == pending_gates->Size()) {
           break;
         }
       }
@@ -334,7 +341,8 @@ class GateBatchRunner {
 
   bool ExecuteThroughTimeStep(
       PendingGateList& pending_gates, std::size_t& boundary_index,
-      unsigned time_step, std::vector<MeasurementResult>& measurement_results) {
+      unsigned time_step, std::size_t gate_end,
+      std::vector<MeasurementResult>& measurement_results) {
     const auto& boundaries = pending_gates.MeasurementBoundaries();
     while (boundary_index < boundaries.size() &&
            boundaries[boundary_index].measurement.time <= time_step) {
@@ -346,8 +354,7 @@ class GateBatchRunner {
       }
       ++boundary_index;
     }
-    return ExecuteGatesUntil(
-        pending_gates, pending_gates.GateEndAtOrBefore(time_step));
+    return ExecuteGatesUntil(pending_gates, gate_end);
   }
 
   bool ExecuteRemainingOperations(
@@ -427,7 +434,7 @@ class GateBatchRunner {
     for (unsigned q : measurement.qubits) {
       physical_qubits.push_back(layout_.PhysicalPositionOf(q));
     }
-    auto result = TimeHostWork(simulation_stats_.measure_seconds, [&] {
+    auto result = TimeBackendWork(simulation_stats_.measure_seconds, [&] {
       return backend_.Measure(physical_qubits, rgen_);
     });
     if (!result.valid) {
@@ -619,19 +626,30 @@ class GateBatchRunner {
     auto target = MakePhysicalGate(*pending.gate, layout_, time);
     if (pending.controlled_gate == nullptr) return target;
 
-    std::vector<std::pair<unsigned, unsigned>> controls;
+    struct MappedControl {
+      unsigned position;
+      unsigned value;
+    };
     const auto& raw = *pending.controlled_gate;
+    std::vector<MappedControl> controls;
+    controls.reserve(raw.controlled_by.size());
     for (unsigned i = 0; i < raw.controlled_by.size(); ++i) {
       controls.push_back({layout_.PhysicalPositionOf(raw.controlled_by[i]),
                           unsigned((raw.cmask >> i) & 1)});
     }
-    std::sort(controls.begin(), controls.end());
+    std::sort(
+        controls.begin(), controls.end(),
+        [](const MappedControl& a, const MappedControl& b) {
+          return a.position < b.position;
+        });
+
     ControlledGate<fp_type> physical;
     static_cast<Gate<fp_type>&>(physical) = std::move(target);
     physical.cmask = 0;
-    for (const auto& control : controls) {
-      physical.cmask |= uint64_t{control.second} << physical.controlled_by.size();
-      physical.controlled_by.push_back(control.first);
+    for (const MappedControl& control : controls) {
+      physical.cmask |=
+          uint64_t{control.value} << physical.controlled_by.size();
+      physical.controlled_by.push_back(control.position);
     }
     return physical;
   }
@@ -753,17 +771,24 @@ class GateBatchRunner {
     return result;
   }
 
-  // Adds the time of backend work (gate and swap passes) to `seconds`. Backend
-  // calls may return before the work finishes, so at verbosity > 1 this
-  // synchronizes before and after to time the work itself; otherwise the time
-  // covers only the call.
+  // Adds the time of backend work (gate, swap, and measurement passes) to
+  // `seconds`. Backend calls may return before the work finishes, so at
+  // verbosity > 1 this synchronizes before and after to time the work itself;
+  // otherwise the time covers only the call.
   template <typename Work>
-  void TimeBackendWork(double& seconds, Work&& work) {
+  auto TimeBackendWork(double& seconds, Work&& work) {
     if (param_.verbosity > 1) backend_.Synchronize();
     const auto start = GetTime();
-    work();
-    if (param_.verbosity > 1) backend_.Synchronize();
-    seconds += GetTime() - start;
+    if constexpr (std::is_void_v<decltype(work())>) {
+      work();
+      if (param_.verbosity > 1) backend_.Synchronize();
+      seconds += GetTime() - start;
+    } else {
+      auto result = work();
+      if (param_.verbosity > 1) backend_.Synchronize();
+      seconds += GetTime() - start;
+      return result;
+    }
   }
 
   void LogHotZonePlacement(

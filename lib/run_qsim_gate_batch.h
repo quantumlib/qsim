@@ -269,9 +269,10 @@ class CpuGateBatchBackend {
     gate_batch_internal::TileFor::Configure(1, 0);
     auto* tile_data = state_data_ + tile * partition_.floats_per_tile;
     auto tile_view = TileStateSpace::Create(tile_data, partition_.tile_qubits);
+    const auto tile_bits = static_cast<uint64_t>(tile);
 
     for (const ExecutableGate& gate : gates) {
-      ExecuteGate(gate, tile, tile_view);
+      ExecuteGate(gate, tile_bits, tile_view);
     }
   }
 
@@ -340,10 +341,7 @@ class QSimGateBatchRunner final
   // factory, state_space, and simulator arguments are accepted for QSimRunner
   // compatibility and not used.
   template <typename Circuit, typename MeasurementFunc,
-            std::enable_if_t<
-                std::is_invocable_v<
-                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
-                int> = 0>
+            typename Base::template EnableIfMeasurementFunc<MeasurementFunc> = 0>
   static bool Run(
       const Parameter& param, const Factory&, const Circuit& circuit,
       MeasurementFunc measure) {
@@ -351,10 +349,7 @@ class QSimGateBatchRunner final
   }
 
   template <typename Circuit, typename MeasurementFunc,
-            std::enable_if_t<
-                std::is_invocable_v<
-                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
-                int> = 0>
+            typename Base::template EnableIfMeasurementFunc<MeasurementFunc> = 0>
   static bool Run(
       const Parameter& param, const Factory&,
       const std::vector<unsigned>& times_to_measure_at,
@@ -364,10 +359,7 @@ class QSimGateBatchRunner final
   }
 
   template <typename Circuit, typename StateOrMappedState,
-            std::enable_if_t<
-                std::is_same_v<StateOrMappedState, State> ||
-                    std::is_same_v<StateOrMappedState, QubitMappedState>,
-                int> = 0>
+            typename Base::template EnableIfState<StateOrMappedState> = 0>
   static bool Run(
       const Parameter& param, const Factory&, const Circuit& circuit,
       StateOrMappedState& state) {
