@@ -68,6 +68,12 @@ class VectorSpaceCUDA {
       return ptr_.release();
     }
 
+    // Raw pointer to device (GPU) memory. Ownership is retained by this
+    // vector; the pointer is invalidated when the vector is destroyed.
+    void* device_ptr() const {
+      return static_cast<void*>(ptr_.get());
+    }
+
     unsigned num_qubits() const {
       return num_qubits_;
     }
