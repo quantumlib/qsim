@@ -900,6 +900,22 @@ TEST(MPSStateSpaceTest, ReduceDensityMatrixLarge){
 
 }
 
+TEST(MPSStateSpaceTest, SampleOnceTwoQubits) {
+  auto ss = MPSStateSpace<For, float>(1);
+  auto mps = ss.Create(2, 4);
+  auto scratch = ss.Create(2, 4);
+  auto scratch2 = ss.Create(2, 4);
+  std::mt19937 rand_source(1234);
+  std::vector<bool> results;
+
+  ss.SetStateZero(mps);
+  ss.SampleOnce(mps, scratch, scratch2, &rand_source, &results);
+
+  ASSERT_EQ(results.size(), 2);
+  EXPECT_FALSE(results[0]);
+  EXPECT_FALSE(results[1]);
+}
+
 TEST(MPSStateSpaceTest, SampleOnceSimple){
   auto ss = MPSStateSpace<For, float>(1);
   auto mps = ss.Create(3, 4);
