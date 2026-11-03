@@ -16,7 +16,7 @@
 #define UTIL_CPU_H_
 
 #ifdef __SSE2__
-# include <immintrin.h>
+#include <immintrin.h>
 #endif
 
 namespace qsim {
@@ -37,6 +37,52 @@ inline void ClearFlushToZeroAndDenormalsAreZeros() {
   _mm_setcsr(_mm_getcsr() & ~unsigned{0x8040});
 #endif
 }
+
+// RAII guard for the flush-to-zero and denormals-are-zeros MXCSR control flags.
+// Flags reset to previous state as soon as the guard goes out of scope
+// or if exception occurs.
+class ScopedFlushToZeroAndDenormalsAreZeros {
+public:
+  explicit ScopedFlushToZeroAndDenormalsAreZeros(
+      bool denormals_are_zeros = true) {
+    #ifdef __SSE2__
+      original_flags_ = _mm_getcsr();
+      if (denormals_are_zeros) {
+        SetFlushToZeroAndDenormalsAreZeros();
+      } else {
+        ClearFlushToZeroAndDenormalsAreZeros();
+      }
+      active_ = true;
+    #else
+      (void)denormals_are_zeros;
+    #endif
+  }
+
+  ~ScopedFlushToZeroAndDenormalsAreZeros() {
+    #ifdef __SSE2__
+      if (active_) {
+        _mm_setcsr(original_flags_);
+      }
+    #endif
+  }
+
+  // prevent copying and moving
+  ScopedFlushToZeroAndDenormalsAreZeros(
+    const ScopedFlushToZeroAndDenormalsAreZeros&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros& operator=(
+    const ScopedFlushToZeroAndDenormalsAreZeros&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros(
+    ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros& operator=(
+    ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
+
+private:
+#ifdef __SSE2__
+  unsigned original_flags_ = 0;
+  // avoids resetting the flags if they were not changed in the constructor
+  bool active_ = false;
+#endif
+};
 
 }  // namespace qsim
 

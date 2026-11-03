@@ -103,8 +103,10 @@ namespace qsim {
     unsigned nwt = 0;
   };
 
-  inline void SetFlushToZeroAndDenormalsAreZeros() {}
-  inline void ClearFlushToZeroAndDenormalsAreZeros() {}
+  class ScopedFlushToZeroAndDenormalsAreZeros {
+  public:
+    explicit ScopedFlushToZeroAndDenormalsAreZeros(bool denormals_are_zeros = true) {}
+  };
 }
 
 #include "../pybind_main.cpp"

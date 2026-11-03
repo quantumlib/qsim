@@ -147,9 +147,7 @@ int main(int argc, char* argv[]) {
   }
   auto parts = GetParts(circuit.num_qubits, opt.part1);
 
-  if (opt.denormals_are_zeros) {
-    SetFlushToZeroAndDenormalsAreZeros();
-  }
+  ScopedFlushToZeroAndDenormalsAreZeros mxcsr_guard(opt.denormals_are_zeros);
 
   uint64_t num_bitstrings =
       std::min(uint64_t{8}, uint64_t{1} << circuit.num_qubits);
