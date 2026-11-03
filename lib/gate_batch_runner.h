@@ -93,7 +93,8 @@ struct ExecutableGate {
 
 }  // namespace gate_batch_internal
 
-template <typename IO, typename Fuser, typename Backend>
+template <typename IO, typename Fuser, typename Backend,
+          typename RGen = std::mt19937>
 class GateBatchRunner {
  public:
   using StateSpace = typename Backend::StateSpace;
@@ -678,7 +679,7 @@ class GateBatchRunner {
   Backend backend_;
   const QubitZones zones_;
   QubitLayout& layout_;
-  std::mt19937 rgen_;
+  RGen rgen_;
 
   // Accumulated over the whole run; printed by LogSimulationSummary.
   SimulationStats simulation_stats_;

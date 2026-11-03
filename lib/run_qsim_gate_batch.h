@@ -313,10 +313,13 @@ class CpuGateBatchBackend {
   TileSimulator tile_sim_;
 };
 
-template <typename IO, typename Fuser, typename Factory>
+template <typename IO, typename Fuser, typename Factory,
+          typename RGen = std::mt19937>
 class QSimGateBatchRunner final
-    : public GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>> {
-  using Base = GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>>;
+    : public GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>,
+                             RGen> {
+  using Base =
+      GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>, RGen>;
 
  public:
   using typename Base::MeasurementResult;
