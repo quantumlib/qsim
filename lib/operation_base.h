@@ -31,7 +31,9 @@ using Qubits = std::vector<unsigned>;
  */
 struct BaseOperation {
   unsigned kind;
+  /** Circuit moment / time tag. */
   unsigned time;
+  /** Qubit indices targeted by this operation. */
   Qubits qubits;
 };
 

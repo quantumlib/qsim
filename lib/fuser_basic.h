@@ -278,7 +278,7 @@ class BasicGateFuser final : public Fuser<IO> {
           deferred_measurement = pop;
         } else if (const auto* pg = OpGetAlternative<DecomposedGate>(*pop)) {
           unsigned q0 = qubits[0];
-          FusedGate fgate{pg->kind, pg->time, {q0}, pg, {}, {}};
+          FusedGate fgate{{pg->kind, pg->time, {q0}}, pg, {}, {}};
 
           last[q0] = Advance(last[q0], ops_lat[q0], fgate.gates);
 
@@ -320,7 +320,7 @@ class BasicGateFuser final : public Fuser<IO> {
 
           if (Done(last[q0], gate.time, ops_lat[q0])) continue;
 
-          FusedGate fgate = {gate.kind, gate.time, {q0, q1}, &gate, {}, {}};
+          FusedGate fgate = {{gate.kind, gate.time, {q0, q1}}, &gate, {}, {}};
 
           do {
             last[q0] = Advance(last[q0], ops_lat[q0], fgate.gates);
@@ -438,7 +438,7 @@ class BasicGateFuser final : public Fuser<IO> {
 
     const auto& gate1 = *OpGetAlternative<Gate>(*ops_lat[q][k]);
 
-    FusedGate fgate{gate1.kind, gate1.time, {q}, &gate1, {}, {}};
+    FusedGate fgate{{gate1.kind, gate1.time, {q}}, &gate1, {}, {}};
     fgate.gates.push_back(&gate1);
 
     k = Advance(k + 1, ops_lat[q], fgate.gates);

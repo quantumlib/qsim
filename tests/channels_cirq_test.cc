@@ -27,7 +27,7 @@
 #include "../lib/io.h"
 #include "../lib/operation.h"
 #include "../lib/qtrajectory.h"
-#include "../lib/run_qsim.h"
+#include "../lib/run_qsim_deprecated.h"
 #include "../lib/simmux.h"
 
 namespace qsim {

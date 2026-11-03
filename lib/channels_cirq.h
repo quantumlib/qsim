@@ -316,7 +316,7 @@ inline AmplitudeDampingChannel<fp_type> amplitude_damp(double gamma) {
  */
 template <typename fp_type>
 struct PhaseDampingChannel {
-  static constexpr char name[] = "phase_dump";
+  static constexpr char name[] = "phase_damp";
 
   PhaseDampingChannel(double gamma) : gamma(gamma) {}
 

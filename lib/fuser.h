@@ -119,7 +119,7 @@ class Fuser {
       }
     } else {
       const auto& gate0 = *OpGetAlternative<Gate>(*parent(gate_seq0[0]));
-      FusedGate fgate{gate0.kind, gate0.time, {}, &gate0, {&gate0}, {}};
+      FusedGate fgate{{gate0.kind, gate0.time, {}}, &gate0, {&gate0}, {}};
 
       for (std::size_t i = 1; i < gate_seq0.size(); ++i) {
         fgate.gates.push_back(OpGetAlternative<Gate>(*parent(gate_seq0[i])));
@@ -151,10 +151,11 @@ inline void CalculateFusedMatrix(FusedGate<FP>& gate) {
   MatrixIdentity(unsigned{1} << gate.qubits.size(), gate.matrix);
 
   for (const auto& pgate : gate.gates) {
-    const auto* pg = OpGetAlternative<Gate<FP>>(pgate);
+    const auto* g = OpGetAlternative<Gate<FP>>(pgate);
+    const auto* d = OpGetAlternative<DecomposedGate<FP>>(pgate);
+    const auto* r = OpGetAlternative<RuntimeResolvedGate<FP>>(pgate);
     const auto& pqubits = OpQubits(pgate);
-    const auto& pmatrix =
-        pg ? pg->matrix : OpGetAlternative<DecomposedGate<FP>>(pgate)->matrix;
+    const auto& pmatrix = g ? g->matrix : (d ? d->matrix : r->matrix);
 
     if (pqubits.size() == 0) {
       MatrixScalarMultiply(pmatrix[0], pmatrix[1], gate.matrix);

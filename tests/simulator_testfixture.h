@@ -226,7 +226,7 @@ void TestApplyGate5(const Factory& factory) {
   auto gate25 = GateRX<fp_type>::Create(11, 4, 0.3);
   auto gate26 = GateGPh<fp_type>::Create(12, -1, 0);
 
-  FusedGate<fp_type> fgate1{kGateCZ, 2, {0, 1},  &gate11,
+  FusedGate<fp_type> fgate1{{kGateCZ, 2, {0, 1}},  &gate11,
       {&gate1, &gate2, &gate6, &gate7, &gate11, &gate12, &gate13}, {}};
   CalculateFusedMatrix(fgate1);
   ApplyGate(simulator, fgate1, state);
@@ -248,7 +248,7 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), 0.5, 1e-6);
   }
 
-  FusedGate<fp_type> fgate2{kGateIS, 4, {1, 2}, &gate14,
+  FusedGate<fp_type> fgate2{{kGateIS, 4, {1, 2}}, &gate14,
       {&gate3, &gate8, &gate14, &gate15, &gate16}, {}};
   CalculateFusedMatrix(fgate2);
   ApplyGate(simulator, fgate2, state);
@@ -270,7 +270,7 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), 0, 1e-6);
   }
 
-  FusedGate<fp_type> fgate3{kGateCNot, 6, {2, 3}, &gate17,
+  FusedGate<fp_type> fgate3{{kGateCNot, 6, {2, 3}}, &gate17,
       {&gate4, &gate9, &gate17, &gate18, &gate19},{}};
   CalculateFusedMatrix(fgate3);
   ApplyGate(simulator, fgate3, state);
@@ -292,7 +292,7 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), 0.00031570, 1e-6);
   }
 
-  FusedGate<fp_type> fgate4{kGateFS, 8, {3, 4}, &gate20,
+  FusedGate<fp_type> fgate4{{kGateFS, 8, {3, 4}}, &gate20,
       {&gate5, &gate10, &gate20, &gate21, &gate22}, {}};
   CalculateFusedMatrix(fgate4);
   ApplyGate(simulator, fgate4, state);
@@ -314,7 +314,7 @@ void TestApplyGate5(const Factory& factory) {
     EXPECT_NEAR(std::imag(ampl3), -0.00987822, 1e-6);
   }
 
-  FusedGate<fp_type> fgate5{kGateCP, 10, {0, 1}, &gate23,
+  FusedGate<fp_type> fgate5{{kGateCP, 10, {0, 1}}, &gate23,
       {&gate23, &gate26}, {}};
   CalculateFusedMatrix(fgate5);
   ApplyGate(simulator, fgate5, state);

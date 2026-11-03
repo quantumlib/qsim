@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC. All Rights Reserved.
+// Copyright 2026 Google LLC. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,9 @@ namespace qsim {
  */
 template <typename Operation>
 struct Circuit {
+  /** Total number of qubits in the circuit state space. */
   unsigned num_qubits;
+
   /**
    * The set of operations to be run. Operation time steps should be ordered.
    */

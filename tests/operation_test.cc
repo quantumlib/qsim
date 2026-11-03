@@ -28,8 +28,8 @@ TEST(OperationTest, Test1) {
   using Operation = qsim::Operation<float>;
 
   {
-    Gate op1 = {0, 1, {2}};
-    const Gate op2 = {0, 1, {2}};
+    Gate op1 = {{0, 1, {2}}};
+    const Gate op2 = {{0, 1, {2}}};
 
     Gate* pg1 = OpGetAlternative<Gate>(op1);
     ASSERT_NE(pg1, nullptr);
@@ -85,8 +85,8 @@ TEST(OperationTest, Test1) {
   }
 
   {
-    Operation op1 = Gate{0, 1, {2}};
-    const Operation op2 = Gate{0, 1, {2}};
+    Operation op1 = Gate{{0, 1, {2}}};
+    const Operation op2 = Gate{{0, 1, {2}}};
 
     Gate* pg1 = OpGetAlternative<Gate>(op1);
     ASSERT_NE(pg1, nullptr);
@@ -142,8 +142,8 @@ TEST(OperationTest, Test1) {
   }
 
   {
-    Operation op1 = ControlledGate{Gate{0, 1, {2}}, {0, 1}};
-    const Operation op2 = ControlledGate{Gate{0, 1, {2}}, {0, 1}};
+    Operation op1 = ControlledGate{Gate{{0, 1, {2}}}, {0, 1}};
+    const Operation op2 = ControlledGate{Gate{{0, 1, {2}}}, {0, 1}};
     Operation* po1 = &op1;
 
     ControlledGate* pg1 = OpGetAlternative<ControlledGate>(po1);
@@ -190,7 +190,7 @@ TEST(OperationTest, Test2) {
   using OperationF = std::variant<FusedGate, Measurement, const Operation*>;
 
   {
-    Operation op1 = Gate{0, 1, {2}};
+    Operation op1 = Gate{{0, 1, {2}}};
     const OperationF opf1 = &op1;
 
     const Gate* pg1 = OpGetAlternative<Gate>(opf1);
@@ -259,7 +259,7 @@ TEST(OperationTest, Test3) {
   using OperationF = std::variant<FusedGate, Measurement, Operation*>;
 
   {
-    Operation op1 = Gate{0, 1, {2}};
+    Operation op1 = Gate{{0, 1, {2}}};
     OperationF opf1 = &op1;
 
     const Gate* pg1 = OpGetAlternative<Gate>(opf1);

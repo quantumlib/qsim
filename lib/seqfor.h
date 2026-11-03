@@ -45,20 +45,23 @@ struct SequentialFor {
   }
 
   template <typename Function, typename Op, typename... Args>
-  static std::vector<typename Op::result_type> RunReduceP(
+  static auto RunReduceP(
       uint64_t size, Function&& func, Op&& op, Args&&... args) {
-    typename Op::result_type result = 0;
+    using ResultType =
+        std::invoke_result_t<Function, unsigned, unsigned, uint64_t, Args...>;
+
+    ResultType result{};
 
     for (uint64_t i = 0; i < size; ++i) {
       result = op(result, func(1, 0, i, args...));
     }
 
-    return std::vector<typename Op::result_type>(1, result);
+    return std::vector<ResultType>(1, result);
   }
 
   template <typename Function, typename Op, typename... Args>
-  static typename Op::result_type RunReduce(uint64_t size, Function&& func,
-                                            Op&& op, Args&&... args) {
+  static auto RunReduce(
+      uint64_t size, Function&& func, Op&& op, Args&&... args) {
     return RunReduceP(size, func, std::move(op), args...)[0];
   }
 };
