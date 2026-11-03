@@ -41,6 +41,7 @@ struct Options {
   unsigned min_eviction_floor = 5;
   unsigned max_lookahead_seeds = 64;
   unsigned verbosity = 0;
+  bool denormals_are_zeros = false;
 };
 
 Options GetOptions(int argc, char* argv[]) {
@@ -49,10 +50,10 @@ Options GetOptions(int argc, char* argv[]) {
       "-d maxtime -s seed -t threads "
       "-f max_fused_size -l tile_qubits "
       "-e min_eviction_floor -g max_lookahead_seeds "
-      "-v verbosity\n";
+      "-v verbosity -z\n";
   Options opt;
   int k;
-  while ((k = getopt(argc, argv, "c:d:s:t:f:l:e:g:v:")) != -1) {
+  while ((k = getopt(argc, argv, "c:d:s:t:f:l:e:g:v:z")) != -1) {
     switch (k) {
       case 'c':
         opt.circuit_file = optarg;
@@ -80,6 +81,9 @@ Options GetOptions(int argc, char* argv[]) {
         break;
       case 'v':
         opt.verbosity = std::atoi(optarg);
+        break;
+      case 'z':
+        opt.denormals_are_zeros = true;
         break;
       default:
         qsim::IO::errorf(usage);
@@ -119,6 +123,10 @@ int main(int argc, char* argv[]) {
   if (!CircuitQsimParser<IOFile>::FromFile(
           opt.maxtime, opt.circuit_file, circuit)) {
     return 1;
+  }
+
+  if (opt.denormals_are_zeros) {
+    SetFlushToZeroAndDenormalsAreZeros();
   }
 
   struct Factory {
