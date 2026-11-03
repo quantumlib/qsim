@@ -91,6 +91,14 @@ struct ExecutableGate {
   uint64_t tile_control_values = 0;
 };
 
+template <typename T, typename = void>
+struct HasMaxFusedSize : std::false_type {};
+
+template <typename T>
+struct HasMaxFusedSize<
+    T, std::void_t<decltype(std::declval<T>().max_fused_size)>>
+    : std::true_type {};
+
 }  // namespace gate_batch_internal
 
 template <typename IO, typename Fuser, typename Backend,
@@ -119,7 +127,12 @@ class GateBatchRunner {
       int>;
 
   struct Parameter : public Fuser::Parameter, public Backend::Parameter {
-    Parameter() { this->max_fused_size = 3; }
+    Parameter() {
+      if constexpr (gate_batch_internal::HasMaxFusedSize<
+                        typename Fuser::Parameter>::value) {
+        this->max_fused_size = 3;
+      }
+    }
 
     // Unset lets the backend choose; a set value is used as given.
     std::optional<unsigned> tile_qubits;
@@ -374,15 +387,18 @@ class GateBatchRunner {
   }
 
   bool ValidateParameters() const {
-    if (param_.max_fused_size < 2) {
-      IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
-      return false;
-    }
-    if (param_.max_fused_size > Backend::kMaxGateQubits) {
-      IO::errorf(
-          "qsim_gate_batch: max_fused_size must be at most %u.\n",
-          Backend::kMaxGateQubits);
-      return false;
+    if constexpr (gate_batch_internal::HasMaxFusedSize<
+                      typename Fuser::Parameter>::value) {
+      if (param_.max_fused_size < 2) {
+        IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
+        return false;
+      }
+      if (param_.max_fused_size > Backend::kMaxGateQubits) {
+        IO::errorf(
+            "qsim_gate_batch: max_fused_size must be at most %u.\n",
+            Backend::kMaxGateQubits);
+        return false;
+      }
     }
     return true;
   }
@@ -683,11 +699,6 @@ class GateBatchRunner {
     }
   }
 
-  template <typename Operation>
-  static const ControlledGate<fp_type>* GetControlledGate(const Operation& op) {
-    return OpGetAlternative<ControlledGate<fp_type>>(op);
-  }
-
   std::optional<std::vector<ExecutableGate>> BuildExecutableGates(
       const std::vector<MappedGate>& batch_gates) {
     // The fuser tracks dependencies on targets and controls, including controls
@@ -700,17 +711,23 @@ class GateBatchRunner {
       return std::nullopt;
     }
 
-    // Controlled gates pass through the fuser as pointers into batch_gates.
-    // Copy their data so executable gates own it after batch_gates expires.
+    // Controlled gates and unfused multi-qubit gates pass through the fuser as
+    // const pointers into batch_gates. Copy their data so executable gates own
+    // it after batch_gates expires.
     std::vector<ExecutableGate> executable_gates;
     executable_gates.reserve(fused_ops.size());
     for (auto& operation : fused_ops) {
-      if (const auto* controlled = GetControlledGate(operation)) {
+      if (const auto* controlled =
+              OpGetAlternative<ControlledGate<fp_type>>(std::as_const(operation))) {
         executable_gates.push_back(MakeExecutableControlledGate(*controlled));
-      } else {
-        auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation);
-        assert(fused != nullptr);
+      } else if (auto* fused =
+                     OpGetAlternative<FusedGate<fp_type>>(operation)) {
         executable_gates.push_back(MakeExecutableFusedGate(*fused));
+      } else {
+        const auto* gate =
+            OpGetAlternative<Gate<fp_type>>(std::as_const(operation));
+        assert(gate != nullptr);
+        executable_gates.push_back(MakeExecutableGate(*gate));
       }
     }
     simulation_stats_.num_executable_gates += executable_gates.size();
@@ -722,6 +739,12 @@ class GateBatchRunner {
     assert(fused.qubits.size() <= Backend::kMaxGateQubits);
     assert(fused.qubits.empty() || fused.qubits.back() < zones_.tile_qubits);
     return {std::move(fused.qubits), std::move(fused.matrix)};
+  }
+
+  ExecutableGate MakeExecutableGate(const Gate<fp_type>& gate) const {
+    assert(gate.qubits.size() <= Backend::kMaxGateQubits);
+    assert(gate.qubits.empty() || gate.qubits.back() < zones_.tile_qubits);
+    return {gate.qubits, gate.matrix};
   }
 
   // Split controls by physical position after remapping. The backend sees
