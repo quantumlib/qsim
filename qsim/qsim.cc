@@ -309,16 +309,15 @@ int main(int argc, char* argv[]) {
 
     auto h = [&hists](auto name, const auto& obs) {
       auto& hist = hists[name];
-
       if (hist.empty()) {
-        hist.reserve(obs.total_count.size());
+        hist.reserve(obs.Count().size());
 
-        for (auto val : obs.total_count) {
+        for (auto val : obs.Count()) {
           hist.emplace_back(val);
         }
       } else {
-        for (unsigned i = 0; i < obs.total_count.size(); ++i) {
-          hist[i] += obs.total_count[i];
+        for (unsigned i = 0; i < obs.Count().size(); ++i) {
+          hist[i] += obs.Count()[i];
         }
       }
     };

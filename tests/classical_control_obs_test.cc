@@ -26,8 +26,7 @@ namespace {
 TEST(MeasurementHistogramTest, DefaultConstructor) {
   MeasurementHistogram hist;
   EXPECT_EQ(hist.Size(), 0u);
-  EXPECT_TRUE(hist.cur_count.empty());
-  EXPECT_TRUE(hist.total_count.empty());
+  EXPECT_TRUE(hist.Count().empty());
 }
 
 TEST(MeasurementHistogramTest, ParameterizedConstructorAllocatesCorrectSize) {
@@ -36,56 +35,58 @@ TEST(MeasurementHistogramTest, ParameterizedConstructorAllocatesCorrectSize) {
 
   EXPECT_EQ(hist.Size(), 3u);
   // 2^3 = 8 outcome entries
-  EXPECT_EQ(hist.cur_count.size(), 8u);
-  EXPECT_EQ(hist.total_count.size(), 8u);
+  EXPECT_EQ(hist.Count().size(), 8u);
 
-  for (uint64_t val : hist.cur_count) {
-    EXPECT_EQ(val, 0u);
-  }
-  for (uint64_t val : hist.total_count) {
+  for (uint64_t val : hist.Count()) {
     EXPECT_EQ(val, 0u);
   }
 }
 
-TEST(MeasurementHistogramTest, UpdateAccumulatesAndResetsCurrentCounts) {
+TEST(MeasurementHistogramTest, UpdateAccumulatesCounts) {
   MeasurementHistogram hist(2); // 4 outcomes: 00, 01, 10, 11
 
-  // First Trajectory
-  hist.cur_count[0b00] = 5;
-  hist.cur_count[0b11] = 2;
-  hist.Update();
+  for (unsigned trajectory = 0; trajectory < 22; ++trajectory) {
+    hist.AddBitstring(trajectory % 4);
+    hist.Update();
+  }
 
-  // Verify total count updated and cur_count reset
-  EXPECT_EQ(hist.total_count[0b00], 5u);
-  EXPECT_EQ(hist.total_count[0b11], 2u);
-  EXPECT_EQ(hist.cur_count[0b00], 0u);
-  EXPECT_EQ(hist.cur_count[0b11], 0u);
-
-  // Second Trajectory
-  hist.cur_count[0b00] = 3;
-  hist.cur_count[0b01] = 4;
-  hist.Update();
-
-  EXPECT_EQ(hist.total_count[0b00], 8u); // 5 + 3
-  EXPECT_EQ(hist.total_count[0b01], 4u);
-  EXPECT_EQ(hist.total_count[0b11], 2u);
-  EXPECT_EQ(hist.cur_count[0b00], 0u);
+  EXPECT_EQ(hist.Count()[0b00], 6u);
+  EXPECT_EQ(hist.Count()[0b01], 6u);
+  EXPECT_EQ(hist.Count()[0b10], 5u);
+  EXPECT_EQ(hist.Count()[0b11], 5u);
 }
 
-TEST(MeasurementHistogramTest, DiscardClearsCurrentCountsWithoutUpdatingTotal) {
-  MeasurementHistogram hist(2);
+TEST(MeasurementHistogramTest, DiscardDiscardsCounts) {
+  MeasurementHistogram hist(2); // 4 outcomes: 00, 01, 10, 11
 
-  hist.total_count[0b00] = 10;
-  hist.cur_count[0b00] = 5;
-  hist.cur_count[0b10] = 3;
+  for (unsigned trajectory = 0; trajectory < 22; ++trajectory) {
+    uint64_t bitstring = trajectory % 4;
 
-  hist.Discard();
+    hist.AddBitstring(bitstring);
 
-  // Verify cur_count cleared and total_count unchanged
-  EXPECT_EQ(hist.cur_count[0b00], 0u);
-  EXPECT_EQ(hist.cur_count[0b10], 0u);
-  EXPECT_EQ(hist.total_count[0b00], 10u);
-  EXPECT_EQ(hist.total_count[0b10], 0u);
+    if (bitstring != 0b01 && bitstring != 0b10) {
+      hist.Update();
+    } else {
+      hist.Discard();
+    }
+  }
+
+  EXPECT_EQ(hist.Count()[0b00], 6u);
+  EXPECT_EQ(hist.Count()[0b01], 0u);
+  EXPECT_EQ(hist.Count()[0b10], 0u);
+  EXPECT_EQ(hist.Count()[0b11], 5u);
+}
+
+TEST(MeasurementHistogramTest, Errors) {
+  MeasurementHistogram hist(2); // 4 outcomes: 00, 01, 10, 11
+
+  // Bitstring is out of range.
+  EXPECT_THROW(hist.AddBitstring(0b100), std::runtime_error);
+
+  hist.AddBitstring(0b10);
+
+  // Second AddBitstring call before calling `Update` or `Discard`.
+  EXPECT_THROW(hist.AddBitstring(0b01), std::runtime_error);
 }
 
 TEST(ObservablesTest, InitialStateIsEmpty) {
@@ -112,6 +113,22 @@ TEST(ObservablesTest, InsertAndLookup) {
   const Observable* const_found = const_obss.Lookup("m0");
   ASSERT_NE(const_found, nullptr);
   EXPECT_EQ(const_found->Size(), 2u);
+}
+
+TEST(ObservablesTest, InsertObservableWithSameKey) {
+  Observables obss;
+
+  Observable* inserted = obss.Insert("m0", MeasurementHistogram(2));
+  ASSERT_NE(inserted, nullptr);
+  EXPECT_FALSE(obss.Empty());
+  EXPECT_EQ(inserted->Size(), 2u);
+
+  // First observable should be replaced
+  Observable* inserted2 = obss.Insert("m0", MeasurementHistogram(3));
+  ASSERT_NE(inserted2, nullptr);
+  EXPECT_EQ(inserted, inserted2);
+  EXPECT_FALSE(obss.Empty());
+  EXPECT_EQ(inserted2->Size(), 3u);
 }
 
 TEST(ObservablesTest, IteratesOverRegisteredObservables) {

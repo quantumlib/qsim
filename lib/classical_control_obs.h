@@ -21,13 +21,16 @@
 #include <utility>
 #include <vector>
 
+#include "error.h"
+
 namespace qsim::cc {
 
 /**
  * Tracks raw measurement counts for quantum circuit trajectories.
- * Maintains two count vectors of size 2^num_qubits:
- * - `cur_count`: Counts accumulated during the current active trajectory run.
- * - `total_count`: Aggregate counts across all completed trajectories.
+ * Maintains a count vector of size 2^num_qubits:
+ * - `count`: Aggregate counts across all completed trajectories.
+ * Not recommended for use when the number of measured qubits (num_qubits)
+ * is large.
  */
 struct MeasurementHistogram {
   /** Constructs an empty, uninitialized MeasurementHistogram. */
@@ -35,34 +38,51 @@ struct MeasurementHistogram {
 
   /**
    * Constructs a MeasurementHistogram allocated for 2^num_qubits outcomes.
-   * @param num_qubits Number of measured qubits determining histogram bit
+   * @param num_qubits Number of measured qubits determining the histogram bit
    *   width.
    */
   MeasurementHistogram(unsigned num_qubits) : num_qubits(num_qubits) {
     uint64_t size = uint64_t{1} << num_qubits;
-    cur_count.resize(size, 0);
-    total_count.resize(size, 0);
+    count.resize(size, 0);
   }
 
   /**
-   * Resets current trajectory counts without accumulating them into
-   * total counts. Called when a simulation trajectory is aborted via
-   * a `discard` condition.
+   * Adds a measured bitstring.
+   * @param bitstring Measured bitstring to add.
+   * @throws std::runtime_error If bitstring exceeds the maximum value or
+   *   if called a second time before calling `Discard` or `Update`.
+   */
+  void AddBitstring(uint64_t bitstring) {
+    if (bitstring >= count.size()) {
+      Error::Throw(
+          "bitstring value {} must be less than 2^{num_measured_qubits} = {} ",
+          bitstring, count.size());
+    }
+
+    if (have_bitstring) {
+      Error::Throw("cannot add second bitstring");
+    }
+
+    this->bitstring = bitstring;
+    have_bitstring = true;
+  }
+
+  /**
+   * Invalidates the last measured bitstring. Called when a simulation
+   * trajectory is aborted via a `discard` condition.
    */
   void Discard() {
-    for (auto& v : cur_count) {
-      v = 0;
-    }
+    have_bitstring = false;
   }
 
   /**
-   * Flushes `cur_count` into `total_count` and zeroes `cur_count` for
+   * Flushes the last measured bitstring into `count` and invalidates it for
    * the next trajectory.
    */
   void Update() {
-    for (std::size_t i = 0; i < cur_count.size(); ++i) {
-      total_count[i] += cur_count[i];
-      cur_count[i] = 0;
+    if (have_bitstring) {
+      ++count[bitstring];
+      have_bitstring = false;
     }
   }
 
@@ -74,12 +94,23 @@ struct MeasurementHistogram {
     return num_qubits;
   }
 
-  /** Measurement counts for the active trajectory. */
-  std::vector<uint64_t> cur_count;
+  /**
+   * Returns a const reference to `count`.
+   * @return Reference to `count`
+   */
+  const std::vector<uint64_t>& Count() const {
+    return count;
+  }
+
+ private:
   /** Accumulated measurement counts across all completed trajectories. */
-  std::vector<uint64_t> total_count;
+  std::vector<uint64_t> count;
+  /** Last measured bitstring. */
+  uint64_t bitstring;
   /** Number of qubits tracked by this histogram. */
   unsigned num_qubits = 0;
+  /** Used to prevent double `AddBitstring` calls. */
+  bool have_bitstring = false;
 };
 
 /**

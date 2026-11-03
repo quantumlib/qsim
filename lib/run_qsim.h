@@ -79,7 +79,7 @@ inline auto ApplyMeasurementGate(
     }
 
     if (obs != nullptr) {
-      ++obs->cur_count[cc::Symbol::GetMeaInt(mea)];
+      obs->AddBitstring(cc::Symbol::GetMeaInt(mea));
     }
   }
 

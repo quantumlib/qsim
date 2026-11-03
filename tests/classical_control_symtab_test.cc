@@ -24,14 +24,21 @@ namespace {
 
 TEST(SymTableTest, InitialStateIsEmpty) {
   SymTable table;
-  EXPECT_TRUE(table.Empty());
+  EXPECT_TRUE(table.IsEmpty());
 }
 
 TEST(SymTableTest, AddAndEnterScope) {
   SymTable table;
+
+  // Cannot insert a symbol before calling AddScope().
+  EXPECT_THROW(table.Insert("x", Symbol(Symbol::Int{10})), std::runtime_error);
+
   std::size_t s0 = table.AddScope();
   EXPECT_EQ(s0, 0u);
-  EXPECT_FALSE(table.Empty());
+  EXPECT_FALSE(table.IsEmpty());
+
+  // Cannot insert a symbol before calling EnterScope().
+  EXPECT_THROW(table.Insert("x", Symbol(Symbol::Int{10})), std::runtime_error);
 
   table.EnterScope(s0);
 
@@ -39,6 +46,12 @@ TEST(SymTableTest, AddAndEnterScope) {
   Symbol* inserted = table.Insert("x", Symbol(Symbol::Int{10}));
   ASSERT_NE(inserted, nullptr);
   EXPECT_EQ(inserted->GetInt(), 10);
+
+  // Verify insertion of a pre-existing variable
+  auto sym = Symbol(Symbol::Int{20});
+  Symbol* inserted2 = table.Insert("y", std::move(sym));
+  ASSERT_NE(inserted2, nullptr);
+  EXPECT_EQ(inserted2->GetInt(), 20);
 
   table.ExitScope();
 }
@@ -77,6 +90,40 @@ TEST(SymTableTest, LexicalScopingAndShadowing) {
   EXPECT_EQ(table.Lookup("x")->GetInt(), 1);
 }
 
+TEST(SymTableTest, NoLeakInSiblingScopes) {
+  SymTable table;
+
+  // Root Scope
+  auto s0 = table.AddScope();
+  table.EnterScope(s0);
+
+  // First Child Scope
+  auto s1 = table.AddScope();
+  table.EnterScope(s1);
+  table.Insert("x", Symbol(Symbol::Int{100}));
+  table.ExitScope();
+
+  // Second Child Scope
+  auto s2 = table.AddScope();
+  table.EnterScope(s2);
+  table.Insert("y", Symbol(Symbol::Int{200}));
+  table.ExitScope();
+
+  // Lookups in First Child Scope
+  table.EnterScope(s1);
+  EXPECT_EQ(table.Lookup("x")->GetInt(), 100);
+  EXPECT_EQ(table.Lookup("y"), nullptr);
+  table.ExitScope();
+
+  // Lookups in Second Child Scope
+  table.EnterScope(s2);
+  EXPECT_EQ(table.Lookup("x"), nullptr);
+  EXPECT_EQ(table.Lookup("y")->GetInt(), 200);
+  table.ExitScope();
+
+  table.ExitScope();
+}
+
 TEST(SymTableTest, ReEnteringScopesSimulatesInterpreterPhase) {
   SymTable table;
 
@@ -94,12 +141,12 @@ TEST(SymTableTest, ReEnteringScopesSimulatesInterpreterPhase) {
 
   // Interpreter phase: re-enter recorded scope indices
   table.EnterScope(root);
-  EXPECT_NE(table.Lookup("a"), nullptr);
+  EXPECT_EQ(table.Lookup("a")->GetFloat(), 1.5);
   EXPECT_EQ(table.Lookup("b"), nullptr);
 
   table.EnterScope(inner);
-  EXPECT_NE(table.Lookup("a"), nullptr);
-  EXPECT_NE(table.Lookup("b"), nullptr);
+  EXPECT_EQ(table.Lookup("a")->GetFloat(), 1.5);
+  EXPECT_EQ(table.Lookup("b")->GetFloat(), 2.5);
 
   table.ExitScope();
   table.ExitScope();

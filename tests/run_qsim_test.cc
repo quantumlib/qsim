@@ -247,19 +247,13 @@ TEST(RunQSimTest, Histogram) {
   const auto* h = obss.Lookup("m1");
   ASSERT_NE(h, nullptr);
 
-  EXPECT_EQ(h->num_qubits, 2);
+  EXPECT_EQ(h->Size(), 2);
 
-  ASSERT_EQ(h->cur_count.size(), 4);
-  EXPECT_EQ(h->cur_count[0], 0);
-  EXPECT_EQ(h->cur_count[1], 0);
-  EXPECT_EQ(h->cur_count[2], 0);
-  EXPECT_EQ(h->cur_count[3], 0);
-
-  ASSERT_EQ(h->total_count.size(), 4);
-  EXPECT_EQ(h->total_count[0], 0);
-  EXPECT_EQ(h->total_count[1], 0);
-  EXPECT_EQ(h->total_count[2], 100);
-  EXPECT_EQ(h->total_count[3], 0);
+  ASSERT_EQ(h->Count().size(), 4);
+  EXPECT_EQ(h->Count()[0], 0);
+  EXPECT_EQ(h->Count()[1], 0);
+  EXPECT_EQ(h->Count()[2], 100);
+  EXPECT_EQ(h->Count()[3], 0);
 }
 
 }  // namespace qsim

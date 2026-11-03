@@ -72,7 +72,7 @@ struct SymTable {
    * Checks whether any scopes have been created.
    * @return True if no scopes exist in the table.
    */
-  bool Empty() const {
+  bool IsEmpty() const {
     return symtab.empty();
   }
 
@@ -83,8 +83,14 @@ struct SymTable {
    * @param name Name identifier for the symbol.
    * @param sym Symbol rvalue instance to insert.
    * @return Pointer to the inserted or existing Symbol in the current scope.
+   * @throws std::runtime_error If the symbol table is empty.
    */
   Symbol* Insert(std::string_view name, Symbol&& sym) {
+    if (symtab.empty() || path.empty()) {
+      Error::Throw(
+          "cannot insert symbol '{}' into an uninitialized symbol table", name);
+    }
+
     auto& cur = symtab[path.back()];
 
     if (auto s = cur.find(name); s != cur.end()) {
@@ -192,11 +198,8 @@ struct SymTable {
   template <typename... Args>
   Symbol* LookupOrError(
       std::string_view name, std::string_view message, Args&&... args) {
-    for (auto it = path.rbegin(); it != path.rend(); ++it) {
-      auto& symbols = symtab[*it];
-      if (auto s = symbols.find(name); s != symbols.end()) {
-        return &s->second;
-      }
+    if (auto* sym = Lookup(name); sym != nullptr) {
+      return sym;
     }
 
     Error::Throw(message, args...);
@@ -207,11 +210,8 @@ struct SymTable {
   template <typename... Args>
   const Symbol* LookupOrError(
       std::string_view name, std::string_view message, Args&&... args) const {
-    for (auto it = path.rbegin(); it != path.rend(); ++it) {
-      const auto& symbols = symtab[*it];
-      if (auto s = symbols.find(name); s != symbols.end()) {
-        return &s->second;
-      }
+    if (auto* sym = Lookup(name); sym != nullptr) {
+      return sym;
     }
 
     Error::Throw(message, args...);
@@ -230,11 +230,8 @@ struct SymTable {
   template <typename... Args>
   Symbol* LookupInCurrentScopeOrError(
       std::string_view name, std::string_view message, Args&&... args) {
-    if (!path.empty()) {
-      auto& symbols = symtab[path.back()];
-      if (auto s = symbols.find(name); s != symbols.end()) {
-        return &s->second;
-      }
+    if (auto* sym = LookupInCurrentScope(name); sym != nullptr) {
+      return sym;
     }
 
     Error::Throw(message, args...);
@@ -245,11 +242,8 @@ struct SymTable {
   template <typename... Args>
   const Symbol* LookupInCurrentScopeOrError(
       std::string_view name, std::string_view message, Args&&... args) const {
-    if (!path.empty()) {
-      const auto& symbols = symtab[path.back()];
-      if (auto s = symbols.find(name); s != symbols.end()) {
-        return &s->second;
-      }
+    if (auto* sym = LookupInCurrentScope(name); sym != nullptr) {
+      return sym;
     }
 
     Error::Throw(message, args...);

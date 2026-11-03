@@ -66,7 +66,7 @@ inline void ParseSymbols(std::string_view sym_defs, SymTable& symtab) {
   using RE = RuntimeError;
 
   // Ensure we are operating in a active scope
-  if (symtab.Empty()) {
+  if (symtab.IsEmpty()) {
     auto scope = symtab.AddScope();
     symtab.EnterScope(scope);
   }
@@ -171,7 +171,7 @@ struct CircuitQSimParser final {
     Circuit circuit;
     Observables obss;
 
-    if (symtab.Empty()) {
+    if (symtab.IsEmpty()) {
       symtab.EnterScope(symtab.AddScope());
     }
 
