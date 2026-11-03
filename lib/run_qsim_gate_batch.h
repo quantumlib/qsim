@@ -322,13 +322,17 @@ class QSimGateBatchRunner final
       GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>, RGen>;
 
  public:
+  using Simulator = typename Factory::Simulator;
   using typename Base::MeasurementResult;
   using typename Base::Parameter;
   using typename Base::QubitMappedState;
   using typename Base::State;
+  using typename Base::StateSpace;
+  using Base::Run;
 
   // Takes a State or a QubitMappedState; see GateBatchRunner::Run. The
-  // factory is accepted for QSimRunner compatibility and not used.
+  // factory, state_space, and simulator arguments are accepted for QSimRunner
+  // compatibility and not used.
   template <typename Circuit, typename StateOrMappedState>
   static bool Run(
       const Parameter& param, const Factory&, const Circuit& circuit,
@@ -338,6 +342,21 @@ class QSimGateBatchRunner final
 
   template <typename Circuit, typename StateOrMappedState>
   static bool Run(const Parameter& param, const Factory&, const Circuit& circuit,
+                  StateOrMappedState& state,
+                  std::vector<MeasurementResult>& measurement_results) {
+    return Base::Run(param, circuit, state, measurement_results);
+  }
+
+  template <typename Circuit, typename StateOrMappedState>
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  const StateSpace&, const Simulator&,
+                  StateOrMappedState& state) {
+    return Base::Run(param, circuit, state);
+  }
+
+  template <typename Circuit, typename StateOrMappedState>
+  static bool Run(const Parameter& param, const Circuit& circuit,
+                  const StateSpace&, const Simulator&,
                   StateOrMappedState& state,
                   std::vector<MeasurementResult>& measurement_results) {
     return Base::Run(param, circuit, state, measurement_results);
