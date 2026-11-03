@@ -153,10 +153,13 @@ class PendingGateList {
   template <typename Circuit>
   static std::optional<PendingGateList> FromCircuit(
       const Circuit& circuit, unsigned max_gate_qubits,
-      unsigned max_controlled_gate_qubits) {
+      unsigned max_controlled_gate_qubits,
+      const std::vector<unsigned>& times_to_measure_at = {}) {
     PendingGateList list;
     list.gates_.reserve(circuit.ops.size());
-    if (!ValidateCircuitTimeSteps(circuit)) return std::nullopt;
+    if (!ValidateCircuitTimeSteps(circuit, times_to_measure_at)) {
+      return std::nullopt;
+    }
 
     for (const auto& operation : circuit.ops) {
       if (OpGetAlternative<Measurement>(operation)) continue;
@@ -189,6 +192,16 @@ class PendingGateList {
     return measurement_boundaries_;
   }
 
+  // Exclusive end index of gates at or before `time_step`.
+  std::size_t GateEndAtOrBefore(unsigned time_step) const {
+    std::size_t gate_end = first_pending_;
+    while (gate_end < gates_.size() &&
+           gates_[gate_end].gate->time <= time_step) {
+      ++gate_end;
+    }
+    return gate_end;
+  }
+
   // Every pending-gate traversal, including planner seeds and lookahead, stops
   // at this exclusive boundary. Advance it only after the current range drains.
   void SetGateEnd(std::size_t gate_end) {
@@ -214,10 +227,18 @@ class PendingGateList {
 
  private:
   template <typename Circuit>
-  static bool ValidateCircuitTimeSteps(const Circuit& circuit) {
+  static bool ValidateCircuitTimeSteps(
+      const Circuit& circuit,
+      const std::vector<unsigned>& times_to_measure_at = {}) {
+    if (!std::is_sorted(
+            times_to_measure_at.begin(), times_to_measure_at.end())) {
+      return false;
+    }
     std::vector<std::optional<unsigned>> last_time_steps(circuit.num_qubits);
     unsigned max_time_step = 0;
     unsigned measurement_time_step = 0;
+    std::size_t last_time_window = 0;
+    std::size_t next_time_index = 0;
 
     for (const auto& operation : circuit.ops) {
       const auto time_step = OpTime(operation);
@@ -234,9 +255,23 @@ class PendingGateList {
       }
 
       if (time_step < measurement_time_step) return false;
+      const auto time_window = std::size_t(
+          std::lower_bound(
+              times_to_measure_at.begin(), times_to_measure_at.end(),
+              time_step) -
+          times_to_measure_at.begin());
+      if (time_window < last_time_window) return false;
+      last_time_window = time_window;
+
       if (OpGetAlternative<Measurement>(operation)) {
         if (time_step < max_time_step) return false;
         measurement_time_step = time_step;
+      }
+      while (next_time_index < times_to_measure_at.size() &&
+             times_to_measure_at[next_time_index] <= time_step) {
+        const unsigned split_time = times_to_measure_at[next_time_index++];
+        if (split_time < max_time_step) return false;
+        measurement_time_step = std::max(measurement_time_step, split_time);
       }
       max_time_step = std::max(max_time_step, time_step);
     }
@@ -274,13 +309,8 @@ class PendingGateList {
     // Each boundary follows all gates in its timestep, including disjoint
     // gates originally listed after a measurement. Later timesteps stay
     // pending.
-    std::size_t gate_end = 0;
     for (auto& boundary : measurement_boundaries_) {
-      while (gate_end < gates_.size() &&
-             gates_[gate_end].gate->time <= boundary.measurement.time) {
-        ++gate_end;
-      }
-      boundary.gate_end = gate_end;
+      boundary.gate_end = GateEndAtOrBefore(boundary.measurement.time);
     }
   }
 

@@ -149,6 +149,47 @@ class GateBatchRunner {
                          measurement_results, QubitOrderOnExit::kKeepPermuted);
   }
 
+  // Allocates a zero-initialized state and invokes `measure(k, state_space,
+  // state)` after all circuit operations at or before the final timestep (or
+  // each timestep in `times_to_measure_at`), with `state` in standard qubit
+  // order.
+  template <typename Circuit, typename MeasurementFunc,
+            std::enable_if_t<
+                std::is_invocable_v<
+                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
+                int> = 0>
+  static bool Run(
+      const Parameter& param, const Circuit& circuit,
+      MeasurementFunc measure) {
+    if (circuit.ops.empty()) {
+      return Run(param, std::vector<unsigned>{}, circuit, std::move(measure));
+    }
+    return Run(
+        param, {OpTime(circuit.ops.back())}, circuit, std::move(measure));
+  }
+
+  template <typename Circuit, typename MeasurementFunc,
+            std::enable_if_t<
+                std::is_invocable_v<
+                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
+                int> = 0>
+  static bool Run(
+      const Parameter& param,
+      const std::vector<unsigned>& times_to_measure_at,
+      const Circuit& circuit, MeasurementFunc measure) {
+    StateSpace state_space = Backend::CreateStateSpace(param);
+    State state = state_space.Create(circuit.num_qubits);
+    if (state_space.IsNull(state)) {
+      IO::errorf("not enough memory: is the number of qubits too large?\n");
+      return false;
+    }
+    state_space.SetStateZero(state);
+    QubitLayout layout(circuit.num_qubits);
+    GateBatchRunner runner(param, circuit.num_qubits, state, layout);
+    return runner.SimulateCircuitWithCallback(
+        circuit, times_to_measure_at, state_space, state, measure);
+  }
+
  private:
   // Gate qubit indices have been mapped through QubitLayout to physical bit
   // positions.
@@ -228,16 +269,94 @@ class GateBatchRunner {
     if (!zones_.IsSingleTile() && pending_gates->Size() != 0) {
       FillHotZone(*pending_gates);
     }
-    for (const auto& boundary : pending_gates->MeasurementBoundaries()) {
-      if (!ExecuteGatesUntil(*pending_gates, boundary.gate_end)) return false;
-      if (!Measure(boundary.measurement, measurement_results)) return false;
+    std::size_t boundary_index = 0;
+    if (!ExecuteRemainingOperations(
+            *pending_gates, boundary_index, measurement_results)) {
+      return false;
     }
-    if (!ExecuteGatesUntil(*pending_gates, pending_gates->Size())) return false;
     if (order == QubitOrderOnExit::kRestoreIdentity) {
       RestoreIdentityQubitOrder();
     }
     FinishSimulation(simulation_start);
     return true;
+  }
+
+  template <typename Circuit, typename MeasurementFunc>
+  bool SimulateCircuitWithCallback(
+      const Circuit& circuit,
+      const std::vector<unsigned>& times_to_measure_at,
+      const StateSpace& state_space, State& state, MeasurementFunc& measure) {
+    if (!ValidateParameters() || !backend_.Prepare()) return false;
+
+    auto pending_gates = TimeHostWork(simulation_stats_.prepare_seconds, [&] {
+      return BuildPendingGates(circuit, times_to_measure_at);
+    });
+    if (!pending_gates) return false;
+    simulation_stats_.num_raw_gates = unsigned(pending_gates->Size());
+
+    const auto simulation_start = StartSimulationClock();
+    if (!zones_.IsSingleTile() && pending_gates->Size() != 0) {
+      FillHotZone(*pending_gates);
+    }
+
+    if (!circuit.ops.empty()) {
+      std::vector<MeasurementResult> discarded_results;
+      std::size_t boundary_index = 0;
+      for (std::size_t k = 0; k < times_to_measure_at.size(); ++k) {
+        if (!ExecuteThroughTimeStep(
+                *pending_gates, boundary_index, times_to_measure_at[k],
+                discarded_results)) {
+          return false;
+        }
+        RestoreIdentityQubitOrder();
+        measure(unsigned(k), state_space, state);
+        if (boundary_index == pending_gates->MeasurementBoundaries().size() &&
+            pending_gates->GateEndAtOrBefore(times_to_measure_at[k]) ==
+                pending_gates->Size()) {
+          break;
+        }
+      }
+      if (!ExecuteRemainingOperations(
+              *pending_gates, boundary_index, discarded_results)) {
+        return false;
+      }
+    }
+    FinishSimulation(simulation_start);
+    return true;
+  }
+
+  bool ExecuteThroughTimeStep(
+      PendingGateList& pending_gates, std::size_t& boundary_index,
+      unsigned time_step, std::vector<MeasurementResult>& measurement_results) {
+    const auto& boundaries = pending_gates.MeasurementBoundaries();
+    while (boundary_index < boundaries.size() &&
+           boundaries[boundary_index].measurement.time <= time_step) {
+      if (!ExecuteGatesUntil(
+              pending_gates, boundaries[boundary_index].gate_end) ||
+          !Measure(boundaries[boundary_index].measurement,
+                   measurement_results)) {
+        return false;
+      }
+      ++boundary_index;
+    }
+    return ExecuteGatesUntil(
+        pending_gates, pending_gates.GateEndAtOrBefore(time_step));
+  }
+
+  bool ExecuteRemainingOperations(
+      PendingGateList& pending_gates, std::size_t& boundary_index,
+      std::vector<MeasurementResult>& measurement_results) {
+    const auto& boundaries = pending_gates.MeasurementBoundaries();
+    while (boundary_index < boundaries.size()) {
+      if (!ExecuteGatesUntil(
+              pending_gates, boundaries[boundary_index].gate_end) ||
+          !Measure(boundaries[boundary_index].measurement,
+                   measurement_results)) {
+        return false;
+      }
+      ++boundary_index;
+    }
+    return ExecuteGatesUntil(pending_gates, pending_gates.Size());
   }
 
   bool ValidateParameters() const {
@@ -356,10 +475,12 @@ class GateBatchRunner {
 
   template <typename Circuit>
   static std::optional<PendingGateList> BuildPendingGates(
-      const Circuit& circuit) {
+      const Circuit& circuit,
+      const std::vector<unsigned>& times_to_measure_at = {}) {
     auto pending_gates =
         PendingGateList::FromCircuit(circuit, Backend::kMaxGateQubits,
-                                     Backend::kMaxControlledGateQubits);
+                                     Backend::kMaxControlledGateQubits,
+                                     times_to_measure_at);
     if (!pending_gates) {
       IO::errorf(
           "qsim_gate_batch: supports ordinary gates up to %u targets and "

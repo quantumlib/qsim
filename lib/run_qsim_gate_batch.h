@@ -178,6 +178,12 @@ class CpuGateBatchBackend {
   static constexpr unsigned kDefaultEvictionFloor = 5;
 
   template <typename RunnerParameter>
+  static StateSpace CreateStateSpace(const RunnerParameter& param) {
+    return StateSpace(
+        gate_batch_internal::ClampToPhysicalCores(param.num_threads));
+  }
+
+  template <typename RunnerParameter>
   CpuGateBatchBackend(
       const RunnerParameter& param, unsigned num_qubits, State& state)
       : verbosity_(param.verbosity),
@@ -333,7 +339,35 @@ class QSimGateBatchRunner final
   // Takes a State or a QubitMappedState; see GateBatchRunner::Run. The
   // factory, state_space, and simulator arguments are accepted for QSimRunner
   // compatibility and not used.
-  template <typename Circuit, typename StateOrMappedState>
+  template <typename Circuit, typename MeasurementFunc,
+            std::enable_if_t<
+                std::is_invocable_v<
+                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
+                int> = 0>
+  static bool Run(
+      const Parameter& param, const Factory&, const Circuit& circuit,
+      MeasurementFunc measure) {
+    return Base::Run(param, circuit, std::move(measure));
+  }
+
+  template <typename Circuit, typename MeasurementFunc,
+            std::enable_if_t<
+                std::is_invocable_v<
+                    MeasurementFunc, unsigned, const StateSpace&, const State&>,
+                int> = 0>
+  static bool Run(
+      const Parameter& param, const Factory&,
+      const std::vector<unsigned>& times_to_measure_at,
+      const Circuit& circuit, MeasurementFunc measure) {
+    return Base::Run(
+        param, times_to_measure_at, circuit, std::move(measure));
+  }
+
+  template <typename Circuit, typename StateOrMappedState,
+            std::enable_if_t<
+                std::is_same_v<StateOrMappedState, State> ||
+                    std::is_same_v<StateOrMappedState, QubitMappedState>,
+                int> = 0>
   static bool Run(
       const Parameter& param, const Factory&, const Circuit& circuit,
       StateOrMappedState& state) {
