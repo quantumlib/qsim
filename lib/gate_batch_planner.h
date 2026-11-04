@@ -138,6 +138,79 @@ struct MeasurementBoundary {
   Measurement measurement;
 };
 
+// True if sorted contains any item in [low, high].
+inline bool HasItemInRange(
+    const std::vector<unsigned>& sorted, unsigned low, unsigned high) {
+  const auto it = std::lower_bound(sorted.begin(), sorted.end(), low);
+  return it != sorted.end() && *it <= high;
+}
+
+inline bool RecordQubitTimeSteps(
+    const Qubits& qubits, unsigned time_step,
+    std::vector<std::optional<unsigned>>& last_time_steps) {
+  for (unsigned q : qubits) {
+    if (q >= last_time_steps.size()) return false;
+    if (last_time_steps[q] && time_step <= *last_time_steps[q]) return false;
+    last_time_steps[q] = time_step;
+  }
+  return true;
+}
+
+template <typename FP, typename Operation>
+bool RecordOpQubitTimeSteps(
+    const Operation& operation, unsigned time_step,
+    std::vector<std::optional<unsigned>>& last_time_steps) {
+  if (!RecordQubitTimeSteps(OpQubits(operation), time_step, last_time_steps)) {
+    return false;
+  }
+  if (const auto* controlled =
+          OpGetAlternative<ControlledGate<FP>>(operation)) {
+    return RecordQubitTimeSteps(
+        controlled->controlled_by, time_step, last_time_steps);
+  }
+  return true;
+}
+
+template <typename FP, typename Circuit>
+bool ValidateCircuitTimeSteps(
+    const Circuit& circuit,
+    const std::vector<unsigned>& times_to_measure_at = {}) {
+  // Caller-supplied callback timesteps must be non-decreasing for binary
+  // search and forward execution.
+  if (!std::is_sorted(times_to_measure_at.begin(), times_to_measure_at.end())) {
+    return false;
+  }
+  std::vector<std::optional<unsigned>> last_time_steps(circuit.num_qubits);
+  unsigned max_time_step = 0;
+  unsigned min_time_step = 0;
+
+  for (const auto& operation : circuit.ops) {
+    const auto time_step = OpTime(operation);
+    // Each qubit's operations must be in bounds, distinct within the op, and
+    // strictly increasing in time (including control qubits).
+    if (!RecordOpQubitTimeSteps<FP>(operation, time_step, last_time_steps)) {
+      return false;
+    }
+
+    // Disjoint qubits may step backward in time, except across a prior
+    // measurement or a times_to_measure_at callback window.
+    if (time_step < min_time_step) return false;
+    if (time_step < max_time_step &&
+        HasItemInRange(times_to_measure_at, time_step, max_time_step)) {
+      return false;
+    }
+    // Measurements must be non-empty and cannot precede any earlier op.
+    if (const auto* measurement = OpGetAlternative<Measurement>(operation)) {
+      if (measurement->qubits.empty() || time_step < max_time_step) {
+        return false;
+      }
+      min_time_step = time_step;
+    }
+    max_time_step = std::max(max_time_step, time_step);
+  }
+  return true;
+}
+
 // The circuit's gates in timestep order, each marked applied once it has run.
 // The list never changes after FromCircuit. All gate pointers refer to the
 // caller's circuit, which must outlive this list.
@@ -161,33 +234,16 @@ class PendingGateList {
       const std::vector<unsigned>& times_to_measure_at = {}) {
     PendingGateList list;
     list.gates_.reserve(circuit.ops.size());
-    if (!ValidateCircuitTimeSteps(circuit, times_to_measure_at)) {
+    if (!ValidateCircuitTimeSteps<FP>(circuit, times_to_measure_at)) {
       return std::nullopt;
     }
 
     for (const auto& operation : circuit.ops) {
-      if (OpGetAlternative<Measurement>(operation)) continue;
-
-      const auto* controlled = OpGetAlternative<ControlledGate<FP>>(operation);
-      const Gate<FP>* gate = OpGetAlternative<Gate<FP>>(operation);
-      if (controlled != nullptr) {
-        if (controlled->qubits.size() > max_controlled_gate_qubits) {
-          return std::nullopt;
-        }
-        list.gates_.emplace_back(*controlled, list.gates_.size());
-        continue;
-      }
-      if (gate == nullptr || gate->qubits.size() > max_gate_qubits) {
+      if (!list.AddOp(operation, max_gate_qubits, max_controlled_gate_qubits)) {
         return std::nullopt;
       }
-      list.gates_.emplace_back(*gate, list.gates_.size());
     }
     list.OrderGatesByTimeStep();
-    list.BuildMeasurementBoundaries(circuit);
-    for (const auto& gate : list.gates_) {
-      list.max_target_qubits_ = std::max(
-          list.max_target_qubits_, unsigned(gate.TargetQubits().size()));
-    }
     list.gate_end_ = list.gates_.size();
     list.applied_.assign(list.gates_.size(), 0);
     return list;
@@ -235,53 +291,44 @@ class PendingGateList {
   }
 
  private:
-  template <typename Circuit>
-  static bool ValidateCircuitTimeSteps(
-      const Circuit& circuit,
-      const std::vector<unsigned>& times_to_measure_at = {}) {
-    if (!std::is_sorted(
-            times_to_measure_at.begin(), times_to_measure_at.end())) {
-      return false;
+  template <typename Operation>
+  bool AddOp(
+      const Operation& operation, unsigned max_gate_qubits,
+      unsigned max_controlled_gate_qubits) {
+    if (const auto* measurement = OpGetAlternative<Measurement>(operation)) {
+      return AddOp(*measurement);
     }
-    std::vector<std::optional<unsigned>> last_time_steps(circuit.num_qubits);
-    unsigned max_time_step = 0;
-    unsigned min_time_step = 0;
+    if (const auto* controlled =
+            OpGetAlternative<ControlledGate<FP>>(operation)) {
+      return AddOp(*controlled, max_controlled_gate_qubits);
+    }
+    if (const auto* gate = OpGetAlternative<Gate<FP>>(operation)) {
+      return AddOp(*gate, max_gate_qubits);
+    }
+    return false;
+  }
 
-    for (const auto& operation : circuit.ops) {
-      const auto time_step = OpTime(operation);
-      if (!RecordQubitTimeSteps(
-              OpQubits(operation), time_step, last_time_steps)) {
-        return false;
-      }
-      if (const auto* controlled =
-              OpGetAlternative<ControlledGate<FP>>(operation)) {
-        if (!RecordQubitTimeSteps(
-                controlled->controlled_by, time_step, last_time_steps)) {
-          return false;
-        }
-      }
-
-      if (time_step < min_time_step) return false;
-      if (time_step < max_time_step &&
-          HasBoundaryInRange(times_to_measure_at, time_step, max_time_step)) {
-        return false;
-      }
-      if (const auto* measurement = OpGetAlternative<Measurement>(operation)) {
-        if (measurement->qubits.empty() || time_step < max_time_step) {
-          return false;
-        }
-        min_time_step = time_step;
-      }
-      max_time_step = std::max(max_time_step, time_step);
+  // Validation guarantees measurements arrive in timestep order. Preserve
+  // their qubit order when combining measurements at the same timestep.
+  bool AddOp(const Measurement& measurement) {
+    if (measurement_boundaries_.empty() ||
+        measurement_boundaries_.back().measurement.time != measurement.time) {
+      measurement_boundaries_.push_back({0, measurement});
+    } else {
+      auto& qubits = measurement_boundaries_.back().measurement.qubits;
+      qubits.insert(
+          qubits.end(), measurement.qubits.begin(), measurement.qubits.end());
     }
     return true;
   }
 
-  static bool HasBoundaryInRange(
-      const std::vector<unsigned>& sorted_times, unsigned low, unsigned high) {
-    const auto it =
-        std::lower_bound(sorted_times.begin(), sorted_times.end(), low);
-    return it != sorted_times.end() && *it <= high;
+  template <typename GateType>
+  bool AddOp(const GateType& gate, unsigned max_qubits) {
+    if (gate.qubits.size() > max_qubits) return false;
+    gates_.emplace_back(gate, gates_.size());
+    max_target_qubits_ =
+        std::max(max_target_qubits_, unsigned(gate.qubits.size()));
+    return true;
   }
 
   void OrderGatesByTimeStep() {
@@ -290,45 +337,11 @@ class PendingGateList {
           return a.gate->time < b.gate->time;
         });
     for (std::size_t i = 0; i < gates_.size(); ++i) gates_[i].index = i;
-  }
-
-  // Validation guarantees measurements arrive in timestep order. Preserve
-  // their qubit order when combining measurements at the same timestep.
-  template <typename Circuit>
-  void BuildMeasurementBoundaries(const Circuit& circuit) {
-    for (const auto& operation : circuit.ops) {
-      const auto* measurement = OpGetAlternative<Measurement>(operation);
-      if (measurement == nullptr) continue;
-
-      if (measurement_boundaries_.empty() ||
-          measurement_boundaries_.back().measurement.time !=
-              measurement->time) {
-        measurement_boundaries_.push_back({0, *measurement});
-      } else {
-        auto& qubits = measurement_boundaries_.back().measurement.qubits;
-        qubits.insert(
-            qubits.end(), measurement->qubits.begin(),
-            measurement->qubits.end());
-      }
-    }
-
     // Each boundary follows all gates in its timestep, including disjoint
-    // gates originally listed after a measurement. Later timesteps stay
-    // pending.
+    // gates originally listed after a measurement.
     for (auto& boundary : measurement_boundaries_) {
       boundary.gate_end = GateEndAtOrBefore(boundary.measurement.time);
     }
-  }
-
-  static bool RecordQubitTimeSteps(
-      const qsim::Qubits& qubits, unsigned time_step,
-      std::vector<std::optional<unsigned>>& last_time_steps) {
-    for (unsigned q : qubits) {
-      if (q >= last_time_steps.size()) return false;
-      if (last_time_steps[q] && time_step <= *last_time_steps[q]) return false;
-      last_time_steps[q] = time_step;
-    }
-    return true;
   }
 
   const PendingGate* PendingAtOrAfter(std::size_t index) const {
@@ -440,36 +453,36 @@ class GateBatchPlanner {
     unsigned num_slots_used_ = 0;
   };
 
-  // What the gates deferred so far in a candidate batch block, per logical
-  // qubit. A later gate may not move past a deferred gate on a shared qubit,
-  // except that two diagonal gates may swap order.
+  // Per-qubit summary of gates deferred so far in a candidate batch. A later
+  // gate may not move past a deferred gate on a shared qubit, except that two
+  // diagonal gates may swap order.
   class DeferredGates {
    public:
     explicit DeferredGates(unsigned num_qubits)
-        : blocks_(num_qubits, Level::kNone) {}
+        : qubit_state_(num_qubits, State::kNone) {}
 
     // Whether the gate may run before every gate deferred so far.
     bool CanRunAhead(const PendingGate<FP>& gate) const {
-      const auto blocking =
-          gate.is_diagonal ? Level::kAll : Level::kNonDiagonal;
+      const auto max_allowed =
+          gate.is_diagonal ? State::kDiagonalOnly : State::kNone;
       for (unsigned q : gate.Qubits()) {
-        if (blocks_[q] >= blocking) return false;
+        if (qubit_state_[q] > max_allowed) return false;
       }
       return true;
     }
 
     void Add(const PendingGate<FP>& gate) {
-      const auto level = gate.is_diagonal ? Level::kNonDiagonal : Level::kAll;
+      const auto state =
+          gate.is_diagonal ? State::kDiagonalOnly : State::kNonDiagonal;
       for (unsigned q : gate.Qubits()) {
-        blocks_[q] = std::max(blocks_[q], level);
+        qubit_state_[q] = std::max(qubit_state_[q], state);
       }
     }
 
    private:
-    // Which later gates a qubit blocks; each level includes the one below.
-    enum class Level : char { kNone, kNonDiagonal, kAll };
+    enum class State : char { kNone, kDiagonalOnly, kNonDiagonal };
 
-    std::vector<Level> blocks_;
+    std::vector<State> qubit_state_;
   };
 
   GateBatchPlan BuildCandidatePlan(RemapSlotSet& slots) const {

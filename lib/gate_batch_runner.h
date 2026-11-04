@@ -114,18 +114,14 @@ class GateBatchRunner {
       std::is_same_v<fp_type, float>,
       "GateBatchRunner requires a float state space.");
 
+ private:
   template <typename MeasurementFunc>
   using EnableIfMeasurementFunc = std::enable_if_t<
       std::is_invocable_v<
           MeasurementFunc, unsigned, const StateSpace&, const State&>,
       int>;
 
-  template <typename StateOrMappedState>
-  using EnableIfState = std::enable_if_t<
-      std::is_same_v<StateOrMappedState, State> ||
-          std::is_same_v<StateOrMappedState, QubitMappedState>,
-      int>;
-
+ public:
   struct Parameter : public Fuser::Parameter, public Backend::Parameter {
     Parameter() {
       if constexpr (gate_batch_internal::HasMaxFusedSize<

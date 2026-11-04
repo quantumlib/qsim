@@ -23,6 +23,8 @@
 #include <fstream>
 #include <optional>
 #include <thread>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -337,6 +339,10 @@ class QSimGateBatchRunner final
   using Base =
       GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>, RGen>;
 
+  template <typename T>
+  using EnableIfFactory =
+      std::enable_if_t<std::is_same_v<std::decay_t<T>, Factory>, int>;
+
  public:
   using Simulator = typename Factory::Simulator;
   using typename Base::MeasurementResult;
@@ -349,52 +355,30 @@ class QSimGateBatchRunner final
   // Takes a State or a QubitMappedState; see GateBatchRunner::Run. The
   // factory, state_space, and simulator arguments are accepted for QSimRunner
   // compatibility and not used.
-  template <typename Circuit, typename MeasurementFunc,
-            typename Base::template EnableIfMeasurementFunc<MeasurementFunc> = 0>
-  static bool Run(
-      const Parameter& param, const Factory&, const Circuit& circuit,
-      MeasurementFunc measure) {
-    return Base::Run(param, circuit, std::move(measure));
+  template <
+      typename FactoryArg, typename... Args, EnableIfFactory<FactoryArg> = 0>
+  static auto Run(const Parameter& param, FactoryArg&&, Args&&... args)
+      -> decltype(Base::Run(param, std::forward<Args>(args)...)) {
+    return Base::Run(param, std::forward<Args>(args)...);
   }
 
-  template <typename Circuit, typename MeasurementFunc,
-            typename Base::template EnableIfMeasurementFunc<MeasurementFunc> = 0>
-  static bool Run(
+  // Explicit vector parameter allows braced-init-list `times_to_measure_at`.
+  template <typename Circuit, typename MeasurementFunc>
+  static auto Run(
       const Parameter& param, const Factory&,
-      const std::vector<unsigned>& times_to_measure_at,
-      const Circuit& circuit, MeasurementFunc measure) {
-    return Base::Run(
-        param, times_to_measure_at, circuit, std::move(measure));
+      const std::vector<unsigned>& times_to_measure_at, const Circuit& circuit,
+      MeasurementFunc measure)
+      -> decltype(Base::Run(
+          param, times_to_measure_at, circuit, std::move(measure))) {
+    return Base::Run(param, times_to_measure_at, circuit, std::move(measure));
   }
 
-  template <typename Circuit, typename StateOrMappedState,
-            typename Base::template EnableIfState<StateOrMappedState> = 0>
-  static bool Run(
-      const Parameter& param, const Factory&, const Circuit& circuit,
-      StateOrMappedState& state) {
-    return Base::Run(param, circuit, state);
-  }
-
-  template <typename Circuit, typename StateOrMappedState>
-  static bool Run(const Parameter& param, const Factory&, const Circuit& circuit,
-                  StateOrMappedState& state,
-                  std::vector<MeasurementResult>& measurement_results) {
-    return Base::Run(param, circuit, state, measurement_results);
-  }
-
-  template <typename Circuit, typename StateOrMappedState>
-  static bool Run(const Parameter& param, const Circuit& circuit,
-                  const StateSpace&, const Simulator&,
-                  StateOrMappedState& state) {
-    return Base::Run(param, circuit, state);
-  }
-
-  template <typename Circuit, typename StateOrMappedState>
-  static bool Run(const Parameter& param, const Circuit& circuit,
-                  const StateSpace&, const Simulator&,
-                  StateOrMappedState& state,
-                  std::vector<MeasurementResult>& measurement_results) {
-    return Base::Run(param, circuit, state, measurement_results);
+  template <typename Circuit, typename... Args>
+  static auto Run(
+      const Parameter& param, const Circuit& circuit, const StateSpace&,
+      const Simulator&, Args&&... args)
+      -> decltype(Base::Run(param, circuit, std::forward<Args>(args)...)) {
+    return Base::Run(param, circuit, std::forward<Args>(args)...);
   }
 };
 
