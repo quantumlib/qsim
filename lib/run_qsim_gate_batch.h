@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <fstream>
 #include <optional>
+#include <random>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -36,8 +37,9 @@
 #endif
 
 #include "gate_batch_runner.h"
+#include "operation_base.h"
+#include "qubit_layout.h"
 #include "qubit_swap.h"
-#include "util.h"
 
 namespace qsim {
 

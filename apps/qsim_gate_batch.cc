@@ -14,19 +14,23 @@
 
 // Benchmark application for the gate-batch runner.
 
+#include <algorithm>
+#include <complex>
+#include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <optional>
 #include <string>
 #include <unistd.h>
-#include <utility>
-#include <vector>
 
+#include "../lib/circuit.h"
 #include "../lib/circuit_qsim_parser.h"
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
-#include "../lib/gates_qsim.h"
+#include "../lib/io.h"
 #include "../lib/io_file.h"
 #include "../lib/operation.h"
+#include "../lib/qubit_layout.h"
 #include "../lib/run_qsim_gate_batch.h"
 #include "../lib/simmux.h"
 #include "../lib/util_cpu.h"
