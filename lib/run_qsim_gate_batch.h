@@ -1,0 +1,385 @@
+// Copyright 2026 Google LLC. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// CPU backend and entry point for the gate-batched runner.
+
+#ifndef RUN_QSIM_GATE_BATCH_H_
+#define RUN_QSIM_GATE_BATCH_H_
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <fstream>
+#include <optional>
+#include <random>
+#include <thread>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <unistd.h>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include "gate_batch_runner.h"
+#include "operation_base.h"
+#include "qubit_layout.h"
+#include "qubit_swap.h"
+
+namespace qsim {
+
+namespace gate_batch_internal {
+
+#ifdef _OPENMP
+inline constexpr bool kHasOpenMP = true;
+inline unsigned ParallelThreadCount() { return omp_get_num_threads(); }
+inline unsigned ParallelThreadId() { return omp_get_thread_num(); }
+#else
+inline constexpr bool kHasOpenMP = false;
+inline unsigned ParallelThreadCount() { return 1; }
+inline unsigned ParallelThreadId() { return 0; }
+#endif
+
+inline unsigned OnlineProcessors() {
+#if defined(_SC_NPROCESSORS_ONLN)
+  const long count = sysconf(_SC_NPROCESSORS_ONLN);
+  if (count > 0) return static_cast<unsigned>(count);
+#endif
+  return std::max(1u, std::thread::hardware_concurrency());
+}
+
+// Running two SMT threads on the same physical core across independent tiles
+// doubles the per-core working set and causes L2 cache thrashing. Clamp the
+// active worker count to the physical core count when SMT is enabled.
+inline unsigned ClampToPhysicalCores(unsigned num_threads) {
+  if (num_threads <= 1) return num_threads;
+  unsigned smt = 0;
+  std::ifstream("/sys/devices/system/cpu/smt/active") >> smt;
+  const unsigned phy_core_cnt = std::max(1u, OnlineProcessors() >> (smt != 0));
+  return std::min(num_threads, phy_core_cnt);
+}
+
+template <typename StateSpace>
+struct TilePartition {
+  TilePartition(
+      unsigned state_qubits, std::optional<unsigned> requested_tile_qubits,
+      unsigned num_threads, unsigned default_tile_qubits)
+      : num_state_qubits(state_qubits),
+        tile_qubits(ChooseTileQubits(
+            state_qubits, requested_tile_qubits, num_threads,
+            default_tile_qubits)),
+        floats_per_tile(StateSpace::MinSize(tile_qubits)),
+        num_tiles(int64_t{1} << (state_qubits - tile_qubits)) {}
+
+  // A requested size is used as given. Otherwise the state is split into
+  // default-size tiles only if there are at least as many tiles as threads:
+  // each tile runs on one thread, whereas a single tile is shared by all
+  // threads.
+  static unsigned ChooseTileQubits(
+      unsigned state_qubits, std::optional<unsigned> requested_tile_qubits,
+      unsigned num_threads, unsigned default_tile_qubits) {
+    if (requested_tile_qubits) {
+      return std::min(*requested_tile_qubits, state_qubits);
+    }
+    if (state_qubits <= default_tile_qubits) return state_qubits;
+
+    const auto num_default_tiles = uint64_t{1}
+                                   << (state_qubits - default_tile_qubits);
+    return num_default_tiles < num_threads ? state_qubits : default_tile_qubits;
+  }
+
+  unsigned num_state_qubits;
+  unsigned tile_qubits;
+  uint64_t floats_per_tile;
+  int64_t num_tiles;
+};
+
+// Loop policy injected into Factory::Simulator via ReplaceFor so the backend
+// controls OpenMP threading outside ApplyGate instead of spawning a parallel
+// region per gate:
+//   - Multi-tile: an outer `omp parallel for` assigns whole tiles to threads,
+//     each configured with Configure(1, 0).
+//   - Single-tile: one `omp parallel` region spans the whole batch, with each
+//     worker configured via Configure(num_threads, thread_id) and synced by a
+//     lightweight `omp barrier` between gates.
+struct TileFor {
+  explicit TileFor(unsigned num_threads) { (void)num_threads; }
+
+  static void Configure(unsigned num_threads, unsigned thread_id) {
+    num_threads_ = num_threads;
+    thread_id_ = thread_id;
+  }
+
+  template <typename Function, typename... Args>
+  static void Run(uint64_t size, Function&& func, Args&&... args) {
+    const auto num_threads = num_threads_;
+    if (num_threads <= 1) {
+      for (uint64_t i = 0; i < size; ++i) {
+        func(1, 0, i, args...);
+      }
+      return;
+    }
+    const auto thread_id = thread_id_;
+    const auto begin = size * thread_id / num_threads;
+    const auto end = size * (thread_id + 1) / num_threads;
+    for (uint64_t i = begin; i < end; ++i) {
+      func(num_threads, thread_id, i, args...);
+    }
+  }
+
+ private:
+  inline static thread_local unsigned num_threads_ = 1;
+  inline static thread_local unsigned thread_id_ = 0;
+};
+
+template <typename Simulator, typename NewFor>
+struct ReplaceFor;
+
+template <
+    template <typename...> class SimulatorT, typename For, typename NewFor,
+    typename... Rest>
+struct ReplaceFor<SimulatorT<For, Rest...>, NewFor> {
+  using type = SimulatorT<NewFor, Rest...>;
+};
+
+}  // namespace gate_batch_internal
+
+template <typename IO, typename Factory>
+class CpuGateBatchBackend {
+ public:
+  using StateSpace = typename Factory::StateSpace;
+  using State = typename StateSpace::State;
+  using fp_type = typename StateSpace::fp_type;
+  using TileSimulator = typename gate_batch_internal::ReplaceFor<
+      typename Factory::Simulator, gate_batch_internal::TileFor>::type;
+  using TileStateSpace = typename TileSimulator::StateSpace;
+  using ExecutableGate = gate_batch_internal::ExecutableGate<fp_type>;
+
+  struct Parameter {
+    unsigned num_threads = 1;
+  };
+
+  static constexpr unsigned kDefaultTileQubits = 18;
+  static constexpr unsigned kMaxGateQubits = 6;
+  // Common controlled-target limit across CPU simulators.
+  static constexpr unsigned kMaxControlledGateQubits = 4;
+  // Floor of 5 balances remap budget against swap-pass span length.
+  static constexpr unsigned kDefaultEvictionFloor = 5;
+
+  template <typename RunnerParameter>
+  static StateSpace CreateStateSpace(const RunnerParameter& param) {
+    return StateSpace(
+        gate_batch_internal::ClampToPhysicalCores(param.num_threads));
+  }
+
+  template <typename RunnerParameter>
+  CpuGateBatchBackend(
+      const RunnerParameter& param, unsigned num_qubits, State& state)
+      : verbosity_(param.verbosity),
+        active_threads_(
+            gate_batch_internal::ClampToPhysicalCores(param.num_threads)),
+        min_tile_qubits_(
+            std::min(MinTileQubits(MaxFusedSize(param)), num_qubits)),
+        partition_(
+            num_qubits, param.tile_qubits, active_threads_, kDefaultTileQubits),
+        state_data_(state.get()),
+        tile_sim_(1) {}
+
+  unsigned TileQubits() const { return partition_.tile_qubits; }
+
+  // SIMD lanes are never remapped to preserve lane-group layout.
+  unsigned LaneQubits() const { return kLaneQubits; }
+
+  bool Prepare() {
+    if (active_threads_ == 0) {
+      IO::errorf("qsim_gate_batch: num_threads must be at least 1.\n");
+      return false;
+    }
+    if (partition_.tile_qubits < min_tile_qubits_) {
+      IO::errorf(
+          "qsim_gate_batch: tile_qubits must be at least %u (SIMD lane "
+          "qubits plus max_fused_size).\n",
+          min_tile_qubits_);
+      return false;
+    }
+    LogTileSize();
+    return true;
+  }
+
+  void ApplySwaps(const std::vector<PositionSwap>& swaps) {
+    ApplyBitPairSwaps(
+        state_data_, partition_.num_state_qubits, kLaneQubits, swaps,
+        active_threads_);
+  }
+
+  void ExecuteBatch(const std::vector<ExecutableGate>& gates) const {
+    if (partition_.num_tiles == 1) {
+      ExecuteSingleTileBatch(gates);
+    } else {
+      ExecuteIndependentTiles(gates);
+    }
+  }
+
+  template <typename RGen>
+  typename StateSpace::MeasurementResult Measure(
+      const Qubits& physical_qubits, RGen& rgen) const {
+    auto full_view = StateSpace::Create(state_data_, partition_.num_state_qubits);
+    StateSpace state_space(active_threads_);
+    return state_space.Measure(physical_qubits, rgen, full_view);
+  }
+
+  void Synchronize() const {}
+
+ private:
+  using TilePartition = gate_batch_internal::TilePartition<StateSpace>;
+
+  static inline const unsigned kLaneQubits =
+      std::log2(StateSpace::MinSize(0) / 2);
+
+  template <typename RunnerParameter>
+  static unsigned MaxFusedSize(const RunnerParameter& param) {
+    if constexpr (gate_batch_internal::HasMaxFusedSize<RunnerParameter>::value) {
+      return param.max_fused_size;
+    } else {
+      return 2;
+    }
+  }
+
+  static unsigned MinTileQubits(unsigned max_fused_size) {
+    return kLaneQubits + max_fused_size;
+  }
+
+  // External controls are constant throughout a tile. Internal controls are
+  // handled by the simulator without expanding the target matrix.
+  void ExecuteGate(const ExecutableGate& gate, uint64_t tile,
+                   typename TileStateSpace::State& view) const {
+    if ((tile & gate.tile_control_mask) != gate.tile_control_values) return;
+    if (gate.controls.empty()) {
+      tile_sim_.ApplyGate(gate.qubits, gate.matrix.data(), view);
+    } else {
+      tile_sim_.ApplyControlledGate(gate.qubits, gate.controls,
+                                   gate.control_values, gate.matrix.data(), view);
+    }
+  }
+
+  void ExecuteGatesOnTile(
+      const std::vector<ExecutableGate>& gates, int64_t tile) const {
+    gate_batch_internal::TileFor::Configure(1, 0);
+    auto* tile_data = state_data_ + tile * partition_.floats_per_tile;
+    auto tile_view = TileStateSpace::Create(tile_data, partition_.tile_qubits);
+    const auto tile_bits = static_cast<uint64_t>(tile);
+
+    for (const ExecutableGate& gate : gates) {
+      ExecuteGate(gate, tile_bits, tile_view);
+    }
+  }
+
+  void ExecuteSingleTileBatch(const std::vector<ExecutableGate>& gates) const {
+    constexpr unsigned kMinParallelQubits = 14;
+    if (!gate_batch_internal::kHasOpenMP || active_threads_ <= 1 ||
+        partition_.tile_qubits < kMinParallelQubits) {
+      ExecuteGatesOnTile(gates, 0);
+      return;
+    }
+
+#pragma omp parallel num_threads(active_threads_)
+    {
+      gate_batch_internal::TileFor::Configure(
+          gate_batch_internal::ParallelThreadCount(),
+          gate_batch_internal::ParallelThreadId());
+      auto full_view =
+          TileStateSpace::Create(state_data_, partition_.tile_qubits);
+      for (const ExecutableGate& gate : gates) {
+        ExecuteGate(gate, 0, full_view);
+#pragma omp barrier
+      }
+    }
+  }
+
+  void ExecuteIndependentTiles(const std::vector<ExecutableGate>& gates) const {
+#pragma omp parallel for schedule(dynamic, 1) num_threads(active_threads_)
+    for (int64_t tile = 0; tile < partition_.num_tiles; ++tile) {
+      ExecuteGatesOnTile(gates, tile);
+    }
+  }
+
+  void LogTileSize() const {
+    if (verbosity_ <= 1) return;
+    IO::messagef(
+        "tile size: L=%u, %lld tiles for %u threads.\n", partition_.tile_qubits,
+        static_cast<long long>(partition_.num_tiles), active_threads_);
+  }
+
+  const unsigned verbosity_;
+  const unsigned active_threads_;
+  const unsigned min_tile_qubits_;
+  const TilePartition partition_;
+  fp_type* const state_data_;
+  TileSimulator tile_sim_;
+};
+
+template <typename IO, typename Fuser, typename Factory,
+          typename RGen = std::mt19937>
+class QSimGateBatchRunner final
+    : public GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>,
+                             RGen> {
+  using Base =
+      GateBatchRunner<IO, Fuser, CpuGateBatchBackend<IO, Factory>, RGen>;
+
+  template <typename T>
+  using EnableIfFactory =
+      std::enable_if_t<std::is_same_v<std::decay_t<T>, Factory>, int>;
+
+ public:
+  using Simulator = typename Factory::Simulator;
+  using typename Base::MeasurementResult;
+  using typename Base::Parameter;
+  using typename Base::QubitMappedState;
+  using typename Base::State;
+  using typename Base::StateSpace;
+  using Base::Run;
+
+  // Takes a State or a QubitMappedState; see GateBatchRunner::Run. The
+  // factory, state_space, and simulator arguments are accepted for QSimRunner
+  // compatibility and not used.
+  template <
+      typename FactoryArg, typename... Args, EnableIfFactory<FactoryArg> = 0>
+  static bool Run(const Parameter& param, FactoryArg&&, Args&&... args) {
+    return Base::Run(param, std::forward<Args>(args)...);
+  }
+
+  // Explicit vector parameter allows braced-init-list `times_to_measure_at`.
+  template <typename Circuit, typename MeasurementFunc>
+  static bool Run(
+      const Parameter& param, const Factory&,
+      const std::vector<unsigned>& times_to_measure_at, const Circuit& circuit,
+      MeasurementFunc measure) {
+    return Base::Run(param, times_to_measure_at, circuit, std::move(measure));
+  }
+
+  template <typename Circuit, typename... Args>
+  static bool Run(
+      const Parameter& param, const Circuit& circuit, const StateSpace&,
+      const Simulator&, Args&&... args) {
+    return Base::Run(param, circuit, std::forward<Args>(args)...);
+  }
+};
+
+}  // namespace qsim
+
+#endif  // RUN_QSIM_GATE_BATCH_H_
