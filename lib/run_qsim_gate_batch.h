@@ -357,27 +357,23 @@ class QSimGateBatchRunner final
   // compatibility and not used.
   template <
       typename FactoryArg, typename... Args, EnableIfFactory<FactoryArg> = 0>
-  static auto Run(const Parameter& param, FactoryArg&&, Args&&... args)
-      -> decltype(Base::Run(param, std::forward<Args>(args)...)) {
+  static bool Run(const Parameter& param, FactoryArg&&, Args&&... args) {
     return Base::Run(param, std::forward<Args>(args)...);
   }
 
   // Explicit vector parameter allows braced-init-list `times_to_measure_at`.
   template <typename Circuit, typename MeasurementFunc>
-  static auto Run(
+  static bool Run(
       const Parameter& param, const Factory&,
       const std::vector<unsigned>& times_to_measure_at, const Circuit& circuit,
-      MeasurementFunc measure)
-      -> decltype(Base::Run(
-          param, times_to_measure_at, circuit, std::move(measure))) {
+      MeasurementFunc measure) {
     return Base::Run(param, times_to_measure_at, circuit, std::move(measure));
   }
 
   template <typename Circuit, typename... Args>
-  static auto Run(
+  static bool Run(
       const Parameter& param, const Circuit& circuit, const StateSpace&,
-      const Simulator&, Args&&... args)
-      -> decltype(Base::Run(param, circuit, std::forward<Args>(args)...)) {
+      const Simulator&, Args&&... args) {
     return Base::Run(param, circuit, std::forward<Args>(args)...);
   }
 };
