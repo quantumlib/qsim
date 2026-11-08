@@ -1,0 +1,68 @@
+name: CUDA tests (simulated H100)
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# the qsim CUDA unit tests and runs them on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "lib/**"
+      - "tests/**"
+      - "Makefile"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cuda-sim:
+    name: CUDA 13.0, simulated H100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      # The simulator runs PTX only (compute_90) and needs a shared CUDA
+      # runtime. The cuStateVec tests (*custatevec*_test.cu) are not built:
+      # they need cuQuantum, and the `cuda-tests` target only picks up
+      # *cuda_test.cu.
+      - name: Build CUDA tests
+        run: |
+          make -C tests -j3 cuda-tests \
+            NVCC=/usr/local/cuda-13.0/bin/nvcc \
+            NVCCFLAGS="-std c++17 -O3 -arch=compute_90 -cudart shared -Wno-deprecated-gpu-targets"
+
+      # SimulatorCUDATest.GlobalPhaseGate is skipped. For a gate on no qubits
+      # and a state of at most 5 qubits, ApplyGateH_Kernel<0> launches one
+      # 64-thread block, but the second warp reads (and writes) the 32
+      # amplitudes after the end of the 256-byte state allocation. Real GPUs
+      # do not notice, because cudaMalloc rounds the size up; the simulator
+      # reports the out-of-bounds access.
+      - name: Run CUDA tests
+        working-directory: tests
+        run: |
+          for t in statespace simulator hybrid qtrajectory; do
+            filter='*'
+            if [ "$t" = simulator ]; then filter='-*GlobalPhaseGate*'; fi
+            echo "::group::${t}_cuda_test"
+            vgpu run ./${t}_cuda_test.x --gtest_filter="$filter"
+            echo "::endgroup::"
+          done
