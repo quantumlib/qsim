@@ -15,7 +15,7 @@ instance heading, ensure that your VM has the following properties:
     1. Select the tab for the **Compute Optimized** machine family.
     2. In the machine **Series** option, choose **C2**.
     3. In the **Machine type** option, choose **c2-standard-16**. This option
-       gives you 16 virtual CPUS and 64GB of RAM.
+       gives you 16 virtual CPUs and 64GB of RAM.
        Note: This choice is for demonstration purposes only. For a live
        experiment, see [Choosing hardware for your qsim
        simulation](/qsim/choose_hw).
@@ -73,7 +73,7 @@ machine to your virtual machine.
     before your Docker command. For more information about running Docker, see the
     [`docker run` command reference](https://docs.docker.com/engine/reference/run/#general-form).
 
-2.  Verify the output from Docker when as it downloads and starts the container.
+2.  Verify the output from Docker as it downloads and starts the container.
     The last few lines should be similar to the following output:
 
     ```
@@ -107,13 +107,12 @@ and run your code.
       1.  Open the
           [Get Started with qsimcirq notebook](https://quantumai.google/qsim/tutorials/qsimcirq).
       2.  Click the **Connect** drop-down menu.
-          the Connect button to open the menu.
       3.  Choose the **Connect to a local runtime** option to open the Local
           connection settings window.
           <img src="../images/colab_connect.png" alt="Google Colab Connect to Local Runtime button" style="width: 62%" class="screenshot">
       4.  In the **Backend URL** text field, paste the URL that you saved in
           [task 3](#3_start_the_qsim_docker_container_on_your_virtual_machine).
-      5.  Change the part of your URL that read `127.0.0.1` to `localhost`.
+      5.  Change the part of your URL that reads `127.0.0.1` to `localhost`.
           <img src="../images/colab_remote.png" alt="Google Colab Local Runtime connection window" style="width: 62%" class="screenshot">
       6.  Click the **Connect** button in the Local connection settings window.
 
@@ -147,7 +146,7 @@ and run your code.
 
       For this scenario, you can connect to your machine directly over SSH
       rather than create a tunnel. In [task 2, step 3](#2_prepare_your_computer)
-      above, remove the second half of the command.  Instead of this command:
+      above, remove the second half of the command. Instead of this command:
 
       ```
       gcloud compute ssh [YOUR_INSTANCE_NAME] -- -L 8888:localhost:8888
@@ -200,7 +199,7 @@ and run your code.
       q0, q1 = cirq.LineQubit.range(2)
       circuit = cirq.Circuit(cirq.H(q0), cirq.CX(q0, q1))
 
-      # Instantiate a simulator that uses the GPU
+      # Instantiate a simulator
       qsim_simulator = qsimcirq.QSimSimulator()
 
       # Run the simulation

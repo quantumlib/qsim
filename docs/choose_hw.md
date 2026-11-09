@@ -32,8 +32,8 @@ simulation locally in the following cases:
 *   Noisy simulations that use fewer than 18 qubits.
 
 If you intend to simulate a circuit many times, consider multinode simulation.
-For more information about multinode simulation [see step 5,
-below](#5_consider_multiple_compute_nodes).
+For more information about multinode simulation [see step 6,
+below](#6_consider_multiple_compute_nodes).
 
 ### 2. Estimate your memory requirements
 
@@ -120,8 +120,8 @@ choose a specific machine:
             qubits allowed per fused gate).
             *   For small to medium size circuits (up to 22 qubits), keep f low
                 (2 or 3).
-            *   For medium to large size qubits (22+ qubits), use a higher f
-                typically, f=4 is the best option).
+            *   For medium to large size circuits (22+ qubits), use a higher f
+                (typically, f=4 is the best option).
         *   Simulating a **deep circuit** (depth 30+).
 
 #### For GPU-based simulations:
@@ -146,7 +146,7 @@ At the time of writing, the following compatible GPUs are available on GCP:
      of RAM and can therefore simulate up to 31 qubits. With eight of them (192GB), you can simulate
      up to 34 qubits.
 *    [NVIDIA A100 (40GB)](https://www.techpowerup.com/gpu-specs/a100-pcie-40-gb.c3623).
-     Can simulate 32 qubits with a single GPU or 36 qubits with 16 GPUS (640GB).
+     Can simulate 32 qubits with a single GPU or 36 qubits with 16 GPUs (640GB).
 *    [NVIDIA A100 (80GB)](https://www.techpowerup.com/gpu-specs/a100-pcie-80-gb.c3821).
      Can simulate 33 qubits with a single GPU or 36 with 8 GPUs (640GB).
 
@@ -258,7 +258,7 @@ are “embarrassingly parallelizable”, there is an automated workflow for
 distributing these trajectories over multiple nodes. A simulation of many
 noiseless circuits can also be distributed over multiple compute nodes.
 
-For more information about running a mulitnode simulation, see [Multinode quantum
+For more information about running a multinode simulation, see [Multinode quantum
 simulation using HTCondor on Google Cloud](/qsim/tutorials/multinode).
 
 ## Runtime estimates
@@ -269,7 +269,7 @@ depth beyond 20 qubits.
 *   For noiseless simulations, runtime grows at a rate of $2^N$ for an N-qubit
     circuit. For more information about runtimes for small circuits, see
     [Additional notes for advanced users](#additional_notes_for_advanced_users)
-    below).
+    below.
 *   For noisy simulations, runtime grows at a rate of $2^N$ multiplied by the
     number of iterations for an N-qubit circuit.
 
@@ -284,7 +284,7 @@ depth beyond 20 qubits.
             depolarizing channel.
         *   Using noise which cannot be represented with Kraus operators
             proportional to unitary matrices, can slow down simulations by a
-            factor of up to 6** **compared to using a depolarizing channel only
+            factor of up to 6 compared to using a depolarizing channel only.
         *   Noisy simulations are faster with lower noise (when one Kraus
             operator dominates).
 *   Experimenting with the 'f' parameter (maximum number of qubits allowed per
@@ -310,7 +310,7 @@ depth beyond 20 qubits.
         addition to this, qsim is not optimized for small circuits.
     *   The total small circuits runtime overhead for an N qubit circuit
         depends on the circuit depth and on N. The overhead can be large enough to
-        conceal the  $2^N$ growth in runtime.
+        conceal the $2^N$ growth in runtime.
 *   The NumPy version matters for large simulations:
     *   NumPy 1.x defines a constant `NPY_MAXDIMS`, which is set to 32 in the
         NumPy source code. Many internal NumPy structures, such as those for
@@ -320,7 +320,7 @@ depth beyond 20 qubits.
         more than 32 qubits when using Python. Attempting to use 33 or more
         qubits results in an error.
     *   NumPy 2.x increased this limit to 64 dimensions, and qsim can work with
-        more than 32 qubit when NumPy 2.x is used. If you encounter unexpected
+        more than 32 qubits when NumPy 2.x is used. If you encounter unexpected
         failures, memory errors, or hard limits on the number of qubits, ensure
         you are running a recent NumPy version before further debugging.
 

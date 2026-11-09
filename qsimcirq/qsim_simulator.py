@@ -412,7 +412,7 @@ class QSimSimulator(
 
         Args:
             program: The circuit to simulate.
-            bitstrings: The bitstrings whose amplitudes are desired, input as an
+            bitstrings: The bitstrings whose amplitudes are desired, input as a
                 string array where each string is formed from measured qubit values
                 according to `qubit_order` from most to least significant qubit,
                 i.e., in big-endian ordering.

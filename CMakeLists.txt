@@ -24,7 +24,7 @@ set(MSG_PREFIX "[qsim cmake configuration]")
 
 # CMake normally sets CMAKE_APPLE_SILICON_PROCESSOR on Apple Silicon; however,
 # it doesn't happen when running builds using cibuildwheel, even on Apple
-# Silicon. We have had better luck checking and seting it ourselves.
+# Silicon. We have had better luck checking and setting it ourselves.
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin"
    AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     set(CMAKE_APPLE_SILICON_PROCESSOR TRUE)
@@ -109,7 +109,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i386|i486|i586|i686)$")
     add_subdirectory(pybind_interface/avx2)
 endif()
 
-# Additional miscellanous settings.
+# Additional miscellaneous settings.
 # The following settings mirror what is in our hand-written Makefiles.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
