@@ -198,7 +198,9 @@ class CpuGateBatchBackend {
         partition_(
             num_qubits, param.tile_qubits, active_threads_, kDefaultTileQubits),
         state_data_(state.get()),
-        tile_sim_(1) {}
+        tile_sim_(1) {
+    LogThreadClamp(param.num_threads);
+  }
 
   unsigned TileQubits() const { return partition_.tile_qubits; }
 
@@ -307,6 +309,15 @@ class CpuGateBatchBackend {
     for (int64_t tile = 0; tile < partition_.num_tiles; ++tile) {
       ExecuteGatesOnTile(gates, tile);
     }
+  }
+
+  void LogThreadClamp(unsigned requested_threads) const {
+    if (verbosity_ == 0 || active_threads_ == requested_threads) return;
+    IO::messagef(
+        "gate-batch runner: using %u of %u requested threads, one per physical "
+        "core. Two SMT threads of one core working on different tiles share "
+        "that core's cache and defeat tile locality.\n",
+        active_threads_, requested_threads);
   }
 
   void LogTileSize() const {
