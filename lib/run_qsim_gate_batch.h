@@ -194,7 +194,7 @@ class CpuGateBatchBackend {
         active_threads_(
             gate_batch_internal::ClampToPhysicalCores(param.num_threads)),
         min_tile_qubits_(
-            std::min(MinTileQubits(MaxFusedSize(param)), num_qubits)),
+            std::min(MinTileQubits(param.max_fused_size), num_qubits)),
         partition_(
             num_qubits, param.tile_qubits, active_threads_, kDefaultTileQubits),
         state_data_(state.get()),
@@ -250,15 +250,6 @@ class CpuGateBatchBackend {
 
   static inline const unsigned kLaneQubits =
       std::log2(StateSpace::MinSize(0) / 2);
-
-  template <typename RunnerParameter>
-  static unsigned MaxFusedSize(const RunnerParameter& param) {
-    if constexpr (gate_batch_internal::HasMaxFusedSize<RunnerParameter>::value) {
-      return param.max_fused_size;
-    } else {
-      return 2;
-    }
-  }
 
   static unsigned MinTileQubits(unsigned max_fused_size) {
     return kLaneQubits + max_fused_size;

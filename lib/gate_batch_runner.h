@@ -113,6 +113,13 @@ class GateBatchRunner {
   static_assert(
       std::is_same_v<fp_type, float>,
       "GateBatchRunner requires a float state space.");
+  // BuildExecutableGates relies on the fuser wrapping every ordinary gate in
+  // a FusedGate, as MultiQubitGateFuser does. The deprecated BasicGateFuser
+  // passes 3+ qubit gates through unfused and has no max_fused_size.
+  static_assert(
+      gate_batch_internal::HasMaxFusedSize<typename Fuser::Parameter>::value,
+      "GateBatchRunner requires a fuser with max_fused_size "
+      "(use MultiQubitGateFuser).");
 
  private:
   template <typename MeasurementFunc>
@@ -123,12 +130,7 @@ class GateBatchRunner {
 
  public:
   struct Parameter : public Fuser::Parameter, public Backend::Parameter {
-    Parameter() {
-      if constexpr (gate_batch_internal::HasMaxFusedSize<
-                        typename Fuser::Parameter>::value) {
-        this->max_fused_size = 3;
-      }
-    }
+    Parameter() { this->max_fused_size = 3; }
 
     // Unset lets the backend choose; a set value is used as given.
     std::optional<unsigned> tile_qubits;
@@ -383,18 +385,15 @@ class GateBatchRunner {
   }
 
   bool ValidateParameters() const {
-    if constexpr (gate_batch_internal::HasMaxFusedSize<
-                      typename Fuser::Parameter>::value) {
-      if (param_.max_fused_size < 2) {
-        IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
-        return false;
-      }
-      if (param_.max_fused_size > Backend::kMaxGateQubits) {
-        IO::errorf(
-            "qsim_gate_batch: max_fused_size must be at most %u.\n",
-            Backend::kMaxGateQubits);
-        return false;
-      }
+    if (param_.max_fused_size < 2) {
+      IO::errorf("qsim_gate_batch: max_fused_size must be at least 2.\n");
+      return false;
+    }
+    if (param_.max_fused_size > Backend::kMaxGateQubits) {
+      IO::errorf(
+          "qsim_gate_batch: max_fused_size must be at most %u.\n",
+          Backend::kMaxGateQubits);
+      return false;
     }
     return true;
   }
@@ -707,23 +706,19 @@ class GateBatchRunner {
       return std::nullopt;
     }
 
-    // Controlled gates and unfused multi-qubit gates pass through the fuser as
-    // const pointers into batch_gates. Copy their data so executable gates own
-    // it after batch_gates expires.
+    // Controlled gates pass through the fuser as const pointers into
+    // batch_gates. Copy their data so executable gates own it after
+    // batch_gates expires.
     std::vector<ExecutableGate> executable_gates;
     executable_gates.reserve(fused_ops.size());
     for (auto& operation : fused_ops) {
       if (const auto* controlled =
               OpGetAlternative<ControlledGate<fp_type>>(std::as_const(operation))) {
         executable_gates.push_back(MakeExecutableControlledGate(*controlled));
-      } else if (auto* fused =
-                     OpGetAlternative<FusedGate<fp_type>>(operation)) {
-        executable_gates.push_back(MakeExecutableFusedGate(*fused));
       } else {
-        const auto* gate =
-            OpGetAlternative<Gate<fp_type>>(std::as_const(operation));
-        assert(gate != nullptr);
-        executable_gates.push_back(MakeExecutableGate(*gate));
+        auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation);
+        assert(fused != nullptr);
+        executable_gates.push_back(MakeExecutableFusedGate(*fused));
       }
     }
     simulation_stats_.num_executable_gates += executable_gates.size();
@@ -734,20 +729,19 @@ class GateBatchRunner {
     // Fused qubits are sorted, so the last index determines tile containment.
     assert(fused.qubits.size() <= Backend::kMaxGateQubits);
     assert(fused.qubits.empty() || fused.qubits.back() < zones_.tile_qubits);
-    return {std::move(fused.qubits), std::move(fused.matrix)};
-  }
-
-  ExecutableGate MakeExecutableGate(const Gate<fp_type>& gate) const {
-    assert(gate.qubits.size() <= Backend::kMaxGateQubits);
-    assert(gate.qubits.empty() || gate.qubits.back() < zones_.tile_qubits);
-    return {gate.qubits, gate.matrix};
+    ExecutableGate gate;
+    gate.qubits = std::move(fused.qubits);
+    gate.matrix = std::move(fused.matrix);
+    return gate;
   }
 
   // Split controls by physical position after remapping. The backend sees
   // local control indices plus a predicate on the tile index.
   ExecutableGate MakeExecutableControlledGate(
       const ControlledGate<fp_type>& controlled) const {
-    ExecutableGate gate{controlled.qubits, controlled.matrix};
+    ExecutableGate gate;
+    gate.qubits = controlled.qubits;
+    gate.matrix = controlled.matrix;
     for (unsigned i = 0; i < controlled.controlled_by.size(); ++i) {
       const auto position = controlled.controlled_by[i];
       const auto value = (controlled.cmask >> i) & 1;
