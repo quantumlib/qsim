@@ -216,6 +216,7 @@ class GateBatchRunner {
   using GateBatchPlanner = gate_batch_internal::GateBatchPlanner<fp_type>;
   using GateBatchPlan = gate_batch_internal::GateBatchPlan;
   using QubitZones = gate_batch_internal::QubitZones;
+  using CircuitError = gate_batch_internal::CircuitError;
 
   // Counters and timings reported by LogSimulationSummary.
   struct SimulationStats {
@@ -502,18 +503,15 @@ class GateBatchRunner {
   static std::optional<PendingGateList> BuildPendingGates(
       const Circuit& circuit,
       const std::vector<unsigned>& times_to_measure_at = {}) {
-    auto pending_gates =
-        PendingGateList::FromCircuit(circuit, Backend::kMaxGateQubits,
-                                     Backend::kMaxControlledGateQubits,
-                                     times_to_measure_at);
-    if (!pending_gates) {
-      IO::errorf(
-          "qsim_gate_batch: supports ordinary gates up to %u targets and "
-          "controlled gates up to %u targets, and measurements with valid "
-          "time boundaries and qubits. Other operations are unsupported.\n",
-          Backend::kMaxGateQubits, Backend::kMaxControlledGateQubits);
+    auto result = PendingGateList::FromCircuit(
+        circuit, Backend::kMaxGateQubits, Backend::kMaxControlledGateQubits,
+        times_to_measure_at);
+    if (const auto* error = std::get_if<CircuitError>(&result)) {
+      IO::errorf("qsim_gate_batch: %s.\n",
+                 gate_batch_internal::CircuitErrorMessage(*error));
+      return std::nullopt;
     }
-    return pending_gates;
+    return std::move(std::get<PendingGateList>(result));
   }
 
   std::vector<uint64_t> ComputeQubitUsageScores(
@@ -712,8 +710,9 @@ class GateBatchRunner {
     std::vector<ExecutableGate> executable_gates;
     executable_gates.reserve(fused_ops.size());
     for (auto& operation : fused_ops) {
+      const auto& const_operation = std::as_const(operation);
       if (const auto* controlled =
-              OpGetAlternative<ControlledGate<fp_type>>(std::as_const(operation))) {
+              OpGetAlternative<ControlledGate<fp_type>>(const_operation)) {
         executable_gates.push_back(MakeExecutableControlledGate(*controlled));
       } else {
         auto* fused = OpGetAlternative<FusedGate<fp_type>>(operation);
@@ -774,34 +773,39 @@ class GateBatchRunner {
     LogSimulationSummary(simulation_start);
   }
 
-  // Adds the wall time of host-side work (preparation, planning, fusion) to
-  // `seconds` and returns the work's result.
+  // Adds elapsed wall time to `seconds` on destruction. Synchronizes
+  // `backend_to_sync`, if given, before and after so the time covers the
+  // backend work itself rather than the call that enqueued it.
+  struct ScopedTimer {
+    ScopedTimer(double& seconds, Backend* backend_to_sync = nullptr)
+        : seconds(seconds), backend(backend_to_sync) {
+      if (backend) backend->Synchronize();
+      start = GetTime();
+    }
+    ~ScopedTimer() {
+      if (backend) backend->Synchronize();
+      seconds += GetTime() - start;
+    }
+
+    double& seconds;
+    Backend* backend;
+    double start;
+  };
+
+  // Host-side work: preparation, planning, fusion.
   template <typename Work>
   auto TimeHostWork(double& seconds, Work&& work) {
-    const auto start = GetTime();
-    auto result = work();
-    seconds += GetTime() - start;
-    return result;
+    const ScopedTimer timer(seconds);
+    return work();
   }
 
-  // Adds the time of backend work (gate, swap, and measurement passes) to
-  // `seconds`. Backend calls may return before the work finishes, so at
-  // verbosity > 1 this synchronizes before and after to time the work itself;
-  // otherwise the time covers only the call.
+  // Backend work: gate, swap, and measurement passes. Timed precisely only at
+  // verbosity > 1, since the synchronization has a cost of its own.
   template <typename Work>
   auto TimeBackendWork(double& seconds, Work&& work) {
-    if (param_.verbosity > 1) backend_.Synchronize();
-    const auto start = GetTime();
-    if constexpr (std::is_void_v<decltype(work())>) {
-      work();
-      if (param_.verbosity > 1) backend_.Synchronize();
-      seconds += GetTime() - start;
-    } else {
-      auto result = work();
-      if (param_.verbosity > 1) backend_.Synchronize();
-      seconds += GetTime() - start;
-      return result;
-    }
+    const ScopedTimer timer(
+        seconds, param_.verbosity > 1 ? &backend_ : nullptr);
+    return work();
   }
 
   void LogHotZonePlacement(
@@ -822,22 +826,19 @@ class GateBatchRunner {
   void LogSimulationSummary(double simulation_start) const {
     if (param_.verbosity == 0) return;
 
+    const auto& s = simulation_stats_;
     IO::messagef("simu time is %g seconds.\n", GetTime() - simulation_start);
     IO::messagef(
         "gate-batch runner: %u gate batches, %u restore passes, "
-        "%u raw gates, %u executable gates, "
-        "%u qubit swaps, %u measurements.\n",
-        simulation_stats_.num_gate_batches,
-        simulation_stats_.num_restore_passes, simulation_stats_.num_raw_gates,
-        simulation_stats_.num_executable_gates, simulation_stats_.num_swaps,
-        simulation_stats_.num_measurements);
+        "%u raw gates, %u executable gates, %u qubit swaps, %u measurements.\n",
+        s.num_gate_batches, s.num_restore_passes, s.num_raw_gates,
+        s.num_executable_gates, s.num_swaps, s.num_measurements);
     if (param_.verbosity > 1) {
       IO::messagef(
           "breakdown: prepare %g s, plan %g s, swap passes %g s, fuse %g s, "
           "gate passes %g s, measure %g s.\n",
-          simulation_stats_.prepare_seconds, simulation_stats_.plan_seconds,
-          simulation_stats_.swap_seconds, simulation_stats_.fuse_seconds,
-          simulation_stats_.gate_seconds, simulation_stats_.measure_seconds);
+          s.prepare_seconds, s.plan_seconds, s.swap_seconds, s.fuse_seconds,
+          s.gate_seconds, s.measure_seconds);
     }
   }
 

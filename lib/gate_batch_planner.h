@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <optional>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "gate.h"
@@ -32,6 +33,51 @@
 namespace qsim {
 
 namespace gate_batch_internal {
+
+// Result of circuit validation in PendingGateList::FromCircuit.
+enum class CircuitError {
+  kOk,
+  kUnsortedMeasureTimes,
+  kQubitOutOfRange,
+  kQubitTimeOrder,
+  kCrossesMeasurement,
+  kCrossesMeasureTime,
+  kEmptyMeasurement,
+  kMeasurementTimeOrder,
+  kTooManyTargets,
+  kTooManyControlledTargets,
+  kUnsupportedOperation,
+};
+
+inline const char* CircuitErrorMessage(CircuitError error) {
+  switch (error) {
+    case CircuitError::kOk:
+      return "ok";
+    case CircuitError::kUnsortedMeasureTimes:
+      return "times_to_measure_at must be sorted";
+    case CircuitError::kQubitOutOfRange:
+      return "a gate acts on a qubit outside the circuit";
+    case CircuitError::kQubitTimeOrder:
+      return "gates on a shared qubit must have strictly increasing times";
+    case CircuitError::kCrossesMeasurement:
+      return "a gate is scheduled before an earlier measurement";
+    case CircuitError::kCrossesMeasureTime:
+      return "a gate out of time order crosses a times_to_measure_at boundary";
+    case CircuitError::kEmptyMeasurement:
+      return "a measurement has no qubits";
+    case CircuitError::kMeasurementTimeOrder:
+      return "a measurement is scheduled before an earlier gate";
+    case CircuitError::kTooManyTargets:
+      return "an ordinary gate has more target qubits than the backend "
+             "supports";
+    case CircuitError::kTooManyControlledTargets:
+      return "a controlled gate has more target qubits than the backend "
+             "supports";
+    case CircuitError::kUnsupportedOperation:
+      return "only gates, controlled gates, and measurements are supported";
+  }
+  return "invalid circuit";
+}
 
 // The zone boundaries of the physical bit-position layout, fixed for the whole
 // run:
@@ -145,70 +191,75 @@ inline bool HasItemInRange(
   return it != sorted.end() && *it <= high;
 }
 
-inline bool RecordQubitTimeSteps(
+inline CircuitError RecordQubitTimeSteps(
     const Qubits& qubits, unsigned time_step,
     std::vector<std::optional<unsigned>>& last_time_steps) {
   for (unsigned q : qubits) {
-    if (q >= last_time_steps.size()) return false;
-    if (last_time_steps[q] && time_step <= *last_time_steps[q]) return false;
+    if (q >= last_time_steps.size()) return CircuitError::kQubitOutOfRange;
+    if (last_time_steps[q] && time_step <= *last_time_steps[q]) {
+      return CircuitError::kQubitTimeOrder;
+    }
     last_time_steps[q] = time_step;
   }
-  return true;
+  return CircuitError::kOk;
 }
 
 template <typename FP, typename Operation>
-bool RecordOpQubitTimeSteps(
+CircuitError RecordOpQubitTimeSteps(
     const Operation& operation, unsigned time_step,
     std::vector<std::optional<unsigned>>& last_time_steps) {
-  if (!RecordQubitTimeSteps(OpQubits(operation), time_step, last_time_steps)) {
-    return false;
-  }
+  const auto error =
+      RecordQubitTimeSteps(OpQubits(operation), time_step, last_time_steps);
+  if (error != CircuitError::kOk) return error;
   if (const auto* controlled =
           OpGetAlternative<ControlledGate<FP>>(operation)) {
     return RecordQubitTimeSteps(
         controlled->controlled_by, time_step, last_time_steps);
   }
-  return true;
+  return CircuitError::kOk;
 }
 
 template <typename FP, typename Circuit>
-bool ValidateCircuitTimeSteps(
+CircuitError ValidateCircuitTimeSteps(
     const Circuit& circuit,
     const std::vector<unsigned>& times_to_measure_at = {}) {
   // Caller-supplied callback timesteps must be non-decreasing for binary
   // search and forward execution.
   if (!std::is_sorted(times_to_measure_at.begin(), times_to_measure_at.end())) {
-    return false;
+    return CircuitError::kUnsortedMeasureTimes;
   }
   std::vector<std::optional<unsigned>> last_time_steps(circuit.num_qubits);
   unsigned max_time_step = 0;
-  unsigned min_time_step = 0;
+  unsigned last_measurement_time = 0;
 
   for (const auto& operation : circuit.ops) {
     const auto time_step = OpTime(operation);
     // Each qubit's operations must be in bounds, distinct within the op, and
     // strictly increasing in time (including control qubits).
-    if (!RecordOpQubitTimeSteps<FP>(operation, time_step, last_time_steps)) {
-      return false;
-    }
+    const auto error =
+        RecordOpQubitTimeSteps<FP>(operation, time_step, last_time_steps);
+    if (error != CircuitError::kOk) return error;
 
     // Disjoint qubits may step backward in time, except across a prior
     // measurement or a times_to_measure_at callback window.
-    if (time_step < min_time_step) return false;
+    if (time_step < last_measurement_time) {
+      return CircuitError::kCrossesMeasurement;
+    }
     if (time_step < max_time_step &&
         HasItemInRange(times_to_measure_at, time_step, max_time_step)) {
-      return false;
+      return CircuitError::kCrossesMeasureTime;
     }
     // Measurements must be non-empty and cannot precede any earlier op.
     if (const auto* measurement = OpGetAlternative<Measurement>(operation)) {
-      if (measurement->qubits.empty() || time_step < max_time_step) {
-        return false;
+      if (measurement->qubits.empty()) return CircuitError::kEmptyMeasurement;
+      if (time_step < max_time_step) {
+        return CircuitError::kMeasurementTimeOrder;
       }
-      min_time_step = time_step;
+      last_measurement_time = time_step;
     }
     max_time_step = std::max(max_time_step, time_step);
   }
-  return true;
+  return CircuitError::kOk;
 }
 
 // The circuit's gates in timestep order, each marked applied once it has run.
@@ -228,20 +279,20 @@ class PendingGateList {
   // Controls do not enlarge the target matrix or count toward the backend's
   // target-width limit. Measurements are extracted as execution boundaries.
   template <typename Circuit>
-  static std::optional<PendingGateList> FromCircuit(
+  static std::variant<PendingGateList, CircuitError> FromCircuit(
       const Circuit& circuit, unsigned max_gate_qubits,
       unsigned max_controlled_gate_qubits,
       const std::vector<unsigned>& times_to_measure_at = {}) {
+    const auto error =
+        ValidateCircuitTimeSteps<FP>(circuit, times_to_measure_at);
+    if (error != CircuitError::kOk) return error;
+
     PendingGateList list;
     list.gates_.reserve(circuit.ops.size());
-    if (!ValidateCircuitTimeSteps<FP>(circuit, times_to_measure_at)) {
-      return std::nullopt;
-    }
-
     for (const auto& operation : circuit.ops) {
-      if (!list.AddOp(operation, max_gate_qubits, max_controlled_gate_qubits)) {
-        return std::nullopt;
-      }
+      const auto error =
+          list.AddOp(operation, max_gate_qubits, max_controlled_gate_qubits);
+      if (error != CircuitError::kOk) return error;
     }
     list.OrderGatesByTimeStep();
     list.gate_end_ = list.gates_.size();
@@ -292,25 +343,27 @@ class PendingGateList {
 
  private:
   template <typename Operation>
-  bool AddOp(
+  CircuitError AddOp(
       const Operation& operation, unsigned max_gate_qubits,
       unsigned max_controlled_gate_qubits) {
     if (const auto* measurement = OpGetAlternative<Measurement>(operation)) {
-      return AddOp(*measurement);
+      AddMeasurement(*measurement);
+      return CircuitError::kOk;
     }
     if (const auto* controlled =
             OpGetAlternative<ControlledGate<FP>>(operation)) {
-      return AddOp(*controlled, max_controlled_gate_qubits);
+      return AddGate(*controlled, max_controlled_gate_qubits,
+                     CircuitError::kTooManyControlledTargets);
     }
     if (const auto* gate = OpGetAlternative<Gate<FP>>(operation)) {
-      return AddOp(*gate, max_gate_qubits);
+      return AddGate(*gate, max_gate_qubits, CircuitError::kTooManyTargets);
     }
-    return false;
+    return CircuitError::kUnsupportedOperation;
   }
 
   // Validation guarantees measurements arrive in timestep order. Preserve
   // their qubit order when combining measurements at the same timestep.
-  bool AddOp(const Measurement& measurement) {
+  void AddMeasurement(const Measurement& measurement) {
     if (measurement_boundaries_.empty() ||
         measurement_boundaries_.back().measurement.time != measurement.time) {
       measurement_boundaries_.push_back({0, measurement});
@@ -319,16 +372,16 @@ class PendingGateList {
       qubits.insert(
           qubits.end(), measurement.qubits.begin(), measurement.qubits.end());
     }
-    return true;
   }
 
   template <typename GateType>
-  bool AddOp(const GateType& gate, unsigned max_qubits) {
-    if (gate.qubits.size() > max_qubits) return false;
+  CircuitError AddGate(
+      const GateType& gate, unsigned max_qubits, CircuitError too_many) {
+    if (gate.qubits.size() > max_qubits) return too_many;
     gates_.emplace_back(gate, gates_.size());
     max_target_qubits_ =
         std::max(max_target_qubits_, unsigned(gate.qubits.size()));
-    return true;
+    return CircuitError::kOk;
   }
 
   void OrderGatesByTimeStep() {
