@@ -29,13 +29,14 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
           persist-credentials: false
 
+      # pantheongpu/setup-pantheonsim v0.1.5
       - name: Set up the simulated GPU and CUDA toolkit
-        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c
         with:
           gpu: nvidia/h100
           cuda-toolkit: "13.0"
@@ -45,10 +46,13 @@ jobs:
       # they need cuQuantum, and the `cuda-tests` target only picks up
       # *cuda_test.cu.
       - name: Build CUDA tests
+        env:
+          NVCCFLAGS: >-
+            -std c++17 -O3 -arch=compute_90 -cudart shared
+            -Wno-deprecated-gpu-targets
         run: |
           make -C tests -j3 cuda-tests \
-            NVCC=/usr/local/cuda-13.0/bin/nvcc \
-            NVCCFLAGS="-std c++17 -O3 -arch=compute_90 -cudart shared -Wno-deprecated-gpu-targets"
+            NVCC=/usr/local/cuda-13.0/bin/nvcc NVCCFLAGS="$NVCCFLAGS"
 
       # SimulatorCUDATest.GlobalPhaseGate is skipped. For a gate on no qubits
       # and a state of at most 5 qubits, ApplyGateH_Kernel<0> launches one
