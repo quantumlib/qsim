@@ -69,7 +69,7 @@ Operators are listed below in **decreasing order of precedence**:
 | `^^` | Logical | Logical XOR | Requires operands convertible to `bool` (low-precedence version of `!=`). |
 | `\|\|` | Logical | Logical OR | Requires operands convertible to `bool`. |
 
-Parentheses (`(` and `)`) can be used to override default operator precedence, e.g., `(2 + 3) * 4`.
+The exponentiation operator `**` has lower precedence than the unary `-` and `~` operators (unlike in Python, where `**` has higher precedence). Parentheses (`(` and `)`) can be used to override default operator precedence, e.g., `(2 + 3) * 4`. Additionally, the modulo operator `%` follows C/C++ semantics for negative operands: `-4 % 3` evaluates to `-1` rather than Python's `2`.
 
 ### Parser Stop Rules
 
