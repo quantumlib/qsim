@@ -61,7 +61,7 @@ struct ParserError {
    *   location.
    */
   template <typename... Args>
-  static void Throw(
+  [[noreturn]] static void Throw(
       std::string_view message, unsigned lc, Args&&... args) {
     auto [line, col] = Tokenizer::UnpackLineAndColumn(lc);
 
@@ -92,7 +92,7 @@ struct RuntimeError {
    *   and location.
    */
   template <typename... Args>
-  static void Throw(
+  [[noreturn]] static void Throw(
       const std::string_view message, unsigned lc, Args&&... args) {
     auto [line, col] = Tokenizer::UnpackLineAndColumn(lc);
 

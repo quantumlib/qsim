@@ -41,7 +41,7 @@ namespace qsim::cc {
  *   characters exist.
  */
 inline int64_t ToInt(std::string_view s) {
-  int val;
+  int64_t val;
   unsigned base = 10;
 
   if (s.size() > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
@@ -55,7 +55,7 @@ inline int64_t ToInt(std::string_view s) {
   auto [p, ec] = std::from_chars(start, s.data() + s.size(), val, base);
 
   if (ec != std::errc{} || p != s.data() + s.size()) {
-    Error::Throw("cannot convert string to int.");
+    Error::Throw("cannot convert string to int: {}", s);
   }
 
   return val;
@@ -77,14 +77,14 @@ inline double ToFloat(std::string_view s) {
   auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
 
   if (ec != std::errc{} || p != s.data() + s.size()) {
-    Error::Throw("cannot convert string to float.");
+    Error::Throw("cannot convert string to float: {}", s);
   }
 #else
   char* end;
   std::string str(s);
   val = std::strtod(str.c_str(), &end);
   if (end == str.c_str() || errno == ERANGE) {
-    Error::Throw("cannot convert string to float.");
+    Error::Throw("cannot convert string to float: {}", s);
   }
 #endif
 
@@ -99,7 +99,7 @@ namespace detail {
  * @param len Length of char sequence.
  * @return 64-bit FNV-1a unsigned hash value.
  */
-inline constexpr unsigned fnv1a_hash(const char* s, std::size_t len) {
+inline constexpr uint64_t fnv1a_hash(const char* s, std::size_t len) {
   constexpr uint64_t offset_basis = 0xcbf29ce484222325;
   constexpr uint64_t prime = 0x100000001b3;
 
@@ -108,6 +108,7 @@ inline constexpr unsigned fnv1a_hash(const char* s, std::size_t len) {
     hash ^= static_cast<uint8_t>(s[i]);
     hash *= prime;
   }
+
   return hash;
 }
 
@@ -154,14 +155,7 @@ inline constexpr unsigned short OpHash(std::string_view s) {
  */
 inline constexpr unsigned short operator""_ophash(
     const char* s, std::size_t len) {
-  switch (len) {
-  case 1:
-    return s[0];
-  case 2:
-    return (s[1] << 8) | s[0];
-  default:
-    return 0;
-  }
+  return OpHash({s, len});
 }
 
 /**
@@ -193,110 +187,180 @@ inline std::string ReadFile(std::string_view path) {
 }
 
 /**
- * Recursive variadic helper template for formatting expressions into a string.
- * @tparam Count Remaining number of expressions to evaluate.
- * @tparam Vals Accumulated evaluated expression types (`VInt` or `VFloat`).
+ * Formats evaluated DSL arithmetic expressions into strings using C++20
+ * format specifiers. `ExprToStr` evaluates expressions sequentially against
+ * a symbol table and formats each result via `std::vformat_to`.
+ *
+ * ### Supported Format Specifiers
+ * Standard C++20 single-argument replacement fields (`{}` and `{:spec}`) are
+ * supported, including fill/alignment (`{:*^10}`), signs (`{:+d}`), alternate
+ * forms (`{:#x}`, `{:#b}`), zero-padding (`{:08d}`), static width and
+ * precision (`{:15.8g}`, `{:.2f}`), and escaped literal braces (`{{` and `}}`).
+ *
+ * ### Format Specifier Limitations
+ * Because `fmt` is sliced sequentially one placeholder at a time and each
+ * expression is formatted in isolation:
+ *   1. **No positional argument indices:** Explicit indices such as `{0}` or
+ *      `{1:6x}` are rejected with `std::format_error`. Placeholders are
+ *      matched strictly in 1-to-1 sequential order with `es`.
+ *   2. **No nested `{}` (dynamic width or precision):** Specifiers containing
+ *      nested replacement fields such as `{:>{}}` or `{:{}.{}f}` are not
+ *      supported and throw `std::format_error`.
+ *   3. **Exact placeholder-to-expression count:** Supplying more or fewer
+ *      expressions than unescaped `{...}` placeholders throws
+ *      `std::format_error`. Note that passing `fmt = ""` with a non-empty
+ *      `es` to `Format(symtab, fmt, es)` throws; use the two-argument overload
+ *      `Format(symtab, es)` (or `PrintExpressions`) for default formatting.
+ *   4. **No implicit int-to-float specifier promotion:** Expressions for which
+ *      `IsConvertibleToInt` returns `true` are formatted strictly as integers
+ *      (floating-point specifiers like `{:f}`, `{:g}`, `{:e}`, or `{:.2}`
+ *      throw `std::format_error`). Conversely, non-integer expressions reject
+ *      integer-only specifiers (`{:d}`, `{:x}`, `{:b}`, `{:o}`, `{:c}`).
  */
-template <unsigned Count, typename... Vals>
 struct ExprToStr {
-  /** Formats expressions using an explicit C++ std::format string. */
+  /**
+   * Evaluates and formats `es` according to the format string `fmt`.
+   * @tparam SymTable Active symbol table type.
+   * @tparam Expr Expression variant type.
+   * @param symtab Symbol table instance used for symbol lookups.
+   * @param fmt C++20 format string containing one unescaped `{...}`
+   *   replacement field per element in `es`.
+   * @param es Vector of expressions to evaluate and format.
+   * @return The formatted output string with `{{` and `}}` unescaped.
+   * @throws std::format_error If `fmt` has unmatched braces, positional
+   *         indices, nested `{}` specifiers, mismatched placeholder count, or
+   *         a specifier incompatible with the evaluated expression's type.
+   */
   template <typename SymTable, typename Expr>
-  static std::string Run1(const SymTable& symtab, std::string_view fmt,
-                          const std::vector<Expr>& es, Vals&&... vs) {
-    if constexpr (Count == 0) {
-      return std::vformat(fmt, std::make_format_args(vs...));
-    } else {
-      auto k = es.size() - Count;
+  static std::string Format(const SymTable& symtab,
+                            std::string_view fmt, const std::vector<Expr>& es) {
+    std::string s;
+    s.reserve(fmt.size() + 32 * es.size());
 
-      if (IsConvertibleToInt(symtab, es[k])) {
-        return ExprToStr<Count - 1, Vals..., VInt>::Run1(
-            symtab, fmt, es, std::move(vs)..., EvalIntExpr(symtab, es[k]));
+    for (std::size_t i = 0; i < es.size(); ++i) {
+      std::string_view sub_fmt = NextSubFormat(fmt);
+
+      if (IsConvertibleToInt(symtab, es[i])) {
+        auto val = EvalIntExpr(symtab, es[i]);
+        std::vformat_to(
+            std::back_inserter(s), sub_fmt, std::make_format_args(val));
       } else {
-        return ExprToStr<Count - 1, Vals..., VFloat>::Run1(
-            symtab, fmt, es, std::move(vs)..., EvalFloatExpr(symtab, es[k]));
+        auto val = EvalFloatExpr(symtab, es[i]);
+        std::vformat_to(
+            std::back_inserter(s), sub_fmt, std::make_format_args(val));
       }
     }
+
+    std::vformat_to(std::back_inserter(s), fmt, std::make_format_args());
+
+    return s;
   }
 
   /**
-   * Formats expressions sequentially with auto-generated space delimiters
-   * (`"{}"`).
+   * Evaluates and formats `es` using default `{}` formatting separated
+   * by single spaces. Produces `""` when `es` is empty, and avoids a trailing
+   * space after the final element.
+   * @tparam SymTable Active symbol table type.
+   * @tparam Expr Expression variant type.
+   * @param symtab Symbol table instance used for symbol lookups.
+   * @param es Vector of expressions to evaluate and format.
+   * @return Space-delimited string of formatted expression values.
    */
   template <typename SymTable, typename Expr>
-  static std::string Run2(const SymTable& symtab, std::string&& fmt,
-                          const std::vector<Expr>& es, Vals&&... vs) {
-    if constexpr (Count == 0) {
-      return std::vformat(fmt, std::make_format_args(vs...));
-    } else {
-      auto k = es.size() - Count;
-      if constexpr (Count > 1) {
-        fmt += "{} ";
-      } else {
-        fmt += "{}";
-      }
+  static std::string Format(
+      const SymTable& symtab, const std::vector<Expr>& es) {
+    std::string s;
+    s.reserve(35 * es.size());
 
-      if (IsConvertibleToInt(symtab, es[k])) {
-        return ExprToStr<Count - 1, Vals..., VInt>::Run2(
-            symtab, std::move(fmt), es, std::move(vs)...,
-            EvalIntExpr(symtab, es[k]));
+    for (std::size_t i = 0; i < es.size(); ++i) {
+      std::string_view fmt = i < es.size() - 1 ? "{} " : "{}";
+
+      if (IsConvertibleToInt(symtab, es[i])) {
+        auto val = EvalIntExpr(symtab, es[i]);
+        std::vformat_to(std::back_inserter(s), fmt, std::make_format_args(val));
       } else {
-        return ExprToStr<Count - 1, Vals..., VFloat>::Run2(
-            symtab, std::move(fmt), es, std::move(vs)...,
-            EvalFloatExpr(symtab, es[k]));
+        auto val = EvalFloatExpr(symtab, es[i]);
+        std::vformat_to(std::back_inserter(s), fmt, std::make_format_args(val));
       }
     }
+
+    return s;
+  }
+
+ protected:
+  /**
+   * Extracts the prefix of `fmt` through the closing `}` of the next
+   * unescaped replacement field, advancing `fmt` past that slice. Escaped
+   * braces (`{{` and `}}`) preceding the placeholder are preserved in
+   * the returned slice so `std::vformat_to` can unescape them.
+   *
+   * @param[in,out] fmt Remaining format string view; mutated in-place to remove
+   *                    the returned prefix on success.
+   * @return            View covering any leading literal text up to and
+   *                    including the closing `}` of the first active `{...}`.
+   * @throws std::format_error If an unmatched `{` or `}` is encountered, if the
+   *         placeholder starts with a positional digit (`{0}`..`{9}`), or if no
+   *         unescaped placeholder remains in `fmt`.
+   */
+  static std::string_view NextSubFormat(std::string_view& fmt) {
+    std::size_t n = fmt.size();
+
+    for (std::size_t pos = 0; pos < n; ++pos) {
+      if (fmt[pos] == '{') {
+        if (pos + 1 < n && fmt[pos + 1] == '{') {
+          ++pos; // Skip escaped '{{'
+          continue;
+        }
+
+        if (pos + 1 < n && fmt[pos + 1] >= '0' && fmt[pos + 1] <= '9') {
+          FormatError::Throw("positional argument indices are not supported");
+        }
+
+        std::size_t close = fmt.find('}', pos + 1);
+        if (close == std::string_view::npos) {
+          FormatError::Throw("unmatched '{' in format string");
+        }
+
+        std::string_view sub_fmt = fmt.substr(0, close + 1);
+        fmt.remove_prefix(close + 1);
+        return sub_fmt;
+      }
+
+      if (fmt[pos] == '}') {
+        if (pos + 1 < n && fmt[pos + 1] == '}') {
+          ++pos; // Skip escaped '}}'
+          continue;
+        }
+        FormatError::Throw("unmatched '}' in format string");
+      }
+    }
+
+    FormatError::Throw("too many expressions for format string (missing '{}')");
   }
 };
 
 /**
- * Evaluates up to 4 expressions and prints the formatted string to standard
- * stdout (`puts`).
+ * @brief Formats `es` and writes the result followed by a newline to `stdout`.
+ *
+ * If `fmt` is non-empty, formats according to `ExprToStr::Format(symtab, fmt, es)`.
+ * If `fmt` is empty (`""`), falls back to default space-separated formatting
+ * via `ExprToStr::Format(symtab, es)`.
  * @tparam SymTable Active symbol table type.
  * @tparam Expr Expression variant type.
  * @param symtab Symbol table instance used for symbol lookups.
- * @param fmt Optional format string. If empty, expressions are printed
+ * @param fmt Optional C++20 format string. If empty, expressions are printed
  *   space-separated.
- * @param es Vector of expressions (up to 4 items).
-  */
+ * @param es Vector of expressions to print.
+ * @throws std::format_error Propagated from `ExprToStr::Format` on invalid
+ *         format strings or specifier/type mismatches when `fmt` is non-empty.
+ */
 template <typename SymTable, typename Expr>
 inline void PrintExpressions(
     const SymTable& symtab, std::string_view fmt, const std::vector<Expr>& es) {
   if (!fmt.empty()) {
-    switch (es.size()) {
-    case 0:
-      puts(ExprToStr<0>::Run1(symtab, fmt, es).c_str());
-      break;
-    case 1:
-      puts(ExprToStr<1>::Run1(symtab, fmt, es).c_str());
-      break;
-    case 2:
-      puts(ExprToStr<2>::Run1(symtab, fmt, es).c_str());
-      break;
-    case 3:
-      puts(ExprToStr<3>::Run1(symtab, fmt, es).c_str());
-      break;
-    case 4:
-      puts(ExprToStr<4>::Run1(symtab, fmt, es).c_str());
-      break;
-    }
+    puts(ExprToStr::Format(symtab, fmt, es).c_str());
   } else {
-    switch (es.size()) {
-    case 0:
-      puts(ExprToStr<0>::Run2(symtab, std::string{}, es).c_str());
-      break;
-    case 1:
-      puts(ExprToStr<1>::Run2(symtab, std::string{}, es).c_str());
-      break;
-    case 2:
-      puts(ExprToStr<2>::Run2(symtab, std::string{}, es).c_str());
-      break;
-    case 3:
-      puts(ExprToStr<3>::Run2(symtab, std::string{}, es).c_str());
-      break;
-    case 4:
-      puts(ExprToStr<4>::Run2(symtab, std::string{}, es).c_str());
-      break;
-    }
+    puts(ExprToStr::Format(symtab, es).c_str());
   }
 }
 

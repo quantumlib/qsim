@@ -72,8 +72,9 @@ struct ExprParser {
  public:
   /**
    * Parses an expression starting from the current tokenizer position.
-   * Stops automatically when operators are exhausted or when an opening
-   * (left) parenthesis is reached.
+   * Stops automatically before the first non-operator lookahead token (such
+   * as a delimiter, an unmatched `)`, a literal, or the `(` starting a
+   * subsequent expression), leaving that token unconsumed.
    * If the expression involves only compile-time constants, the expression
    * is folded directly into a scalar literal (`VInt`, `VFloat`, or `VBool`).
    * @tparam F Callback function type with signature
@@ -85,7 +86,7 @@ struct ExprParser {
    *   is parsed.
    * @return Parsed `Expr` variant containing a constant scalar value or
    *   an executable function closure.
-   * @throws syntax_erorr on syntax errors, unexpected tokens, or type
+   * @throws syntax_error on syntax errors, unexpected tokens, or type
    *   mismatches.
    */
   template <typename F = decltype(empty)>
@@ -155,6 +156,27 @@ struct ExprParser {
     };
   }
 
+  /**
+   * Parses a sub-expression starting from the current tokenizer position
+   * using operator-precedence (Pratt) parsing.
+   * Consumes operators and their right-hand operands as long as the lookahead
+   * token is an operator with precedence strictly greater than `precedence`.
+   * If the sub-expression involves only compile-time constants, it is folded
+   * directly into a scalar literal (`VInt`, `VFloat`, or `VBool`).
+   * @tparam F Callback function type with signature
+   *   `void(const Symbol::Mea&, std::string_view)`.
+   * @param symtab Symbol table instance used for symbol lookups.
+   * @param tok Lexical analyzer stream positioned at the start of
+   *   the sub-expression.
+   * @param precedence Minimum precedence floor; parsing stops before any
+   *   operator whose precedence is less than or equal to this value.
+   * @param f Callback invoked whenever a measurement (`Mea`) symbol
+   *   is parsed.
+   * @return Parsed `Expr` variant containing a constant scalar value or
+   *   an executable function closure.
+   * @throws syntax_error on syntax errors, unexpected tokens, or type
+   *   mismatches.
+   */
   template <typename F>
   static Expr RunWithPrecedence(
       const SymTable& symtab, Tokenizer& tok, unsigned precedence, F&& f) {
@@ -163,8 +185,7 @@ struct ExprParser {
     while (1) {
       Token n = tok.Peek();
 
-      if (n.kind != Token::kOperator ||
-          n.val == "(" || n.val == ")" || n.val == "]") {
+      if (n.kind != Token::kOperator) {
         break;
       }
 
@@ -178,6 +199,24 @@ struct ExprParser {
     return l;
   }
 
+  /**
+   * Parses a primary or prefix expression starting from the current tokenizer
+   * position, such as a literal, symbol reference, unary prefix operation,
+   * or parenthesized sub-expression.
+   * If the parsed construct involves only compile-time constants, it is
+   * folded directly into a scalar literal (`VInt`, `VFloat`, or `VBool`).
+   * @tparam F Callback function type with signature
+   *   `void(const Symbol::Mea&, std::string_view)`.
+   * @param symtab Symbol table instance used for symbol lookups.
+   * @param tok Lexical analyzer stream positioned at the start of
+   *   the primary or prefix token.
+   * @param f Callback invoked whenever a measurement (`Mea`) symbol
+   *   is parsed.
+   * @return Parsed `Expr` variant containing a constant scalar value or
+   *   an executable function closure.
+   * @throws syntax_error on syntax errors, unexpected tokens, or type
+   *   mismatches.
+   */
   template <typename F>
   static Expr GetLeft(const SymTable& symtab, Tokenizer& tok, F&& f) {
     Token t = tok();
@@ -185,22 +224,20 @@ struct ExprParser {
     switch (OpHash(t.val)) {
     case "!"_ophash:
       {
-        if (t.val == "!") {
-          Token n = tok.Peek();
+        Token n = tok.Peek();
 
-          Expr l = GetLeft(symtab, tok, f);
+        Expr l = GetLeft(symtab, tok, f);
 
-          if (!IsConvertibleToInt(symtab, l)) {
-            PE::Throw("expression is not convertible to 'bool'", n.lc);
-          }
+        if (!IsConvertibleToInt(symtab, l)) {
+          PE::Throw("expression is not convertible to 'bool'", n.lc);
+        }
 
-          if (IsConstExpr(symtab, l)) {
-            return VBool{!EvalCondExpr(symtab, l)};
-          } else {
-            return EvalBoolFn{[l](const SymTable& symtab) {
-              return !EvalCondExpr(symtab, l);
-            }};
-          }
+        if (IsConstExpr(symtab, l)) {
+          return VBool{!EvalCondExpr(symtab, l)};
+        } else {
+          return EvalBoolFn{[l](const SymTable& symtab) {
+            return !EvalCondExpr(symtab, l);
+          }};
         }
       }
     case "~"_ophash:
@@ -302,13 +339,18 @@ struct ExprParser {
           Token n = tok.Peek(1);
 
           auto index = IndexParser::Run(symtab, tok);
-          uint64_t i = EvalIndex(symtab, index);
+          bool const_index = IsConstIndex(index);
+          VInt i = const_index ? EvalConstIndex(symtab, index) : 0;
 
-          if (i >= sym->Size()) {
-            PE::Throw("index is out of range", n.lc);
+          if (const_index) {
+            if (i < 0) {
+              PE::Throw("negative index {}", n.lc, i);
+            } else if (static_cast<std::size_t>(i) >= sym->Size()) {
+              PE::Throw("index {} is out of range", n.lc, i);
+            }
           }
 
-          if (sym->IsReadOnly() && IsConstIndex(index)) {
+          if (sym->IsReadOnly() && const_index) {
             if (convertible_to_int) {
               return VInt{sym->GetInt(i)};
             } else {
@@ -318,7 +360,12 @@ struct ExprParser {
             if (sym->IsMea()) {
               f(sym->GetMea(), t.val);
             }
-            return SymbolKeyInd{t.val, std::move(index)};
+
+            if (const_index) {
+              return SymbolKeyInd{t.val, i};
+            } else {
+              return SymbolKeyInd{t.val, std::move(index)};
+            }
           }
         }
       }
@@ -328,451 +375,97 @@ struct ExprParser {
     }
   }
 
+  /**
+   * Parses an infix or postfix operation starting at the current operator
+   * token and combines it with the left-hand operand `l`.
+   * Consumes the operator token and any corresponding right-hand expression
+   * according to the operator's binding power.
+   * If both operands are compile-time constants, the result is folded
+   * directly into a scalar literal (`VInt`, `VFloat`, or `VBool`).
+   * @tparam F Callback function type with signature
+   *   `void(const Symbol::Mea&, std::string_view)`.
+   * @param symtab Symbol table instance used for symbol lookups.
+   * @param tok Lexical analyzer stream positioned at the operator token.
+   * @param l Already-parsed left-hand `Expr` operand to bind to the operator.
+   * @param f Callback invoked whenever a measurement (`Mea`) symbol
+   *   is parsed.
+   * @return Combined `Expr` variant containing a constant scalar value or
+   *   an executable function closure.
+   * @throws syntax_error on syntax errors, unexpected tokens, or type
+   *   mismatches.
+   */
   template <typename F>
   static Expr GetRight(
       const SymTable& symtab, Tokenizer& tok, const Expr& l, F&& f) {
     Token t = tok();
 
+    auto empty = [](unsigned lc, auto r) {};
+
+    auto div_by_zero = [](unsigned lc, auto r) {
+      if (r == decltype(r){0}) {
+        PE::Throw("division by zero", lc);
+      }
+    };
+
     switch (OpHash(t.val)) {
     case "||"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kOrPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VBool{EvalCondExpr(symtab, l) || EvalCondExpr(symtab, r)};
-        } else {
-          return EvalBoolFn{[l, r](const SymTable& symtab) {
-            return EvalCondExpr(symtab, l) || EvalCondExpr(symtab, r);
-          }};
-        }
-      }
+      return LogicalExpr(symtab, tok, l, kOrPrec, t.lc, f,
+                         [](auto l, auto r)  { return l || r; });
     case "^^"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kXorPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VBool{EvalCondExpr(symtab, l) != EvalCondExpr(symtab, r)};
-        } else {
-          return EvalBoolFn{[l, r](const SymTable& symtab) {
-            return EvalCondExpr(symtab, l) != EvalCondExpr(symtab, r);
-          }};
-        }
-      }
+      return LogicalExpr(symtab, tok, l, kXorPrec, t.lc, f,
+                         [](auto l, auto r)  { return l != r; });
     case "&&"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kAndPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VBool{EvalCondExpr(symtab, l) && EvalCondExpr(symtab, r)};
-        } else {
-          return EvalBoolFn{[l, r](const SymTable& symtab) {
-            return EvalCondExpr(symtab, l) && EvalCondExpr(symtab, r);
-          }};
-        }
-      }
+      return LogicalExpr(symtab, tok, l, kAndPrec, t.lc, f,
+                         [](auto l, auto r)  { return l && r; });
     case "|"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kBitOrPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VInt{EvalIntExpr(symtab, l) | EvalIntExpr(symtab, r)};
-        } else {
-          return EvalIntFn{[l, r](const SymTable& symtab) {
-            return EvalIntExpr(symtab, l) | EvalIntExpr(symtab, r);
-          }};
-        }
-      }
+      return ArithIntExpr(symtab, tok, l, kBitOrPrec, t.lc, f,
+                          [](auto l, auto r)  { return l | r; }, empty);
     case "^"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kBitXorPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VInt{EvalIntExpr(symtab, l) ^ EvalIntExpr(symtab, r)};
-        } else {
-          return EvalIntFn{[l, r](const SymTable& symtab) {
-            return EvalIntExpr(symtab, l) ^ EvalIntExpr(symtab, r);
-          }};
-        }
-      }
+      return ArithIntExpr(symtab, tok, l, kBitXorPrec, t.lc, f,
+                          [](auto l, auto r)  { return l ^ r; }, empty);
     case "&"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kBitAndPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VInt{EvalIntExpr(symtab, l) & EvalIntExpr(symtab, r)};
-        } else {
-          return EvalIntFn{[l, r](const SymTable& symtab) {
-            return EvalIntExpr(symtab, l) & EvalIntExpr(symtab, r);
-          }};
-        }
-      }
+      return ArithIntExpr(symtab, tok, l, kBitAndPrec, t.lc, f,
+                          [](auto l, auto r)  { return l & r; }, empty);
     case "=="_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kEqPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalIntExpr(symtab, l) == EvalIntExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) == EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalFloatExpr(symtab, l) == EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) == EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ComparisonExpr(symtab, tok, l, kEqPrec, f,
+                            [](auto l, auto r)  { return l == r; });
     case "!="_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kNotEqPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalIntExpr(symtab, l) != EvalIntExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) != EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalFloatExpr(symtab, l) != EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) != EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ComparisonExpr(symtab, tok, l, kNotEqPrec, f,
+                            [](auto l, auto r)  { return l != r; });
     case "<"_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kLessPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalIntExpr(symtab, l) < EvalIntExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) < EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalFloatExpr(symtab, l) < EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) < EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ComparisonExpr(symtab, tok, l, kLessPrec, f,
+                            [](auto l, auto r)  { return l < r; });
     case "<="_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kLessEqPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalIntExpr(symtab, l) <= EvalIntExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) <= EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalFloatExpr(symtab, l) <= EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) <= EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ComparisonExpr(symtab, tok, l, kLessEqPrec, f,
+                            [](auto l, auto r)  { return l <= r; });
     case ">"_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kGreaterPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalIntExpr(symtab, l) > EvalIntExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) > EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalFloatExpr(symtab, l) > EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) > EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ComparisonExpr(symtab, tok, l, kGreaterPrec, f,
+                            [](auto l, auto r)  { return l > r; });
     case ">="_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kGreaterEqPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalIntExpr(symtab, l) >= EvalIntExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) >= EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VBool{EvalFloatExpr(symtab, l) >= EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalBoolFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) >= EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ComparisonExpr(symtab, tok, l, kGreaterEqPrec, f,
+                            [](auto l, auto r)  { return l >= r; });
     case "<<"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kBitLeftShiftPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VInt{EvalIntExpr(symtab, l) << EvalIntExpr(symtab, r)};
-        } else {
-          return EvalIntFn{[l, r](const SymTable& symtab) {
-            auto val = EvalIntExpr(symtab, l);
-            return TruncateMea(symtab, l, val) << EvalIntExpr(symtab, r);
-          }};
-        }
-      }
+      return ShiftExpr(symtab, tok, l, kBitLeftShiftPrec, t.lc, f,
+                       [](auto l, auto r)  { return l << r; });
     case ">>"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kBitRightShiftPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          return VInt{EvalIntExpr(symtab, l) >> EvalIntExpr(symtab, r)};
-        } else {
-          return EvalIntFn{[l, r](const SymTable& symtab) {
-            auto val = EvalIntExpr(symtab, l);
-            return TruncateMea(symtab, l, val) >> EvalIntExpr(symtab, r);
-          }};
-        }
-      }
+      return ShiftExpr(symtab, tok, l, kBitRightShiftPrec, t.lc, f,
+                       [](auto l, auto r)  { return l >> r; });
     case "+"_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kAddPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VInt{EvalIntExpr(symtab, l) + EvalIntExpr(symtab, r)};
-          } else {
-            return EvalIntFn{[l, r](const SymTable& symtab) -> VInt {
-              return EvalIntExpr(symtab, l) + EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VFloat{EvalFloatExpr(symtab, l) + EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalFloatFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) + EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ArithIntOrFloatExpr(symtab, tok, l, kAddPrec, t.lc, f,
+                                 [](auto l, auto r)  { return l + r; }, empty);
     case "-"_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kSubPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VInt{EvalIntExpr(symtab, l) - EvalIntExpr(symtab, r)};
-          } else {
-            return EvalIntFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) - EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VFloat{EvalFloatExpr(symtab, l) - EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalFloatFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) - EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ArithIntOrFloatExpr(symtab, tok, l, kSubPrec, t.lc, f,
+                                 [](auto l, auto r)  { return l - r; }, empty);
     case "*"_ophash:
-      {
-        Expr r = RunWithPrecedence(symtab, tok, kMulPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VInt{EvalIntExpr(symtab, l) * EvalIntExpr(symtab, r)};
-          } else {
-            return EvalIntFn{[l, r](const SymTable& symtab) {
-              return EvalIntExpr(symtab, l) * EvalIntExpr(symtab, r);
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            return VFloat{EvalFloatExpr(symtab, l) * EvalFloatExpr(symtab, r)};
-          } else {
-            return EvalFloatFn{[l, r](const SymTable& symtab) {
-              return EvalFloatExpr(symtab, l) * EvalFloatExpr(symtab, r);
-            }};
-          }
-        }
-      }
+      return ArithIntOrFloatExpr(symtab, tok, l, kMulPrec, t.lc, f,
+                                 [](auto l, auto r)  { return l * r; }, empty);
     case "/"_ophash:
-      {
-        auto lc = t.lc;
-        Expr r = RunWithPrecedence(symtab, tok, kDivPrec, f);
-
-        if (IsConvertibleToInt(symtab, l)
-            && IsConvertibleToInt(symtab, r)) {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            auto divisor = EvalIntExpr(symtab, r);
-            if (divisor == 0) {
-              PE::Throw("division by zero", lc);
-            }
-            return VInt{EvalIntExpr(symtab, l) / divisor};
-          } else {
-            return EvalIntFn{[l, r, lc](const SymTable& symtab) {
-              auto divisor = EvalIntExpr(symtab, r);
-              if (divisor == 0) {
-                RE::Throw("division by zero", lc);
-              }
-              return EvalIntExpr(symtab, l) / divisor;
-            }};
-          }
-        } else {
-          if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-            auto divisor = EvalFloatExpr(symtab, r);
-            if (divisor == 0.0) {
-              PE::Throw("division by zero", lc);
-            }
-            return VFloat{EvalFloatExpr(symtab, l) / divisor};
-          } else {
-            return EvalFloatFn{[l, r, lc](const SymTable& symtab) {
-              auto divisor = EvalFloatExpr(symtab, r);
-              if (divisor == 0.0) {
-                RE::Throw("division by zero", lc);
-              }
-              return EvalFloatExpr(symtab, l) / divisor;
-            }};
-          }
-        }
-      }
+      return ArithIntOrFloatExpr(symtab, tok, l, kDivPrec, t.lc, f,
+                                 [](auto l, auto r)  { return l / r; },
+                                 div_by_zero);
     case "%"_ophash:
-      {
-        if (!IsConvertibleToInt(symtab, l)) {
-          PE::Throw("expected a left operand of type 'bool' or 'int'", t.lc);
-        }
-
-        Expr r = RunWithPrecedence(symtab, tok, kModPrec, f);
-
-        if (!IsConvertibleToInt(symtab, r)) {
-          PE::Throw("expected a right operand of type 'bool' or 'int'", t.lc);
-        }
-
-        auto lc = t.lc;
-
-        if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
-          auto divisor = EvalIntExpr(symtab, r);
-          if (divisor == 0) {
-            PE::Throw("division by zero", lc);
-          }
-          return VInt{EvalIntExpr(symtab, l) % divisor};
-        } else {
-          return EvalIntFn{[l, r, lc](const SymTable& symtab) {
-            auto divisor = EvalIntExpr(symtab, r);
-            if (divisor == 0) {
-              RE::Throw("division by zero", lc);
-            }
-            return EvalIntExpr(symtab, l) % divisor;
-          }};
-        }
-      }
+      return ArithIntExpr(symtab, tok, l, kModPrec, t.lc, f,
+                          [](auto l, auto r)  { return l % r; }, div_by_zero);
     case "**"_ophash:
       {
         if constexpr (int_only) {
@@ -780,7 +473,7 @@ struct ExprParser {
               "the operator ** is defined only for float expressions", t.lc);
         }
 
-        Expr r = RunWithPrecedence(symtab, tok, kPowPrec, f);
+        Expr r = RunWithPrecedence(symtab, tok, kPowPrec - 1, f);
 
         if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
           return VFloat{std::pow(EvalFloatExpr(symtab, l),
@@ -794,6 +487,131 @@ struct ExprParser {
     default:
       PE::Throw("unexpected operator", t.lc);
       return 0.0;
+    }
+  }
+
+  template <typename F>
+  static Expr GetIntOrError(const SymTable& symtab, Tokenizer& tok,
+                            const Expr& l, unsigned precedence, unsigned lc,
+                            F&& f) {
+    if (!IsConvertibleToInt(symtab, l)) {
+      PE::Throw("expected a left operand of type 'bool' or 'int'", lc);
+    }
+
+    Expr r = RunWithPrecedence(symtab, tok, precedence, f);
+
+    if (!IsConvertibleToInt(symtab, r)) {
+      PE::Throw("expected a right operand of type 'bool' or 'int'", lc);
+    }
+
+    return r;
+  }
+
+  template <typename F, typename G>
+  static Expr LogicalExpr(const SymTable& symtab, Tokenizer& tok,
+                          const Expr& l, unsigned lc, unsigned precedence,
+                          F&& f, G&& g) {
+    Expr r = GetIntOrError(symtab, tok, l, precedence, lc, f);
+
+    if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+      return VBool{g(EvalCondExpr(symtab, l), EvalCondExpr(symtab, r))};
+    } else {
+      return EvalBoolFn{[l, r, g](const SymTable& symtab) {
+        return VBool{g(EvalCondExpr(symtab, l), EvalCondExpr(symtab, r))};
+      }};
+    }
+  }
+
+  template <typename F, typename G>
+  static Expr ShiftExpr(const SymTable& symtab, Tokenizer& tok,
+                        const Expr& l, unsigned precedence, unsigned lc,
+                        F&& f, G&& g) {
+    Expr r = GetIntOrError(symtab, tok, l, precedence, lc, f);
+
+    if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+      return VInt{g(EvalIntExpr(symtab, l), EvalIntExpr(symtab, r))};
+    } else {
+      return EvalIntFn{[l, r, g](const SymTable& symtab) {
+      auto val = EvalIntExpr(symtab, l);
+        return VInt{g(TruncateMea(symtab, l, val), EvalIntExpr(symtab, r))};
+      }};
+    }
+  }
+
+  template <typename F, typename G>
+  static Expr ComparisonExpr(const SymTable& symtab, Tokenizer& tok,
+                             const Expr& l, unsigned precedence, F&& f, G&& g) {
+    Expr r = RunWithPrecedence(symtab, tok, precedence, f);
+
+    if (IsConvertibleToInt(symtab, l) && IsConvertibleToInt(symtab, r)) {
+      if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+        return VBool{g(EvalIntExpr(symtab, l), EvalIntExpr(symtab, r))};
+      } else {
+        return EvalBoolFn{[l, r, g](const SymTable& symtab) {
+          return VBool{g(EvalIntExpr(symtab, l), EvalIntExpr(symtab, r))};
+        }};
+      }
+    } else {
+      if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+        return VBool{g(EvalFloatExpr(symtab, l), EvalFloatExpr(symtab, r))};
+      } else {
+        return EvalBoolFn{[l, r, g](const SymTable& symtab) {
+          return VBool{g(EvalFloatExpr(symtab, l), EvalFloatExpr(symtab, r))};
+        }};
+      }
+    }
+  }
+
+  template <typename F, typename G, typename VR>
+  static Expr ArithIntExpr(const SymTable& symtab, Tokenizer& tok,
+                           const Expr& l, unsigned precedence, unsigned lc,
+                           F&& f, G&& g, VR&& validate_right) {
+    Expr r = GetIntOrError(symtab, tok, l, precedence, lc, f);
+
+    if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+      auto val_r = EvalIntExpr(symtab, r);
+      validate_right(lc, val_r);
+      return VInt{g(EvalIntExpr(symtab, l), val_r)};
+    } else {
+      return EvalIntFn{[l, r, lc, g, validate_right](const SymTable& symtab) {
+        auto val_r = EvalIntExpr(symtab, r);
+        validate_right(lc, val_r);
+        return VInt{g(EvalIntExpr(symtab, l), EvalIntExpr(symtab, r))};
+      }};
+    }
+  }
+
+  template <typename F, typename G, typename VR>
+  static Expr ArithIntOrFloatExpr(
+      const SymTable& symtab, Tokenizer& tok, const Expr& l,
+      unsigned precedence, unsigned lc, F&& f, G&& g, VR&& validate_right) {
+    Expr r = RunWithPrecedence(symtab, tok, kAddPrec, f);
+
+    if (IsConvertibleToInt(symtab, l) && IsConvertibleToInt(symtab, r)) {
+      if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+        auto val_r = EvalIntExpr(symtab, r);
+        validate_right(lc, val_r);
+        return VInt{g(EvalIntExpr(symtab, l), val_r)};
+      } else {
+        return EvalIntFn{[l, r, lc, g, validate_right](const SymTable& symtab) {
+          auto val_r = EvalIntExpr(symtab, r);
+          validate_right(lc, val_r);
+          return VInt{g(EvalIntExpr(symtab, l), val_r)};
+        }};
+      }
+    } else {
+      if (IsConstExpr(symtab, l) && IsConstExpr(symtab, r)) {
+        auto val_r = EvalFloatExpr(symtab, r);
+        validate_right(lc, val_r);
+        return VFloat{g(EvalFloatExpr(symtab, l), val_r)};
+      } else {
+        return EvalFloatFn{[l, r, lc, g, validate_right](
+            const SymTable& symtab) {
+          auto val_r = EvalFloatExpr(symtab, r);
+          validate_right(lc, val_r);
+          return VFloat{g(EvalFloatExpr(symtab, l), val_r)};
+        }};
+      }
     }
   }
 
@@ -874,8 +692,8 @@ struct IndexParser {
         if (!sym->IsConvertibleToInt()) {
           PE::Throw("index must be an integer expression", n.lc);
         }
-        return EvalIntFn{[sym](const SymTable& symtab) {
-          return sym->GetInt();
+        return EvalIntFn{[e](const SymTable& symtab) {
+          return EvalIntExpr(symtab, e);
         }};
       } else if constexpr (std::is_same_v<E, SymbolKeyInd>) {
         const auto* sym = symtab.LookupOrError(
@@ -883,8 +701,8 @@ struct IndexParser {
         if (!sym->IsConvertibleToInt()) {
           PE::Throw("index must be an integer expression", n.lc);
         }
-        return EvalIntFn{[sym, e](const SymTable& symtab) {
-          return sym->GetInt(EvalIndex(symtab, e.second));
+        return EvalIntFn{[e](const SymTable& symtab) {
+          return EvalIntExpr(symtab, e);
         }};
       } else {
         PE::Throw("index must be an integer expression", n.lc);

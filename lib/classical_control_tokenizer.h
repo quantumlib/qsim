@@ -179,6 +179,25 @@ private:
     return c == '0' || c == '1';
   }
 
+  static bool is_operator(char ch) noexcept {
+    switch (ch) {
+    case '-': case '+': case '*': case '/': case '%': case '=': case '<':
+    case '>': case '!': case '~': case '|': case '^': case '&':
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  static bool is_bracket(char ch) noexcept {
+    switch (ch) {
+    case '(': case ')': case '[': case ']':
+      return true;
+    default:
+      return false;
+    }
+  }
+
   Token Next() {
     while (pos < content.size()) {
       char ch = content[pos];
@@ -190,20 +209,15 @@ private:
       ++pos;
     }
 
-    if (pos == content.size()) {
-      unsigned lc = PackLineAndColumn(line, content.size() - pos0);
-      return {Token::kEndOfFile, lc, {}};
-    }
-
-    if (content[pos] == '#') {
+    if (pos < content.size() && content[pos] == '#') {
       while (pos < content.size() && content[pos] != '\n') {
         ++pos;
       }
+    }
 
-      if (pos == content.size()) {
-        unsigned lc = PackLineAndColumn(line, content.size() - pos0);
-        return {Token::kEndOfFile, lc, {}};
-      }
+    if (pos == content.size()) {
+      unsigned lc = PackLineAndColumn(line, content.size() - pos0);
+      return {Token::kEndOfFile, lc, {}};
     }
 
     char cur = content[pos];
@@ -331,27 +345,11 @@ private:
       }
     }
 
-    static constexpr std::array<bool, 256> is_operator = []() {
-      std::array<bool, 256> array = {false};
-      for (char c : "-+*/%=<>!~|^&") {
-        array[static_cast<unsigned char>(c)] = true;
-      }
-      return array;
-    }();
-
-    if (is_operator[cur]) {
+    if (is_operator(cur)) {
       return {Token::kOperator, lc, content.substr(pos++, 1)};
     }
 
-    static constexpr std::array<bool, 256> is_bracket = []() {
-      std::array<bool, 256> array = {false};
-      for (char c : "()[]") {
-        array[static_cast<unsigned char>(c)] = true;
-      }
-      return array;
-    }();
-
-    if (is_bracket[cur]) {
+    if (is_bracket(cur)) {
       return {Token::kBracket, lc, content.substr(pos++, 1)};
     }
 

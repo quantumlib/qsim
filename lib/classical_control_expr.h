@@ -34,8 +34,8 @@ using VFloat = double;
 using VBool = bool;
 
 using EvalIntFn = std::function<VInt(const SymTable&)>;
-using EvalFloatFn = std::function<double(const SymTable&)>;
-using EvalBoolFn = std::function<bool(const SymTable&)>;
+using EvalFloatFn = std::function<VFloat(const SymTable&)>;
+using EvalBoolFn = std::function<VBool(const SymTable&)>;
 
 /**
  * Variant representing an index expression used to access elements in vectors
@@ -87,16 +87,15 @@ inline bool IsConstIndex(const Index& i) {
 }
 
 /**
- * Evaluates an Index variant to a concrete array/vector position index
- * (`std::size_t`).
+ * Evaluates an index.
  * @tparam SymTable Symbol table type.
  * @param symtab Symbol table instance used for symbol lookups.
  * @param index Index variant to evaluate.
- * @return Non-negative target index position.
+ * @return evaluated index.
  * @throws std::runtime_error If evaluated index is negative.
  */
 template <typename SymTable>
-inline std::size_t EvalIndex(const SymTable& symtab, const Index& index) {
+inline VInt EvalIndex(const SymTable& symtab, const Index& index) {
   auto f = [&symtab](auto&& index) -> VInt {
     using I = std::decay_t<decltype(index)>;
 
@@ -112,12 +111,35 @@ inline std::size_t EvalIndex(const SymTable& symtab, const Index& index) {
   };
 
   VInt i = std::visit(f, index);
-
   if (i < 0) {
-    Error::Throw("negative index");
+    Error::Throw("negative index {}", i);
   }
 
-  return static_cast<std::size_t>(i);
+  return i;
+}
+
+/**
+ * Evaluates a constant index.
+ * @tparam SymTable Symbol table type.
+ * @param symtab Symbol table instance used for symbol lookups.
+ * @param index Index variant to evaluate.
+ * @return evaluated index.
+ */
+template <typename SymTable>
+inline VInt EvalConstIndex(const SymTable& symtab, const Index& index) {
+  auto f = [&symtab](auto&& index) -> VInt {
+    using I = std::decay_t<decltype(index)>;
+
+    if constexpr (std::is_same_v<I, VInt>) {
+      return index;
+    } else if constexpr (std::is_same_v<I, VBool>) {
+      return index;
+    } else {
+      return 0;
+    }
+  };
+
+  return std::visit(f, index);
 }
 
 /**

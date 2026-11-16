@@ -140,7 +140,7 @@ struct Symbol {
    * @return Number of bits for Mea, number of elements for vectors,
    *   or 1 for scalars.
    */
-  unsigned Size() const {
+  std::size_t Size() const {
     auto f = [](auto&& v) -> unsigned {
       using V = std::decay_t<decltype(v)>;
 

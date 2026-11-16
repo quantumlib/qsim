@@ -102,7 +102,7 @@ TEST(TokenizerTest, Operators) {
 }
 
 TEST(TokenizerTest, BracketsAndDelimiters) {
-  Tokenizer tok("( ) [ ] ; \n");
+  Tokenizer tok("( ) [ ] ; \n \r\n");
 
   AssertToken(tok(), Token::kBracket, "(");
   AssertToken(tok(), Token::kBracket, ")");
@@ -110,15 +110,73 @@ TEST(TokenizerTest, BracketsAndDelimiters) {
   AssertToken(tok(), Token::kBracket, "]");
   AssertToken(tok(), Token::kDelimiter, ";");
   AssertToken(tok(), Token::kDelimiter, "\n");
+  AssertToken(tok(), Token::kDelimiter, "\n");
   AssertToken(tok(), Token::kEndOfFile, "");
 }
 
-TEST(TokenizerTest, InvalidToken) {
-  // Non-ASCII or unclosed quote yields kInvalid
-  Tokenizer tok("\"unclosed string");
+TEST(TokenizerTest, InvalidTokens) {
+  const std::vector<std::string_view> contains_invalid_tokens = {
+    "\"unclosed string", "0b", "0b2", "0x", "1e", "1ek", "`",
+  };
 
-  Token t = tok();
-  EXPECT_EQ(t.kind, Token::kInvalid);
+  for (auto s : contains_invalid_tokens) {
+    Tokenizer tok(s);
+
+    Token t = tok();
+    EXPECT_EQ(t.kind, Token::kInvalid);
+  }
+}
+
+TEST(TokenizerTest, LineAndColumn) {
+  Tokenizer tok("a b \n c d\n  e\n\t f");
+
+  {
+    Token t = tok();
+    auto [line, col] = Tokenizer::UnpackLineAndColumn(t.lc);
+    EXPECT_EQ(line, 0);
+    EXPECT_EQ(col, 0);
+  }
+
+  {
+    Token t = tok();
+    auto [line, col] = Tokenizer::UnpackLineAndColumn(t.lc);
+    EXPECT_EQ(line, 0);
+    EXPECT_EQ(col, 2);
+  }
+
+  tok();
+
+  {
+    Token t = tok();
+    auto [line, col] = Tokenizer::UnpackLineAndColumn(t.lc);
+    EXPECT_EQ(line, 1);
+    EXPECT_EQ(col, 1);
+  }
+
+  {
+    Token t = tok();
+    auto [line, col] = Tokenizer::UnpackLineAndColumn(t.lc);
+    EXPECT_EQ(line, 1);
+    EXPECT_EQ(col, 3);
+  }
+
+  tok();
+
+  {
+    Token t = tok();
+    auto [line, col] = Tokenizer::UnpackLineAndColumn(t.lc);
+    EXPECT_EQ(line, 2);
+    EXPECT_EQ(col, 2);
+  }
+
+  tok();
+
+  {
+    Token t = tok();
+    auto [line, col] = Tokenizer::UnpackLineAndColumn(t.lc);
+    EXPECT_EQ(line, 3);
+    EXPECT_EQ(col, 2);  // '\t' is currently treated as a single character
+  }
 }
 
 TEST(TokenizerStateTest, CurrentTokenTracking) {
@@ -147,6 +205,14 @@ TEST(TokenizerStateTest, PeekLookahead) {
   // Peek(2) previews 'b'
   Token peek2 = tok.Peek(2);
   AssertToken(peek2, Token::kIdentifier, "b");
+
+  // Peek past the end of the input
+  Token peek3 = tok.Peek(3);
+  AssertToken(peek3, Token::kEndOfFile, "");
+
+  // Peek past the end of the input
+  Token peek4 = tok.Peek(4);
+  AssertToken(peek4, Token::kEndOfFile, "");
 
   // Calling operator() should still retrieve 'a'
   Token consumed = tok();

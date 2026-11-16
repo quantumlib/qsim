@@ -340,10 +340,15 @@ struct CircuitQSimParser final {
           n = tok.Peek(1);
 
           Index index = IndexParser::Run(symtab, tok);
-          std::size_t i = EvalIndex(symtab, index);
+          bool const_index = IsConstIndex(index);
+          VInt i = const_index ? EvalIndex(symtab, index) : 0;
 
-          if (i >= sym->Size()) {
-            PE::Throw("index {} is out of range", n.lc, i);
+          if (const_index) {
+            if (i < 0) {
+              PE::Throw("negative index {}", n.lc, i);
+            } else if (static_cast<std::size_t>(i) >= sym->Size()) {
+              PE::Throw("index {} is out of range", n.lc, i);
+            }
           }
 
           n = tok.Peek();
@@ -354,7 +359,11 @@ struct CircuitQSimParser final {
 
           tok();  // Consume '='.
 
-          Assign(cop, t, symtab, sym, std::move(index), i, tok);
+          if (const_index) {
+            Assign(cop, t, symtab, sym, std::move(i), i, tok);
+          } else {
+            Assign(cop, t, symtab, sym, std::move(index), i, tok);
+          }
         }
 
         ops.push_back(std::move(cop));
@@ -731,11 +740,6 @@ struct CircuitQSimParser final {
 
             while (tok.Peek().kind != Token::kDelimiter &&
                    tok.Peek().kind != Token::kEndOfFile) {
-              if (cop.exprs.size() == 4) {
-                PE::Throw("'println' supports only up to "
-                          "four expression arguments", t.lc);
-              }
-
               cop.exprs.push_back(ExprParser::Run(symtab, tok));
             }
 
