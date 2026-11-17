@@ -528,6 +528,10 @@ class MPSStateSpace {
     }
 
     // Compute RDM-(n-1) and sample.
+      // The internal-qubit loop is skipped for two-qubit states, so restore
+    // the left contraction frontier computed before that loop.
+    new (&partial_contract) MatrixMap(
+        (Complex*)(scratch2_raw + left_frontier_offset), bond_dim, bond_dim);
     offset = GetBlockOffset(state, num_qubits - 1);
     new (&partial_contract2)
         MatrixMap((Complex*)(state_raw + end), bond_dim, 2);
