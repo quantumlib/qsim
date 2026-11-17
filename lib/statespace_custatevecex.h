@@ -78,6 +78,10 @@ class StateSpaceCuStateVecEx :
 
   void InternalToNormalOrder(State& state) const {
     state.to_normal_order();
+
+    // to_normal_order() is asynchronous; synchronize so that callers may
+    // observe the raw device buffer as soon as this method returns.
+    ErrorCheck(custatevecExStateVectorSynchronize(state.get()));
   }
 
   void NormalToInternalOrder(State& state) const {

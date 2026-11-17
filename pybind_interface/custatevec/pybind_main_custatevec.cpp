@@ -15,6 +15,11 @@
 #include <cublas_v2.h>
 #include <custatevec.h>
 
+// Enable zero-copy device state-vector bindings (issue #836).
+// Must precede the header include below: pybind_main.h branches on
+// this macro and would otherwise emit a conflicting inline stub.
+#define QSIM_DEVICE_STATE_BINDINGS
+
 #include "pybind_main_custatevec.h"
 
 #include "../../lib/fuser_mqubit.h"

@@ -159,6 +159,12 @@ qtrajectory_simulate_moment_expectation_values(
 // Hybrid simulator.
 std::vector<std::complex<float>> qsimh_simulate(const py::dict &options);
 
+#ifdef QSIM_DEVICE_STATE_BINDINGS
+void bind_device_state_vector(py::module_& m);
+#else
+inline void bind_device_state_vector(py::module_& m) {}
+#endif
+
 template <typename T>
 T ParseOptions(const py::dict& options, const char* key) {
   if (!options.contains(key)) {
@@ -392,6 +398,9 @@ T ParseOptions(const py::dict& options, const char* key) {
                                               const py::array_t<float>&)>(            \
                 &qtrajectory_simulate_fullstate),                                     \
             "Call the qtrajectory simulator for full state vector simulation");       \
+                                                                                      \
+      /* Zero-copy access to the final state in device memory (issue #836) */         \
+      bind_device_state_vector(m);                                                    \
                                                                                       \
       /* Methods for returning samples */                                             \
       m.def("qsim_sample", &qsim_sample, "Call the qsim sampler");                    \

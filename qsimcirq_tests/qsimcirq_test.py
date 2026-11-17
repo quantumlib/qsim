@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import cirq
 import numpy as np
 import pytest
@@ -1512,6 +1514,261 @@ def test_qsim_gpu_input_state():
 
         for i in range(1, size):
             assert cirq.approx_eq(state_vector[i], 0, atol=1e-6)
+
+
+def _device_state_to_numpy(device_state):
+    """Copies a __cuda_array_interface__ buffer back to host via CuPy."""
+    cupy = pytest.importorskip("cupy")
+    return cupy.asnumpy(cupy.asarray(device_state))
+
+
+def _build_asymmetric_entangled_circuit(qubits):
+    """Builds a dense, permutation-asymmetric circuit for state-vector checks."""
+    circuit = cirq.Circuit()
+    for index, qubit in enumerate(qubits):
+        circuit.append(cirq.rx(0.31 * (index + 1)).on(qubit))
+        circuit.append(cirq.ry(0.47 * (index + 1)).on(qubit))
+    for left, right in zip(qubits[:-1], qubits[1:]):
+        circuit.append(cirq.CZ(left, right))
+    for index, qubit in enumerate(qubits):
+        circuit.append(cirq.rz(0.23 * (index + 1)).on(qubit))
+        circuit.append(cirq.H(qubit))
+    return circuit
+
+
+def test_simulate_into_device_array_requires_gpu():
+    cpu_sim = qsimcirq.QSimSimulator()
+    a, b = cirq.LineQubit.range(2)
+    circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b))
+    with pytest.raises(ValueError, match="requires GPU execution"):
+        cpu_sim.simulate_into_device_array(circuit)
+
+
+def test_cirq_qsim_gpu_simulate_into_device_array():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+    pytest.importorskip("cupy")
+
+    qubits = cirq.LineQubit.range(5)
+    circuit = _build_asymmetric_entangled_circuit(qubits)
+
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    sim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+
+    _, device_state, qubit_order = sim.simulate_into_device_array(circuit)
+
+    interface = device_state.__cuda_array_interface__
+    assert interface["shape"] == (2 ** len(qubits),)
+    assert interface["typestr"] == "<c8"
+    assert interface["version"] == 3
+    assert interface["data"][0] != 0
+    # The buffer is deliberately exported as writable.
+    assert interface["data"][1] is False
+    assert device_state.num_qubits == len(qubits)
+
+    expected = (
+        cirq.Simulator().simulate(circuit, qubit_order=qubit_order).final_state_vector
+    )
+    actual = _device_state_to_numpy(device_state)
+    assert np.allclose(actual, expected, atol=1e-6)
+
+
+def test_cirq_qsim_gpu_simulate_into_device_array_with_input_state():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+    pytest.importorskip("cupy")
+
+    num_qubits = 4
+    size = 2**num_qubits
+    qubits = cirq.LineQubit.range(num_qubits)
+    circuit = cirq.Circuit(cirq.H.on_each(*qubits))
+
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    sim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+    initial_state = np.asarray([np.sqrt(1.0 / size)] * size, dtype=np.complex64)
+
+    _, device_state, _ = sim.simulate_into_device_array(
+        circuit, initial_state=initial_state
+    )
+    state_vector = _device_state_to_numpy(device_state)
+
+    assert cirq.approx_eq(state_vector[0], 1, atol=1e-6)
+    for i in range(1, size):
+        assert cirq.approx_eq(state_vector[i], 0, atol=1e-6)
+
+
+def test_cirq_qsim_gpu_simulate_into_device_array_with_non_contiguous_input_state():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+    pytest.importorskip("cupy")
+
+    num_qubits = 2
+    qubits = cirq.LineQubit.range(num_qubits)
+    circuit = cirq.Circuit(cirq.H.on_each(*qubits))
+
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    sim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+
+    # Create non-contiguous sliced initial_state array
+    full_array = np.zeros(8, dtype=np.complex64)
+    full_array[0] = 0.5
+    full_array[2] = 0.5
+    full_array[4] = 0.5
+    full_array[6] = 0.5
+    initial_state_strided = full_array[::2]
+    assert not initial_state_strided.flags.c_contiguous
+
+    _, device_state, _ = sim.simulate_into_device_array(
+        circuit, initial_state=initial_state_strided
+    )
+    state_vector = _device_state_to_numpy(device_state)
+
+    assert cirq.approx_eq(state_vector[0], 1, atol=1e-6)
+    for i in range(1, 4):
+        assert cirq.approx_eq(state_vector[i], 0, atol=1e-6)
+
+
+def test_device_state_vector_free():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+
+    a, b = cirq.LineQubit.range(2)
+    circuit = cirq.Circuit(cirq.H(a), cirq.CNOT(a, b))
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    sim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+
+    _, device_state, _ = sim.simulate_into_device_array(circuit)
+    assert not device_state.is_freed
+    device_state.free()
+    assert device_state.is_freed
+    # free() is idempotent.
+    device_state.free()
+    with pytest.raises(RuntimeError, match="has been freed"):
+        _ = device_state.__cuda_array_interface__
+    with pytest.raises(RuntimeError, match="has been freed"):
+        _ = device_state.num_qubits
+
+
+def _total_free_device_memory(cupy):
+    """Returns the free memory summed over all visible devices, in bytes."""
+    total = 0
+    for device_id in range(cupy.cuda.runtime.getDeviceCount()):
+        with cupy.cuda.Device(device_id):
+            cupy.cuda.runtime.deviceSynchronize()
+            total += cupy.cuda.runtime.memGetInfo()[0]
+    return total
+
+
+@pytest.mark.parametrize("use_device_array", [False, True])
+@pytest.mark.parametrize(
+    "gpu_mode, module_name",
+    [(0, "qsim_gpu"), (1, "qsim_custatevec"), (2, "qsim_custatevecex")],
+)
+def test_gpu_simulation_releases_device_memory(gpu_mode, module_name, use_device_array):
+    if getattr(qsimcirq, module_name) is None:
+        pytest.skip(f"qsimcirq.{module_name} is not available for testing.")
+    if int(os.environ.get("PYTEST_XDIST_WORKER_COUNT", "1")) > 1:
+        # Free device memory is shared by all processes using the GPU, so
+        # other test workers would disturb the measurement.
+        pytest.skip("Needs exclusive use of the GPU; run without pytest -n.")
+    cupy = pytest.importorskip("cupy")
+
+    num_qubits = 20
+    state_bytes = np.dtype(np.complex64).itemsize * 2**num_qubits
+    circuit = _build_asymmetric_entangled_circuit(cirq.LineQubit.range(num_qubits))
+    options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=gpu_mode)
+    sim = qsimcirq.QSimSimulator(qsim_options=options)
+
+    def run_once():
+        if use_device_array:
+            _, device_state, _ = sim.simulate_into_device_array(circuit)
+            device_state.free()
+        else:
+            sim.simulate(circuit)
+
+    # The first run lets the backend finish its one-time initialization.
+    run_once()
+    free_before = _total_free_device_memory(cupy)
+    num_runs = 10
+    for _ in range(num_runs):
+        run_once()
+    lost = free_before - _total_free_device_memory(cupy)
+    # Fails if the runs leak half a state or more each, on average.
+    assert lost < num_runs * state_bytes // 2, (
+        f"{lost} B of device memory lost over {num_runs} runs; "
+        f"one state is {state_bytes} B."
+    )
+
+
+def test_cirq_qsim_gpu_noisy_simulate_into_device_array():
+    if qsimcirq.qsim_gpu is None:
+        pytest.skip("GPU is not available for testing.")
+    pytest.importorskip("cupy")
+
+    # bit_flip(p=1) is a channel, so this circuit takes the trajectory
+    # (qtrajectory_simulate_fullstate_device) code path, but its effect is a
+    # deterministic X and the final state is seed-independent.
+    a, b = cirq.LineQubit.range(2)
+    circuit = cirq.Circuit(cirq.H(a), cirq.bit_flip(p=1.0).on(b))
+
+    gpu_options = qsimcirq.QSimOptions(use_gpu=True)
+    sim = qsimcirq.QSimSimulator(qsim_options=gpu_options)
+
+    _, device_state, _ = sim.simulate_into_device_array(circuit)
+    state_vector = _device_state_to_numpy(device_state)
+
+    expected = np.zeros(4, dtype=np.complex64)
+    expected[0b01] = expected[0b11] = 1 / np.sqrt(2)
+    assert np.allclose(state_vector, expected, atol=1e-6)
+    assert np.isclose(np.sum(np.abs(state_vector) ** 2), 1.0, atol=1e-6)
+
+
+def test_cirq_qsim_custatevec_simulate_into_device_array():
+    if qsimcirq.qsim_custatevec is None:
+        pytest.skip("cuStateVec library is not available for testing.")
+    pytest.importorskip("cupy")
+
+    qubits = cirq.LineQubit.range(5)
+    circuit = _build_asymmetric_entangled_circuit(qubits)
+
+    custatevec_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=1)
+    sim = qsimcirq.QSimSimulator(qsim_options=custatevec_options)
+
+    _, device_state, qubit_order = sim.simulate_into_device_array(circuit)
+
+    expected = (
+        cirq.Simulator().simulate(circuit, qubit_order=qubit_order).final_state_vector
+    )
+    actual = _device_state_to_numpy(device_state)
+    assert np.allclose(actual, expected, atol=1e-6)
+
+
+def test_cirq_qsim_custatevecex_simulate_into_device_array():
+    if qsimcirq.qsim_custatevecex is None:
+        pytest.skip("cuStateVecEx library is not available for testing.")
+    cupy = pytest.importorskip("cupy")
+
+    qubits = cirq.LineQubit.range(5)
+    circuit = _build_asymmetric_entangled_circuit(qubits)
+
+    custatevecex_options = qsimcirq.QSimOptions(use_gpu=True, gpu_mode=2)
+    sim = qsimcirq.QSimSimulator(qsim_options=custatevecex_options)
+
+    _, device_state, qubit_order = sim.simulate_into_device_array(circuit)
+
+    if cupy.cuda.runtime.getDeviceCount() > 1:
+        # With gpu_mode=2, cuStateVecEx spreads the state across all visible
+        # devices; there is no single contiguous device buffer to expose.
+        with pytest.raises(RuntimeError, match="no single contiguous device buffer"):
+            _ = device_state.__cuda_array_interface__
+    else:
+        expected = (
+            cirq.Simulator()
+            .simulate(circuit, qubit_order=qubit_order)
+            .final_state_vector
+        )
+        actual = _device_state_to_numpy(device_state)
+        assert np.allclose(actual, expected, atol=1e-6)
 
 
 def test_cirq_qsim_custatevec_amplitudes():

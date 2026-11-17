@@ -47,7 +47,12 @@ include_directories($ENV{CUQUANTUM_ROOT}/include)
 link_directories($ENV{CUQUANTUM_ROOT}/lib $ENV{CUQUANTUM_ROOT}/lib64)
 
 add_library(qsim_custatevec MODULE pybind_main_custatevec.cpp)
+# See pybind_interface/cuda/CMakeLists.txt for why hidden visibility is set
+# on nvcc-compiled pybind11 extension modules.
 set_target_properties(qsim_custatevec PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    CUDA_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
