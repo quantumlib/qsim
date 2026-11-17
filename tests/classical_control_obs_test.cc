@@ -1,0 +1,164 @@
+// Copyright 2026 Google LLC. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <gtest/gtest.h>
+
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+
+#include "../lib/classical_control_obs.h"
+
+namespace qsim::cc {
+namespace {
+
+TEST(MeasurementHistogramTest, DefaultConstructor) {
+  MeasurementHistogram hist;
+  EXPECT_EQ(hist.Size(), 0u);
+  EXPECT_TRUE(hist.Count().empty());
+}
+
+TEST(MeasurementHistogramTest, ParameterizedConstructorAllocatesCorrectSize) {
+  unsigned num_qubits = 3;
+  MeasurementHistogram hist(num_qubits);
+
+  EXPECT_EQ(hist.Size(), 3u);
+  // 2^3 = 8 outcome entries
+  EXPECT_EQ(hist.Count().size(), 8u);
+
+  for (uint64_t val : hist.Count()) {
+    EXPECT_EQ(val, 0u);
+  }
+}
+
+TEST(MeasurementHistogramTest, UpdateAccumulatesCounts) {
+  MeasurementHistogram hist(2); // 4 outcomes: 00, 01, 10, 11
+
+  for (unsigned trajectory = 0; trajectory < 22; ++trajectory) {
+    hist.AddBitstring(trajectory % 4);
+    hist.Update();
+  }
+
+  EXPECT_EQ(hist.Count()[0b00], 6u);
+  EXPECT_EQ(hist.Count()[0b01], 6u);
+  EXPECT_EQ(hist.Count()[0b10], 5u);
+  EXPECT_EQ(hist.Count()[0b11], 5u);
+}
+
+TEST(MeasurementHistogramTest, DiscardDiscardsCounts) {
+  MeasurementHistogram hist(2); // 4 outcomes: 00, 01, 10, 11
+
+  for (unsigned trajectory = 0; trajectory < 22; ++trajectory) {
+    uint64_t bitstring = trajectory % 4;
+
+    hist.AddBitstring(bitstring);
+
+    if (bitstring != 0b01 && bitstring != 0b10) {
+      hist.Update();
+    } else {
+      hist.Discard();
+    }
+  }
+
+  EXPECT_EQ(hist.Count()[0b00], 6u);
+  EXPECT_EQ(hist.Count()[0b01], 0u);
+  EXPECT_EQ(hist.Count()[0b10], 0u);
+  EXPECT_EQ(hist.Count()[0b11], 5u);
+}
+
+TEST(MeasurementHistogramTest, Errors) {
+  MeasurementHistogram hist(2); // 4 outcomes: 00, 01, 10, 11
+
+  // Bitstring is out of range.
+  EXPECT_THROW(hist.AddBitstring(0b100), std::runtime_error);
+
+  hist.AddBitstring(0b10);
+
+  // Second AddBitstring call before calling `Update` or `Discard`.
+  EXPECT_THROW(hist.AddBitstring(0b01), std::runtime_error);
+}
+
+TEST(ObservablesTest, InitialStateIsEmpty) {
+  Observables obss;
+  EXPECT_TRUE(obss.Empty());
+  EXPECT_EQ(obss.Lookup("nonexistent"), nullptr);
+}
+
+TEST(ObservablesTest, InsertAndLookup) {
+  Observables obss;
+
+  Observable* inserted = obss.Insert("m0", MeasurementHistogram(2));
+  ASSERT_NE(inserted, nullptr);
+  EXPECT_FALSE(obss.Empty());
+  EXPECT_EQ(inserted->Size(), 2u);
+
+  // Lookup non-const
+  Observable* found = obss.Lookup("m0");
+  ASSERT_NE(found, nullptr);
+  EXPECT_EQ(found, inserted);
+
+  // Const Lookup
+  const Observables& const_obss = obss;
+  const Observable* const_found = const_obss.Lookup("m0");
+  ASSERT_NE(const_found, nullptr);
+  EXPECT_EQ(const_found->Size(), 2u);
+}
+
+TEST(ObservablesTest, InsertObservableWithSameKey) {
+  Observables obss;
+
+  Observable* inserted = obss.Insert("m0", MeasurementHistogram(2));
+  ASSERT_NE(inserted, nullptr);
+  EXPECT_FALSE(obss.Empty());
+  EXPECT_EQ(inserted->Size(), 2u);
+
+  // First observable should be replaced
+  Observable* inserted2 = obss.Insert("m0", MeasurementHistogram(3));
+  ASSERT_NE(inserted2, nullptr);
+  EXPECT_EQ(inserted, inserted2);
+  EXPECT_FALSE(obss.Empty());
+  EXPECT_EQ(inserted2->Size(), 3u);
+}
+
+TEST(ObservablesTest, IteratesOverRegisteredObservables) {
+  Observables obss;
+  obss.Insert("h1", MeasurementHistogram(1));
+  obss.Insert("h2", MeasurementHistogram(2));
+
+  std::unordered_map<std::string_view, unsigned> visited;
+
+  obss.Iterate([&visited](std::string_view name, Observable& obs) {
+    visited[name] = obs.Size();
+  });
+
+  EXPECT_EQ(visited.size(), 2u);
+  EXPECT_EQ(visited["h1"], 1u);
+  EXPECT_EQ(visited["h2"], 2u);
+
+  // Const iteration check
+  const Observables& const_obss = obss;
+  std::size_t const_count = 0;
+  const_obss.Iterate([&const_count](std::string_view, const Observable&) {
+    ++const_count;
+  });
+  EXPECT_EQ(const_count, 2u);
+}
+
+}  // namespace
+}  // namespace qsim::cc
+
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

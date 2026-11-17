@@ -36,7 +36,7 @@ QSIMLIB_DECIDE = ../qsimcirq/qsim_decide$(SUFFIX)
 
 # Certain Pybind11 flags are common for all cases.
 PYBIND_INCLUDES := $(shell pybind11-config --includes)
-PYBINDFLAGS = -Wall -shared -std=c++17 -fPIC $(PYBIND_INCLUDES)
+PYBINDFLAGS = -Wall -shared -std=c++20 -fPIC $(PYBIND_INCLUDES)
 
 # GCC 12 produces false-positive array-bounds warnings in some code (see
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115824). Pybind 3.x automatically
@@ -55,13 +55,13 @@ PYBINDFLAGS_AVX2 = -mavx2 -mfma $(PYBINDFLAGS)
 PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 $(PYBINDFLAGS)
 
 # The flags for the compilation of CUDA-specific Pybind11 interfaces
-PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC $(PYBIND_INCLUDES)"
+PYBINDFLAGS_CUDA = -std=c++20 -x cu -Xcompiler "-Wall -shared -fPIC $(PYBIND_INCLUDES)"
 
 # The flags for the compilation of cuStateVec-specific Pybind11 interfaces
 PYBINDFLAGS_CUSTATEVEC = $(CUSTATEVECFLAGS) $(PYBINDFLAGS_CUDA)
 
 # The flags for the compilation of HIP-specific Pybind11 interfaces
-PYBINDFLAGS_HIP = -std=c++17 -Wall -shared -fPIC $(PYBIND_INCLUDES)
+PYBINDFLAGS_HIP = -std=c++20 -Wall -shared -fPIC $(PYBIND_INCLUDES)
 
 # Check for nvcc to decide compilation mode.
 ifeq ($(shell which $(NVCC)),)

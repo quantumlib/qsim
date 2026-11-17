@@ -33,7 +33,6 @@ namespace qsim {
 
 template <typename Factory>
 void TestHybrid2(const Factory& factory) {
-  constexpr char provider[] = "hybrid_test";
   constexpr char circuit_string[] =
 R"(2
 0 h 0
@@ -63,10 +62,8 @@ R"(2
 
   using fp_type = typename Factory::fp_type;
 
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<fp_type>> circuit;
+  auto circuit = CircuitQSimParser<fp_type>::Run(circuit_string, 99);
 
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 2);
   EXPECT_EQ(circuit.ops.size(), 23);
 
@@ -172,7 +169,6 @@ R"(2
 
 template <typename Factory>
 void TestHybrid4(const Factory& factory) {
-  constexpr char provider[] = "hybrid_test";
   constexpr char circuit_string[] =
 R"(4
 0 h 0
@@ -242,10 +238,8 @@ R"(4
 
   using fp_type = typename Factory::fp_type;
 
-  std::stringstream ss(circuit_string);
-  Circuit<Operation<fp_type>> circuit;
+  auto circuit = CircuitQSimParser<float>::Run(circuit_string, 99);
 
-  EXPECT_TRUE(CircuitQsimParser<IO>::FromStream(99, provider, ss, circuit));
   EXPECT_EQ(circuit.num_qubits, 4);
   EXPECT_EQ(circuit.ops.size(), 63);
 

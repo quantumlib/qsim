@@ -18,7 +18,7 @@
 #include "../../lib/fuser_mqubit.h"
 #include "../../lib/gates_cirq.h"
 #include "../../lib/io.h"
-#include "../../lib/run_qsim.h"
+#include "../../lib/run_qsim_deprecated.h"
 #include "../../lib/simulator_basic.h"
 #include "../../lib/util_cpu.h"
 

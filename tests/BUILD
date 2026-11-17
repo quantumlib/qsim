@@ -17,24 +17,33 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 gsframe_copts = ["-Wa,--gsframe=no"] if SUPPORTS_GSFRAME else []
 
+default_copts = ["-std=c++20"] + gsframe_copts
+
 # Options for testing different simulator types.
 avx_copts = [
     "-mavx2",
     "-mfma",
+    "-std=c++20",
 ] + gsframe_copts
 
-avx512_copts = ["-march=native"] + gsframe_copts
+avx512_copts = [
+    "-march=native",
+    "-std=c++20",
+] + gsframe_copts
 
-sse_copts = ["-msse4"] + gsframe_copts
+sse_copts = [
+    "-msse4",
+    "-std=c++20",
+] + gsframe_copts
 
 windows_copts = [
     "/arch:AVX",
-    "/std:c++17",
+    "/std:c++20",
 ]
 
 windows_avx512_copts = [
     "/arch:AVX512",
-    "/std:c++17",
+    "/std:c++20",
 ]
 
 config_setting(
@@ -48,7 +57,7 @@ cc_test(
     srcs = ["bitstring_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:bitstring",
@@ -62,7 +71,7 @@ cc_test(
     srcs = ["channel_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:channel",
@@ -80,7 +89,7 @@ cc_test(
     srcs = ["channels_cirq_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:channels_cirq",
@@ -92,7 +101,7 @@ cc_test(
         "//lib:io",
         "//lib:operation",
         "//lib:qtrajectory",
-        "//lib:run_qsim",
+        "//lib:run_qsim_deprecated",
         "//lib:simulator",
         "@com_google_googletest//:gtest_main",
     ],
@@ -104,7 +113,7 @@ cc_test(
     srcs = ["circuit_qsim_parser_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:circuit_qsim_parser",
@@ -116,12 +125,114 @@ cc_test(
 )
 
 cc_test(
+    name = "classical_control_expr_test",
+    size = "small",
+    srcs = ["classical_control_expr_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "classical_control_obs_test",
+    size = "small",
+    srcs = ["classical_control_obs_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "//lib:classical_control_expr",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "classical_control_parser_test",
+    size = "small",
+    srcs = ["classical_control_parser_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "//lib:classical_control_expr",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "classical_control_symbol_test",
+    size = "small",
+    srcs = ["classical_control_symbol_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "//lib:classical_control_expr",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "classical_control_symtab_test",
+    size = "small",
+    srcs = ["classical_control_symtab_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "classical_control_tokenizer_test",
+    size = "small",
+    srcs = ["classical_control_tokenizer_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "classical_control_util_test",
+    size = "small",
+    srcs = ["classical_control_util_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        "//lib:classical_control",
+        "//lib:classical_control_expr",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "expect_test",
     size = "small",
     srcs = ["expect_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:expect",
@@ -153,7 +264,7 @@ cc_test(
     srcs = ["fuser_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":fuser_testfixture",
@@ -172,7 +283,7 @@ cc_test(
     srcs = ["fuser_mqubit_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":fuser_testfixture",
@@ -207,7 +318,7 @@ cc_test(
     srcs = ["gates_qsim_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:gate",
@@ -222,7 +333,7 @@ cc_library(
     hdrs = ["hybrid_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:circuit_qsim_parser",
@@ -258,7 +369,7 @@ cc_test(
     srcs = ["matrix_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:matrix",
@@ -272,7 +383,7 @@ cc_test(
     srcs = ["operation_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:gate",
@@ -288,7 +399,7 @@ cc_library(
     hdrs = ["qtrajectory_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:channel",
@@ -322,7 +433,7 @@ cc_test(
         "//lib:fuser_mqubit",
         "//lib:gates_cirq",
         "//lib:io",
-        "//lib:run_qsim",
+        "//lib:run_qsim_deprecated",
         "//lib:seqfor",
         "//lib:simulator_avx",
         "@com_google_googletest//:gtest_main",
@@ -335,11 +446,12 @@ cc_test(
     srcs = ["run_qsim_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":gates_cirq_testfixture",
         "//lib:circuit_qsim_parser",
+        "//lib:classical_control",
         "//lib:formux",
         "//lib:fuser_basic",
         "//lib:io",
@@ -351,12 +463,33 @@ cc_test(
 )
 
 cc_test(
+    name = "run_qsim_deprecated_test",
+    size = "small",
+    srcs = ["run_qsim_deprecated_test.cc"],
+    copts = select({
+        ":windows": windows_copts,
+        "//conditions:default": default_copts,
+    }),
+    deps = [
+        ":gates_cirq_testfixture",
+        "//lib:circuit_qsim_parser",
+        "//lib:formux",
+        "//lib:fuser_basic",
+        "//lib:io",
+        "//lib:operation",
+        "//lib:run_qsim_deprecated",
+        "//lib:simulator",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "run_qsimh_test",
     size = "small",
     srcs = ["run_qsimh_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":gates_cirq_testfixture",
@@ -377,7 +510,7 @@ cc_library(
     hdrs = ["simulator_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:expect",
@@ -434,7 +567,7 @@ cc_test(
     srcs = ["simulator_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":simulator_testfixture",
@@ -469,7 +602,7 @@ cc_library(
     hdrs = ["statespace_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:circuit_qsim_parser",
@@ -477,7 +610,7 @@ cc_library(
         "//lib:gates_qsim",
         "//lib:io",
         "//lib:operation",
-        "//lib:run_qsim",
+        "//lib:run_qsim_deprecated",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -526,7 +659,7 @@ cc_test(
     srcs = ["statespace_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":statespace_testfixture",
@@ -563,7 +696,7 @@ cc_library(
     hdrs = ["unitaryspace_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -610,7 +743,7 @@ cc_test(
     srcs = ["unitaryspace_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":unitaryspace_testfixture",
@@ -643,7 +776,7 @@ cc_library(
     hdrs = ["unitary_calculator_testfixture.h"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:fuser",
@@ -696,7 +829,7 @@ cc_test(
     srcs = ["unitary_calculator_basic_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         ":unitary_calculator_testfixture",
@@ -731,7 +864,7 @@ cc_test(
     srcs = ["vectorspace_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:formux",
@@ -746,7 +879,7 @@ cc_test(
     srcs = ["mps_statespace_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:formux",
@@ -761,7 +894,7 @@ cc_test(
     srcs = ["mps_simulator_test.cc"],
     copts = select({
         ":windows": windows_copts,
-        "//conditions:default": [],
+        "//conditions:default": default_copts,
     }),
     deps = [
         "//lib:formux",
