@@ -549,7 +549,7 @@ class MPSStateSpace {
                      unsigned num_samples, unsigned seed,
                      std::vector<std::vector<bool>>* results) {
     std::mt19937 rand_source(seed);
-    results->reserve(num_samples);
+    results->resize(num_samples);
     for (unsigned i = 0; i < num_samples; i++) {
       SampleOnce(state, scratch, scratch2, &rand_source, &(*results)[i]);
     }
