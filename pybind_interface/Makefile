@@ -52,7 +52,7 @@ endif
 PYBINDFLAGS_BASIC = $(PYBINDFLAGS)
 PYBINDFLAGS_SSE = -msse4 $(PYBINDFLAGS)
 PYBINDFLAGS_AVX2 = -mavx2 -mfma $(PYBINDFLAGS)
-PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 $(PYBINDFLAGS)
+PYBINDFLAGS_AVX512 = -mavx512f -mbmi2 -mfma $(PYBINDFLAGS)
 
 # The flags for the compilation of CUDA-specific Pybind11 interfaces
 PYBINDFLAGS_CUDA = -std=c++17 -x cu -Xcompiler "-Wall -shared -fPIC $(PYBIND_INCLUDES)"

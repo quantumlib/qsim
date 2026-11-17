@@ -79,6 +79,8 @@ py::array_t<float> qsim_simulate_fullstate(
       const py::dict &options, const py::array_t<float> &input_vector);
 
 std::vector<unsigned> qsim_sample(const py::dict &options);
+std::vector<uint64_t> qsim_mps_sample(
+    const py::dict &options, uint64_t num_samples);
 std::vector<uint64_t> qsim_sample_final(
   const py::dict &options, uint64_t num_samples);
 
@@ -201,6 +203,8 @@ T ParseOptions(const py::dict& options, const char* key) {
       m.def("qsim_sample", &qsim_sample, "Call the qsim sampler");                    \
       m.def("qsim_sample_final", &qsim_sample_final,                                  \
             "Call the qsim final-state sampler");                                     \
+      m.def("qsim_mps_sample", &qsim_mps_sample,                                      \
+            "Sample a circuit using the MPS simulator");                               \
       m.def("qtrajectory_sample", &qtrajectory_sample,                                \
             "Call the qtrajectory sampler");                                          \
       m.def("qtrajectory_sample_final", &qtrajectory_sample_final,                    \

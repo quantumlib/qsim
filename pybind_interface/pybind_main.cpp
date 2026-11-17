@@ -29,6 +29,7 @@
 #include "../lib/formux.h"
 #include "../lib/fuser_mqubit.h"
 #include "../lib/io.h"
+#include "../lib/mps_circuit.h"
 #include "../lib/qtrajectory.h"
 #include "../lib/run_qsimh.h"
 
@@ -1078,4 +1079,53 @@ std::vector<std::complex<float>> qsimh_simulate(const py::dict &options) {
 
   IO::errorf("qsimh simulation of the circuit errored out.\n");
   return {};
+}
+
+// Samples a supported unitary circuit using the MPS simulator.
+std::vector<uint64_t> qsim_mps_sample(
+    const py::dict &options, uint64_t num_samples) {
+  using FP = float;
+  using MPSStateSpace = qsim::mps::MPSStateSpace<qsim::For, FP>;
+  using MPSSimulator = qsim::mps::MPSSimulator<qsim::For, FP>;
+
+  auto circuit = getCircuit(options);
+  const unsigned num_qubits = circuit.num_qubits;
+
+  if (num_qubits < 2) {
+    throw std::invalid_argument("MPS sampling requires at least two qubits.");
+  }
+  if (num_qubits > 64) {
+    throw std::invalid_argument(
+        "MPS sampling currently supports at most 64 qubits.");
+  }
+
+  const unsigned seed = ParseOptions<unsigned>(options, "s\0");
+
+  MPSSimulator simulator(1);
+
+  auto state = MPSStateSpace::Create(num_qubits, 32);
+  auto scratch = MPSStateSpace::Create(num_qubits, 32);
+  auto scratch2 = MPSStateSpace::Create(num_qubits, 32);
+  MPSStateSpace::SetStateZero(state);
+
+  qsim::mps::ApplyCircuit(circuit, simulator, state);
+
+  std::mt19937 random_gen(seed);
+  std::vector<uint64_t> results;
+  results.reserve(num_samples);
+
+  for (uint64_t i = 0; i < num_samples; ++i) {
+    std::vector<bool> sample;
+    MPSStateSpace::SampleOnce(state, scratch, scratch2, &random_gen, &sample);
+
+    uint64_t packed = 0;
+    for (unsigned q = 0; q < sample.size(); ++q) {
+      if (sample[q]) {
+        packed |= uint64_t{1} << q;
+      }
+    }
+    results.push_back(packed);
+  }
+
+  return results;
 }
