@@ -910,6 +910,279 @@ TEST(MPSSimulator, ApplyFusedGateMiddle) {
   }
 }
 
+
+TEST(MPSSimulator, ExpectationValue1Qubit) {
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  unsigned num_qubits = 4;
+  unsigned bond_dim = 4;
+  auto mps = ss.Create(num_qubits, bond_dim);
+  ss.SetStateZero(mps);
+
+  // Apply single- and two-qubit gates.
+  auto h0 = Cirq::H<float>::Create(0, 0);
+  auto h1 = Cirq::H<float>::Create(0, 1);
+  auto h2 = Cirq::H<float>::Create(0, 2);
+  auto h3 = Cirq::H<float>::Create(0, 3);
+  sim.ApplyGate({0}, h0.matrix.data(), mps);
+  sim.ApplyGate({1}, h1.matrix.data(), mps);
+  sim.ApplyGate({2}, h2.matrix.data(), mps);
+  sim.ApplyGate({3}, h3.matrix.data(), mps);
+
+  auto cz01 = Cirq::CZ<float>::Create(1, 0, 1);
+  auto cz12 = Cirq::CZ<float>::Create(1, 1, 2);
+  auto cz23 = Cirq::CZ<float>::Create(1, 2, 3);
+  sim.ApplyGate({0, 1}, cz01.matrix.data(), mps);
+  sim.ApplyGate({1, 2}, cz12.matrix.data(), mps);
+  sim.ApplyGate({2, 3}, cz23.matrix.data(), mps);
+
+  auto rx0 = Cirq::rx<float>::Create(2, 0, 0.4);
+  auto ry2 = Cirq::ry<float>::Create(2, 2, 0.7);
+  sim.ApplyGate({0}, rx0.matrix.data(), mps);
+  sim.ApplyGate({2}, ry2.matrix.data(), mps);
+
+  // Compute exact wave function.
+  const unsigned wf_size = 1 << num_qubits;
+  std::vector<float> wf_raw(2 * bond_dim * wf_size);
+  ss.ToWaveFunction(mps, wf_raw.data());
+  std::vector<std::complex<float>> psi(wf_size);
+  for (unsigned i = 0; i < wf_size; ++i) {
+    psi[i] = std::complex<float>(wf_raw[2 * i], wf_raw[2 * i + 1]);
+  }
+
+  auto dense_ev1 = [&](unsigned q, const float* m) -> std::complex<double> {
+    Eigen::Map<const Eigen::Matrix<std::complex<float>, 2, 2, Eigen::RowMajor>> mat(
+        (const std::complex<float>*) m);
+    unsigned shift = num_qubits - 1 - q;
+    std::complex<double> ev = 0;
+    for (unsigned i = 0; i < wf_size; ++i) {
+      unsigned s = (i >> shift) & 1;
+      unsigned i0 = i & ~(1u << shift);
+      unsigned i1 = i | (1u << shift);
+      std::complex<float> o_psi_i = mat(s, 0) * psi[i0] + mat(s, 1) * psi[i1];
+      ev += std::conj(psi[i]) * o_psi_i;
+    }
+    return ev;
+  };
+
+  auto x_gate = Cirq::X<float>::Create(0, 0);
+  auto y_gate = Cirq::Y<float>::Create(0, 0);
+  auto z_gate = Cirq::Z<float>::Create(0, 0);
+  auto h_gate = Cirq::H<float>::Create(0, 0);
+
+  for (unsigned q = 0; q < num_qubits; ++q) {
+    auto dev_z = dense_ev1(q, z_gate.matrix.data());
+    auto mev_z = sim.ExpectationValue({q}, z_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_z.real(), dev_z.real(), 1e-4);
+    EXPECT_NEAR(mev_z.imag(), dev_z.imag(), 1e-4);
+
+    auto dev_x = dense_ev1(q, x_gate.matrix.data());
+    auto mev_x = sim.ExpectationValue({q}, x_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_x.real(), dev_x.real(), 1e-4);
+    EXPECT_NEAR(mev_x.imag(), dev_x.imag(), 1e-4);
+
+    auto dev_y = dense_ev1(q, y_gate.matrix.data());
+    auto mev_y = sim.ExpectationValue({q}, y_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_y.real(), dev_y.real(), 1e-4);
+    EXPECT_NEAR(mev_y.imag(), dev_y.imag(), 1e-4);
+
+    auto dev_h = dense_ev1(q, h_gate.matrix.data());
+    auto mev_h = sim.ExpectationValue({q}, h_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_h.real(), dev_h.real(), 1e-4);
+    EXPECT_NEAR(mev_h.imag(), dev_h.imag(), 1e-4);
+  }
+}
+
+TEST(MPSSimulator, ExpectationValue2Qubit) {
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  unsigned num_qubits = 4;
+  unsigned bond_dim = 4;
+  auto mps = ss.Create(num_qubits, bond_dim);
+  ss.SetStateZero(mps);
+
+  auto h0 = Cirq::H<float>::Create(0, 0);
+  auto h1 = Cirq::H<float>::Create(0, 1);
+  auto h2 = Cirq::H<float>::Create(0, 2);
+  auto h3 = Cirq::H<float>::Create(0, 3);
+  sim.ApplyGate({0}, h0.matrix.data(), mps);
+  sim.ApplyGate({1}, h1.matrix.data(), mps);
+  sim.ApplyGate({2}, h2.matrix.data(), mps);
+  sim.ApplyGate({3}, h3.matrix.data(), mps);
+
+  auto cz01 = Cirq::CZ<float>::Create(1, 0, 1);
+  auto cz12 = Cirq::CZ<float>::Create(1, 1, 2);
+  auto cz23 = Cirq::CZ<float>::Create(1, 2, 3);
+  sim.ApplyGate({0, 1}, cz01.matrix.data(), mps);
+  sim.ApplyGate({1, 2}, cz12.matrix.data(), mps);
+  sim.ApplyGate({2, 3}, cz23.matrix.data(), mps);
+
+  const unsigned wf_size = 1 << num_qubits;
+  std::vector<float> wf_raw(2 * bond_dim * wf_size);
+  ss.ToWaveFunction(mps, wf_raw.data());
+  std::vector<std::complex<float>> psi(wf_size);
+  for (unsigned i = 0; i < wf_size; ++i) {
+    psi[i] = std::complex<float>(wf_raw[2 * i], wf_raw[2 * i + 1]);
+  }
+
+  auto dense_ev2 = [&](unsigned q0, unsigned q1, const float* m) -> std::complex<double> {
+    Eigen::Map<const Eigen::Matrix<std::complex<float>, 4, 4, Eigen::RowMajor>> mat(
+        (const std::complex<float>*) m);
+    unsigned shift0 = num_qubits - 1 - q0;
+    unsigned shift1 = num_qubits - 1 - q1;
+    std::complex<double> ev = 0;
+    for (unsigned i = 0; i < wf_size; ++i) {
+      unsigned s0 = (i >> shift0) & 1;
+      unsigned s1 = (i >> shift1) & 1;
+      unsigned s = (s0 << 1) | s1;
+      unsigned base = i & ~(1u << shift0) & ~(1u << shift1);
+      std::complex<float> o_psi_i = 0;
+      for (unsigned sp0 = 0; sp0 < 2; ++sp0) {
+        for (unsigned sp1 = 0; sp1 < 2; ++sp1) {
+          unsigned sp = (sp0 << 1) | sp1;
+          unsigned idx = base | (sp0 << shift0) | (sp1 << shift1);
+          o_psi_i += mat(s, sp) * psi[idx];
+        }
+      }
+      ev += std::conj(psi[i]) * o_psi_i;
+    }
+    return ev;
+  };
+
+  auto cz_gate = Cirq::CZ<float>::Create(0, 0, 1);
+  auto iswap_gate = Cirq::ISWAP<float>::Create(0, 0, 1);
+  auto fsim_gate = Cirq::FSimGate<float>::Create(0, 0, 1, 0.3, 0.5);
+
+  std::vector<std::pair<unsigned, unsigned>> pairs = {
+    {0, 1}, {1, 2}, {2, 3}, // adjacent
+    {0, 2}, {0, 3}, {1, 3}  // non-adjacent
+  };
+
+  for (const auto& p : pairs) {
+    auto dev_cz = dense_ev2(p.first, p.second, cz_gate.matrix.data());
+    auto mev_cz = sim.ExpectationValue({p.first, p.second}, cz_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_cz.real(), dev_cz.real(), 1e-4);
+    EXPECT_NEAR(mev_cz.imag(), dev_cz.imag(), 1e-4);
+
+    auto dev_is = dense_ev2(p.first, p.second, iswap_gate.matrix.data());
+    auto mev_is = sim.ExpectationValue({p.first, p.second}, iswap_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_is.real(), dev_is.real(), 1e-4);
+    EXPECT_NEAR(mev_is.imag(), dev_is.imag(), 1e-4);
+
+    auto dev_fs = dense_ev2(p.first, p.second, fsim_gate.matrix.data());
+    auto mev_fs = sim.ExpectationValue({p.first, p.second}, fsim_gate.matrix.data(), mps);
+    EXPECT_NEAR(mev_fs.real(), dev_fs.real(), 1e-4);
+    EXPECT_NEAR(mev_fs.imag(), dev_fs.imag(), 1e-4);
+  }
+}
+
+TEST(MPSSimulator, ExpectationValueBellState) {
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  auto mps = ss.Create(2, 2);
+  ss.SetStateZero(mps);
+
+  // Prepare Bell state (|00> + |11>) / sqrt(2)
+  // In Cirq::CX with {0, 1}, qubit 1 acts as control and qubit 0 as target.
+  auto h1 = Cirq::H<float>::Create(0, 1);
+  auto cx01 = Cirq::CX<float>::Create(1, 0, 1);
+  sim.ApplyGate({1}, h1.matrix.data(), mps);
+  sim.ApplyGate({0, 1}, cx01.matrix.data(), mps);
+
+  auto z_gate = Cirq::Z<float>::Create(0, 0);
+  auto x_gate = Cirq::X<float>::Create(0, 0);
+  auto zz_gate = Cirq::ZZ<float>::Create(0, 0, 1);
+  auto xx_gate = Cirq::XX<float>::Create(0, 0, 1);
+  auto yy_gate = Cirq::YY<float>::Create(0, 0, 1);
+
+  // <Z0> = 0, <Z1> = 0
+  auto ev_z0 = sim.ExpectationValue({0}, z_gate.matrix.data(), mps);
+  auto ev_z1 = sim.ExpectationValue({1}, z_gate.matrix.data(), mps);
+  EXPECT_NEAR(ev_z0.real(), 0.0, 1e-5);
+  EXPECT_NEAR(ev_z0.imag(), 0.0, 1e-5);
+  EXPECT_NEAR(ev_z1.real(), 0.0, 1e-5);
+  EXPECT_NEAR(ev_z1.imag(), 0.0, 1e-5);
+
+  // <ZZ> = 1.0
+  auto ev_zz = sim.ExpectationValue({0, 1}, zz_gate.matrix.data(), mps);
+  EXPECT_NEAR(ev_zz.real(), 1.0, 1e-5);
+  EXPECT_NEAR(ev_zz.imag(), 0.0, 1e-5);
+
+  // <XX> = 1.0
+  auto ev_xx = sim.ExpectationValue({0, 1}, xx_gate.matrix.data(), mps);
+  EXPECT_NEAR(ev_xx.real(), 1.0, 1e-5);
+  EXPECT_NEAR(ev_xx.imag(), 0.0, 1e-5);
+
+  // <YY> = -1.0
+  auto ev_yy = sim.ExpectationValue({0, 1}, yy_gate.matrix.data(), mps);
+  EXPECT_NEAR(ev_yy.real(), -1.0, 1e-5);
+  EXPECT_NEAR(ev_yy.imag(), 0.0, 1e-5);
+}
+
+TEST(MPSSimulator, ExpectationValueGHZState) {
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  // 4-qubit GHZ state (|0000> + |1111>) / sqrt(2)
+  auto mps = ss.Create(4, 2);
+  ss.SetStateZero(mps);
+
+  // In Cirq::CX with {q0, q1}, q1 acts as control and q0 as target.
+  auto h3 = Cirq::H<float>::Create(0, 3);
+  auto cx23 = Cirq::CX<float>::Create(1, 2, 3);
+  auto cx12 = Cirq::CX<float>::Create(2, 1, 2);
+  auto cx01 = Cirq::CX<float>::Create(3, 0, 1);
+  sim.ApplyGate({3}, h3.matrix.data(), mps);
+  sim.ApplyGate({2, 3}, cx23.matrix.data(), mps);
+  sim.ApplyGate({1, 2}, cx12.matrix.data(), mps);
+  sim.ApplyGate({0, 1}, cx01.matrix.data(), mps);
+
+  auto z_gate = Cirq::Z<float>::Create(0, 0);
+  auto zz_gate = Cirq::ZZ<float>::Create(0, 0, 1);
+
+  // Single-qubit <Z> = 0 on all qubits
+  for (unsigned q = 0; q < 4; ++q) {
+    auto ev_z = sim.ExpectationValue({q}, z_gate.matrix.data(), mps);
+    EXPECT_NEAR(ev_z.real(), 0.0, 1e-5);
+    EXPECT_NEAR(ev_z.imag(), 0.0, 1e-5);
+  }
+
+  // Two-qubit <ZZ> = 1.0 for all pairs (adjacent and non-adjacent)
+  std::vector<std::pair<unsigned, unsigned>> pairs = {
+    {0, 1}, {1, 2}, {2, 3}, {0, 2}, {0, 3}, {1, 3}
+  };
+  for (const auto& p : pairs) {
+    auto ev_zz = sim.ExpectationValue({p.first, p.second}, zz_gate.matrix.data(), mps);
+    EXPECT_NEAR(ev_zz.real(), 1.0, 1e-5);
+    EXPECT_NEAR(ev_zz.imag(), 0.0, 1e-5);
+  }
+}
+
+TEST(MPSSimulator, ExpectationValueInvalidQubits) {
+  auto sim = MPSSimulator<For, float>(1);
+  using MPSStateSpace = MPSSimulator<For, float>::MPSStateSpace_;
+  auto ss = MPSStateSpace(1);
+
+  auto mps = ss.Create(3, 2);
+  ss.SetStateZero(mps);
+
+  float dummy[16] = {0};
+  // Empty qubits returns 0
+  auto ev_empty = sim.ExpectationValue({}, dummy, mps);
+  EXPECT_EQ(ev_empty, std::complex<double>(0, 0));
+
+  // 3 qubits (not implemented) returns 0
+  auto ev_3q = sim.ExpectationValue({0, 1, 2}, dummy, mps);
+  EXPECT_EQ(ev_3q, std::complex<double>(0, 0));
+}
+
 }  // namespace
 }  // namespace mps
 }  // namespace qsim
